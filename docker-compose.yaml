@@ -1,0 +1,85 @@
+services:  
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DATABASE: bbl
+      POSTGRES_USER: bbl
+      POSTGRES_PASSWORD: bbl
+      PGPORT: 3351
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - 3351:3351
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bbl -d bbl"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  opensearch-node1:
+    image: opensearchproject/opensearch:2.19.0
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true # disable JVM heap memory swapping
+      - plugins.security.disabled=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # set min and max JVM heap sizes to at least 50% of system RAM
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=Y8yk+GRrk"
+    ulimits:
+      memlock:
+        soft: -1 # set memlock to unlimited (no soft or hard limit)
+        hard: -1
+      nofile:
+        soft: 65536 # max number of open files for the opensearch user - set to at least 65536
+        hard: 65536
+    volumes:
+      - opensearch-data1:/usr/share/opensearch/data
+    ports:
+      - 3352:9200
+      - 3353:9600 # performance analyzer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cat/health?v || exit 1"]
+      interval: 20s
+      timeout: 20s
+      retries: 5
+
+  opensearch-node2:
+    image: opensearchproject/opensearch:2.19.0
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node2
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - plugins.security.disabled=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=Y8yk+GRrk"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data2:/usr/share/opensearch/data
+    ports:
+      - 9200
+      - 9600
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cat/health?v || exit 1"]
+      interval: 20s
+      timeout: 20s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
+  opensearch-data1:
+    driver: local
+  opensearch-data2:
+    driver: local

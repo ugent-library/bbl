@@ -1,0 +1,32 @@
+# binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# test binary built with `go test -c`
+*.test
+
+# output of the go coverage tool
+*.out
+
+# dependency directories
+node_modules
+
+# junk files
+.DS_Store
+
+# force include empty directories
+!.gitkeep
+
+# dotenv
+.env
+.env.*
+!.env.example
+
+# local workspace
+go.work*
+
+# tmp
+tmp
