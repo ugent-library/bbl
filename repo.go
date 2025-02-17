@@ -6,14 +6,28 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+
+	"go.breu.io/ulid"
 )
 
+type recSpec struct {
+	Attrs map[string]*attrSpec
+}
+
+type attrSpec struct{}
+
 type Repo struct {
-	db DbAdapter
+	db       DbAdapter
+	recSpecs map[string]*recSpec
 }
 
 func NewRepo(db DbAdapter) *Repo {
-	return &Repo{db: db}
+	return &Repo{
+		db: db,
+		recSpecs: map[string]*recSpec{
+			organizationKind: organizationSpec,
+		},
+	}
 }
 
 func (r *Repo) MigrateUp(ctx context.Context) error {
@@ -36,7 +50,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					ID:   c.ID,
 					Kind: c.AddRecArgs().Kind,
 				}
-				if _, ok := RecSpecs[rec.Kind]; !ok {
+				if _, ok := r.recSpecs[rec.Kind]; !ok {
 					return errors.New("invalid rec kind")
 				}
 			} else {
@@ -57,7 +71,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 				case OpDelRec:
 					rec = nil
 				case OpAddAttr:
-					recSpec := RecSpecs[rec.Kind]
+					recSpec := r.recSpecs[rec.Kind]
 					args := c.AddAttrArgs()
 					_, ok := recSpec.Attrs[args.Kind]
 					if !ok {
@@ -118,4 +132,16 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 			Changes: changesApplied,
 		})
 	})
+}
+
+func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
+	rec, err := r.db.GetRecWithKind(ctx, organizationKind, id)
+	if err != nil {
+		return nil, err
+	}
+	return loadOrganization(rec)
+}
+
+func newID() string {
+	return ulid.Make().UUIDString()
 }

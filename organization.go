@@ -1,31 +1,32 @@
 package bbl
 
-// var OrganizationSpec = &RecSpec[*Organization]{
-// 	Attrs: map[string]AttrSpec[*Organization]{
-// 		"ceased_on": {
-// 			Decode: decodeVal[time.Time],
-// 			Reify: func(rec *Organization) {
-// 				setAttr(rec, "ceased_on", rec.Attrs.CeasedOn)
-// 			},
-// 		},
-// 		"name": {
-// 			Decode: decodeVal[Text],
-// 			Reify: func(rec *Organization) {
-// 				setAttrs(rec, "name", &rec.Attrs.Names)
-// 			},
-// 		},
-// 	},
-// }
+import "time"
 
-// type Organization = Rec[OrganizationAttrs]
+var organizationKind = "organization"
 
-// type OrganizationAttrs struct {
-// 	CeasedOn *Attr[time.Time] `json:"ceased_on,omitempty"`
-// 	Names    []Attr[Text]     `json:"names,omitempty"`
-// }
+var organizationSpec = &recSpec{
+	Attrs: map[string]*attrSpec{
+		"ceased_on": {},
+		"name":      {},
+	},
+}
 
-// func NewOrganization(id, kind string) *Organization {
-// 	rec := &Organization{}
-// 	rec.change(AddRec(id, kind))
-// 	return rec
-// }
+type Organization struct {
+	ID       string           `json:"id,omitempty"`
+	Kind     string           `json:"kind"`
+	CeasedOn *Attr[time.Time] `json:"ceased_on,omitempty"`
+	Names    []Attr[Text]     `json:"names,omitempty"`
+}
+
+func loadOrganization(rec *DbRec) (*Organization, error) {
+	o := Organization{}
+	o.ID = rec.ID
+	o.Kind = rec.Kind
+	if err := setAttr(rec, "ceased_on", o.CeasedOn); err != nil {
+		return nil, err
+	}
+	if err := setAttrs(rec, "name", &o.Names); err != nil {
+		return nil, err
+	}
+	return &o, nil
+}

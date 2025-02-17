@@ -3,11 +3,15 @@ package bbl
 import (
 	"context"
 	"encoding/json"
+	"errors"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type DbAdapter interface {
 	MigrateUp(context.Context) error
 	MigrateDown(context.Context) error
+	GetRecWithKind(context.Context, string, string) (*DbRec, error)
 	Do(context.Context, func(DbTx) error) error
 }
 
@@ -23,8 +27,7 @@ type DbRec struct {
 }
 
 type DbAttr struct {
-	ID   string `json:"id"`
-	Kind string `json:"kind"`
-	// Seq  int
-	Val json.RawMessage `json:"val"`
+	ID   string          `json:"id"`
+	Kind string          `json:"kind"`
+	Val  json.RawMessage `json:"val"`
 }

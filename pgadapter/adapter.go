@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -17,6 +18,13 @@ import (
 var migrationsFS embed.FS
 
 var _ bbl.DbAdapter = (*Adapter)(nil)
+
+type dbConn interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, optionsAndArgs ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, optionsAndArgs ...interface{}) pgx.Row
+}
 
 type Adapter struct {
 	conn *pgxpool.Pool
@@ -56,6 +64,10 @@ func (a *Adapter) MigrateDown(ctx context.Context) error {
 	return goose.ResetContext(ctx, db, "migrations")
 }
 
+func (a *Adapter) GetRecWithKind(ctx context.Context, kind, id string) (*bbl.DbRec, error) {
+	return getRecWithKind(ctx, a.conn, kind, id)
+}
+
 func (a *Adapter) Do(ctx context.Context, fn func(bbl.DbTx) error) error {
 	tx, err := a.conn.Begin(ctx)
 	if err != nil {
@@ -79,30 +91,7 @@ type Tx struct {
 }
 
 func (tx *Tx) GetRec(ctx context.Context, id string) (*bbl.DbRec, error) {
-	q := `
-		select r.kind,
-       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
-		from bbl_recs r
-		left join bbl_attrs a on r.id = a.rec_id
-		where r.id = $1
-		group by r.id;`
-
-	var kind string
-	var attrs json.RawMessage
-
-	if err := tx.conn.QueryRow(ctx, q, id).Scan(&kind, &attrs); err == pgx.ErrNoRows {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	rec := bbl.DbRec{ID: id, Kind: kind}
-
-	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
-		return nil, err
-	}
-
-	return &rec, nil
+	return getRec(ctx, tx.conn, id)
 }
 
 func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
@@ -142,14 +131,6 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				c.ID,
 				c.AddRecArgs().Kind,
 			)
-		// case bbl.OpSetKind:
-		// 	batch.Queue(`
-		// 		update bbl_recs
-		//         set kind = $2
-		//         where id = $1;`,
-		// 		c.ID,
-		// 		c.SetKindArgs().Kind,
-		// 	)
 		case bbl.OpDelRec:
 			batch.Queue(`
 				delete from bbl_recs
@@ -213,4 +194,58 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	}
 
 	return nil
+}
+
+func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
+	q := `
+		select r.kind,
+       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
+		from bbl_recs r
+		left join bbl_attrs a on r.id = a.rec_id
+		where r.id = $1
+		group by r.id;`
+
+	var kind string
+	var attrs json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, id).Scan(&kind, &attrs); err == pgx.ErrNoRows {
+		return nil, bbl.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	rec := bbl.DbRec{ID: id, Kind: kind}
+
+	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
+		return nil, err
+	}
+
+	return &rec, nil
+}
+
+func getRecWithKind(ctx context.Context, conn dbConn, k, id string) (*bbl.DbRec, error) {
+	q := `
+		select r.kind,
+       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
+		from bbl_recs r
+		left join bbl_attrs a on r.id = a.rec_id
+		where r.kind <@ $1 and r.id = $2 
+		group by r.id;`
+
+	var kind string
+	var attrs json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, k, id).Scan(&kind, &attrs); err == pgx.ErrNoRows {
+		return nil, bbl.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	rec := bbl.DbRec{ID: id, Kind: kind}
+
+	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
+		return nil, err
+	}
+
+	return &rec, nil
 }

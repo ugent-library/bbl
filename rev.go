@@ -7,8 +7,7 @@ import (
 type Op string
 
 const (
-	OpAddRec Op = "add_rec"
-	// OpSetKind Op = "set_kind"
+	OpAddRec  Op = "add_rec"
 	OpDelRec  Op = "del_rec"
 	OpAddAttr Op = "add_attr"
 	OpSetAttr Op = "set_attr"
@@ -61,9 +60,7 @@ func (c *Change) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (c *Change) AddRecArgs() *AddRecArgs { return c.Args.(*AddRecArgs) }
-
-// func (c *Change) SetKindArgs() *SetKindArgs { return c.Args.(*SetKindArgs) }
+func (c *Change) AddRecArgs() *AddRecArgs   { return c.Args.(*AddRecArgs) }
 func (c *Change) DelRecArgs() *DelRecArgs   { return c.Args.(*DelRecArgs) }
 func (c *Change) AddAttrArgs() *AddAttrArgs { return c.Args.(*AddAttrArgs) }
 func (c *Change) SetAttrArgs() *SetAttrArgs { return c.Args.(*SetAttrArgs) }
@@ -73,23 +70,7 @@ type AddRecArgs struct {
 	Kind string `json:"kind"`
 }
 
-// func AddRec(id, kind string) *Change {
-// 	return &Change{ID: id, Op: OpAddRec, Args: &AddRecArgs{Kind: kind}}
-// }
-
-// type SetKindArgs struct {
-// 	Kind string `json:"kind"`
-// }
-
-// func SetKind(id, kind string) *Change {
-// 	return &Change{ID: id, Op: OpSetKind, Args: &SetKindArgs{Kind: kind}}
-// }
-
 type DelRecArgs struct{}
-
-// func DelRec(id string) *Change {
-// 	return &Change{ID: id, Op: OpDelRec, Args: &DelRecArgs{}}
-// }
 
 type AddAttrArgs struct {
 	ID   string          `json:"id"`
@@ -97,27 +78,11 @@ type AddAttrArgs struct {
 	Val  json.RawMessage `json:"val"`
 }
 
-// func AddAttr(id, partID, kind string, val any) *Change {
-// 	b, _ := json.Marshal(val)
-// 	return &Change{ID: id, Op: OpAddAttr, Args: &AddAttrArgs{ID: partID, Kind: kind, Val: b}}
-// }
-
 type SetAttrArgs struct {
-	ID string `json:"id"`
-	// Kind string          `json:"kind"`
+	ID  string          `json:"id"`
 	Val json.RawMessage `json:"val"`
 }
 
-// func SetAttr(id, partID string, val any) *Change {
-// 	b, _ := json.Marshal(val)
-// 	return &Change{ID: id, Op: OpSetAttr, Args: &SetAttrArgs{ID: id, Val: b}}
-// }
-
 type DelAttrArgs struct {
 	ID string `json:"id"`
-	// Kind string `json:"kind"`
 }
-
-// func DelAttr(id, partID string) *Change {
-// 	return &Change{ID: id, Op: OpDelAttr, Args: &DelAttrArgs{ID: id}}
-// }

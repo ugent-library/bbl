@@ -4,10 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var prettify = false
-
 var rootCmd = &cobra.Command{
-	Use:   "alma",
+	Use:   "bbl",
 	Short: "",
 	Long:  ``,
 }
