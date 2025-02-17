@@ -81,20 +81,23 @@ type Tx struct {
 func (tx *Tx) GetRec(ctx context.Context, id string) (*bbl.DbRec, error) {
 	q := `
 		select r.kind,
-       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val': a.val)) filter (where a.rec_id is not null) as attrs
+       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
 		from bbl_recs r
 		left join bbl_attrs a on r.id = a.rec_id
-		group by r.id
-		where r.id = $1;`
+		where r.id = $1
+		group by r.id;`
 
 	var kind string
 	var attrs json.RawMessage
 
-	if err := tx.conn.QueryRow(ctx, q, id).Scan(&kind, &attrs); err != nil {
+	if err := tx.conn.QueryRow(ctx, q, id).Scan(&kind, &attrs); err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
 	rec := bbl.DbRec{ID: id, Kind: kind}
+
 	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
 		return nil, err
 	}
@@ -186,10 +189,10 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 		            where rec_id = $1 and id = $2
 		            returning kind, seq
 		    	)
-		        update bbl_attrs
-		        set seq = seq - 1
+		        update bbl_attrs a
+		        set seq = a.seq - 1
 		        from attr
-		        where rec_id = $1 and kind = link.kind and seq > link.seq;`,
+		        where a.rec_id = $1 and a.kind = attr.kind and a.seq > attr.seq;`,
 				c.ID,
 				c.DelAttrArgs().ID,
 			)
