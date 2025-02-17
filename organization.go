@@ -22,10 +22,10 @@ func loadOrganization(rec *DbRec) (*Organization, error) {
 	o := Organization{}
 	o.ID = rec.ID
 	o.Kind = rec.Kind
-	if err := setAttr(rec, "ceased_on", o.CeasedOn); err != nil {
+	if err := loadAttr(rec, "ceased_on", o.CeasedOn); err != nil {
 		return nil, err
 	}
-	if err := setAttrs(rec, "name", &o.Names); err != nil {
+	if err := loadAttrs(rec, "name", &o.Names); err != nil {
 		return nil, err
 	}
 	return &o, nil

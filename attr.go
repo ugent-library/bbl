@@ -22,7 +22,7 @@ func (a *Attr[T]) GetVal() T {
 	}
 }
 
-func setAttr[T any](rec *DbRec, kind string, ptr *Attr[T]) error {
+func loadAttr[T any](rec *DbRec, kind string, ptr *Attr[T]) error {
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
 			attr := Attr[T]{ID: p.ID}
@@ -36,7 +36,7 @@ func setAttr[T any](rec *DbRec, kind string, ptr *Attr[T]) error {
 	return nil
 }
 
-func setAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
+func loadAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
 	var attrs []Attr[T]
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
