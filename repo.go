@@ -26,6 +26,8 @@ func NewRepo(db DbAdapter) *Repo {
 		db: db,
 		recSpecs: map[string]*recSpec{
 			organizationKind: organizationSpec,
+			projectKind:      projectSpec,
+			workKind:         workSpec,
 		},
 	}
 }
@@ -70,7 +72,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 				switch c.Op {
 				case OpDelRec:
 					rec = nil
-				case OpAddAttr:
+				case OpAddAttr: // TODO check RelID
 					recSpec := r.recSpecs[rec.Kind]
 					args := c.AddAttrArgs()
 					_, ok := recSpec.Attrs[args.Kind]
@@ -81,11 +83,12 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 						args.ID = newID()
 					}
 					rec.Attrs = append(rec.Attrs, &DbAttr{
-						ID:   args.ID,
-						Kind: args.Kind,
-						Val:  args.Val,
+						ID:    args.ID,
+						Kind:  args.Kind,
+						Val:   args.Val,
+						RelID: args.RelID,
 					})
-				case OpSetAttr:
+				case OpSetAttr: // TODO check RelID
 					args := c.SetAttrArgs()
 					var attr *DbAttr
 					for _, a := range rec.Attrs {
@@ -97,17 +100,21 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					if attr == nil {
 						return errors.New("attr doesn't exist")
 					}
-					var oldVal, newVal any
-					if err = json.Unmarshal(attr.Val, &oldVal); err != nil {
-						return err
-					}
-					if err = json.Unmarshal(args.Val, &newVal); err != nil {
-						return err
-					}
-					if reflect.DeepEqual(oldVal, newVal) {
-						continue
+					// skip if nothing changed
+					if args.RelID == attr.RelID {
+						var oldVal, newVal any
+						if err = json.Unmarshal(attr.Val, &oldVal); err != nil {
+							return err
+						}
+						if err = json.Unmarshal(args.Val, &newVal); err != nil {
+							return err
+						}
+						if reflect.DeepEqual(oldVal, newVal) {
+							continue
+						}
 					}
 					attr.Val = args.Val
+					attr.RelID = args.RelID
 				case OpDelAttr:
 					args := c.DelAttrArgs()
 					var exists bool
@@ -140,6 +147,22 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 		return nil, err
 	}
 	return loadOrganization(rec)
+}
+
+func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
+	rec, err := r.db.GetRecWithKind(ctx, projectKind, id)
+	if err != nil {
+		return nil, err
+	}
+	return loadProject(rec)
+}
+
+func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
+	rec, err := r.db.GetRecWithKind(ctx, workKind, id)
+	if err != nil {
+		return nil, err
+	}
+	return loadWork(rec)
 }
 
 func newID() string {

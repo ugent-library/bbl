@@ -139,29 +139,41 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 		case bbl.OpAddAttr:
 			args := c.AddAttrArgs()
+			var relID any
+			if args.RelID != "" {
+				relID = args.RelID
+			}
 			batch.Queue(`
-				insert into bbl_attrs (rec_id, id, kind, seq, val)
+				insert into bbl_attrs (rec_id, id, kind, seq, val, rel_id)
 		        values (
 		        	$1,
 		        	$2,
 		        	$3,
 		        	(select count(*) from bbl_attrs where rec_id = $1 and kind = $3) + 1,
-		        	$4
+		        	$4,
+					$5
 		        );`,
 				c.ID,
 				args.ID,
 				args.Kind,
 				args.Val,
+				relID,
 			)
 		case bbl.OpSetAttr:
 			args := c.SetAttrArgs()
+			var relID any
+			if args.RelID != "" {
+				relID = args.RelID
+			}
 			batch.Queue(`
 				update bbl_attrs
-		        set val = $3
+		        set val = $3, 
+				    rel_id = $4
 		        where rec_id = $1 and id = $2;`,
 				c.ID,
 				args.ID,
 				args.Val,
+				relID,
 			)
 		case bbl.OpDelAttr:
 			batch.Queue(`
@@ -199,7 +211,7 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
 	q := `
 		select r.kind,
-       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
+       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val, 'rel_id', a.rel_id)) filter (where a.rec_id is not null) as attrs
 		from bbl_recs r
 		left join bbl_attrs a on r.id = a.rec_id
 		where r.id = $1
@@ -226,7 +238,7 @@ func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
 func getRecWithKind(ctx context.Context, conn dbConn, k, id string) (*bbl.DbRec, error) {
 	q := `
 		select r.kind,
-       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val)) filter (where a.rec_id is not null) as attrs
+       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val, 'rel_id', a.rel_id)) filter (where a.rec_id is not null) as attrs
 		from bbl_recs r
 		left join bbl_attrs a on r.id = a.rec_id
 		where r.kind <@ $1 and r.id = $2 

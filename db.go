@@ -27,7 +27,9 @@ type DbRec struct {
 }
 
 type DbAttr struct {
-	ID   string          `json:"id"`
-	Kind string          `json:"kind"`
-	Val  json.RawMessage `json:"val"`
+	ID    string          `json:"id"`
+	Kind  string          `json:"kind"`
+	Val   json.RawMessage `json:"val"`
+	RelID string          `json:"rel_id"`
+	Rel   json.RawMessage `json:"rel"`
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugentlib/bbl"
@@ -8,14 +10,13 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(migrateCmd)
+	rootCmd.AddCommand(projectCmd)
 }
 
-var migrateCmd = &cobra.Command{
-	Use:       "migrate [up|down]",
-	Short:     "Run database migrations",
-	Args:      cobra.ExactArgs(1),
-	ValidArgs: []string{"up", "down"},
+var projectCmd = &cobra.Command{
+	Use:   "project [id]",
+	Short: "Get project",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -24,10 +25,12 @@ var migrateCmd = &cobra.Command{
 		defer conn.Close()
 		repo := bbl.NewRepo(pgadapter.New(conn))
 
-		if args[0] == "up" {
-			return repo.MigrateUp(cmd.Context())
-		} else {
-			return repo.MigrateDown(cmd.Context())
+		rec, err := repo.GetProject(cmd.Context(), args[0])
+		if err != nil {
+			return err
 		}
+
+		enc := json.NewEncoder(cmd.OutOrStdout())
+		return enc.Encode(rec)
 	},
 }

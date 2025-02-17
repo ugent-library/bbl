@@ -73,14 +73,16 @@ type AddRecArgs struct {
 type DelRecArgs struct{}
 
 type AddAttrArgs struct {
-	ID   string          `json:"id"`
-	Kind string          `json:"kind"`
-	Val  json.RawMessage `json:"val"`
+	ID    string          `json:"id"`
+	Kind  string          `json:"kind"`
+	Val   json.RawMessage `json:"val"`
+	RelID string          `json:"rel_id"`
 }
 
 type SetAttrArgs struct {
-	ID  string          `json:"id"`
-	Val json.RawMessage `json:"val"`
+	ID    string          `json:"id"`
+	Val   json.RawMessage `json:"val"`
+	RelID string          `json:"rel_id"`
 }
 
 type DelAttrArgs struct {
