@@ -235,29 +235,66 @@ func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
 	return &rec, nil
 }
 
-func getRecWithKind(ctx context.Context, conn dbConn, k, id string) (*bbl.DbRec, error) {
+func getRecWithKind(ctx context.Context, conn dbConn, kind, id string) (*bbl.DbRec, error) {
 	q := `
-		select r.kind,
-       	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val, 'rel_id', a.rel_id)) filter (where a.rec_id is not null) as attrs
-		from bbl_recs r
-		left join bbl_attrs a on r.id = a.rec_id
-		where r.kind <@ $1 and r.id = $2 
-		group by r.id;`
+		with recursive traverse(rec_id, rec_kind, id, kind, val, rel_id) as (
+			select a.rec_id, r.kind as rec_kind, a.id, a.kind, a.val, a.rel_id
+			from bbl_attrs a
+			inner join bbl_recs r on r.id = a.rec_id
+			where r.kind <@ $1 and r.id = $2
+		union all
+			select a.rec_id, r.kind as rec_kind, a.id, a.kind, a.val, a.rel_id
+			from bbl_attrs a
+			inner join bbl_recs r on r.id = a.rec_id
+			join traverse t on a.rec_id = t.rel_id
+		)
+		select distinct rec_id, rec_kind, id, kind, val, rel_id
+		from traverse;`
 
-	var kind string
-	var attrs json.RawMessage
-
-	if err := conn.QueryRow(ctx, q, k, id).Scan(&kind, &attrs); err == pgx.ErrNoRows {
-		return nil, bbl.ErrNotFound
-	} else if err != nil {
+	rows, err := conn.Query(ctx, q, kind, id)
+	if err != nil {
 		return nil, err
 	}
 
-	rec := bbl.DbRec{ID: id, Kind: kind}
+	recs := make(map[string]*bbl.DbRec)
 
-	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
+	for rows.Next() {
+		var (
+			recID   string
+			recKind string
+			relID   *string
+			attr    bbl.DbAttr
+		)
+		if err := rows.Scan(&recID, &recKind, &attr.ID, &attr.Kind, &attr.Val, &relID); err != nil {
+			return nil, err
+		}
+
+		if relID != nil {
+			attr.RelID = *relID
+		}
+
+		if rec, ok := recs[recID]; ok {
+			rec.Attrs = append(rec.Attrs, &attr)
+		} else {
+			recs[recID] = &bbl.DbRec{
+				ID:    recID,
+				Kind:  recKind,
+				Attrs: []*bbl.DbAttr{&attr},
+			}
+		}
+	}
+
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return &rec, nil
+	for _, rec := range recs {
+		for _, attr := range rec.Attrs {
+			if attr.RelID != "" {
+				attr.Rel = recs[attr.RelID]
+			}
+		}
+	}
+
+	return recs[id], nil
 }

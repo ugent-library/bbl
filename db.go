@@ -31,5 +31,5 @@ type DbAttr struct {
 	Kind  string          `json:"kind"`
 	Val   json.RawMessage `json:"val"`
 	RelID string          `json:"rel_id"`
-	Rel   json.RawMessage `json:"rel"`
+	Rel   *DbRec          `json:"rel"`
 }

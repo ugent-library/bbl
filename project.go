@@ -19,17 +19,17 @@ type Project struct {
 }
 
 func loadProject(rec *DbRec) (*Project, error) {
-	o := Project{}
-	o.ID = rec.ID
-	o.Kind = rec.Kind
-	if err := loadAttrs(rec, "abstract", &o.Abstracts); err != nil {
+	p := Project{}
+	p.ID = rec.ID
+	p.Kind = rec.Kind
+	if err := loadAttrs(rec, "abstract", &p.Abstracts); err != nil {
 		return nil, err
 	}
-	if err := loadAttrs(rec, "identifier", &o.Identifiers); err != nil {
+	if err := loadAttrs(rec, "identifier", &p.Identifiers); err != nil {
 		return nil, err
 	}
-	if err := loadAttrs(rec, "name", &o.Names); err != nil {
+	if err := loadAttrs(rec, "name", &p.Names); err != nil {
 		return nil, err
 	}
-	return &o, nil
+	return &p, nil
 }

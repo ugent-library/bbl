@@ -26,6 +26,7 @@ func NewRepo(db DbAdapter) *Repo {
 		db: db,
 		recSpecs: map[string]*recSpec{
 			organizationKind: organizationSpec,
+			personKind:       personSpec,
 			projectKind:      projectSpec,
 			workKind:         workSpec,
 		},
@@ -147,6 +148,14 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 		return nil, err
 	}
 	return loadOrganization(rec)
+}
+
+func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
+	rec, err := r.db.GetRecWithKind(ctx, personKind, id)
+	if err != nil {
+		return nil, err
+	}
+	return loadPerson(rec)
 }
 
 func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {

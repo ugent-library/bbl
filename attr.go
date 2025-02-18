@@ -24,18 +24,18 @@ func (a *Attr[T]) GetVal() T {
 
 type RelAttr[T, TT any] struct {
 	Attr[T]
-	RelID string `json:"rel_id"`
-	Rel   TT     `json:"-"`
+	RelID string `json:"rel_id,omitempty"`
+	Rel   TT     `json:"rel,omitempty"`
 }
 
-func loadAttr[T any](rec *DbRec, kind string, ptr *Attr[T]) error {
+func loadAttr[T any](rec *DbRec, kind string, ptr **Attr[T]) error {
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
 			attr := Attr[T]{ID: p.ID}
 			if err := json.Unmarshal(p.Val, &attr.Val); err != nil {
 				return err
 			}
-			*ptr = attr
+			*ptr = &attr
 			break
 		}
 	}
@@ -57,28 +57,26 @@ func loadAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
 	return nil
 }
 
-func loadRelAttr[T, TT any](rec *DbRec, kind string, ptr *RelAttr[T, TT]) error {
-	for _, p := range rec.Attrs {
-		if p.Kind == kind {
-			var attr RelAttr[T, TT]
-			attr.ID = p.ID
-			attr.RelID = p.RelID
-			if err := json.Unmarshal(p.Val, &attr.Val); err != nil {
-				return err
-			}
-			if p.Rel != nil {
-				if err := json.Unmarshal(p.Rel, &attr.Rel); err != nil {
-					return err
-				}
-			}
-			*ptr = attr
-			break
-		}
-	}
-	return nil
-}
+// func loadRelAttr[T, TT any](rec *DbRec, kind string, ptr *RelAttr[T, TT]) error {
+// 	for _, p := range rec.Attrs {
+// 		if p.Kind == kind {
+// 			var attr RelAttr[T, TT]
+// 			attr.ID = p.ID
+// 			attr.RelID = p.RelID
+// 			if err := json.Unmarshal(p.Val, &attr.Val); err != nil {
+// 				return err
+// 			}
+// 			if p.Rel != nil {
+// 	            // TODO
+// 			}
+// 			*ptr = attr
+// 			break
+// 		}
+// 	}
+// 	return nil
+// }
 
-func loadRelAttrs[T, TT any](rec *DbRec, kind string, ptr *[]RelAttr[T, TT]) error {
+func loadRelAttrs[T, TT any](rec *DbRec, kind string, ptr *[]RelAttr[T, TT], relLoader func(*DbRec) (TT, error)) error {
 	var attrs []RelAttr[T, TT]
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
@@ -89,9 +87,11 @@ func loadRelAttrs[T, TT any](rec *DbRec, kind string, ptr *[]RelAttr[T, TT]) err
 				return err
 			}
 			if p.Rel != nil {
-				if err := json.Unmarshal(p.Rel, &attr.Rel); err != nil {
+				rel, err := relLoader(p.Rel)
+				if err != nil {
 					return err
 				}
+				attr.Rel = rel
 			}
 			attrs = append(attrs, attr)
 		}

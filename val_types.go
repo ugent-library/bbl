@@ -22,4 +22,13 @@ type Conference struct {
 	EndDate   *time.Time `json:"end_date,omitempty"`
 }
 
-type RelatedProject struct{}
+type Contributor struct {
+	CreditRole string `json:"credit_role"`
+	Name       string `json:"name"`
+}
+
+type NameParts struct {
+	GivenName  string `json:"given_name,omitempty"`
+	FamilyName string `json:"family_name,omitempty"`
+	FullName   string `json:"full_name"`
+}

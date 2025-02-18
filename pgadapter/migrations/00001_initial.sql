@@ -13,7 +13,7 @@ create table bbl_attrs (
     id uuid primary key,
     kind ltree not null,
     seq int not null default 1,
-    val jsonb,
+    val jsonb not null default '{}',
     rel_id uuid references bbl_recs (id),
     unique (rec_id, kind, seq)
 );
