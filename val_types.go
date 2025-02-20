@@ -4,6 +4,11 @@ import "time"
 
 type Empty struct{}
 
+type Note struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
 type Text struct {
 	Lang string `json:"lang"`
 	Text string `json:"text"`

@@ -57,25 +57,6 @@ func loadAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
 	return nil
 }
 
-// func loadRelAttr[T, TT any](rec *DbRec, kind string, ptr *RelAttr[T, TT]) error {
-// 	for _, p := range rec.Attrs {
-// 		if p.Kind == kind {
-// 			var attr RelAttr[T, TT]
-// 			attr.ID = p.ID
-// 			attr.RelID = p.RelID
-// 			if err := json.Unmarshal(p.Val, &attr.Val); err != nil {
-// 				return err
-// 			}
-// 			if p.Rel != nil {
-// 	            // TODO
-// 			}
-// 			*ptr = attr
-// 			break
-// 		}
-// 	}
-// 	return nil
-// }
-
 func loadRelAttrs[T, TT any](rec *DbRec, kind string, ptr *[]RelAttr[T, TT], relLoader func(*DbRec) (TT, error)) error {
 	var attrs []RelAttr[T, TT]
 	for _, p := range rec.Attrs {

@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/ugentlib/bbl"
+	"github.com/ugent-library/bbl"
 )
 
 //go:embed migrations/*.sql

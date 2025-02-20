@@ -1,0 +1,551 @@
+package forms
+
+import (
+	"fmt"
+	"github.com/ugent-library/bbl"
+)
+
+type Theme int
+
+const (
+	ThemeVertical Theme = iota
+)
+
+templ Errors(errors []string) {
+	if len(errors) > 0 {
+		<div class="alert alert-danger">
+			<ul class="ps-3">
+				for _, err := range errors {
+					<li>{ err }</li>
+				}
+			</ul>
+		</div>
+	}
+}
+
+type FieldArgs struct {
+	Label     string
+	Name      string
+	Readonly  bool
+	Tooltip   string
+	Required  bool
+	Error     string
+	Cols      int
+	Help      string
+	HelpHTML  string
+	Theme     Theme
+	AutoFocus bool
+}
+
+templ Field(args FieldArgs, labelFor string) {
+	switch args.Theme {
+		case ThemeVertical:
+			@verticalField(args, labelFor) {
+				{ children... }
+			}
+	}
+}
+
+type TextInputArgs struct {
+	FieldArgs
+	Value string
+}
+
+templ TextInput(args TextInputArgs) {
+	@Field(args.FieldArgs, args.Name) {
+		<input
+			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+			id={ args.Name }
+			name={ args.Name }
+			type="text"
+			value={ args.Value }
+			readonly?={ args.Readonly }
+			autofocus?={ args.AutoFocus }
+			{ fieldAria(args.FieldArgs)... }
+		/>
+	}
+}
+
+type TextAreaArgs struct {
+	FieldArgs
+	Value string
+	Rows  int
+}
+
+templ TextArea(args TextAreaArgs) {
+	@Field(args.FieldArgs, args.Name) {
+		<textarea
+			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+			id={ args.Name }
+			name={ args.Name }
+			readonly?={ args.Readonly }
+			rows={ fmt.Sprint(args.Rows) }
+			autofocus?={ args.AutoFocus }
+			{ fieldAria(args.FieldArgs)... }
+		>{ args.Value }</textarea>
+	}
+}
+
+type SelectArgs struct {
+	FieldArgs
+	Value       string
+	EmptyOption bool
+	Options     []Option
+}
+
+templ Select(args SelectArgs) {
+	@Field(args.FieldArgs, args.Name) {
+		<select
+			class={ "form-control", "form-select", templ.KV("is-invalid", args.Error != "") }
+			id={ args.Name }
+			name={ args.Name }
+			{ fieldAria(args.FieldArgs)... }
+		>
+			if args.EmptyOption {
+				<option></option>
+			}
+			for _, o := range args.Options {
+				<option value={ o.Value } selected?={ o.Value == args.Value }>{ o.Label }</option>
+			}
+		</select>
+	}
+}
+
+type CheckboxArgs struct {
+	FieldArgs
+	Value   string
+	Checked bool
+}
+
+templ Checkbox(args CheckboxArgs) {
+	<div class={ "mb-6", "row", templ.KV("is-invalid", args.Error != "") }>
+		<div class={ fmt.Sprintf("col-%d", args.Cols), "offset-lg-3", "mt-2" }>
+			<div class="form-check">
+				<input
+					class={ "form-check-input", templ.KV("is-invalid", args.Error != "") }
+					id={ args.Name }
+					name={ args.Name }
+					value={ args.Value }
+					type="checkbox"
+					checked?={ args.Checked }
+					{ fieldAria(args.FieldArgs)... }
+				/>
+				<label class="form-check-label" for={ args.Name }>{ args.Label }</label>
+				@fieldError(args.FieldArgs)
+				@fieldHelp(args.FieldArgs)
+			</div>
+		</div>
+	</div>
+}
+
+type RadioGroupArgs struct {
+	FieldArgs
+	Value   string
+	Options []Option
+}
+
+templ RadioGroup(args RadioGroupArgs) {
+	<div class={ "mb-6", "row", templ.KV("is-invalid", args.Error != "") }>
+		<label class="col-lg-3 col-form-label" for={ args.Name }>
+			<div class="w-100">
+				{ args.Label }
+				if args.Tooltip != "" {
+					<a class="text-muted px-2" href="#" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="right" data-bs-content={ args.Tooltip }>
+						<i class="if if-info-circle if--small"></i>
+						<span class="visually-hidden">More info</span>
+					</a>
+				}
+			</div>
+			<div class="w-100">
+				if args.Required {
+					&nbsp;<span class="badge badge-outline-primary badge-sm ms-0">Required</span>
+				}
+			</div>
+		</label>
+		<div class={ fmt.Sprintf("col-lg-%d", args.Cols) }>
+			for _, o := range args.Options {
+				<label class="form-check form-check-inline active ps-0">
+					<input
+						class="pe-3"
+						type="radio"
+						name={ args.Name }
+						checked?={ o.Value == args.Value }
+						value={ o.Value }
+						{ fieldAria(args.FieldArgs)... }
+					/>
+					<span class="pe-5">{ o.Label }</span>
+				</label>
+			}
+			@fieldError(args.FieldArgs)
+			@fieldHelp(args.FieldArgs)
+		</div>
+	</div>
+}
+
+type TextInputRepeatArgs struct {
+	FieldArgs
+	Values          []string
+	AutocompleteURL string
+}
+
+templ TextInputRepeat(args TextInputRepeatArgs) {
+	if args.AutocompleteURL != "" {
+		@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
+			<div data-bb-repeated-fields>
+				for i, v := range args.Values {
+					<div class="d-flex mb-3" data-bb-repeated-field>
+						<div class="w-100 autocomplete" data-target={ fmt.Sprintf(`#%s-%d`, args.Name, i) } data-bb-tmpl-data-target={ fmt.Sprintf(`#%s-{i}`, args.Name) }>
+							<input
+								class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+								name={ args.Name }
+								id={ fmt.Sprintf("%s-%d", args.Name, i) }
+								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+								type="text"
+								value={ v }
+								autocomplete="off"
+								{ fieldAria(args.FieldArgs)... }
+								hx-get={ args.AutocompleteURL }
+								hx-trigger="keyup changed delay:100ms"
+								hx-target={ fmt.Sprintf("#%s-%d-autocomplete", args.Name, i) }
+								data-bb-tmpl-hx-target={ fmt.Sprintf(`#%s-{i}-autocomplete`, args.Name) }
+								hx-vals={ fmt.Sprintf(`{"input": "%s"}`, args.Name) }
+							/>
+							<div class="autocomplete-hits" id={ fmt.Sprintf("%s-%d-autocomplete", args.Name, i) } data-bb-tmpl-id={ fmt.Sprintf(`%s-{i}-autocomplete`, args.Name) }></div>
+						</div>
+						<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
+							<i class="if if-delete"></i>
+							<span class="visually-hidden">Delete</span>
+						</button>
+					</div>
+				}
+				<div class="d-flex mb-3" data-bb-repeated-field>
+					<div class="w-100 autocomplete" data-target={ fmt.Sprintf(`#%s-%d`, args.Name, len(args.Values)) } data-bb-tmpl-data-target={ fmt.Sprintf(`#%s-{i}`, args.Name) }>
+						<input
+							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+							name={ args.Name }
+							id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+							type="text"
+							value=""
+							autocomplete="off"
+							{ fieldAria(args.FieldArgs)... }
+							hx-get={ args.AutocompleteURL }
+							hx-trigger="keyup changed delay:100ms"
+							hx-target={ fmt.Sprintf(`#%s-%d-autocomplete`, args.Name, len(args.Values)) }
+							data-bb-tmpl-hx-target={ fmt.Sprintf(`#%s-{i}-autocomplete`, args.Name) }
+							hx-vals={ fmt.Sprintf(`{"input": "%s"}`, args.Name) }
+						/>
+						<div
+							class="autocomplete-hits"
+							id={ fmt.Sprintf(`%s-%d-autocomplete`, args.Name, len(args.Values)) }
+							data-bb-tmpl-id={ fmt.Sprintf(`%s-{i}-autocomplete`, args.Name) }
+						></div>
+					</div>
+					<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
+						<i class="if if-add"></i>
+						<span class="visually-hidden">Add</span>
+					</button>
+				</div>
+			</div>
+		}
+	} else {
+		@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
+			<div data-bb-repeated-fields>
+				for i, v := range args.Values {
+					<div class="d-flex mb-3" data-bb-repeated-field>
+						<input
+							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+							name={ args.Name }
+							id={ fmt.Sprintf("%s-%d", args.Name, i) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+							type="text"
+							value={ v }
+							{ fieldAria(args.FieldArgs)... }
+						/>
+						<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
+							<i class="if if-delete"></i>
+							<span class="visually-hidden">Delete</span>
+						</button>
+					</div>
+				}
+				<div class="d-flex mb-3" data-bb-repeated-field>
+					<input
+						class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+						name={ args.Name }
+						id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
+						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+						type="text"
+						value=""
+						{ fieldAria(args.FieldArgs)... }
+					/>
+					<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
+						<i class="if if-add"></i>
+						<span class="visually-hidden">Add</span>
+					</button>
+				</div>
+			</div>
+		}
+	}
+}
+
+type Option struct {
+	Label string
+	Value string
+}
+
+type SelectRepeatArgs struct {
+	FieldArgs
+	Values      []string
+	EmptyOption bool
+	Options     []Option
+}
+
+templ SelectRepeat(args SelectRepeatArgs) {
+	@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
+		<div data-bb-repeated-fields>
+			for i, v := range args.Values {
+				<div class="d-flex mb-3" data-bb-repeated-field>
+					<select
+						class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
+						name={ args.Name }
+						id={ fmt.Sprintf("%s-%d", args.Name, i) }
+						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+						{ fieldAria(args.FieldArgs)... }
+					>
+						if args.EmptyOption {
+							<option></option>
+						}
+						for _, o := range args.Options {
+							<option value={ o.Value } selected?={ o.Value == v }>{ o.Label }</option>
+						}
+					</select>
+					<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
+						<i class="if if-delete"></i>
+						<span class="visually-hidden">Delete</span>
+					</button>
+				</div>
+			}
+			<div class="d-flex mb-3" data-bb-repeated-field>
+				<select
+					class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
+					name={ args.Name }
+					id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
+					autofocus?={ args.AutoFocus }
+					data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
+					{ fieldAria(args.FieldArgs)... }
+				>
+					if args.EmptyOption {
+						<option></option>
+					}
+					for _, o := range args.Options {
+						<option value={ o.Value }>{ o.Label }</option>
+					}
+				</select>
+				<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
+					<i class="if if-add"></i>
+					<span class="visually-hidden">Add</span>
+				</button>
+			</div>
+		</div>
+	}
+}
+
+type DateInputArgs struct {
+	FieldArgs
+	Value string
+	Min   string
+	Max   string
+}
+
+templ DateInput(args DateInputArgs) {
+	@Field(args.FieldArgs, args.Name) {
+		<input
+			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+			id={ args.Name }
+			name={ args.Name }
+			type="date"
+			value={ args.Value }
+			if args.Min != "" {
+				min={ args.Min }
+			}
+			if args.Max != "" {
+				max={ args.Max }
+			}
+			{ fieldAria(args.FieldArgs)... }
+		/>
+	}
+}
+
+type TagsArgs struct {
+	FieldArgs
+	Values []string
+}
+
+templ Tags(args TagsArgs) {
+	@Field(args.FieldArgs, args.Name) {
+		<div data-bb-tags>
+			<span data-bb-tags-values class="d-none"></span>
+			<textarea
+				id={ args.Name }
+				data-bb-tags-widget-values
+				class="form-control tagify-custom"
+				autofocus?={ args.AutoFocus }
+				data-input-name={ args.Name }
+				aria-label={ args.Label }
+				{ fieldAria(args.FieldArgs)... }
+			>{ templ.JSONString(args.Values) }</textarea>
+		</div>
+	}
+}
+
+type TextRepeatArgs struct {
+	FieldArgs
+	Values []bbl.Text
+}
+
+templ TextRepeat(args TextRepeatArgs) {
+	@Field(args.FieldArgs, fmt.Sprintf("%s-0-value", args.Name)) {
+		<div data-bb-repeated-fields>
+			for i, text := range args.Values {
+				<div class="form-group" data-bb-repeated-field>
+					<div class="d-flex">
+						<div class="input-group">
+							<input
+								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
+								name={ fmt.Sprintf("%s[%d].Value", args.Name, i) }
+								id={ fmt.Sprintf("%s-%d-Value", args.Name, i) }
+								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].Value", args.Name) }
+								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-Value", args.Name) }
+								type="text"
+								value={ text.Text }
+								{ fieldAria(args.FieldArgs)... }
+							/>
+							<select
+								class="form-control form-select"
+								name={ fmt.Sprintf("%s[%d].LanguageCode", args.Name, i) }
+								id={ fmt.Sprintf("%s-%d-LanguageCode", args.Name, i) }
+								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].LanguageCode", args.Name) }
+								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-LanguageCode", args.Name) }
+							>
+								for _, o := range languageOptions {
+									<option value={ o.Value } selected?={ o.Value == text.Lang }>{ o.Label }</option>
+								}
+							</select>
+						</div>
+						<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
+							<i class="if if-delete"></i>
+							<span class="visually-hidden">Delete</span>
+						</button>
+					</div>
+				</div>
+			}
+			<div class="form-group" data-bb-repeated-field>
+				<div class="d-flex">
+					<div class="input-group">
+						<input
+							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
+							name={ fmt.Sprintf("%s[%d].Value", args.Name, len(args.Values)) }
+							id={ fmt.Sprintf("%s-%d-Value", args.Name, len(args.Values)) }
+							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].Value", args.Name) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-Value", args.Name) }
+							type="text"
+							value=""
+							{ fieldAria(args.FieldArgs)... }
+						/>
+						<select
+							class="form-select form-control"
+							name={ fmt.Sprintf("%s[%d].LanguageCode", args.Name, len(args.Values)) }
+							id={ fmt.Sprintf("%s-%d-LanguageCode", args.Name, len(args.Values)) }
+							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].LanguageCode", args.Name) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-LanguageCode", args.Name) }
+						>
+							for _, o := range languageOptions {
+								<option value={ o.Value }>{ o.Label }</option>
+							}
+						</select>
+					</div>
+					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
+						<i class="if if-add"></i>
+						<div class="visually-hidden">Add</div>
+					</button>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+func helpID(args FieldArgs) string {
+	return fmt.Sprintf("%s-help", args.Name)
+}
+
+templ fieldTooltip(args FieldArgs) {
+	if args.Tooltip != "" {
+		<a class="text-muted px-2" href="#" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="right" data-bs-content={ args.Tooltip }>
+			<i class="if if-info-circle if--small"></i>
+			<span class="visually-hidden">More info</span>
+		</a>
+	}
+}
+
+templ fieldRequired(args FieldArgs) {
+	if args.Required {
+		<span class="required" aria-hidden="true" title="required">*</span>
+	}
+}
+
+templ fieldRequiredBadge(args FieldArgs) {
+	if args.Required {
+		<span class="badge badge-outline-primary badge-sm">Required</span>
+	}
+}
+
+templ fieldError(args FieldArgs) {
+	if args.Error != "" {
+		<small class="invalid-feedback">{ args.Error }</small>
+	}
+}
+
+templ fieldHelp(args FieldArgs) {
+	if args.Help != "" {
+		<small id={ helpID(args) } class="form-text">
+			@templ.Raw(args.Help)
+		</small>
+	}
+}
+
+func fieldAria(args FieldArgs) templ.Attributes {
+	if args.HelpHTML != "" {
+		return templ.Attributes{
+			"aria-description": args.Help,
+			"aria-details":     helpID(args),
+		}
+	}
+	if args.Help != "" {
+		return templ.Attributes{
+			"aria-describedby": helpID(args),
+		}
+	}
+	return templ.Attributes{}
+}
+
+templ verticalField(args FieldArgs, labelFor string) {
+	<div class={ "form-group", templ.KV("is-invalid", args.Error != "") }>
+		<label class="form-label form-label-top" for={ labelFor }>
+			@fieldRequired(args)
+			@templ.Raw(args.Label)
+			@fieldTooltip(args)
+			@fieldRequiredBadge(args)
+		</label>
+		if args.Cols > 0 {
+			<div class={ fmt.Sprintf("col-%d", args.Cols) }>
+				{ children... }
+				@fieldError(args)
+				@fieldHelp(args)
+			</div>
+		} else {
+			{ children... }
+			@fieldError(args)
+			@fieldHelp(args)
+		}
+	</div>
+}

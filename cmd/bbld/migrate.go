@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
-	"github.com/ugentlib/bbl"
-	"github.com/ugentlib/bbl/pgadapter"
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/pgadapter"
 )
 
 func init() {
