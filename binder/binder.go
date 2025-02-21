@@ -128,375 +128,99 @@ func (b *valuesBinder) BoolSlice(key string, ptr *[]bool) *valuesBinder {
 }
 
 func (b *valuesBinder) Int(key string, ptr *int) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, 0); err == nil {
-		*ptr = int(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindInt(b, key, ptr, 0)
 }
 
 func (b *valuesBinder) IntSlice(key string, ptr *[]int) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]int, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseInt(v, 10, 0); err == nil {
-				slice[i] = int(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindIntSlice(b, key, ptr, 0)
 }
 
 func (b *valuesBinder) Int8(key string, ptr *int8) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, 8); err == nil {
-		*ptr = int8(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindInt(b, key, ptr, 8)
 }
 
 func (b *valuesBinder) Int8Slice(key string, ptr *[]int8) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]int8, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseInt(v, 10, 8); err == nil {
-				slice[i] = int8(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindIntSlice(b, key, ptr, 8)
 }
 
 func (b *valuesBinder) Int16(key string, ptr *int16) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, 16); err == nil {
-		*ptr = int16(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindInt(b, key, ptr, 16)
 }
 
 func (b *valuesBinder) Int16Slice(key string, ptr *[]int16) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]int16, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseInt(v, 10, 16); err == nil {
-				slice[i] = int16(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindIntSlice(b, key, ptr, 16)
 }
 
 func (b *valuesBinder) Int32(key string, ptr *int32) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, 32); err == nil {
-		*ptr = int32(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindInt(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Int32Slice(key string, ptr *[]int32) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]int32, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseInt(v, 10, 32); err == nil {
-				slice[i] = int32(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindIntSlice(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Int64(key string, ptr *int64) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, 64); err == nil {
-		*ptr = int64(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindInt(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Int64Slice(key string, ptr *[]int64) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]int64, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseInt(v, 10, 64); err == nil {
-				slice[i] = int64(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindIntSlice(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Uint(key string, ptr *uint) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, 0); err == nil {
-		*ptr = uint(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindUint(b, key, ptr, 0)
 }
 
 func (b *valuesBinder) UintSlice(key string, ptr *[]uint) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]uint, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseUint(v, 10, 0); err == nil {
-				slice[i] = uint(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindUintSlice(b, key, ptr, 0)
 }
 
 func (b *valuesBinder) Uint8(key string, ptr *uint8) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, 8); err == nil {
-		*ptr = uint8(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindUint(b, key, ptr, 8)
 }
 
 func (b *valuesBinder) Uint8Slice(key string, ptr *[]uint8) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]uint8, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseUint(v, 10, 8); err == nil {
-				slice[i] = uint8(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindUintSlice(b, key, ptr, 8)
 }
 
 func (b *valuesBinder) Uint16(key string, ptr *uint16) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, 16); err == nil {
-		*ptr = uint16(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindUint(b, key, ptr, 16)
 }
 
 func (b *valuesBinder) Uint16Slice(key string, ptr *[]uint16) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]uint16, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseUint(v, 10, 16); err == nil {
-				slice[i] = uint16(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindUintSlice(b, key, ptr, 16)
 }
 
 func (b *valuesBinder) Uint32(key string, ptr *uint32) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, 32); err == nil {
-		*ptr = uint32(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindUint(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Uint32Slice(key string, ptr *[]uint32) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]uint32, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseUint(v, 10, 32); err == nil {
-				slice[i] = uint32(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindUintSlice(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Uint64(key string, ptr *uint64) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, 64); err == nil {
-		*ptr = uint64(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindUint(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Uint64Slice(key string, ptr *[]uint64) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]uint64, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseUint(v, 10, 64); err == nil {
-				slice[i] = uint64(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindUintSlice(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Float32(key string, ptr *float32) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseFloat(b.values.Get(key), 32); err == nil {
-		*ptr = float32(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindFloat(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Float32Slice(key string, ptr *[]float32) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]float32, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseFloat(v, 32); err == nil {
-				slice[i] = float32(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindFloatSlice(b, key, ptr, 32)
 }
 
 func (b *valuesBinder) Float64(key string, ptr *float64) *valuesBinder {
-	if b.binder.err != nil || !b.values.Has(key) {
-		return b
-	}
-	if val, err := strconv.ParseFloat(b.values.Get(key), 64); err == nil {
-		*ptr = float64(val)
-	} else {
-		b.binder.err = err
-	}
-	return b
+	return bindFloat(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Float64Slice(key string, ptr *[]float64) *valuesBinder {
-	if b.binder.err != nil {
-		return b
-	}
-	if vals := b.values[key]; len(vals) > 0 {
-		slice := make([]float64, len(vals))
-		for i, v := range vals {
-			if val, err := strconv.ParseFloat(v, 64); err == nil {
-				slice[i] = float64(val)
-			} else {
-				b.binder.err = err
-				return b
-			}
-		}
-		*ptr = slice
-	}
-	return b
+	return bindFloatSlice(b, key, ptr, 64)
 }
 
 func (b *valuesBinder) Time(key string, layout string, ptr *time.Time) *valuesBinder {
@@ -520,6 +244,99 @@ func (b *valuesBinder) TimeSlice(key string, layout string, ptr *[]time.Time) *v
 		for i, v := range vals {
 			if val, err := time.Parse(layout, v); err == nil {
 				slice[i] = val
+			} else {
+				b.binder.err = err
+				return b
+			}
+		}
+		*ptr = slice
+	}
+	return b
+}
+
+func bindInt[T int | int8 | int16 | int32 | int64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+	if b.binder.err != nil || !b.values.Has(key) {
+		return b
+	}
+	if val, err := strconv.ParseInt(b.values.Get(key), 10, bitSize); err == nil {
+		*ptr = T(val)
+	} else {
+		b.binder.err = err
+	}
+	return b
+}
+
+func bindIntSlice[T int | int8 | int16 | int32 | int64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+	if b.binder.err != nil {
+		return b
+	}
+	if vals := b.values[key]; len(vals) > 0 {
+		slice := make([]T, len(vals))
+		for i, v := range vals {
+			if val, err := strconv.ParseInt(v, 10, bitSize); err == nil {
+				slice[i] = T(val)
+			} else {
+				b.binder.err = err
+				return b
+			}
+		}
+		*ptr = slice
+	}
+	return b
+}
+
+func bindUint[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+	if b.binder.err != nil || !b.values.Has(key) {
+		return b
+	}
+	if val, err := strconv.ParseUint(b.values.Get(key), 10, bitSize); err == nil {
+		*ptr = T(val)
+	} else {
+		b.binder.err = err
+	}
+	return b
+}
+
+func bindUintSlice[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+	if b.binder.err != nil {
+		return b
+	}
+	if vals := b.values[key]; len(vals) > 0 {
+		slice := make([]T, len(vals))
+		for i, v := range vals {
+			if val, err := strconv.ParseUint(v, 10, bitSize); err == nil {
+				slice[i] = T(val)
+			} else {
+				b.binder.err = err
+				return b
+			}
+		}
+		*ptr = slice
+	}
+	return b
+}
+
+func bindFloat[T float32 | float64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+	if b.binder.err != nil || !b.values.Has(key) {
+		return b
+	}
+	if val, err := strconv.ParseFloat(b.values.Get(key), bitSize); err == nil {
+		*ptr = T(val)
+	} else {
+		b.binder.err = err
+	}
+	return b
+}
+
+func bindFloatSlice[T float32 | float64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+	if b.binder.err != nil {
+		return b
+	}
+	if vals := b.values[key]; len(vals) > 0 {
+		slice := make([]T, len(vals))
+		for i, v := range vals {
+			if val, err := strconv.ParseFloat(v, bitSize); err == nil {
+				slice[i] = T(val)
 			} else {
 				b.binder.err = err
 				return b
