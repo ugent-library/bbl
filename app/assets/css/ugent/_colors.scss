@@ -1,0 +1,125 @@
+/* ==========================================================================
+  Colors
+  Only define colors here. Don't use sass color functions, stick to hex values,
+  or the color component in styleguide won't regenerate automatically anymore.
+ ========================================================================== */
+
+/* Grays
+ ========================================================================== */
+
+$gray-25: #fafafa;
+$gray-50: #f2f2f2;
+$gray-100: #e6e6e6;
+$gray-150: #dedede;
+$gray-200: #cccccc;
+$gray-300: #b4b4b4;
+$gray-400: #999999;
+$gray-500: #808080;
+$gray-550: #737373;
+$gray-600: #646464;
+$gray-700: #4d4d4d;
+$gray-800: #333333;
+$gray-900: #202020;
+$gray-1000: #1a1a1a;
+$white: #fff;
+$black: #000;
+
+/* Blue
+ ========================================================================== */
+
+$blue-50: #e9f0fa;
+$blue-100: #d5e3f6;
+$blue-200: #a8c7f0;
+$blue-400: #4e8ee4;
+$blue-500: #3e7eda;
+$blue-600: #1e64c8;
+$blue-700: #174482;
+$blue-800: #132e53;
+$blue-900: #09172a;
+
+/* Green
+ ========================================================================== */
+
+$green-50: #f1f7ed;
+$green-100: #e3f0db;
+$green-200: #c5deba;
+$green-400: #8abe74;
+$green-500: #71a860;
+$green-600: #4e8b41;
+$green-700: #3a6831;
+$green-800: #23471f;
+$green-900: #11240f;
+
+/* Red
+ ========================================================================== */
+
+$red-50: #fdece7;
+$red-100: #fcd9cf;
+$red-200: #f7b4a1;
+$red-500: #dc4e28;
+$red-600: #bc3510;
+$red-700: #8d280c;
+$red-800: #601906;
+$red-900: #300d03;
+
+/* Orange
+ ========================================================================== */
+
+$orange-50: #fef7e7;
+$orange-100: #fdefce;
+$orange-200: #fadb9e;
+$orange-400: #f4b857;
+$orange-500: #f1a42b;
+$orange-600: #da840b;
+$orange-700: #915808;
+$orange-800: #623804;
+$orange-900: #311c02;
+
+/* Primary
+ ========================================================================== */
+
+$blue: #1e64c8;
+$dark-blue: #003fa3;
+$light-blue: #e9f0fa;
+
+$yellow: #ffd200;
+$dark-yellow: #e5b400;
+$light-yellow: #fffae5;
+
+$gray: #282f36;
+$dark-gray: #101820;
+
+/* Secondary
+ ========================================================================== */
+
+$green: #71a860;
+$dark-green: #528448;
+$light-green: #f0f6ef;
+$warm-red: #dc4e28;
+$dark-warm-red: #b8381e;
+$light-warm-red: #fbeee9;
+$orange: #f1a42b;
+$dark-orange: #d28914;
+$light-orange: #fdf5e7;
+$turquoise: #27abad;
+$aqua: #2d8ca8;
+$grey-blue: #6f71b9;
+$purple: #825491;
+$light-purple: #be5190;
+$salmon-pink: #e85e71;
+$warm-orange: #fb7e3a;
+
+/* Semantic
+ ========================================================================== */
+
+$warning: #f1a42b;
+$success: #71a860;
+$danger: #dc4e28;
+
+$text: #4d4d4d;
+$header: #1a1a1a;
+$text-muted: #737373;
+
+$border: #dedede;
+$icon-muted: #999999;
+$icon-default: #666666;

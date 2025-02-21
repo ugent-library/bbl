@@ -1,0 +1,10 @@
+/* ==========================================================================
+  Additions to bootstrap/spinner
+  ========================================================================== */
+
+  .spinner-border-small {
+    --bs-spinner-width: 1.3rem;
+    --bs-spinner-height: 1.3rem;
+    --bs-spinner-border-width: 0.2em;
+    margin-right: 0.2rem;
+  }

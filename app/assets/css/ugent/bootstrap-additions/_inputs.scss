@@ -1,0 +1,58 @@
+.form-control {
+  display: flex;
+  align-items: center;
+}
+
+.custom-switch {
+  min-height: 2.4rem;
+
+  & + .custom-switch {
+    margin-top: 1.2rem;
+  }
+}
+.custom-switch .form-check-label::before {
+  height: 2.4rem;
+  top: 0;
+  background-color: $gray-300;
+  border-color: $gray-300;
+}
+
+.custom-switch .form-check-label::after {
+  top: 0.5rem;
+  left: calc(-4.4rem + 2px);
+  background-color: $white;
+}
+
+.custom-switch .form-check-input:checked ~ .form-check-label::after {
+  transform: translateX(1.6rem);
+}
+
+.form-check-input[disabled] ~ .form-check-label::before,
+.form-check-input:disabled ~ .form-check-label::before {
+  background-color: $gray-100 !important;
+}
+
+.form-check-no-label {
+  padding-left: 0;
+
+  .form-check-label {
+    // set same width/height as before and after
+    width: 1em;
+    height: 1em;
+
+    &::before,
+    &::after {
+      left: 0;
+    }
+  }
+}
+
+.form-check-reverse {
+  padding-left: 0;
+}
+
+.form-check-reverse .form-check-label::after,
+.form-check-reverse .form-check-label::before {
+  right: 0;
+  left: auto;
+}

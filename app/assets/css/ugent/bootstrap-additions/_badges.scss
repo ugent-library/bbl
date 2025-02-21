@@ -1,0 +1,199 @@
+//
+// Additions to Bootstrap `_badge.scss`
+//
+
+.badge {
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  line-height: 2.4rem;
+  min-width: 2rem;
+
+  // Fix Safari
+  -webkit-appearance: none;
+}
+
+.badge .if {
+  font-size: 1.6rem;
+}
+
+.if + .badge-text,
+.badge-text + .if,
+.badge-value + .if,
+.bc-avatar + .badge-text,
+.badge-text + .bc-avatar {
+  padding-left: 0.6rem;
+}
+
+.c-counter + .badge-text,
+.badge-text + .c-counter {
+  margin-left: 0.4rem;
+}
+
+.badge .bc-avatar:first-child {
+  margin-left: -0.8rem;
+}
+
+.badge .if:last-child,
+.badge .bc-avatar:last-child {
+  margin-right: -0.6rem;
+}
+
+.badge .if:first-child,
+.badge .bc-avatar:first-child {
+  margin-left: -0.6rem;
+}
+
+// badge-size
+
+.badge-sm {
+  height: 2rem;
+  font-size: 1.2rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.badge-sm .if:last-child,
+.badge-sm .bc-avatar:last-child {
+  margin-right: -0.2rem;
+}
+
+.badge-lg {
+  height: 2.8rem;
+}
+
+// badge-type
+
+.badge-circle {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 0.8rem;
+  display: block;
+  margin-right: 0.6rem;
+}
+
+.badge-value {
+  opacity: 0.85;
+}
+
+// badge list
+
+.badge-list {
+  margin: 0 -0.2rem;
+  padding-left: 0;
+  display: flex;
+  flex-wrap: wrap;
+
+  .badge {
+    margin: 0.2rem;
+  }
+}
+
+// Colors
+
+.badge-default {
+  background-color: $blue-50;
+  color: $blue-600;
+
+  .badge-circle {
+    background: $blue-500;
+  }
+}
+
+// Colors - filled
+
+.badge-primary {
+  background-color: $primary;
+  color: $white;
+}
+
+.badge-secondary,
+a.badge-secondary {
+  background-color: $gray-400;
+  color: $white;
+}
+
+.badge-light {
+  background-color: $gray-50;
+  color: $text-muted;
+
+  .badge-circle {
+    background: $gray-300;
+  }
+}
+
+.badge-white {
+  background-color: white;
+  color: $text-muted;
+  border: 1px solid $gray-50;
+
+  .badge-circle {
+    background: $gray-300;
+  }
+}
+
+// Colors - light
+
+.badge-success-light {
+  background-color: $green-50;
+  color: $green-600;
+
+  .badge-circle {
+    background: $green-500;
+  }
+}
+
+.badge-danger-light {
+  background-color: $red-50;
+  color: $red-600;
+
+  .badge-circle {
+    background: $red-500;
+  }
+}
+
+.badge-warning-light {
+  background-color: $orange-50;
+  color: $orange-600;
+
+  .badge-circle {
+    background: $orange-500;
+  }
+}
+
+// Colors - outlined
+
+.badge-outline-primary {
+  color: $primary;
+  border: 1px solid $primary;
+}
+
+.badge-outline-secondary {
+  border: 0.1rem solid $border-color;
+  background-color: $white;
+  color: $gray-600;
+}
+
+.badge-outline-info {
+  color: $info;
+  border: 1px solid $info;
+}
+
+.badge-outline-success {
+  color: $success;
+  border: 1px solid $success;
+}
+
+.badge-outline-danger {
+  color: $danger;
+  border: 1px solid $danger;
+}
+
+.badge-outline-warning {
+  color: $warning;
+  border: 1px solid $warning;
+}
+
+.badge-outline-dark {
+  color: $dark;
+  border: 1px solid $dark;
+}

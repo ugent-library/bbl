@@ -1,0 +1,234 @@
+//
+// Additions to Bootstrap `_list-group.scss`
+//
+
+.list-group-item-title {
+  font-weight: 500;
+  color: $header;
+  font-size: 1.4rem;
+}
+
+a:hover .list-group-item-title {
+  color: $blue;
+}
+
+.list-group-item h4 {
+  color: $header;
+}
+
+.list-group-item.active {
+  &:after {
+    content: "";
+    height: 100%;
+    left: 0;
+    top: 0;
+    width: 0.4rem;
+    position: absolute;
+    background: $blue;
+  }
+}
+
+.list-group-item-bar {
+  width: 18rem;
+  flex: 1 0 auto;
+}
+
+.list-group-item-bar__chart {
+  display: flex;
+  max-width: 18rem;
+  width: calc(var(--value) * 100%);
+  flex: 1;
+  height: 0.4rem;
+  background-color: $blue;
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+
+.list-group-item-bar__text {
+  max-width: 18rem;
+  font-size: 1.2rem;
+  color: $text-muted;
+  margin-top: 0.8rem;
+}
+
+/* Legacy  code: these items are separate components now */
+
+/* Use c-comment */
+.list-group-item-comment {
+  display: flex;
+  background: rgba($light-blue, 0.6);
+  border: 1px solid rgba($blue, 0.4);
+  color: mix($blue, $text, 30%);
+  border-radius: 0.3rem;
+  margin-top: 2rem;
+  padding: 1.6rem 2rem;
+  box-shadow: 0 0.2rem 0.2rem 0 rgba($gray-500, 0.12);
+  font-size: 1.2rem;
+
+  .list-group-item-comment-title {
+    color: mix($blue, $header, 32%);
+    font-weight: 500;
+  }
+
+  .list-group-item-comment-meta {
+    color: mix($blue, $header, 28%);
+  }
+
+  .bc-avatar {
+    margin-right: 1.6rem;
+  }
+}
+
+/* Use c-meta-item */
+.list-group-item-meta {
+  width: 100%;
+  margin: 0 -0.8rem;
+
+  @include media-breakpoint-up(xl) {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+
+    .list-group-item-meta-right {
+      justify-content: right;
+    }
+  }
+
+  .list-group-item-meta-left,
+  .list-group-item-meta-right {
+    display: flex;
+    align-items: center;
+    margin-top: 0.8rem;
+    flex: 1;
+
+    @include media-breakpoint-down(md) {
+      flex-wrap: wrap;
+    }
+  }
+
+  .list-group-item-meta-item {
+    display: flex;
+    align-items: center;
+    margin: 0.4rem 0.8rem 0.4rem 0.8rem;
+  }
+}
+
+/* Use c-thumbnail */
+.list-group-item-thumbnail {
+  border-radius: 0.3rem;
+  border: 0.1rem solid $gray-100;
+  margin-right: 2.4rem;
+  box-shadow: $box-shadow-sm;
+  width: 12.4rem;
+
+  .c-thumbnail--publication.c-thumbnail {
+    border: none;
+
+    @include media-breakpoint-down(md) {
+      width: 7rem;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    width: 7.2rem;
+    margin-bottom: 1.6rem;
+  }
+}
+
+/* Use c-toolbar instead  (with c-toolbar--auto to adjust the height according to its content */
+.list-group-item-subline {
+  width: 100%;
+
+  @include media-breakpoint-up(lg) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap-reverse;
+  }
+
+  .list-group-item-subline-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .list-group-item-subline-right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    @include media-breakpoint-up(lg) {
+      > :not(:last-child) {
+        padding-right: 0.8rem;
+        margin-right: 0.8rem;
+        border-right: 1px solid $border;
+      }
+    }
+  }
+}
+
+.list-group-item--success {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    background-color: $success;
+    width: 0.3rem;
+    height: 100%;
+    top: 0;
+    left: 0;
+  }
+}
+
+/* Use stacks component to stack items within a list item  */
+.list-group-item-content {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-group-item-inner {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+}
+
+.list-group-item-inner-lg-responsive {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+
+  @include media-breakpoint-down(lg) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+  }
+}
+
+.list-group-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-group-wrapper {
+  display: flex;
+  align-items: flex-start;
+
+  .list-group-item-inner {
+    flex: 1;
+  }
+
+  .c-thumbnail {
+    margin-right: 1.6rem;
+  }
+
+  @include media-breakpoint-down(sm) {
+    .c-thumbnail {
+      display: none;
+    }
+  }
+}

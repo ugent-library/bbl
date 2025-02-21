@@ -11,8 +11,7 @@ var projectSpec = &recSpec{
 }
 
 type Project struct {
-	ID          string             `json:"id,omitempty"`
-	Kind        string             `json:"kind"`
+	Record
 	Abstracts   []Attr[Text]       `json:"abstracts,omitempty"`
 	Identifiers []Attr[Identifier] `json:"identifiers,omitempty"`
 	Names       []Attr[Text]       `json:"names,omitempty"`

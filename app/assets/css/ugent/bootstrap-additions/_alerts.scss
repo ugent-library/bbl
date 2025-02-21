@@ -1,0 +1,149 @@
+/* ==========================================================================
+  Additions to bootstrap/cards
+   ========================================================================== */
+
+/* Always clear alerts
+   ========================================================================== */
+
+.alert {
+  @include clearfix;
+  display: flex;
+  align-items: flex-start;
+
+  p {
+    margin-bottom: 0;
+  }
+
+  > .if:first-child {
+    margin-right: 1.6rem;
+  }
+
+  .c-button-toolbar {
+    margin-top: 1.6rem;
+  }
+}
+
+.alert-title {
+  font-size: 1.6rem;
+}
+
+.alert-small {
+  font-size: $font-size-sm;
+  .alert-title {
+    font-size: $h4-font-size;
+  }
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-dismissible .btn-close {
+  opacity: 1;
+  mix-blend-mode: multiply;
+  padding: 0.8rem;
+  top: 1rem;
+  right: 1rem;
+
+  .if {
+    display: block;
+    color: $icon-muted;
+  }
+}
+
+/* Success alert
+   ========================================================================== */
+
+.alert-success {
+  background: $green-50;
+  color: mix($success, $text, 30%);
+
+  .alert-title {
+    color: $green-900;
+  }
+
+  > .if:first-child {
+    color: $success;
+  }
+}
+
+/* Danger alert
+   ========================================================================== */
+
+.alert-danger {
+  background: $red-50;
+  color: mix($danger, $text, 30%);
+
+  .alert-title {
+    color: $red-900;
+  }
+
+  > .if:first-child {
+    color: $danger;
+  }
+}
+
+/* Info alert
+   ========================================================================== */
+
+.alert-info {
+  background: $blue-50;
+  color: mix($primary, $text, 30%);
+  position: relative;
+
+  .alert-title {
+    color: $blue-900;
+  }
+
+  .btn-outline-secondary {
+    border-color: $blue-200;
+  }
+
+  .btn-tertiary {
+    color: mix($primary, $text, 30%);
+  }
+
+  > .if:first-child {
+    color: $blue;
+  }
+}
+
+/* Warning alert
+   ========================================================================== */
+
+.alert-warning {
+  background: $orange-50;
+  color: mix($warning, $text, 30%);
+
+  .alert-title {
+    color: $orange-900;
+  }
+
+  .text-muted {
+    color: mix($warning, $text-muted, 20%) !important;
+  }
+
+  .btn-tertiary {
+    color: mix($warning, $text, 30%);
+  }
+
+  > .if:first-child {
+    color: $orange;
+  }
+}
+
+/* Default alert
+   ========================================================================== */
+
+.alert-default {
+  background: rgba($gray-50, 0.8);
+  color: $gray-600;
+
+  .alert-title {
+    color: $gray-900;
+  }
+
+  > .if:first-child {
+    color: $icon-muted;
+  }
+}

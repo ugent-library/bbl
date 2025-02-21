@@ -34,6 +34,8 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	go.opentelemetry.io/otel v1.29.0 // indirect
+	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/mod v0.20.0 // indirect
@@ -45,15 +47,19 @@ require (
 )
 
 require (
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/securecookie v1.1.2
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/lmittmann/tint v1.0.7
 	github.com/pressly/goose/v3 v3.24.1
+	github.com/samber/slog-http v1.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	go.breu.io/ulid v0.0.2
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sync v0.10.0
 	golang.org/x/text v0.21.0
 )
 

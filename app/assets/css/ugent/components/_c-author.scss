@@ -1,0 +1,23 @@
+/* ==========================================================================
+  Component: Author
+  ========================================================================== */
+
+.c-author-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  color: $text-muted;
+}
+
+.c-author {
+  margin: 0 1.6rem 0 0;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+
+  .if {
+    color: $icon-muted;
+    font-size: 1.6rem;
+    margin-right: 0.4rem;
+  }
+}

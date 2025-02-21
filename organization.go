@@ -12,8 +12,7 @@ var organizationSpec = &recSpec{
 }
 
 type Organization struct {
-	ID       string           `json:"id,omitempty"`
-	Kind     string           `json:"kind"`
+	Record
 	CeasedOn *Attr[time.Time] `json:"ceased_on,omitempty"`
 	Names    []Attr[Text]     `json:"names,omitempty"`
 }

@@ -15,8 +15,7 @@ var workSpec = &recSpec{
 }
 
 type Work struct {
-	ID           string                          `json:"id,omitempty"`
-	Kind         string                          `json:"kind"`
+	Record
 	Notes        []Attr[Note]                    `json:"notes,omitempty"`
 	Abstracts    []Attr[Text]                    `json:"abstracts,omitempty"`
 	Conference   *Attr[Conference]               `json:"conference,omitempty"`

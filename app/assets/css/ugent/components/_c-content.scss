@@ -1,0 +1,101 @@
+.c-main-content {
+  height: calc(100% - 3.5rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.c-content {
+  height: calc(100% - 4.5rem);
+  margin: auto 0;
+
+  p + p {
+    margin-top: 0.8rem;
+  }
+
+  ul {
+    list-style-type: disc;
+    padding-left: 1.6rem;
+  }
+}
+
+.c-content pre {
+  background: #f5f6f9;
+  padding: 1.6rem;
+  margin: 0 0 1rem;
+  font-size: 75%;
+  white-space: pre-wrap;
+}
+
+.c-intro {
+  font-size: 1.6rem;
+}
+
+.c-body {
+  font-size: 1.4rem;
+}
+
+.c-body-small {
+  font-size: 1.2rem;
+}
+
+.c-link {
+  color: $primary;
+  text-decoration: underline;
+}
+
+.c-link-muted {
+  color: $text-muted;
+  text-decoration: underline;
+
+  &:hover {
+    color: $gray-600;
+  }
+}
+
+.c-link-small {
+  font-size: 1.2rem;
+}
+
+.c-subline {
+  color: $text-muted;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.c-label {
+  font-weight: 500;
+  color: $gray-600;
+}
+
+.c-code {
+  display: inline-flex;
+  align-items: center;
+  background-color: $gray-25;
+  border: 1px solid $border;
+  color: $gray-600;
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.6rem;
+}
+
+.c-content-i {
+  color: rgba($white, 0.7);
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: $white;
+  }
+}
+
+.text-muted-i {
+  color: rgba($white, 0.6);
+}
+
+.text-i {
+  color: rgba($white, 0.8);
+}
+
+strong {
+  font-weight: 500;
+}

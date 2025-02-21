@@ -1,0 +1,324 @@
+//
+// Additions to Bootstrap `_buttons.scss`
+//
+
+.btn {
+  align-self: center;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  .btn-text {
+    display: inline-block;
+  }
+
+  .if {
+    position: relative;
+    top: 1.5px;
+    font-size: 2rem;
+    line-height: 1;
+  }
+}
+
+.if + .btn-text,
+.btn-text + .if {
+  margin-left: 0.4rem;
+}
+
+.btn:not(.btn-icon-only):not(.btn-link-p-0):not(.btn-sm):not(.btn-tertiary)
+  .if:first-child {
+  margin-left: -0.8rem;
+}
+
+.btn:not(.btn-icon-only):not(.btn-link-p-0):not(.btn-sm):not(.btn-tertiary)
+  .if:last-child {
+  margin-right: -0.8rem;
+}
+
+.btn-link {
+  font-weight: 500;
+}
+
+.btn-link-p-0 {
+  margin-left: 0;
+}
+// Skins
+
+.btn-warning {
+  color: $white;
+
+  &:hover,
+  &:focus {
+    color: $white;
+  }
+}
+
+.btn-tertiary {
+  color: $gray-600;
+  padding-left: 0;
+  padding-right: 0;
+
+  &:not(:has(> .if)) {
+    text-decoration: underline;
+  }
+
+  &:hover,
+  &:hover .btn-text {
+    text-decoration: none;
+  }
+
+  .btn-text {
+    text-decoration: underline;
+  }
+}
+
+.btn-outline-primary {
+  &:hover,
+  &:focus {
+    background-color: $light-blue;
+    color: $blue;
+  }
+}
+
+.btn-outline-secondary {
+  color: $gray-700;
+  background-color: white;
+  border-color: $border;
+
+  &:hover,
+  &:focus {
+    background-color: $gray-50;
+  }
+}
+
+.btn-outline-success {
+  &:hover,
+  &:focus {
+    background-color: $light-green;
+    color: $green;
+  }
+}
+
+.btn-outline-danger {
+  &:hover,
+  &:focus {
+    background-color: $light-warm-red;
+    color: $warm-red;
+  }
+}
+
+.btn-outline-warning {
+  &:hover,
+  &:focus {
+    background-color: $light-orange;
+    color: $orange;
+  }
+}
+
+.btn-outline-info {
+  &:hover,
+  &:focus {
+    background-color: rgba($aqua, 0.1);
+    color: $aqua;
+  }
+}
+
+.btn-outline-light {
+  &:hover,
+  &:focus {
+    background-color: rgba($white, 0.1);
+    color: $white;
+  }
+}
+
+.btn-outline-dark {
+  &:hover,
+  &:focus {
+    background-color: $gray-50;
+    color: $gray-1000;
+  }
+}
+
+.btn:not(.btn-link).disabled {
+  background-color: $gray-100;
+  border-color: $gray-100;
+  color: $text-muted;
+}
+
+.btn-link-muted {
+  color: $icon-default;
+
+  &:hover,
+  &:focus {
+    color: $gray-700;
+  }
+}
+
+.btn-dark {
+  background-color: mix($dark-gray, $white, 80%);
+  &:hover,
+  &:focus {
+    background-color: mix($dark-gray, $white, 75%);
+  }
+}
+
+// Icon only button
+
+.btn-icon-only {
+  width: 3.2rem;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+  height: 3.2rem;
+  min-width: 3.2rem;
+  min-height: 3.2rem;
+}
+
+// Small buttons
+
+.btn-sm {
+  line-height: 1.5;
+  font-size: 1.2rem;
+  .if {
+    font-size: 1.6rem;
+    top: 0;
+  }
+}
+
+.btn-sm.btn-icon-only {
+  width: 2.8rem;
+  height: 2.8rem;
+  min-width: 2.8rem;
+  min-height: 2.8rem;
+}
+
+// Thumbnail buttons
+
+.btn-thumbnail {
+  border-radius: 50%;
+  width: 2.4rem;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  min-height: 2.4rem;
+  line-height: 1.6rem;
+  position: absolute;
+  left: 8.8rem;
+  bottom: 1.2rem;
+  background-color: $light-blue;
+  color: $blue;
+  border: none;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: rgba($blue, 0.2);
+    color: $blue;
+  }
+
+  .if {
+    font-size: 1.6rem;
+    top: 0;
+  }
+}
+
+// File button
+
+.btn-file {
+  position: relative;
+  input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0.0001;
+  }
+}
+
+// Button groups
+
+.btn-group {
+  .btn-outline-primary {
+    &:hover,
+    &:focus {
+      background-color: $light-blue;
+      color: $blue;
+    }
+  }
+
+  .btn-outline-secondary {
+    color: $text;
+    border-color: $border;
+
+    &:hover,
+    &:focus {
+      background-color: $gray-50;
+    }
+  }
+
+  .btn-outline-success {
+    &:hover,
+    &:focus {
+      background-color: $light-green;
+      color: $green;
+    }
+  }
+
+  .btn-outline-danger {
+    &:hover,
+    &:focus {
+      background-color: $light-warm-red;
+      color: $warm-red;
+    }
+  }
+
+  .btn-outline-warning {
+    &:hover,
+    &:focus {
+      background-color: $light-orange;
+      color: $orange;
+    }
+  }
+
+  .btn-outline-info {
+    &:hover,
+    &:focus {
+      background-color: rgba($aqua, 0.1);
+      color: $aqua;
+    }
+  }
+
+  .btn-outline-light {
+    &:hover,
+    &:focus {
+      background-color: rgba($white, 0.1);
+      color: $white;
+    }
+  }
+
+  .btn-outline-dark {
+    &:hover,
+    &:focus {
+      background-color: $gray-50;
+      color: $gray-1000;
+    }
+  }
+}
+
+// Override color-contrast() functio
+.btn-success,
+.btn-danger,
+.btn-info {
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+}
+
+.btn-secondary,
+.btn-light {
+  --bs-btn-color: #{$gray-700};
+  --bs-btn-hover-color: #{$gray-800};
+}
+
+.btn[data-bs-toggle="collapse"][aria-expanded="true"] .if-chevron-down,
+.btn[data-bs-toggle="collapse"][aria-expanded="true"] .if-arrow-double-down {
+  transform: rotate(180deg);
+}

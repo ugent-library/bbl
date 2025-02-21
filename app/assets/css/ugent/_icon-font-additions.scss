@@ -1,0 +1,64 @@
+/* ==========================================================================
+  Icon font additions
+  ========================================================================== */
+
+// Colors
+// TODO: replace once text colors are introduced
+.if--success {
+    color: $success;
+  }
+  .if--error {
+    color: $danger;
+  }
+  .if--primary {
+    color: $blue;
+  }
+  .if--warning {
+    color: $warning;
+  }
+  .if--danger {
+    color: $danger;
+  }
+  .if--muted {
+    color: $icon-muted;
+  }
+  // Sizes
+  .if {
+    font-size: 2rem;
+    line-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .if--small {
+    font-size: 1.6rem;
+    line-height: 1.6rem;
+  }
+  .if--xsmall {
+    font-size: 1.4rem;
+    line-height: 1.4rem;
+  }
+  .if--large {
+    font-size: 3.2rem;
+    line-height: 3.2rem;
+  }
+  // Notification highlight
+  .if--notification {
+    position: relative;
+  }
+  .if--notification:after {
+    content: "";
+    display: block;
+    position: absolute;
+    right: -0.3rem;
+    top: -0.1rem;
+    border-radius: 1rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    background-color: $primary;
+    background-color: $dark-blue;
+  }
+  .if--notification-warning:after {
+    background-color: $yellow;
+    border: 1px solid $dark-yellow;
+  }

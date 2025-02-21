@@ -1,0 +1,71 @@
+.c-file-upload {
+  background: transparent;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.3rem;
+
+  transition: background-color 0.3s;
+
+  &:hover,
+  &:focus {
+    background-color: $light-blue;
+
+    .c-file-upload__content {
+      border-color: $blue;
+    }
+  }
+}
+
+.c-file-upload input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.0001;
+}
+
+.c-file-upload__content {
+  border: 0.2rem dashed $border;
+  border-radius: 0.3rem;
+  width: 100%;
+  padding: 1.6rem;
+  height: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  min-height: 8rem;
+
+  transition: border-color 0.3s;
+}
+
+/* Sizes */
+
+.c-file-upload.c-file-upload--small {
+  .c-file-upload__content {
+    padding: 0.5rem 0 1.5rem 0;
+    min-height: 9.6rem;
+
+    p {
+      margin-bottom: 1rem;
+    }
+  }
+}
+
+/* States */
+
+.c-file-upload.c-file-upload--disabled {
+  background-color: $gray-25;
+  pointer-events: none;
+
+  .c-file-upload__content {
+    pointer-events: none;
+    border-color: $gray-100;
+  }
+}

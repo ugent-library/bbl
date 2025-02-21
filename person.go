@@ -10,8 +10,7 @@ var personSpec = &recSpec{
 }
 
 type Person struct {
-	ID                 string           `json:"id,omitempty"`
-	Kind               string           `json:"kind"`
+	Record
 	NameParts          *Attr[NameParts] `json:"name_parts,omitempty"`
 	PreferredNameParts *Attr[NameParts] `json:"preferred_name_parts,omitempty"`
 }
