@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/pgadapter"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -24,6 +27,13 @@ var startCmd = &cobra.Command{
 	Short: "Start the server",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		repo := bbl.NewRepo(pgadapter.New(conn))
+
 		logger := newLogger(cmd.OutOrStdout())
 
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
@@ -53,7 +63,7 @@ var startCmd = &cobra.Command{
 			Env:     config.Env,
 			BaseURL: config.BaseURL,
 			Logger:  logger,
-			// Repo:             pgAdapter,
+			Repo:    repo,
 			// Queue:            pgAdapter.Queue(),
 			// Index:            index,
 			// UserSource:       ldapAdapter,
