@@ -9,6 +9,13 @@ var organizationSpec = &recSpec{
 		"ceased_on": {},
 		"name":      {},
 	},
+	Validate: func(dbr *DbRec) error {
+		rec, err := loadOrganization(dbr)
+		if err != nil {
+			return err
+		}
+		return rec.Validate()
+	},
 }
 
 type Organization struct {
@@ -28,4 +35,8 @@ func loadOrganization(rec *DbRec) (*Organization, error) {
 		return nil, err
 	}
 	return &o, nil
+}
+
+func (rec *Organization) Validate() error {
+	return nil
 }

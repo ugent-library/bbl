@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 
@@ -11,7 +12,8 @@ import (
 )
 
 type recSpec struct {
-	Attrs map[string]*attrSpec
+	Attrs    map[string]*attrSpec
+	Validate func(*DbRec) error
 }
 
 type attrSpec struct{}
@@ -43,6 +45,7 @@ func (r *Repo) MigrateDown(ctx context.Context) error {
 
 func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 	return r.db.Do(ctx, func(tx DbTx) error {
+		var recs []*DbRec
 		var changesApplied []*Change
 		var rec *DbRec
 		var err error
@@ -54,8 +57,9 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					Kind: c.AddRecArgs().Kind,
 				}
 				if _, ok := r.recSpecs[rec.Kind]; !ok {
-					return errors.New("invalid rec kind")
+					return fmt.Errorf("invalid rec kind %s", rec.Kind)
 				}
+				recs = append(recs, rec)
 			} else {
 				if rec != nil && c.ID == "" {
 					c.ID = rec.ID
@@ -66,8 +70,9 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 						return err
 					}
 					if rec == nil {
-						return errors.New("rec doesn't exist")
+						return fmt.Errorf("rec %s doesn't exist", c.ID)
 					}
+					recs = append(recs, rec)
 				}
 
 				switch c.Op {
@@ -133,6 +138,13 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 			}
 
 			changesApplied = append(changesApplied, c)
+		}
+
+		for _, rec := range recs {
+			recSpec := r.recSpecs[rec.Kind]
+			if err := recSpec.Validate(rec); err != nil {
+				return err
+			}
 		}
 
 		return tx.AddRev(ctx, &Rev{

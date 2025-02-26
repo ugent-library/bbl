@@ -8,13 +8,20 @@ var projectSpec = &recSpec{
 		"identifier": {},
 		"name":       {},
 	},
+	Validate: func(dbr *DbRec) error {
+		rec, err := loadProject(dbr)
+		if err != nil {
+			return err
+		}
+		return rec.Validate()
+	},
 }
 
 type Project struct {
 	Record
-	Abstracts   []Attr[Text]       `json:"abstracts,omitempty"`
-	Identifiers []Attr[Identifier] `json:"identifiers,omitempty"`
-	Names       []Attr[Text]       `json:"names,omitempty"`
+	Abstracts   []Attr[Text] `json:"abstracts,omitempty"`
+	Identifiers []Attr[Code] `json:"identifiers,omitempty"`
+	Names       []Attr[Text] `json:"names,omitempty"`
 }
 
 func loadProject(rec *DbRec) (*Project, error) {
@@ -31,4 +38,8 @@ func loadProject(rec *DbRec) (*Project, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (rec *Project) Validate() error {
+	return nil
 }

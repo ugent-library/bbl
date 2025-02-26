@@ -76,15 +76,29 @@ type AddAttrArgs struct {
 	ID    string          `json:"id"`
 	Kind  string          `json:"kind"`
 	Val   json.RawMessage `json:"val"`
-	RelID string          `json:"rel_id"`
+	RelID string          `json:"rel_id,omitempty"`
+}
+
+func AddAttr(recID, kind string, val any) *Change {
+	b, _ := json.Marshal(val) // TODO
+	return &Change{ID: recID, Op: OpAddAttr, Args: &AddAttrArgs{Kind: kind, Val: b}}
 }
 
 type SetAttrArgs struct {
 	ID    string          `json:"id"`
 	Val   json.RawMessage `json:"val"`
-	RelID string          `json:"rel_id"`
+	RelID string          `json:"rel_id,omitempty"`
+}
+
+func SetAttr(recID, id string, val any) *Change {
+	b, _ := json.Marshal(val) // TODO
+	return &Change{ID: recID, Op: OpSetAttr, Args: &SetAttrArgs{ID: id, Val: b}}
 }
 
 type DelAttrArgs struct {
 	ID string `json:"id"`
+}
+
+func DelAttr(recID, id string) *Change {
+	return &Change{ID: recID, Op: OpDelAttr, Args: &DelAttrArgs{ID: id}}
 }

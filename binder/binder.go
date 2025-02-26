@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/constraints"
 )
 
 func New(r *http.Request) *Binder {
@@ -254,7 +256,7 @@ func (b *valuesBinder) TimeSlice(key string, layout string, ptr *[]time.Time) *v
 	return b
 }
 
-func bindInt[T int | int8 | int16 | int32 | int64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindInt[T constraints.Signed](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -266,7 +268,7 @@ func bindInt[T int | int8 | int16 | int32 | int64](b *valuesBinder, key string, 
 	return b
 }
 
-func bindIntSlice[T int | int8 | int16 | int32 | int64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindIntSlice[T constraints.Signed](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
 	if b.binder.err != nil {
 		return b
 	}
@@ -285,7 +287,7 @@ func bindIntSlice[T int | int8 | int16 | int32 | int64](b *valuesBinder, key str
 	return b
 }
 
-func bindUint[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindUint[T constraints.Unsigned](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -297,7 +299,7 @@ func bindUint[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, key st
 	return b
 }
 
-func bindUintSlice[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindUintSlice[T constraints.Unsigned](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
 	if b.binder.err != nil {
 		return b
 	}
@@ -316,7 +318,7 @@ func bindUintSlice[T uint | uint8 | uint16 | uint32 | uint64](b *valuesBinder, k
 	return b
 }
 
-func bindFloat[T float32 | float64](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindFloat[T constraints.Float](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -328,7 +330,7 @@ func bindFloat[T float32 | float64](b *valuesBinder, key string, ptr *T, bitSize
 	return b
 }
 
-func bindFloatSlice[T float32 | float64](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindFloatSlice[T constraints.Float](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
 	if b.binder.err != nil {
 		return b
 	}

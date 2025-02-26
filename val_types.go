@@ -14,9 +14,9 @@ type Text struct {
 	Text string `json:"text"`
 }
 
-type Identifier struct {
+type Code struct {
 	Scheme string `json:"scheme"`
-	Value  string `json:"value"`
+	Code   string `json:"code"`
 }
 
 type Conference struct {
@@ -25,6 +25,10 @@ type Conference struct {
 	Location  string     `json:"location,omitempty"`
 	StartDate *time.Time `json:"start_date,omitempty"`
 	EndDate   *time.Time `json:"end_date,omitempty"`
+}
+
+func (val Conference) IsBlank() bool {
+	return val == Conference{}
 }
 
 type Contributor struct {

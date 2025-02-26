@@ -7,6 +7,13 @@ var personSpec = &recSpec{
 		"name_parts":           {},
 		"preferred_name_parts": {},
 	},
+	Validate: func(dbr *DbRec) error {
+		rec, err := loadPerson(dbr)
+		if err != nil {
+			return err
+		}
+		return rec.Validate()
+	},
 }
 
 type Person struct {
@@ -26,4 +33,8 @@ func loadPerson(rec *DbRec) (*Person, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (rec *Person) Validate() error {
+	return nil
 }

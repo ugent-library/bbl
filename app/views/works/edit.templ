@@ -1,25 +1,23 @@
 package workviews
 
 import (
-	// "fmt"
-	// "github.com/samber/lo"
-	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
-	// "github.com/ugent-library/bbl/app/views/forms"
-	// "slices"
+	"github.com/ugent-library/bbl/app/views/forms"
+	"github.com/ugent-library/bbl"
+	
 )
 
-templ Edit(c views.Ctx, rec *bbl.Work) {
+templ Edit(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 	@views.Page(c, "Edit") {
 		<div class="w-100 h-100 d-flex flex-column overflow-hidden">
 			<div class="bc-navbar bc-navbar--white bc-navbar--auto bc-navbar--bordered-bottom flex-column align-items-start">
 				<div class="bc-toolbar bc-toolbar-sm-responsive w-100">
 					<div class="bc-toolbar-left mb-1">
 						<div class="d-inline-flex align-items-center flex-wrap">
-							<span data-bb-target="work-summary-status">
+							<span data-bbl-target="work-summary-status">
 								// @SummaryStatus(rec)
 							</span>
-							<span class="c-subline text-nowrap me-3 pe-3 border-end" data-bb-target="work-summary-kind">
+							<span class="c-subline text-nowrap me-3 pe-3 border-end" data-bbl-target="work-summary-kind">
 								// @SummaryKind(rec)
 							</span>
 						</div>
@@ -27,7 +25,7 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 					<div class="bc-toolbar-right mb-3 mb-lg-0">
 						<div class="bc-toolbar-item ps-0 ps-lg-4">
 							<div class="c-button-toolbar">
-								<button class="btn" data-bb-trigger="save-work">Save</button>
+								<button class="btn" data-bbl-trigger="save-work">Save</button>
 								<a class="btn btn-success" href="#">Publish to Biblio</a>
 								<div class="dropdown">
 									<button class="btn btn-outline-secondary btn-icon-only me-0" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -45,22 +43,23 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 						</div>
 					</div>
 				</div>
-				<h4 class="w-100 c-body-small mb-4" data-bb-target="work-summary-title">
+				<h4 class="w-100 c-body-small mb-4" data-bbl-target="work-summary-title">
 					// @SummaryTitle(rec)
 				</h4>
 				<div class="bc-toolbar flex-column flex-md-row align-items-start pb-4 h-auto">
-					<div class="bc-toolbar-left mt-3 mt-md-0" data-bb-target="work-summary-id">
+					<div class="bc-toolbar-left mt-3 mt-md-0" data-bbl-target="work-summary-id">
 						// @SummaryID(rec)
 					</div>
 				</div>
 			</div>
-			@editForm(c, rec)
+
+			@editForm(c, rec, formProfile)
 		</div>
 	}
 }
 
-templ editForm(c views.Ctx, rec *bbl.Work) {
-	<div data-bb-target="work-edit" class="d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative">
+templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
+	<div data-bbl-target="work-edit" class="d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative">
 		<div class="c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block">
 			<div class="bc-navbar bc-navbar--large">
 				<div class="bc-toolbar">
@@ -74,11 +73,11 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			<div class="c-sub-sidebar__content pt-5">
 				<div class="ps-6">
 					<nav class="nav nav-pills flex-column">
-						// for _, section := range p.Sections {
-						// 	<a class="nav-link" href={ section.Anchor() }>
-						// 		<span class="c-sidebar__label">{ section.Name }</span>
-						// 	</a>
-						// }
+						for _, section := range formProfile.Sections {
+							<a class="nav-link" href={ section.Anchor() }>
+								<span class="c-sidebar__label">{ section.Name }</span>
+							</a>
+						}
 					</nav>
 				</div>
 			</div>
@@ -87,69 +86,66 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			<div class="u-scroll-wrapper__body w-100 p-6">
 				<form
 					hx-encoding="multipart/form-data"
-					if rec.IsNew() {
-						hx-post={ c.Route("create_work").String() }
-					} else {
-						hx-post={ c.Route("update_work", "work_id", rec.ID).String() }
-					}
-					hx-target="[data-bb-target=work-edit]"
+					hx-post={ c.Route("update_work", "work_id", rec.ID).String() }
+					hx-target="[data-bbl-target=work-edit]"
 					hx-swap="outerHTML"
-					hx-trigger="click from:[data-bb-trigger=save-work]"
+					hx-trigger="click from:[data-bbl-trigger=save-work]"
+
 				>
-					// for _, section := range p.Sections {
-					// 	<div class="mb-6" id={ section.ID() }>
-					// 		<div class="mb-4">
-					// 			<h2>{ section.Name }</h2>
-					// 		</div>
-					// 		<div class="card mb-6">
-					// 			<div class="card-body">
-					// 				for _, field := range section.Fields {
-					// 					switch field.Field {
-					// 						case "classifications":
-					// 							@classificationsField(c, rec, field.Only)
-					// 						case "conference":
-					// 							@conferenceField(c, rec)
-					// 						case "identifiers":
-					// 							@identifiersField(c, rec, field.Only)
-					// 						case "keywords":
-					// 							@keywordsField(c, rec)
-					// 						case "kind":
-					// 							@kindField(c, rec)
-					// 						case "titles":
-					// 							@titlesField(c, rec)
-					// 					}
-					// 				}
-					// 			</div>
-					// 		</div>
-					// 	</div>
-					// }
+					for _, section := range formProfile.Sections {
+						<div class="mb-6" id={ section.ID() }>
+							<div class="mb-4">
+								<h2>{ section.Name }</h2>
+							</div>
+							<div class="card mb-6">
+								<div class="card-body">
+									for _, field := range section.Fields {
+										switch field.Field {
+											case "classifications":
+												// @classificationsField(c, rec, field.Only)
+											case "conference":
+												@conferenceField(c, rec.Conference)
+											case "identifiers":
+												// @identifiersField(c, rec, field.Only)
+											case "keywords":
+												// @keywordsField(c, rec)
+											case "kind":
+												// @kindField(c, rec)
+											case "titles":
+												// @titlesField(c, rec)
+										}
+									}
+								</div>
+							</div>
+						</div>
+					}
 				</form>
 			</div>
 		</div>
 	</div>
 }
 
-// templ RefreshEditForm(c views.Ctx, p *form.Profile, rec *biblio.Work) {
-// 	@editForm(c, p, rec)
-// 	<div hx-swap-oob="innerHTML:[data-bb-target=work-summary-id]">
-// 		@SummaryID(rec)
-// 	</div>
-// 	<div hx-swap-oob="innerHTML:[data-bb-target=work-summary-kind]">
-// 		@SummaryKind(rec)
-// 	</div>
-// 	<div hx-swap-oob="innerHTML:[data-bb-target=work-summary-status]">
-// 		@SummaryStatus(rec)
-// 	</div>
-// 	<div hx-swap-oob="innerHTML:[data-bb-target=work-summary-title]">
-// 		@SummaryTitle(rec)
-// 	</div>
-// }
+templ RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
+	@editForm(c, rec, formProfile)
+	// <div hx-swap-oob="innerHTML:[data-bbl-target=work-summary-id]">
+	// 	@SummaryID(rec)
+	// </div>
+	// <div hx-swap-oob="innerHTML:[data-bbl-target=work-summary-kind]">
+	// 	@SummaryKind(rec)
+	// </div>
+	// <div hx-swap-oob="innerHTML:[data-bbl-target=work-summary-status]">
+	// 	@SummaryStatus(rec)
+	// </div>
+	// <div hx-swap-oob="innerHTML:[data-bbl-target=work-summary-title]">
+	// 	@SummaryTitle(rec)
+	// </div>
+}
 
 // templ classificationsField(c views.Ctx, rec *biblio.Work, only []string) {
 // 	for _, p := range filterSchemes(rec.Profile.Classifications.Schemes, only) {
 // 		if p.Multiple {
-// 			@form.TextInputRepeat(form.TextInputRepeatArgs{
-// 				FieldArgs: form.FieldArgs{
+// 			@forms.TextInputRepeat(forms.TextInputRepeatArgs{
+// 				FieldArgs: forms.FieldArgs{
 // 					Label:    p.Scheme,
 // 					Name:     fmt.Sprintf("Classifications[%s]", p.Scheme),
 // 					Required: p.Required,
@@ -157,8 +153,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 // 				Values: rec.Classifications.ValuesFor(p.Scheme),
 // 			})
 // 		} else {
-// 			@form.TextInput(form.TextInputArgs{
-// 				FieldArgs: form.FieldArgs{
+// 			@forms.TextInput(forms.TextInputArgs{
+// 				FieldArgs: forms.FieldArgs{
 // 					Label:    p.Scheme,
 // 					Name:     fmt.Sprintf("Classifications[%s]", p.Scheme),
 // 					Required: p.Required,
@@ -169,38 +165,37 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 // 	}
 // }
 
-// templ conferenceField(c views.Ctx, rec *biblio.Work) {
-// 	if rec.Profile.Conference.Use {
-// 		{{ conference := rec.GetConference() }}
-// 		@form.TextInput(form.TextInputArgs{
-// 			FieldArgs: form.FieldArgs{
-// 				Label: "Conference",
-// 				Name:  "Conference.Name",
-// 			},
-// 			Value: conference.Name,
-// 		})
-// 		@form.TextInput(form.TextInputArgs{
-// 			FieldArgs: form.FieldArgs{
-// 				Label: "Conference location",
-// 				Name:  "Conference.Location",
-// 			},
-// 			Value: conference.Location,
-// 		})
-// 		@form.TextInput(form.TextInputArgs{
-// 			FieldArgs: form.FieldArgs{
-// 				Label: "Conference organizer",
-// 				Name:  "Conference.Organizer",
-// 			},
-// 			Value: conference.Organizer,
-// 		})
-// 	}
-// }
+templ conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) {
+		{{val := attr.GetVal()}}
+
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference",
+				Name:  "conference.name",
+			},
+			Value: val.Name,
+		})
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference location",
+				Name:  "conference.location",
+			},
+			Value: val.Location,
+		})
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference organizer",
+				Name:  "conference.organizer",
+			},
+			Value: val.Organizer,
+		})
+}
 
 // templ identifiersField(c views.Ctx, rec *biblio.Work, only []string) {
 // 	for _, p := range filterSchemes(rec.Profile.Identifiers.Schemes, only) {
 // 		if p.Multiple {
-// 			@form.TextInputRepeat(form.TextInputRepeatArgs{
-// 				FieldArgs: form.FieldArgs{
+// 			@forms.TextInputRepeat(forms.TextInputRepeatArgs{
+// 				FieldArgs: forms.FieldArgs{
 // 					Label:    p.Scheme,
 // 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
 // 					Required: p.Required,
@@ -208,8 +203,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 // 				Values: rec.Identifiers.ValuesFor(p.Scheme),
 // 			})
 // 		} else {
-// 			@form.TextInput(form.TextInputArgs{
-// 				FieldArgs: form.FieldArgs{
+// 			@forms.TextInput(forms.TextInputArgs{
+// 				FieldArgs: forms.FieldArgs{
 // 					Label:    p.Scheme,
 // 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
 // 					Required: p.Required,
@@ -222,8 +217,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 
 // templ keywordsField(c views.Ctx, rec *biblio.Work) {
 // 	if rec.Profile.Keywords.Use {
-// 		@form.Tags(form.TagsArgs{
-// 			FieldArgs: form.FieldArgs{
+// 		@forms.Tags(forms.TagsArgs{
+// 			FieldArgs: forms.FieldArgs{
 // 				Label:    "Keywords",
 // 				Name:     "Keywords",
 // 				Required: rec.Profile.Keywords.Required,
@@ -243,7 +238,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 // 				hx-post={ c.Route("refresh_new_work").String() }
 // 			}
 // 			hx-include="closest form"
-// 			hx-target="[data-bb-target=work-edit]"
+// 			hx-target="[data-bbl-target=work-edit]"
 // 			hx-swap="outerHTML"
 // 		>
 // 			<option></option>
@@ -256,8 +251,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 
 // templ titlesField(c views.Ctx, rec *biblio.Work) {
 // 	if rec.Profile.Titles.Use {
-// 		@form.TextRepeat(form.TextRepeatArgs{
-// 			FieldArgs: form.FieldArgs{
+// 		@forms.TextRepeat(forms.TextRepeatArgs{
+// 			FieldArgs: forms.FieldArgs{
 // 				Label:    "Titles",
 // 				Name:     "Titles",
 // 				Required: rec.Profile.Titles.Required,

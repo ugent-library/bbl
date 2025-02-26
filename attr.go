@@ -13,6 +13,14 @@ func (a *Attr[T]) Set() bool {
 	return a != nil
 }
 
+func (a *Attr[T]) GetID() string {
+	if a != nil {
+		return a.ID
+	} else {
+		return ""
+	}
+}
+
 func (a *Attr[T]) GetVal() T {
 	if a != nil {
 		return a.Val

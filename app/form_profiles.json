@@ -1,0 +1,57 @@
+{
+    "work": {
+        "sections": [
+            {
+                "name": "type",
+                "fields": [
+                    {
+                        "field": "kind"
+                    },
+                    {
+                        "field": "classifications",
+                        "only": [
+                            "ugent"
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "description",
+                "fields": [
+                    {
+                        "field": "titles"
+                    },
+                    {
+                        "field": "keywords"
+                    }
+                ]
+            },
+            {
+                "name": "bibliographic_information",
+                "fields": []
+            },
+            {
+                "name": "conference_details",
+                "fields": [
+                    {
+                        "field": "conference"
+                    }
+                ]
+            },
+            {
+                "name": "identifiers",
+                "fields": [
+                    {
+                        "field": "classifications",
+                        "only": [
+                            "wos_type"
+                        ]
+                    },
+                    {
+                        "field": "identifiers"
+                    }
+                ]
+            }
+        ]
+    }
+}
