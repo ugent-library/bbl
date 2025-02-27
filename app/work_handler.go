@@ -91,12 +91,36 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 		return err
 	}
 
-	if c.Work.Conference.Set() && val.IsBlank() {
+	if c.Work.Conference.IsSet() && val.IsBlank() {
 		changes = append(changes, bbl.DelAttr(c.Work.ID, c.Work.Conference.ID))
-	} else if c.Work.Conference.Set() && !val.IsBlank() {
+	} else if c.Work.Conference.IsSet() && !val.IsBlank() {
 		changes = append(changes, bbl.SetAttr(c.Work.ID, c.Work.Conference.ID, val))
 	} else if !val.IsBlank() {
 		changes = append(changes, bbl.AddAttr(c.Work.ID, "conference", val))
+	}
+
+	// TODO handle deletes (id's not in binder values)
+	err = b.
+		Each("identifiers", func(b *binder.Values) bool {
+			var id string
+			var val bbl.Code
+			b.String("id", &id)
+			b.String("val.scheme", &val.Scheme)
+			b.String("val.code", &val.Code)
+			blank := val.IsBlank()
+			if id == "" && !blank {
+				changes = append(changes, bbl.AddAttr(c.Work.ID, "identifier", val))
+			} else if id != "" && !blank {
+				changes = append(changes, bbl.SetAttr(c.Work.ID, id, val))
+			} else if id != "" && blank {
+				changes = append(changes, bbl.DelAttr(c.Work.ID, id))
+			}
+			return true
+		}).
+		Err()
+
+	if err != nil {
+		return err
 	}
 
 	if err := h.repo.AddRev(r.Context(), changes); err != nil {

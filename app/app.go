@@ -14,7 +14,6 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views/forms"
 	"github.com/ugent-library/bbl/ctx"
-	// h "github.com/ugent-library/minibiblio/app/handlers"
 )
 
 //go:embed static

@@ -1,0 +1,33 @@
+[{
+    "kind": "work.book",
+    "abstracts": {"use": true},
+    "identifiers": {"schemes":[
+        {"scheme": "doi"},
+        {"scheme": "isbn", "multiple": true}
+    ]},
+    "keywords": {"use": true},
+    "titles": {"use": true, "required": true}
+}, {
+    "kind": "work.journal_article",
+    "abstracts": {"use": true},
+    "classifications": {"schemes":[
+        {"scheme": "ugent"},
+        {"scheme": "wos_type"}
+    ]},
+    "identifiers": {"schemes":[
+        {"scheme": "wos_id"},
+        {"scheme": "doi"},
+        {"scheme": "issn", "multiple": true}
+    ]},
+    "keywords": {"use": true},
+    "titles": {"use": true, "required": true}
+}, {
+    "kind": "work.journal_article.original"
+}, {
+    "kind": "work.journal_article.review"
+}, {
+    "kind": "work.journal_article.letter_note"
+}, {
+    "kind": "work.journal_article.proceedings_paper",
+    "conference": {"use": true} 
+}]

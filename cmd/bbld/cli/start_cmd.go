@@ -39,10 +39,6 @@ var startCmd = &cobra.Command{
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
 
-		// if err := biblio.LoadWorkProfiles(config.WorkProfiles); err != nil {
-		// 	return err
-		// }
-
 		// pgAdapter, err := services.NewPostgresAdapter(ctx, config)
 		// if err != nil {
 		// 	return err

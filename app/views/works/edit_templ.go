@@ -111,7 +111,7 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(section.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 78, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 77, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -129,7 +129,7 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("update_work", "work_id", rec.ID).String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 89, Col: 65}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 88, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -147,7 +147,7 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(section.ID())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 96, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 95, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -160,7 +160,7 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(section.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 98, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 97, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -174,11 +174,15 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 				switch field.Field {
 				case "classifications":
 				case "conference":
-					templ_7745c5c3_Err = conferenceField(c, rec.Conference).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = conferenceField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				case "identifiers":
+					templ_7745c5c3_Err = identifiersField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				case "keywords":
 				case "kind":
 				case "titles":
@@ -249,7 +253,7 @@ func RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) tem
 //			}
 //		}
 //	}
-func conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) templ.Component {
+func identifiersField(c views.Ctx, rec *bbl.Work) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -270,33 +274,12 @@ func conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) templ.Componen
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		val := attr.GetVal()
-		templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
+		templ_7745c5c3_Err = forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
 			FieldArgs: forms.FieldArgs{
-				Label: "Conference",
-				Name:  "conference.name",
+				Name: "identifiers",
 			},
-			Value: val.Name,
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
-			FieldArgs: forms.FieldArgs{
-				Label: "Conference location",
-				Name:  "conference.location",
-			},
-			Value: val.Location,
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
-			FieldArgs: forms.FieldArgs{
-				Label: "Conference organizer",
-				Name:  "conference.organizer",
-			},
-			Value: val.Organizer,
+			Schemes: rec.Profile.IdentifierSchemes(),
+			Attrs:   rec.Identifiers,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -305,29 +288,71 @@ func conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) templ.Componen
 	})
 }
 
-// templ identifiersField(c views.Ctx, rec *biblio.Work, only []string) {
-// 	for _, p := range filterSchemes(rec.Profile.Identifiers.Schemes, only) {
-// 		if p.Multiple {
-// 			@forms.TextInputRepeat(forms.TextInputRepeatArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Values: rec.Identifiers.ValuesFor(p.Scheme),
-// 			})
-// 		} else {
-// 			@forms.TextInput(forms.TextInputArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Value: rec.Identifiers.ValueFor(p.Scheme),
-// 			})
-// 		}
-// 	}
-// }
+func conferenceField(c views.Ctx, rec *bbl.Work) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var11 == nil {
+			templ_7745c5c3_Var11 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if rec.Profile.Conference.Use {
+			val := rec.Conference.GetVal()
+			templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
+				FieldArgs: forms.FieldArgs{
+					Label: "Conference",
+					Name:  "conference.name",
+				},
+				Value: val.Name,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
+				FieldArgs: forms.FieldArgs{
+					Label: "Conference location",
+					Name:  "conference.location",
+				},
+				Value: val.Location,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
+				FieldArgs: forms.FieldArgs{
+					Label: "Conference organizer",
+					Name:  "conference.organizer",
+				},
+				Value: val.Organizer,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
 
 // templ keywordsField(c views.Ctx, rec *biblio.Work) {
 // 	if rec.Profile.Keywords.Use {
@@ -376,11 +401,11 @@ func conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) templ.Componen
 // 	}
 // }
 
-//	func filterSchemes(schemes []biblio.WorkProfileScheme, only []string) []biblio.WorkProfileScheme {
+//	func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
 //		if len(only) == 0 {
 //			return schemes
 //		}
-//		return lo.Filter(schemes, func(s biblio.WorkProfileScheme, _ int) bool {
+//		return lo.Filter(schemes, func(s bbl.WorkProfileScheme, _ int) bool {
 //			return slices.Contains(only, s.Scheme)
 //		})
 //	}

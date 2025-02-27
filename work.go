@@ -25,13 +25,15 @@ var workSpec = &recSpec{
 }
 
 type Work struct {
+	Profile *WorkProfile `json:"-"`
+
 	Record
+	RecordIdentifiers
 	Notes           []Attr[Note]                    `json:"notes,omitempty"`
 	Abstracts       []Attr[Text]                    `json:"abstracts,omitempty"`
 	Classifications []Attr[Code]                    `json:"classifications,omitempty"`
 	Conference      *Attr[Conference]               `json:"conference,omitempty"`
 	Contributors    []RelAttr[Contributor, *Person] `json:"contributors,omitempty"`
-	Identifiers     []Attr[Code]                    `json:"identifiers,omitempty"`
 	Keywords        []Attr[Code]                    `json:"keywords,omitempty"`
 	LaySummaries    []Attr[Text]                    `json:"lay_summaries,omitempty"`
 	Projects        []RelAttr[Empty, *Project]      `json:"projects,omitempty"`
@@ -42,6 +44,9 @@ func loadWork(rec *DbRec) (*Work, error) {
 	w := Work{}
 	w.ID = rec.ID
 	w.Kind = rec.Kind
+
+	w.Profile = getWorkProfile(rec.Kind)
+
 	if err := loadAttrs(rec, "note", &w.Notes); err != nil {
 		return nil, err
 	}

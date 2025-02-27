@@ -18,28 +18,28 @@ func New(r *http.Request) *Binder {
 type Binder struct {
 	r           *http.Request
 	err         error
-	queryBinder *valuesBinder
-	formBinder  *valuesBinder
+	queryBinder *Values
+	formBinder  *Values
 }
 
-type valuesBinder struct {
+type Values struct {
 	binder *Binder
 	values url.Values
 }
 
-func (b *Binder) Query() *valuesBinder {
+func (b *Binder) Query() *Values {
 	if b.queryBinder == nil {
-		b.queryBinder = &valuesBinder{binder: b, values: b.r.URL.Query()}
+		b.queryBinder = &Values{binder: b, values: b.r.URL.Query()}
 	}
 	return b.queryBinder
 }
 
-func (b *Binder) Form() *valuesBinder {
+func (b *Binder) Form() *Values {
 	if b.formBinder == nil {
 		if b.r.Form == nil {
 			b.err = b.r.ParseMultipartForm(32 << 20)
 		}
-		b.formBinder = &valuesBinder{binder: b, values: b.r.Form}
+		b.formBinder = &Values{binder: b, values: b.r.Form}
 	}
 	return b.formBinder
 }
@@ -48,19 +48,19 @@ func (b *Binder) Err() error {
 	return b.err
 }
 
-func (b *valuesBinder) Query() *valuesBinder {
+func (b *Values) Query() *Values {
 	return b.binder.Query()
 }
 
-func (b *valuesBinder) Form() *valuesBinder {
+func (b *Values) Form() *Values {
 	return b.binder.Form()
 }
 
-func (b *valuesBinder) Err() error {
+func (b *Values) Err() error {
 	return b.binder.err
 }
 
-func (b *valuesBinder) Vacuum() *valuesBinder {
+func (b *Values) Vacuum() *Values {
 	if b.binder.err == nil {
 		newValues := make(url.Values)
 		for key, vals := range b.values {
@@ -80,7 +80,53 @@ func (b *valuesBinder) Vacuum() *valuesBinder {
 	return b
 }
 
-func (b *valuesBinder) String(key string, ptr *string) *valuesBinder {
+// TODO cap sparse array size
+func (b *Values) Each(key string, yield func(*Values) bool) *Values {
+	if b.binder.err != nil {
+		return b
+	}
+
+	vv := []url.Values{}
+
+	prefix := key + "["
+	for key, vals := range b.values {
+		if rest, ok := strings.CutPrefix(key, prefix); ok {
+			if idx, newKey, ok := strings.Cut(rest, "]."); ok {
+				intIdx, err := strconv.ParseInt(idx, 10, 0)
+				if err != nil {
+					b.binder.err = err
+					return b
+				}
+
+				i := int(intIdx)
+
+				if i >= len(vv) && i < cap(vv) {
+					vv = vv[:i+1]
+				} else if i >= cap(vv) {
+					s := vv
+					vv = make([]url.Values, i+1)
+					copy(vv, s)
+				}
+
+				if v := vv[i]; v != nil {
+					v[newKey] = vals
+				} else {
+					vv[i] = url.Values{newKey: vals}
+				}
+			}
+		}
+	}
+
+	for _, v := range vv {
+		if !yield(&Values{binder: b.binder, values: v}) {
+			break
+		}
+	}
+
+	return b
+}
+
+func (b *Values) String(key string, ptr *string) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -88,7 +134,7 @@ func (b *valuesBinder) String(key string, ptr *string) *valuesBinder {
 	return b
 }
 
-func (b *valuesBinder) StringSlice(key string, ptr *[]string) *valuesBinder {
+func (b *Values) StringSlice(key string, ptr *[]string) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -98,7 +144,7 @@ func (b *valuesBinder) StringSlice(key string, ptr *[]string) *valuesBinder {
 	return b
 }
 
-func (b *valuesBinder) Bool(key string, ptr *bool) *valuesBinder {
+func (b *Values) Bool(key string, ptr *bool) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -110,7 +156,7 @@ func (b *valuesBinder) Bool(key string, ptr *bool) *valuesBinder {
 	return b
 }
 
-func (b *valuesBinder) BoolSlice(key string, ptr *[]bool) *valuesBinder {
+func (b *Values) BoolSlice(key string, ptr *[]bool) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -129,103 +175,103 @@ func (b *valuesBinder) BoolSlice(key string, ptr *[]bool) *valuesBinder {
 	return b
 }
 
-func (b *valuesBinder) Int(key string, ptr *int) *valuesBinder {
+func (b *Values) Int(key string, ptr *int) *Values {
 	return bindInt(b, key, ptr, 0)
 }
 
-func (b *valuesBinder) IntSlice(key string, ptr *[]int) *valuesBinder {
+func (b *Values) IntSlice(key string, ptr *[]int) *Values {
 	return bindIntSlice(b, key, ptr, 0)
 }
 
-func (b *valuesBinder) Int8(key string, ptr *int8) *valuesBinder {
+func (b *Values) Int8(key string, ptr *int8) *Values {
 	return bindInt(b, key, ptr, 8)
 }
 
-func (b *valuesBinder) Int8Slice(key string, ptr *[]int8) *valuesBinder {
+func (b *Values) Int8Slice(key string, ptr *[]int8) *Values {
 	return bindIntSlice(b, key, ptr, 8)
 }
 
-func (b *valuesBinder) Int16(key string, ptr *int16) *valuesBinder {
+func (b *Values) Int16(key string, ptr *int16) *Values {
 	return bindInt(b, key, ptr, 16)
 }
 
-func (b *valuesBinder) Int16Slice(key string, ptr *[]int16) *valuesBinder {
+func (b *Values) Int16Slice(key string, ptr *[]int16) *Values {
 	return bindIntSlice(b, key, ptr, 16)
 }
 
-func (b *valuesBinder) Int32(key string, ptr *int32) *valuesBinder {
+func (b *Values) Int32(key string, ptr *int32) *Values {
 	return bindInt(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Int32Slice(key string, ptr *[]int32) *valuesBinder {
+func (b *Values) Int32Slice(key string, ptr *[]int32) *Values {
 	return bindIntSlice(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Int64(key string, ptr *int64) *valuesBinder {
+func (b *Values) Int64(key string, ptr *int64) *Values {
 	return bindInt(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Int64Slice(key string, ptr *[]int64) *valuesBinder {
+func (b *Values) Int64Slice(key string, ptr *[]int64) *Values {
 	return bindIntSlice(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Uint(key string, ptr *uint) *valuesBinder {
+func (b *Values) Uint(key string, ptr *uint) *Values {
 	return bindUint(b, key, ptr, 0)
 }
 
-func (b *valuesBinder) UintSlice(key string, ptr *[]uint) *valuesBinder {
+func (b *Values) UintSlice(key string, ptr *[]uint) *Values {
 	return bindUintSlice(b, key, ptr, 0)
 }
 
-func (b *valuesBinder) Uint8(key string, ptr *uint8) *valuesBinder {
+func (b *Values) Uint8(key string, ptr *uint8) *Values {
 	return bindUint(b, key, ptr, 8)
 }
 
-func (b *valuesBinder) Uint8Slice(key string, ptr *[]uint8) *valuesBinder {
+func (b *Values) Uint8Slice(key string, ptr *[]uint8) *Values {
 	return bindUintSlice(b, key, ptr, 8)
 }
 
-func (b *valuesBinder) Uint16(key string, ptr *uint16) *valuesBinder {
+func (b *Values) Uint16(key string, ptr *uint16) *Values {
 	return bindUint(b, key, ptr, 16)
 }
 
-func (b *valuesBinder) Uint16Slice(key string, ptr *[]uint16) *valuesBinder {
+func (b *Values) Uint16Slice(key string, ptr *[]uint16) *Values {
 	return bindUintSlice(b, key, ptr, 16)
 }
 
-func (b *valuesBinder) Uint32(key string, ptr *uint32) *valuesBinder {
+func (b *Values) Uint32(key string, ptr *uint32) *Values {
 	return bindUint(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Uint32Slice(key string, ptr *[]uint32) *valuesBinder {
+func (b *Values) Uint32Slice(key string, ptr *[]uint32) *Values {
 	return bindUintSlice(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Uint64(key string, ptr *uint64) *valuesBinder {
+func (b *Values) Uint64(key string, ptr *uint64) *Values {
 	return bindUint(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Uint64Slice(key string, ptr *[]uint64) *valuesBinder {
+func (b *Values) Uint64Slice(key string, ptr *[]uint64) *Values {
 	return bindUintSlice(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Float32(key string, ptr *float32) *valuesBinder {
+func (b *Values) Float32(key string, ptr *float32) *Values {
 	return bindFloat(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Float32Slice(key string, ptr *[]float32) *valuesBinder {
+func (b *Values) Float32Slice(key string, ptr *[]float32) *Values {
 	return bindFloatSlice(b, key, ptr, 32)
 }
 
-func (b *valuesBinder) Float64(key string, ptr *float64) *valuesBinder {
+func (b *Values) Float64(key string, ptr *float64) *Values {
 	return bindFloat(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Float64Slice(key string, ptr *[]float64) *valuesBinder {
+func (b *Values) Float64Slice(key string, ptr *[]float64) *Values {
 	return bindFloatSlice(b, key, ptr, 64)
 }
 
-func (b *valuesBinder) Time(key string, layout string, ptr *time.Time) *valuesBinder {
+func (b *Values) Time(key string, layout string, ptr *time.Time) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -237,7 +283,7 @@ func (b *valuesBinder) Time(key string, layout string, ptr *time.Time) *valuesBi
 	return b
 }
 
-func (b *valuesBinder) TimeSlice(key string, layout string, ptr *[]time.Time) *valuesBinder {
+func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -256,7 +302,7 @@ func (b *valuesBinder) TimeSlice(key string, layout string, ptr *[]time.Time) *v
 	return b
 }
 
-func bindInt[T constraints.Signed](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindInt[T constraints.Signed](b *Values, key string, ptr *T, bitSize int) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -268,7 +314,7 @@ func bindInt[T constraints.Signed](b *valuesBinder, key string, ptr *T, bitSize 
 	return b
 }
 
-func bindIntSlice[T constraints.Signed](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindIntSlice[T constraints.Signed](b *Values, key string, ptr *[]T, bitSize int) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -287,7 +333,7 @@ func bindIntSlice[T constraints.Signed](b *valuesBinder, key string, ptr *[]T, b
 	return b
 }
 
-func bindUint[T constraints.Unsigned](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindUint[T constraints.Unsigned](b *Values, key string, ptr *T, bitSize int) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -299,7 +345,7 @@ func bindUint[T constraints.Unsigned](b *valuesBinder, key string, ptr *T, bitSi
 	return b
 }
 
-func bindUintSlice[T constraints.Unsigned](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindUintSlice[T constraints.Unsigned](b *Values, key string, ptr *[]T, bitSize int) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -318,7 +364,7 @@ func bindUintSlice[T constraints.Unsigned](b *valuesBinder, key string, ptr *[]T
 	return b
 }
 
-func bindFloat[T constraints.Float](b *valuesBinder, key string, ptr *T, bitSize int) *valuesBinder {
+func bindFloat[T constraints.Float](b *Values, key string, ptr *T, bitSize int) *Values {
 	if b.binder.err != nil || !b.values.Has(key) {
 		return b
 	}
@@ -330,7 +376,7 @@ func bindFloat[T constraints.Float](b *valuesBinder, key string, ptr *T, bitSize
 	return b
 }
 
-func bindFloatSlice[T constraints.Float](b *valuesBinder, key string, ptr *[]T, bitSize int) *valuesBinder {
+func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSize int) *Values {
 	if b.binder.err != nil {
 		return b
 	}

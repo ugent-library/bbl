@@ -19,6 +19,10 @@ type Code struct {
 	Code   string `json:"code"`
 }
 
+func (val Code) IsBlank() bool {
+	return val.Code == ""
+}
+
 type Conference struct {
 	Name      string     `json:"name"`
 	Organizer string     `json:"organizer,omitempty"`

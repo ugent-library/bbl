@@ -9,7 +9,7 @@ type Attr[T any] struct {
 	Val T      `json:"val"`
 }
 
-func (a *Attr[T]) Set() bool {
+func (a *Attr[T]) IsSet() bool {
 	return a != nil
 }
 

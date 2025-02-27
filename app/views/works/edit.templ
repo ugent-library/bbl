@@ -4,7 +4,6 @@ import (
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
 	"github.com/ugent-library/bbl"
-	
 )
 
 templ Edit(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
@@ -104,9 +103,9 @@ templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 											case "classifications":
 												// @classificationsField(c, rec, field.Only)
 											case "conference":
-												@conferenceField(c, rec.Conference)
+												@conferenceField(c, rec)
 											case "identifiers":
-												// @identifiersField(c, rec, field.Only)
+												@identifiersField(c, rec)
 											case "keywords":
 												// @keywordsField(c, rec)
 											case "kind":
@@ -165,8 +164,19 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 // 	}
 // }
 
-templ conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) {
-		{{val := attr.GetVal()}}
+templ identifiersField(c views.Ctx, rec *bbl.Work) {
+	@forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
+		FieldArgs: forms.FieldArgs{
+			Name: "identifiers",
+		},
+		Schemes: rec.Profile.IdentifierSchemes(),
+		Attrs: rec.Identifiers,
+	})
+}
+
+templ conferenceField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Conference.Use {
+		{{val := rec.Conference.GetVal()}}
 
 		@forms.TextInput(forms.TextInputArgs{
 			FieldArgs: forms.FieldArgs{
@@ -189,31 +199,8 @@ templ conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) {
 			},
 			Value: val.Organizer,
 		})
+	}
 }
-
-// templ identifiersField(c views.Ctx, rec *biblio.Work, only []string) {
-// 	for _, p := range filterSchemes(rec.Profile.Identifiers.Schemes, only) {
-// 		if p.Multiple {
-// 			@forms.TextInputRepeat(forms.TextInputRepeatArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Values: rec.Identifiers.ValuesFor(p.Scheme),
-// 			})
-// 		} else {
-// 			@forms.TextInput(forms.TextInputArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Identifiers[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Value: rec.Identifiers.ValueFor(p.Scheme),
-// 			})
-// 		}
-// 	}
-// }
 
 // templ keywordsField(c views.Ctx, rec *biblio.Work) {
 // 	if rec.Profile.Keywords.Use {
@@ -262,11 +249,11 @@ templ conferenceField(c views.Ctx, attr *bbl.Attr[bbl.Conference]) {
 // 	}
 // }
 
-// func filterSchemes(schemes []biblio.WorkProfileScheme, only []string) []biblio.WorkProfileScheme {
+// func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
 // 	if len(only) == 0 {
 // 		return schemes
 // 	}
-// 	return lo.Filter(schemes, func(s biblio.WorkProfileScheme, _ int) bool {
+// 	return lo.Filter(schemes, func(s bbl.WorkProfileScheme, _ int) bool {
 // 		return slices.Contains(only, s.Scheme)
 // 	})
 // }

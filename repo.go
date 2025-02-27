@@ -56,7 +56,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					ID:   c.ID,
 					Kind: c.AddRecArgs().Kind,
 				}
-				if _, ok := r.recSpecs[rec.Kind]; !ok {
+				if _, ok := r.recSpecs[rec.BaseKind()]; !ok {
 					return fmt.Errorf("invalid rec kind %s", rec.Kind)
 				}
 				recs = append(recs, rec)
@@ -79,7 +79,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 				case OpDelRec:
 					rec = nil
 				case OpAddAttr: // TODO check RelID
-					recSpec := r.recSpecs[rec.Kind]
+					recSpec := r.recSpecs[rec.BaseKind()]
 					args := c.AddAttrArgs()
 					_, ok := recSpec.Attrs[args.Kind]
 					if !ok {
@@ -141,7 +141,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 		}
 
 		for _, rec := range recs {
-			recSpec := r.recSpecs[rec.Kind]
+			recSpec := r.recSpecs[rec.BaseKind()]
 			if err := recSpec.Validate(rec); err != nil {
 				return err
 			}

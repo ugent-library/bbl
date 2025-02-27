@@ -2,7 +2,6 @@ package forms
 
 import (
 	"fmt"
-	"github.com/ugent-library/bbl"
 )
 
 type Theme int
@@ -394,82 +393,6 @@ templ Tags(args TagsArgs) {
 				aria-label={ args.Label }
 				{ fieldAria(args.FieldArgs)... }
 			>{ templ.JSONString(args.Values) }</textarea>
-		</div>
-	}
-}
-
-type TextRepeatArgs struct {
-	FieldArgs
-	Values []bbl.Text
-}
-
-templ TextRepeat(args TextRepeatArgs) {
-	@Field(args.FieldArgs, fmt.Sprintf("%s-0-value", args.Name)) {
-		<div data-bb-repeated-fields>
-			for i, text := range args.Values {
-				<div class="form-group" data-bb-repeated-field>
-					<div class="d-flex">
-						<div class="input-group">
-							<input
-								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-								name={ fmt.Sprintf("%s[%d].Value", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-Value", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].Value", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-Value", args.Name) }
-								type="text"
-								value={ text.Text }
-								{ fieldAria(args.FieldArgs)... }
-							/>
-							<select
-								class="form-control form-select"
-								name={ fmt.Sprintf("%s[%d].LanguageCode", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-LanguageCode", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].LanguageCode", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-LanguageCode", args.Name) }
-							>
-								for _, o := range languageOptions {
-									<option value={ o.Value } selected?={ o.Value == text.Lang }>{ o.Label }</option>
-								}
-							</select>
-						</div>
-						<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-							<i class="if if-delete"></i>
-							<span class="visually-hidden">Delete</span>
-						</button>
-					</div>
-				</div>
-			}
-			<div class="form-group" data-bb-repeated-field>
-				<div class="d-flex">
-					<div class="input-group">
-						<input
-							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ fmt.Sprintf("%s[%d].Value", args.Name, len(args.Values)) }
-							id={ fmt.Sprintf("%s-%d-Value", args.Name, len(args.Values)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].Value", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-Value", args.Name) }
-							type="text"
-							value=""
-							{ fieldAria(args.FieldArgs)... }
-						/>
-						<select
-							class="form-select form-control"
-							name={ fmt.Sprintf("%s[%d].LanguageCode", args.Name, len(args.Values)) }
-							id={ fmt.Sprintf("%s-%d-LanguageCode", args.Name, len(args.Values)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].LanguageCode", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-LanguageCode", args.Name) }
-						>
-							for _, o := range languageOptions {
-								<option value={ o.Value }>{ o.Label }</option>
-							}
-						</select>
-					</div>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
-						<i class="if if-add"></i>
-						<div class="visually-hidden">Add</div>
-					</button>
-				</div>
-			</div>
 		</div>
 	}
 }
