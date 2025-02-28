@@ -1,9 +1,9 @@
 package bbl
 
-var workKind = "work"
-
-var workSpec = &recSpec{
-	Attrs: map[string]*attrSpec{
+var workSpec = &RecordSpec{
+	BaseKind: "work",
+	New:      func() Record { return &Work{} },
+	Attrs: map[string]*AttrSpec{
 		"note":           {},
 		"abstract":       {},
 		"classification": {},
@@ -15,19 +15,20 @@ var workSpec = &recSpec{
 		"project":        {},
 		"title":          {},
 	},
-	Validate: func(dbr *DbRec) error {
-		rec, err := loadWork(dbr)
-		if err != nil {
-			return err
-		}
-		return rec.Validate()
-	},
+}
+
+func loadWork(rawRec *RawRecord) (*Work, error) {
+	rec := &Work{}
+	if err := rec.Load(rawRec); err != nil {
+		return nil, err
+	}
+	return rec, nil
 }
 
 type Work struct {
 	Profile *WorkProfile `json:"-"`
 
-	Record
+	RecordHeader
 	RecordIdentifiers
 	Notes           []Attr[Note]                    `json:"notes,omitempty"`
 	Abstracts       []Attr[Text]                    `json:"abstracts,omitempty"`
@@ -40,44 +41,44 @@ type Work struct {
 	Titles          []Attr[Text]                    `json:"titles,omitempty"`
 }
 
-func loadWork(rec *DbRec) (*Work, error) {
-	w := Work{}
-	w.ID = rec.ID
-	w.Kind = rec.Kind
+func (rec *Work) Load(rawRec *RawRecord) error {
+	rec.ID = rawRec.ID
+	rec.Kind = rawRec.Kind
 
-	w.Profile = getWorkProfile(rec.Kind)
+	rec.Profile = getWorkProfile(rec.Kind)
 
-	if err := loadAttrs(rec, "note", &w.Notes); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "note", &rec.Notes); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "abstract", &w.Abstracts); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "abstract", &rec.Abstracts); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "classification", &w.Classifications); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "classification", &rec.Classifications); err != nil {
+		return err
 	}
-	if err := loadAttr(rec, "conference", &w.Conference); err != nil {
-		return nil, err
+	if err := loadAttr(rawRec, "conference", &rec.Conference); err != nil {
+		return err
 	}
-	if err := loadRelAttrs(rec, "contributor", &w.Contributors, loadPerson); err != nil {
-		return nil, err
+	if err := loadRelAttrs(rawRec, "contributor", &rec.Contributors, loadPerson); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "identifier", &w.Identifiers); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "identifier", &rec.Identifiers); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "keyword", &w.Keywords); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "keyword", &rec.Keywords); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "lay_summary", &w.LaySummaries); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "lay_summary", &rec.LaySummaries); err != nil {
+		return err
 	}
-	if err := loadRelAttrs(rec, "project", &w.Projects, loadProject); err != nil {
-		return nil, err
+	if err := loadRelAttrs(rawRec, "project", &rec.Projects, loadProject); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "title", &w.Titles); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "title", &rec.Titles); err != nil {
+		return err
 	}
-	return &w, nil
+
+	return nil
 }
 
 func (rec *Work) Validate() error {

@@ -12,23 +12,23 @@ var ErrNotFound = errors.New("not found")
 type DbAdapter interface {
 	MigrateUp(context.Context) error
 	MigrateDown(context.Context) error
-	GetRecWithKind(context.Context, string, string) (*DbRec, error)
+	GetRecWithKind(context.Context, string, string) (*RawRecord, error)
 	Do(context.Context, func(DbTx) error) error
 }
 
 type DbTx interface {
-	GetRec(context.Context, string) (*DbRec, error)
+	GetRec(context.Context, string) (*RawRecord, error)
 	AddRev(context.Context, *Rev) error
 }
 
-type DbRec struct {
+type RawRecord struct {
 	ID    string    `json:"id"`
 	Kind  string    `json:"kind"`
 	Attrs []*DbAttr `json:"attrs"`
 }
 
 // TODO just use work profile
-func (r *DbRec) BaseKind() string {
+func (r *RawRecord) BaseKind() string {
 	baseKind, _, _ := strings.Cut(r.Kind, ".")
 	return baseKind
 }
@@ -38,5 +38,5 @@ type DbAttr struct {
 	Kind  string          `json:"kind"`
 	Val   json.RawMessage `json:"val"`
 	RelID string          `json:"rel_id"`
-	Rel   *DbRec          `json:"rel"`
+	Rel   *RawRecord      `json:"rel"`
 }

@@ -2,17 +2,30 @@ package bbl
 
 import "strings"
 
-type Record struct {
+type RecordSpec struct {
+	BaseKind string
+	New      func() Record
+	Attrs    map[string]*AttrSpec
+}
+
+type AttrSpec struct{}
+
+type Record interface {
+	Load(*RawRecord) error
+	Validate() error
+}
+
+type RecordHeader struct {
 	ID   string `json:"id,omitempty"`
 	Kind string `json:"kind"`
 }
 
 // TODO just use work profile
-func (r Record) BaseKind() string {
+func (r RecordHeader) BaseKind() string {
 	baseKind, _, _ := strings.Cut(r.Kind, ".")
 	return baseKind
 }
 
-func (r Record) IsNew() bool {
+func (r RecordHeader) IsNew() bool {
 	return r.ID != ""
 }

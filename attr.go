@@ -36,7 +36,7 @@ type RelAttr[T, TT any] struct {
 	Rel   TT     `json:"rel,omitempty"`
 }
 
-func loadAttr[T any](rec *DbRec, kind string, ptr **Attr[T]) error {
+func loadAttr[T any](rec *RawRecord, kind string, ptr **Attr[T]) error {
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
 			attr := Attr[T]{ID: p.ID}
@@ -50,7 +50,7 @@ func loadAttr[T any](rec *DbRec, kind string, ptr **Attr[T]) error {
 	return nil
 }
 
-func loadAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
+func loadAttrs[T any](rec *RawRecord, kind string, ptr *[]Attr[T]) error {
 	var attrs []Attr[T]
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
@@ -65,7 +65,7 @@ func loadAttrs[T any](rec *DbRec, kind string, ptr *[]Attr[T]) error {
 	return nil
 }
 
-func loadRelAttrs[T, TT any](rec *DbRec, kind string, ptr *[]RelAttr[T, TT], relLoader func(*DbRec) (TT, error)) error {
+func loadRelAttrs[T, TT any](rec *RawRecord, kind string, ptr *[]RelAttr[T, TT], relLoader func(*RawRecord) (TT, error)) error {
 	var attrs []RelAttr[T, TT]
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {

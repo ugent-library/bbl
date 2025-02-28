@@ -2,39 +2,39 @@ package bbl
 
 import "time"
 
-var organizationKind = "organization"
-
-var organizationSpec = &recSpec{
-	Attrs: map[string]*attrSpec{
+var organizationSpec = &RecordSpec{
+	BaseKind: "organization",
+	New:      func() Record { return &Organization{} },
+	Attrs: map[string]*AttrSpec{
 		"ceased_on": {},
 		"name":      {},
 	},
-	Validate: func(dbr *DbRec) error {
-		rec, err := loadOrganization(dbr)
-		if err != nil {
-			return err
-		}
-		return rec.Validate()
-	},
+}
+
+func loadOrganization(rawRec *RawRecord) (*Organization, error) {
+	rec := &Organization{}
+	if err := rec.Load(rawRec); err != nil {
+		return nil, err
+	}
+	return rec, nil
 }
 
 type Organization struct {
-	Record
+	RecordHeader
 	CeasedOn *Attr[time.Time] `json:"ceased_on,omitempty"`
 	Names    []Attr[Text]     `json:"names,omitempty"`
 }
 
-func loadOrganization(rec *DbRec) (*Organization, error) {
-	o := Organization{}
-	o.ID = rec.ID
-	o.Kind = rec.Kind
-	if err := loadAttr(rec, "ceased_on", &o.CeasedOn); err != nil {
-		return nil, err
+func (rec *Organization) Load(rawRec *RawRecord) error {
+	rec.ID = rawRec.ID
+	rec.Kind = rawRec.Kind
+	if err := loadAttr(rawRec, "ceased_on", &rec.CeasedOn); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "name", &o.Names); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "name", &rec.Names); err != nil {
+		return err
 	}
-	return &o, nil
+	return nil
 }
 
 func (rec *Organization) Validate() error {

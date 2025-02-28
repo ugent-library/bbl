@@ -64,7 +64,7 @@ func (a *Adapter) MigrateDown(ctx context.Context) error {
 	return goose.ResetContext(ctx, db, "migrations")
 }
 
-func (a *Adapter) GetRecWithKind(ctx context.Context, kind, id string) (*bbl.DbRec, error) {
+func (a *Adapter) GetRecWithKind(ctx context.Context, kind, id string) (*bbl.RawRecord, error) {
 	return getRecWithKind(ctx, a.conn, kind, id)
 }
 
@@ -90,7 +90,7 @@ type Tx struct {
 	conn pgx.Tx
 }
 
-func (tx *Tx) GetRec(ctx context.Context, id string) (*bbl.DbRec, error) {
+func (tx *Tx) GetRec(ctx context.Context, id string) (*bbl.RawRecord, error) {
 	return getRec(ctx, tx.conn, id)
 }
 
@@ -208,7 +208,7 @@ func (tx *Tx) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	return nil
 }
 
-func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
+func getRec(ctx context.Context, conn dbConn, id string) (*bbl.RawRecord, error) {
 	q := `
 		select r.kind,
        	       json_agg(distinct jsonb_build_object('id', a.id, 'kind', a.kind, 'val', a.val, 'rel_id', a.rel_id)) filter (where a.rec_id is not null) as attrs
@@ -226,7 +226,7 @@ func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
 		return nil, err
 	}
 
-	rec := bbl.DbRec{ID: id, Kind: kind}
+	rec := bbl.RawRecord{ID: id, Kind: kind}
 
 	if err := json.Unmarshal(attrs, &rec.Attrs); err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func getRec(ctx context.Context, conn dbConn, id string) (*bbl.DbRec, error) {
 	return &rec, nil
 }
 
-func getRecWithKind(ctx context.Context, conn dbConn, kind, id string) (*bbl.DbRec, error) {
+func getRecWithKind(ctx context.Context, conn dbConn, kind, id string) (*bbl.RawRecord, error) {
 	q := `
 		with recursive traverse(rec_id, rec_kind, id, kind, val, rel_id) as (
 			select a.rec_id, r.kind as rec_kind, a.id, a.kind, a.val, a.rel_id
@@ -256,7 +256,7 @@ func getRecWithKind(ctx context.Context, conn dbConn, kind, id string) (*bbl.DbR
 		return nil, err
 	}
 
-	recs := make(map[string]*bbl.DbRec)
+	recs := make(map[string]*bbl.RawRecord)
 
 	for rows.Next() {
 		var (
@@ -276,7 +276,7 @@ func getRecWithKind(ctx context.Context, conn dbConn, kind, id string) (*bbl.DbR
 		if rec, ok := recs[recID]; ok {
 			rec.Attrs = append(rec.Attrs, &attr)
 		} else {
-			recs[recID] = &bbl.DbRec{
+			recs[recID] = &bbl.RawRecord{
 				ID:    recID,
 				Kind:  recKind,
 				Attrs: []*bbl.DbAttr{&attr},

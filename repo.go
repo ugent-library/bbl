@@ -11,26 +11,19 @@ import (
 	"go.breu.io/ulid"
 )
 
-type recSpec struct {
-	Attrs    map[string]*attrSpec
-	Validate func(*DbRec) error
-}
-
-type attrSpec struct{}
-
 type Repo struct {
-	db       DbAdapter
-	recSpecs map[string]*recSpec
+	db          DbAdapter
+	recordSpecs map[string]*RecordSpec
 }
 
 func NewRepo(db DbAdapter) *Repo {
 	return &Repo{
 		db: db,
-		recSpecs: map[string]*recSpec{
-			organizationKind: organizationSpec,
-			personKind:       personSpec,
-			projectKind:      projectSpec,
-			workKind:         workSpec,
+		recordSpecs: map[string]*RecordSpec{
+			organizationSpec.BaseKind: organizationSpec,
+			personSpec.BaseKind:       personSpec,
+			projectSpec.BaseKind:      projectSpec,
+			workSpec.BaseKind:         workSpec,
 		},
 	}
 }
@@ -45,21 +38,21 @@ func (r *Repo) MigrateDown(ctx context.Context) error {
 
 func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 	return r.db.Do(ctx, func(tx DbTx) error {
-		var recs []*DbRec
+		var rawRecs []*RawRecord
 		var changesApplied []*Change
-		var rec *DbRec
+		var rec *RawRecord
 		var err error
 		for _, c := range changes {
 			if c.Op == OpAddRec {
 				c.ID = newID()
-				rec = &DbRec{
+				rec = &RawRecord{
 					ID:   c.ID,
 					Kind: c.AddRecArgs().Kind,
 				}
-				if _, ok := r.recSpecs[rec.BaseKind()]; !ok {
+				if _, ok := r.recordSpecs[rec.BaseKind()]; !ok {
 					return fmt.Errorf("invalid rec kind %s", rec.Kind)
 				}
-				recs = append(recs, rec)
+				rawRecs = append(rawRecs, rec)
 			} else {
 				if rec != nil && c.ID == "" {
 					c.ID = rec.ID
@@ -72,14 +65,14 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					if rec == nil {
 						return fmt.Errorf("rec %s doesn't exist", c.ID)
 					}
-					recs = append(recs, rec)
+					rawRecs = append(rawRecs, rec)
 				}
 
 				switch c.Op {
 				case OpDelRec:
 					rec = nil
 				case OpAddAttr: // TODO check RelID
-					recSpec := r.recSpecs[rec.BaseKind()]
+					recSpec := r.recordSpecs[rec.BaseKind()]
 					args := c.AddAttrArgs()
 					_, ok := recSpec.Attrs[args.Kind]
 					if !ok {
@@ -140,9 +133,16 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 			changesApplied = append(changesApplied, c)
 		}
 
-		for _, rec := range recs {
-			recSpec := r.recSpecs[rec.BaseKind()]
-			if err := recSpec.Validate(rec); err != nil {
+		for _, rawRec := range rawRecs {
+			recSpec, ok := r.recordSpecs[rawRec.BaseKind()]
+			if !ok {
+				return fmt.Errorf("unknown record base kind %s", rawRec.BaseKind())
+			}
+			rec := recSpec.New()
+			if err := rec.Load(rawRec); err != nil {
+				return err
+			}
+			if err := rec.Validate(); err != nil {
 				return err
 			}
 		}
@@ -155,7 +155,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 }
 
 func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
-	rec, err := r.db.GetRecWithKind(ctx, organizationKind, id)
+	rec, err := r.db.GetRecWithKind(ctx, organizationSpec.BaseKind, id)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 }
 
 func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
-	rec, err := r.db.GetRecWithKind(ctx, personKind, id)
+	rec, err := r.db.GetRecWithKind(ctx, personSpec.BaseKind, id)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
 }
 
 func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
-	rec, err := r.db.GetRecWithKind(ctx, projectKind, id)
+	rec, err := r.db.GetRecWithKind(ctx, projectSpec.BaseKind, id)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
 }
 
 func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
-	rec, err := r.db.GetRecWithKind(ctx, workKind, id)
+	rec, err := r.db.GetRecWithKind(ctx, workSpec.BaseKind, id)
 	if err != nil {
 		return nil, err
 	}

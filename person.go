@@ -1,38 +1,38 @@
 package bbl
 
-var personKind = "person"
-
-var personSpec = &recSpec{
-	Attrs: map[string]*attrSpec{
+var personSpec = &RecordSpec{
+	BaseKind: "person",
+	New:      func() Record { return &Person{} },
+	Attrs: map[string]*AttrSpec{
 		"name_parts":           {},
 		"preferred_name_parts": {},
 	},
-	Validate: func(dbr *DbRec) error {
-		rec, err := loadPerson(dbr)
-		if err != nil {
-			return err
-		}
-		return rec.Validate()
-	},
+}
+
+func loadPerson(rawRec *RawRecord) (*Person, error) {
+	rec := &Person{}
+	if err := rec.Load(rawRec); err != nil {
+		return nil, err
+	}
+	return rec, nil
 }
 
 type Person struct {
-	Record
+	RecordHeader
 	NameParts          *Attr[NameParts] `json:"name_parts,omitempty"`
 	PreferredNameParts *Attr[NameParts] `json:"preferred_name_parts,omitempty"`
 }
 
-func loadPerson(rec *DbRec) (*Person, error) {
-	p := Person{}
-	p.ID = rec.ID
-	p.Kind = rec.Kind
-	if err := loadAttr(rec, "name_parts", &p.NameParts); err != nil {
-		return nil, err
+func (rec *Person) Load(rawRec *RawRecord) error {
+	rec.ID = rawRec.ID
+	rec.Kind = rawRec.Kind
+	if err := loadAttr(rawRec, "name_parts", &rec.NameParts); err != nil {
+		return err
 	}
-	if err := loadAttr(rec, "preferred_name_parts", &p.PreferredNameParts); err != nil {
-		return nil, err
+	if err := loadAttr(rawRec, "preferred_name_parts", &rec.PreferredNameParts); err != nil {
+		return err
 	}
-	return &p, nil
+	return nil
 }
 
 func (rec *Person) Validate() error {

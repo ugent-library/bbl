@@ -1,43 +1,43 @@
 package bbl
 
-var projectKind = "project"
-
-var projectSpec = &recSpec{
-	Attrs: map[string]*attrSpec{
+var projectSpec = &RecordSpec{
+	BaseKind: "project",
+	New:      func() Record { return &Project{} },
+	Attrs: map[string]*AttrSpec{
 		"abstract":   {},
 		"identifier": {},
 		"name":       {},
 	},
-	Validate: func(dbr *DbRec) error {
-		rec, err := loadProject(dbr)
-		if err != nil {
-			return err
-		}
-		return rec.Validate()
-	},
+}
+
+func loadProject(rawRec *RawRecord) (*Project, error) {
+	rec := &Project{}
+	if err := rec.Load(rawRec); err != nil {
+		return nil, err
+	}
+	return rec, nil
 }
 
 type Project struct {
-	Record
+	RecordHeader
 	Abstracts   []Attr[Text] `json:"abstracts,omitempty"`
 	Identifiers []Attr[Code] `json:"identifiers,omitempty"`
 	Names       []Attr[Text] `json:"names,omitempty"`
 }
 
-func loadProject(rec *DbRec) (*Project, error) {
-	p := Project{}
-	p.ID = rec.ID
-	p.Kind = rec.Kind
-	if err := loadAttrs(rec, "abstract", &p.Abstracts); err != nil {
-		return nil, err
+func (rec *Project) Load(rawRec *RawRecord) error {
+	rec.ID = rawRec.ID
+	rec.Kind = rawRec.Kind
+	if err := loadAttrs(rawRec, "abstract", &rec.Abstracts); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "identifier", &p.Identifiers); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "identifier", &rec.Identifiers); err != nil {
+		return err
 	}
-	if err := loadAttrs(rec, "name", &p.Names); err != nil {
-		return nil, err
+	if err := loadAttrs(rawRec, "name", &rec.Names); err != nil {
+		return err
 	}
-	return &p, nil
+	return nil
 }
 
 func (rec *Project) Validate() error {
