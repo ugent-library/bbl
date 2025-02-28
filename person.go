@@ -1,6 +1,7 @@
 package bbl
 
 var personSpec = &RecordSpec{
+	Kind:     "person",
 	BaseKind: "person",
 	New:      func() Record { return &Person{} },
 	Attrs: map[string]*AttrSpec{

@@ -1,14 +1,8 @@
 package bbl
 
-import "strings"
-
-type RecordSpec struct {
-	BaseKind string
-	New      func() Record
-	Attrs    map[string]*AttrSpec
-}
-
-type AttrSpec struct{}
+import (
+	"strings"
+)
 
 type Record interface {
 	Load(*RawRecord) error

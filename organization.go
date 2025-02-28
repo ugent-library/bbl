@@ -3,6 +3,7 @@ package bbl
 import "time"
 
 var organizationSpec = &RecordSpec{
+	Kind:     "organization",
 	BaseKind: "organization",
 	New:      func() Record { return &Organization{} },
 	Attrs: map[string]*AttrSpec{

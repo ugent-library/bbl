@@ -2,30 +2,39 @@ package bbl
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 
 	"go.breu.io/ulid"
 )
+
+//go:embed record_specs.json
+var recordSpecsFile []byte
 
 type Repo struct {
 	db          DbAdapter
 	recordSpecs map[string]*RecordSpec
 }
 
-func NewRepo(db DbAdapter) *Repo {
-	return &Repo{
+func NewRepo(db DbAdapter) (*Repo, error) {
+	r := &Repo{
 		db: db,
 		recordSpecs: map[string]*RecordSpec{
-			organizationSpec.BaseKind: organizationSpec,
-			personSpec.BaseKind:       personSpec,
-			projectSpec.BaseKind:      projectSpec,
-			workSpec.BaseKind:         workSpec,
+			organizationSpec.Kind: organizationSpec,
+			personSpec.Kind:       personSpec,
+			projectSpec.Kind:      projectSpec,
+			workSpec.Kind:         workSpec,
 		},
 	}
+	if err := r.loadRecSpecs(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 func (r *Repo) MigrateUp(ctx context.Context) error {
@@ -184,6 +193,78 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
 		return nil, err
 	}
 	return loadWork(rec)
+}
+
+func (r *Repo) loadRecSpecs() error {
+	var specs []*RecordSpec
+
+	if err := json.Unmarshal(recordSpecsFile, &specs); err != nil {
+		return err
+	}
+
+	for _, spec := range specs {
+		if existingSpec, ok := r.recordSpecs[spec.Kind]; ok {
+			if err := copyAttrSpecs(spec.Attrs, existingSpec.Attrs); err != nil {
+				return fmt.Errorf("kind %s: %w", spec.Kind, err)
+			}
+
+			continue
+		}
+
+		lastDot := strings.LastIndex(spec.Kind, ".")
+		if lastDot == -1 {
+			return fmt.Errorf("invalid kind %s", spec.Kind)
+		}
+
+		parentKind := spec.Kind[:lastDot]
+		parentSpec, ok := r.recordSpecs[parentKind]
+		if !ok {
+			return fmt.Errorf("parent kind %s not found for %s", parentKind, spec.Kind)
+		}
+
+		newSpec := &RecordSpec{
+			Kind:     spec.Kind,
+			BaseKind: parentSpec.BaseKind,
+			New:      parentSpec.New,
+			Attrs:    make(map[string]*AttrSpec),
+		}
+
+		for attr, attrSpec := range parentSpec.Attrs {
+			newSpec.Attrs[attr] = &AttrSpec{
+				Use:      attrSpec.Use,
+				Required: attrSpec.Required,
+			}
+		}
+
+		if err := copyAttrSpecs(spec.Attrs, newSpec.Attrs); err != nil {
+			return fmt.Errorf("kind %s: %w", spec.Kind, err)
+		}
+
+		r.recordSpecs[newSpec.Kind] = newSpec
+	}
+
+	// for kind, spec := range r.recordSpecs {
+	// 	j, _ := json.Marshal(spec)
+	// 	log.Printf("spec %s: %s", kind, j)
+	// }
+
+	return nil
+}
+
+func copyAttrSpecs(from, to map[string]*AttrSpec) error {
+	for attr, fromSpec := range from {
+		toSpec, ok := to[attr]
+		if !ok {
+			return fmt.Errorf("unknown attr %s", attr)
+		}
+		toSpec.Use = fromSpec.Use
+		toSpec.Required = fromSpec.Required
+		if fromSpec.Required {
+			toSpec.Use = true
+		}
+	}
+
+	return nil
 }
 
 func newID() string {

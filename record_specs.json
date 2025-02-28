@@ -1,0 +1,50 @@
+[{
+    "kind": "organization",
+    "attrs": {
+        "name": {"use": true},
+        "ceased_on": {"use": true}
+    }
+}, {
+    "kind": "person",
+    "attrs": {
+        "name_parts": {"use": true},
+        "preferred_name_parts": {"use": true}
+    }
+}, {
+    "kind": "project",
+    "attrs": {
+        "name": {"use": true},
+        "identifier": {"use": true},
+        "abstract": {"use": true}
+    }
+}, {
+    "kind": "work",
+    "attrs": {
+        "title": {"required": true},
+        "identifier": {"use": true}
+    }
+}, {
+    "kind": "work.book",
+    "attrs": {
+        "abstract": {"use": true},
+        "keyword": {"use": true}
+    }
+}, {
+    "kind": "work.journal_article",
+    "attrs": {
+        "abstract": {"use": true},
+        "keyword": {"use": true},
+        "classification": {"use": true}
+    }
+}, {
+    "kind": "work.journal_article.original"
+}, {
+    "kind": "work.journal_article.review"
+}, {
+    "kind": "work.journal_article.letter_note"
+}, {
+    "kind": "work.journal_article.proceedings_paper",
+    "attrs": {
+        "conference": {"use": true}
+    }
+}]
