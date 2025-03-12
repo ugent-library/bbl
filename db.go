@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -25,12 +24,6 @@ type RawRecord struct {
 	ID    string    `json:"id"`
 	Kind  string    `json:"kind"`
 	Attrs []*DbAttr `json:"attrs"`
-}
-
-// TODO just use work profile
-func (r *RawRecord) BaseKind() string {
-	baseKind, _, _ := strings.Cut(r.Kind, ".")
-	return baseKind
 }
 
 type DbAttr struct {

@@ -8,7 +8,7 @@ import (
 
 type CodeAttrRepeatArgs struct {
 	FieldArgs
-    Schemes []string
+    Schemes []*bbl.SchemeSpec
 	Attrs   []bbl.Attr[bbl.Code]
 }
 
@@ -16,7 +16,7 @@ templ CodeAttrRepeat(args CodeAttrRepeatArgs) {
 	@Field(args.FieldArgs, fmt.Sprintf("%s-0-code", args.Name)) {
 		<div data-bb-repeated-fields>
 			for i, attr := range args.Attrs {
-                if slices.Contains(args.Schemes, attr.Val.Scheme) {
+                if slices.ContainsFunc(args.Schemes, func(scheme *bbl.SchemeSpec) bool { return attr.Val.Scheme == scheme.Scheme }) {
 				<div class="form-group" data-bb-repeated-field>
 					<div class="d-flex">
 						<div class="input-group">
@@ -33,8 +33,8 @@ templ CodeAttrRepeat(args CodeAttrRepeatArgs) {
 								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.scheme", args.Name) }
 								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-scheme", args.Name) }
 							>
-								for _, opt := range args.Schemes {
-									<option value={ opt } selected?={ opt == attr.Val.Scheme }>{ opt }</option>
+								for _, scheme := range args.Schemes {
+									<option value={ scheme.Scheme } selected?={ scheme.Scheme == attr.Val.Scheme }>{ scheme.Scheme }</option>
 								}
 							</select>
 							<input
@@ -72,8 +72,8 @@ templ CodeAttrRepeat(args CodeAttrRepeatArgs) {
 							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.scheme", args.Name) }
 							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-scheme", args.Name) }
 						>
-                        	for _, opt := range args.Schemes {
-								<option value={ opt }>{ opt }</option>
+                        	for _, scheme := range args.Schemes {
+								<option value={ scheme.Scheme }>{ scheme.Scheme }</option>
 							}
 						</select>
 						<input

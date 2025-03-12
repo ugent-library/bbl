@@ -65,7 +65,7 @@ func loadAttrs[T any](rec *RawRecord, kind string, ptr *[]Attr[T]) error {
 	return nil
 }
 
-func loadRelAttrs[T, TT any](rec *RawRecord, kind string, ptr *[]RelAttr[T, TT], relLoader func(*RawRecord) (TT, error)) error {
+func loadRelAttrs[T, TT any](rec *RawRecord, kind string, ptr *[]RelAttr[T, TT], relLoader func(*RawRecord, map[string]*RecordSpec) (TT, error), specMap map[string]*RecordSpec) error {
 	var attrs []RelAttr[T, TT]
 	for _, p := range rec.Attrs {
 		if p.Kind == kind {
@@ -76,7 +76,7 @@ func loadRelAttrs[T, TT any](rec *RawRecord, kind string, ptr *[]RelAttr[T, TT],
 				return err
 			}
 			if p.Rel != nil {
-				rel, err := relLoader(p.Rel)
+				rel, err := relLoader(p.Rel, specMap)
 				if err != nil {
 					return err
 				}

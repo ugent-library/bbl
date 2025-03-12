@@ -169,13 +169,13 @@ templ identifiersField(c views.Ctx, rec *bbl.Work) {
 		FieldArgs: forms.FieldArgs{
 			Name: "identifiers",
 		},
-		Schemes: rec.Profile.IdentifierSchemes(),
+		Schemes: rec.Spec.Attrs["identifier"].Schemes,
 		Attrs: rec.Identifiers,
 	})
 }
 
 templ conferenceField(c views.Ctx, rec *bbl.Work) {
-	if rec.Profile.Conference.Use {
+	if rec.Spec.Attrs["conference"].Use {
 		{{val := rec.Conference.GetVal()}}
 
 		@forms.TextInput(forms.TextInputArgs{

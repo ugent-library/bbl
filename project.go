@@ -1,5 +1,7 @@
 package bbl
 
+import "fmt"
+
 var projectSpec = &RecordSpec{
 	Kind:     "project",
 	BaseKind: "project",
@@ -11,24 +13,31 @@ var projectSpec = &RecordSpec{
 	},
 }
 
-func loadProject(rawRec *RawRecord) (*Project, error) {
+func loadProject(rawRec *RawRecord, specMap map[string]*RecordSpec) (*Project, error) {
 	rec := &Project{}
-	if err := rec.Load(rawRec); err != nil {
+	if err := rec.Load(rawRec, specMap); err != nil {
 		return nil, err
 	}
 	return rec, nil
 }
 
 type Project struct {
+	Spec *RecordSpec
 	RecordHeader
 	Abstracts   []Attr[Text] `json:"abstracts,omitempty"`
 	Identifiers []Attr[Code] `json:"identifiers,omitempty"`
 	Names       []Attr[Text] `json:"names,omitempty"`
 }
 
-func (rec *Project) Load(rawRec *RawRecord) error {
+func (rec *Project) Load(rawRec *RawRecord, specMap map[string]*RecordSpec) error {
 	rec.ID = rawRec.ID
 	rec.Kind = rawRec.Kind
+	spec, ok := specMap[rec.Kind]
+	if !ok {
+		return fmt.Errorf("spec not found: %s", rec.Kind)
+	}
+	rec.Spec = spec
+
 	if err := loadAttrs(rawRec, "abstract", &rec.Abstracts); err != nil {
 		return err
 	}

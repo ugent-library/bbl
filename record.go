@@ -1,23 +1,32 @@
 package bbl
 
-import (
-	"strings"
-)
+type RecordSpec struct {
+	Kind     string               `json:"kind"`
+	BaseKind string               `json:"-"`
+	New      func() Record        `json:"-"`
+	Attrs    map[string]*AttrSpec `json:"attrs"`
+}
+
+type AttrSpec struct {
+	Use      bool          `json:"use"`
+	Required bool          `json:"required"`
+	Schemes  []*SchemeSpec `json:"schemes"`
+}
+
+type SchemeSpec struct {
+	Scheme   string   `json:"scheme"`
+	Required bool     `json:"required"`
+	Codes    []string `json:"codes"`
+}
 
 type Record interface {
-	Load(*RawRecord) error
+	Load(*RawRecord, map[string]*RecordSpec) error
 	Validate() error
 }
 
 type RecordHeader struct {
 	ID   string `json:"id,omitempty"`
 	Kind string `json:"kind"`
-}
-
-// TODO just use work profile
-func (r RecordHeader) BaseKind() string {
-	baseKind, _, _ := strings.Cut(r.Kind, ".")
-	return baseKind
 }
 
 func (r RecordHeader) IsNew() bool {

@@ -278,7 +278,7 @@ func identifiersField(c views.Ctx, rec *bbl.Work) templ.Component {
 			FieldArgs: forms.FieldArgs{
 				Name: "identifiers",
 			},
-			Schemes: rec.Profile.IdentifierSchemes(),
+			Schemes: rec.Spec.Attrs["identifier"].Schemes,
 			Attrs:   rec.Identifiers,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
@@ -309,7 +309,7 @@ func conferenceField(c views.Ctx, rec *bbl.Work) templ.Component {
 			templ_7745c5c3_Var11 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if rec.Profile.Conference.Use {
+		if rec.Spec.Attrs["conference"].Use {
 			val := rec.Conference.GetVal()
 			templ_7745c5c3_Err = forms.TextInput(forms.TextInputArgs{
 				FieldArgs: forms.FieldArgs{

@@ -58,7 +58,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 					ID:   c.ID,
 					Kind: c.AddRecArgs().Kind,
 				}
-				if _, ok := r.recordSpecs[rec.BaseKind()]; !ok {
+				if _, ok := r.recordSpecs[rec.Kind]; !ok {
 					return fmt.Errorf("invalid rec kind %s", rec.Kind)
 				}
 				rawRecs = append(rawRecs, rec)
@@ -81,7 +81,7 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 				case OpDelRec:
 					rec = nil
 				case OpAddAttr: // TODO check RelID
-					recSpec := r.recordSpecs[rec.BaseKind()]
+					recSpec := r.recordSpecs[rec.Kind]
 					args := c.AddAttrArgs()
 					_, ok := recSpec.Attrs[args.Kind]
 					if !ok {
@@ -143,12 +143,12 @@ func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
 		}
 
 		for _, rawRec := range rawRecs {
-			recSpec, ok := r.recordSpecs[rawRec.BaseKind()]
+			spec, ok := r.recordSpecs[rawRec.Kind]
 			if !ok {
-				return fmt.Errorf("unknown record base kind %s", rawRec.BaseKind())
+				return fmt.Errorf("unknown record kind %s", rawRec.Kind)
 			}
-			rec := recSpec.New()
-			if err := rec.Load(rawRec); err != nil {
+			rec := spec.New()
+			if err := rec.Load(rawRec, r.recordSpecs); err != nil {
 				return err
 			}
 			if err := rec.Validate(); err != nil {
@@ -168,7 +168,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 	if err != nil {
 		return nil, err
 	}
-	return loadOrganization(rec)
+	return loadOrganization(rec, r.recordSpecs)
 }
 
 func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
@@ -176,7 +176,7 @@ func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
 	if err != nil {
 		return nil, err
 	}
-	return loadPerson(rec)
+	return loadPerson(rec, r.recordSpecs)
 }
 
 func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
@@ -184,7 +184,7 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	return loadProject(rec)
+	return loadProject(rec, r.recordSpecs)
 }
 
 func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
@@ -192,7 +192,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
 	if err != nil {
 		return nil, err
 	}
-	return loadWork(rec)
+	return loadWork(rec, r.recordSpecs)
 }
 
 func (r *Repo) loadRecSpecs() error {
@@ -233,6 +233,7 @@ func (r *Repo) loadRecSpecs() error {
 			newSpec.Attrs[attr] = &AttrSpec{
 				Use:      attrSpec.Use,
 				Required: attrSpec.Required,
+				Schemes:  attrSpec.Schemes,
 			}
 		}
 
@@ -259,6 +260,7 @@ func copyAttrSpecs(from, to map[string]*AttrSpec) error {
 		}
 		toSpec.Use = fromSpec.Use
 		toSpec.Required = fromSpec.Required
+		toSpec.Schemes = fromSpec.Schemes
 		if fromSpec.Required {
 			toSpec.Use = true
 		}

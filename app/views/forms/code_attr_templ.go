@@ -16,7 +16,7 @@ import (
 
 type CodeAttrRepeatArgs struct {
 	FieldArgs
-	Schemes []string
+	Schemes []*bbl.SchemeSpec
 	Attrs   []bbl.Attr[bbl.Code]
 }
 
@@ -58,7 +58,7 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			for i, attr := range args.Attrs {
-				if slices.Contains(args.Schemes, attr.Val.Scheme) {
+				if slices.ContainsFunc(args.Schemes, func(scheme *bbl.SchemeSpec) bool { return attr.Val.Scheme == scheme.Scheme }) {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"form-group\" data-bb-repeated-field><div class=\"d-flex\"><div class=\"input-group\"><input type=\"hidden\" name=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -154,15 +154,15 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					for _, opt := range args.Schemes {
+					for _, scheme := range args.Schemes {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<option value=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var10 string
-						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(opt)
+						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(scheme.Scheme)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 37, Col: 28}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 37, Col: 38}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -172,7 +172,7 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						if opt == attr.Val.Scheme {
+						if scheme.Scheme == attr.Val.Scheme {
 							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " selected")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
@@ -183,9 +183,9 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var11 string
-						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(opt)
+						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(scheme.Scheme)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 37, Col: 73}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 37, Col: 103}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
@@ -379,15 +379,15 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, opt := range args.Schemes {
+			for _, scheme := range args.Schemes {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<option value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var25 string
-				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(opt)
+				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(scheme.Scheme)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 76, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 76, Col: 37}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -398,9 +398,9 @@ func CodeAttrRepeat(args CodeAttrRepeatArgs) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var26 string
-				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(opt)
+				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(scheme.Scheme)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 76, Col: 35}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/forms/code_attr.templ`, Line: 76, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {

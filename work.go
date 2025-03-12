@@ -1,5 +1,7 @@
 package bbl
 
+import "fmt"
+
 var workSpec = &RecordSpec{
 	Kind:     "work",
 	BaseKind: "work",
@@ -18,17 +20,16 @@ var workSpec = &RecordSpec{
 	},
 }
 
-func loadWork(rawRec *RawRecord) (*Work, error) {
+func loadWork(rawRec *RawRecord, specMap map[string]*RecordSpec) (*Work, error) {
 	rec := &Work{}
-	if err := rec.Load(rawRec); err != nil {
+	if err := rec.Load(rawRec, specMap); err != nil {
 		return nil, err
 	}
 	return rec, nil
 }
 
 type Work struct {
-	Profile *WorkProfile `json:"-"`
-
+	Spec *RecordSpec `json:"-"`
 	RecordHeader
 	RecordIdentifiers
 	Notes           []Attr[Note]                    `json:"notes,omitempty"`
@@ -42,11 +43,14 @@ type Work struct {
 	Titles          []Attr[Text]                    `json:"titles,omitempty"`
 }
 
-func (rec *Work) Load(rawRec *RawRecord) error {
+func (rec *Work) Load(rawRec *RawRecord, specMap map[string]*RecordSpec) error {
 	rec.ID = rawRec.ID
 	rec.Kind = rawRec.Kind
-
-	rec.Profile = getWorkProfile(rec.Kind)
+	spec, ok := specMap[rec.Kind]
+	if !ok {
+		return fmt.Errorf("spec not found: %s", rec.Kind)
+	}
+	rec.Spec = spec
 
 	if err := loadAttrs(rawRec, "note", &rec.Notes); err != nil {
 		return err
@@ -60,7 +64,7 @@ func (rec *Work) Load(rawRec *RawRecord) error {
 	if err := loadAttr(rawRec, "conference", &rec.Conference); err != nil {
 		return err
 	}
-	if err := loadRelAttrs(rawRec, "contributor", &rec.Contributors, loadPerson); err != nil {
+	if err := loadRelAttrs(rawRec, "contributor", &rec.Contributors, loadPerson, specMap); err != nil {
 		return err
 	}
 	if err := loadAttrs(rawRec, "identifier", &rec.Identifiers); err != nil {
@@ -72,7 +76,7 @@ func (rec *Work) Load(rawRec *RawRecord) error {
 	if err := loadAttrs(rawRec, "lay_summary", &rec.LaySummaries); err != nil {
 		return err
 	}
-	if err := loadRelAttrs(rawRec, "project", &rec.Projects, loadProject); err != nil {
+	if err := loadRelAttrs(rawRec, "project", &rec.Projects, loadProject, specMap); err != nil {
 		return err
 	}
 	if err := loadAttrs(rawRec, "title", &rec.Titles); err != nil {

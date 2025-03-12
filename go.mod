@@ -8,11 +8,6 @@ require (
 )
 
 require (
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
-)
-
-require (
 	github.com/PuerkitoBio/goquery v1.10.1 // indirect
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -62,7 +57,6 @@ require (
 	github.com/samber/slog-http v1.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/tidwall/gjson v1.18.0
 	go.breu.io/ulid v0.0.2
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/sync v0.10.0
