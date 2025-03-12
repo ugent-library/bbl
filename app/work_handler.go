@@ -101,7 +101,7 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 
 	// TODO handle deletes (id's not in binder values)
 	err = b.
-		Each("identifiers", func(b *binder.Values) bool {
+		Each("identifier", func(b *binder.Values) bool {
 			var id string
 			var val bbl.Code
 			b.String("id", &id)
@@ -110,6 +110,30 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 			blank := val.IsBlank()
 			if id == "" && !blank {
 				changes = append(changes, bbl.AddAttr(c.Work.ID, "identifier", val))
+			} else if id != "" && !blank {
+				changes = append(changes, bbl.SetAttr(c.Work.ID, id, val))
+			} else if id != "" && blank {
+				changes = append(changes, bbl.DelAttr(c.Work.ID, id))
+			}
+			return true
+		}).
+		Err()
+
+	if err != nil {
+		return err
+	}
+
+	// TODO handle deletes (id's not in binder values)
+	err = b.
+		Each("title", func(b *binder.Values) bool {
+			var id string
+			var val bbl.Text
+			b.String("id", &id)
+			b.String("val.lang", &val.Lang)
+			b.String("val.text", &val.Text)
+			blank := val.IsBlank()
+			if id == "" && !blank {
+				changes = append(changes, bbl.AddAttr(c.Work.ID, "title", val))
 			} else if id != "" && !blank {
 				changes = append(changes, bbl.SetAttr(c.Work.ID, id, val))
 			} else if id != "" && blank {

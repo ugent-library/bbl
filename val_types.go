@@ -14,6 +14,10 @@ type Text struct {
 	Text string `json:"text"`
 }
 
+func (val Text) IsBlank() bool {
+	return val.Text == ""
+}
+
 type Code struct {
 	Scheme string `json:"scheme"`
 	Code   string `json:"code"`

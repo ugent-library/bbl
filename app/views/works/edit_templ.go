@@ -186,6 +186,10 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 				case "keywords":
 				case "kind":
 				case "titles":
+					templ_7745c5c3_Err = titlesField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			}
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div></div>")
@@ -276,7 +280,7 @@ func identifiersField(c views.Ctx, rec *bbl.Work) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
 			FieldArgs: forms.FieldArgs{
-				Name: "identifiers",
+				Name: "identifier",
 			},
 			Schemes: rec.Spec.Attrs["identifier"].Schemes,
 			Attrs:   rec.Identifiers,
@@ -367,39 +371,61 @@ func conferenceField(c views.Ctx, rec *bbl.Work) templ.Component {
 // 	}
 // }
 
-// templ kindField(c views.Ctx, rec *biblio.Work) {
-// 	<div class="form-group">
-// 		<label class="form-label form-label-top">Work type</label>
-// 		<select
-// 			class="form-select"
-// 			name="Kind"
-// 			if rec.IsNew() {
-// 				hx-post={ c.Route("refresh_new_work").String() }
-// 			}
-// 			hx-include="closest form"
-// 			hx-target="[data-bbl-target=work-edit]"
-// 			hx-swap="outerHTML"
-// 		>
-// 			<option></option>
-// 			for _, profile := range biblio.WorkProfiles() {
-// 				<option value={ profile.Kind } selected?={ rec.Kind == profile.Kind }>{ profile.Kind }</option>
-// 			}
-// 		</select>
-// 	</div>
-// }
-
-// templ titlesField(c views.Ctx, rec *biblio.Work) {
-// 	if rec.Profile.Titles.Use {
-// 		@forms.TextRepeat(forms.TextRepeatArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label:    "Titles",
-// 				Name:     "Titles",
-// 				Required: rec.Profile.Titles.Required,
-// 			},
-// 			Values: rec.Titles,
-// 		})
-// 	}
-// }
+//	templ kindField(c views.Ctx, rec *biblio.Work) {
+//		<div class="form-group">
+//			<label class="form-label form-label-top">Work type</label>
+//			<select
+//				class="form-select"
+//				name="Kind"
+//				if rec.IsNew() {
+//					hx-post={ c.Route("refresh_new_work").String() }
+//				}
+//				hx-include="closest form"
+//				hx-target="[data-bbl-target=work-edit]"
+//				hx-swap="outerHTML"
+//			>
+//				<option></option>
+//				for _, profile := range biblio.WorkProfiles() {
+//					<option value={ profile.Kind } selected?={ rec.Kind == profile.Kind }>{ profile.Kind }</option>
+//				}
+//			</select>
+//		</div>
+//	}
+func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var12 == nil {
+			templ_7745c5c3_Var12 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if rec.Spec.Attrs["title"].Use {
+			templ_7745c5c3_Err = forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
+				FieldArgs: forms.FieldArgs{
+					Name: "title",
+				},
+				Attrs: rec.Titles,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
 
 //	func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
 //		if len(only) == 0 {

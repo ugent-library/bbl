@@ -111,7 +111,7 @@ templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 											case "kind":
 												// @kindField(c, rec)
 											case "titles":
-												// @titlesField(c, rec)
+												@titlesField(c, rec)
 										}
 									}
 								</div>
@@ -167,7 +167,7 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 templ identifiersField(c views.Ctx, rec *bbl.Work) {
 	@forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
 		FieldArgs: forms.FieldArgs{
-			Name: "identifiers",
+			Name: "identifier",
 		},
 		Schemes: rec.Spec.Attrs["identifier"].Schemes,
 		Attrs: rec.Identifiers,
@@ -236,18 +236,16 @@ templ conferenceField(c views.Ctx, rec *bbl.Work) {
 // 	</div>
 // }
 
-// templ titlesField(c views.Ctx, rec *biblio.Work) {
-// 	if rec.Profile.Titles.Use {
-// 		@forms.TextRepeat(forms.TextRepeatArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label:    "Titles",
-// 				Name:     "Titles",
-// 				Required: rec.Profile.Titles.Required,
-// 			},
-// 			Values: rec.Titles,
-// 		})
-// 	}
-// }
+templ titlesField(c views.Ctx, rec *bbl.Work) {
+	if rec.Spec.Attrs["title"].Use {
+		@forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
+			FieldArgs: forms.FieldArgs{
+				Name: "title",
+			},
+			Attrs: rec.Titles,
+		})
+	}
+}
 
 // func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
 // 	if len(only) == 0 {
