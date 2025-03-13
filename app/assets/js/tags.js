@@ -67,7 +67,7 @@ function fillRealValues(element, name, values) {
     for (let i = 0; i < values.length; i++) {
         const input = document.createElement("input");
         input.type = "hidden";
-        input.name = `${name}.${i}`;
+        input.name = `${name}[${i}]`;
         input.value = values[i];
         element.appendChild(input);
     }

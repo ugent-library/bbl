@@ -147,6 +147,23 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 		return err
 	}
 
+	var keywords []string
+	if b.StringSlice("keyword", &keywords).Err() != nil {
+		return err
+	}
+	for i, attr := range c.Work.Keywords {
+		if i < len(keywords) {
+			changes = append(changes, bbl.SetAttr(c.Work.ID, attr.ID, bbl.Code{Scheme: "other", Code: keywords[i]}))
+		} else if i >= len(keywords) {
+			changes = append(changes, bbl.DelAttr(c.Work.ID, attr.ID))
+		}
+	}
+	if len(keywords) > len(c.Work.Keywords) {
+		for _, code := range keywords[len(c.Work.Keywords)-1:] {
+			changes = append(changes, bbl.AddAttr(c.Work.ID, "keyword", bbl.Code{Scheme: "other", Code: code}))
+		}
+	}
+
 	if err := h.repo.AddRev(r.Context(), changes); err != nil {
 		return err
 	}

@@ -86,7 +86,7 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 		return b
 	}
 
-	vv := []url.Values{}
+	s := []url.Values{}
 
 	prefix := key + "["
 	for key, vals := range b.values {
@@ -100,24 +100,24 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 
 				i := int(intIdx)
 
-				if i >= len(vv) && i < cap(vv) {
-					vv = vv[:i+1]
-				} else if i >= cap(vv) {
-					s := vv
-					vv = make([]url.Values, i+1)
-					copy(vv, s)
+				if i >= len(s) && i < cap(s) {
+					s = s[:i+1]
+				} else if i >= cap(s) {
+					ss := s
+					s = make([]url.Values, i+1)
+					copy(s, ss)
 				}
 
-				if v := vv[i]; v != nil {
+				if v := s[i]; v != nil {
 					v[newKey] = vals
 				} else {
-					vv[i] = url.Values{newKey: vals}
+					s[i] = url.Values{newKey: vals}
 				}
 			}
 		}
 	}
 
-	for _, v := range vv {
+	for _, v := range s {
 		if !yield(&Values{binder: b.binder, values: v}) {
 			break
 		}
@@ -138,8 +138,8 @@ func (b *Values) StringSlice(key string, ptr *[]string) *Values {
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
-		*ptr = slices.Clone(vals)
+	if vals := b.getSlice(key); len(vals) > 0 {
+		*ptr = vals
 	}
 	return b
 }
@@ -160,7 +160,7 @@ func (b *Values) BoolSlice(key string, ptr *[]bool) *Values {
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getSlice(key); len(vals) > 0 {
 		slice := make([]bool, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseBool(v); err == nil {
@@ -287,7 +287,7 @@ func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values 
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getSlice(key); len(vals) > 0 {
 		slice := make([]time.Time, len(vals))
 		for i, v := range vals {
 			if val, err := time.Parse(layout, v); err == nil {
@@ -318,7 +318,7 @@ func bindIntSlice[T constraints.Signed](b *Values, key string, ptr *[]T, bitSize
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getSlice(key); len(vals) > 0 {
 		slice := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseInt(v, 10, bitSize); err == nil {
@@ -349,7 +349,7 @@ func bindUintSlice[T constraints.Unsigned](b *Values, key string, ptr *[]T, bitS
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getSlice(key); len(vals) > 0 {
 		slice := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseUint(v, 10, bitSize); err == nil {
@@ -380,7 +380,7 @@ func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSiz
 	if b.binder.err != nil {
 		return b
 	}
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getSlice(key); len(vals) > 0 {
 		slice := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseFloat(v, bitSize); err == nil {
@@ -393,4 +393,43 @@ func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSiz
 		*ptr = slice
 	}
 	return b
+}
+
+// TODO cap sparse array size
+func (b *Values) getSlice(key string) []string {
+	var s []string
+
+	if vals := b.values[key]; len(vals) > 0 {
+		s = slices.Clone(vals)
+	}
+
+	prefix := key + "["
+	for key := range b.values {
+		if rest, ok := strings.CutPrefix(key, prefix); ok {
+			idx, rest, ok := strings.Cut(rest, "]")
+			if !ok || rest != "" {
+				continue
+			}
+
+			intIdx, err := strconv.ParseInt(idx, 10, 0)
+			if err != nil {
+				b.binder.err = err
+				return nil
+			}
+
+			i := int(intIdx)
+
+			if i >= len(s) && i < cap(s) {
+				s = s[:i+1]
+			} else if i >= cap(s) {
+				ss := s
+				s = make([]string, i+1)
+				copy(s, ss)
+			}
+
+			s[i] = b.values.Get(key)
+		}
+	}
+
+	return s
 }

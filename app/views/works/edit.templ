@@ -107,7 +107,7 @@ templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 											case "identifiers":
 												@identifiersField(c, rec)
 											case "keywords":
-												// @keywordsField(c, rec)
+												@keywordsField(c, rec)
 											case "kind":
 												// @kindField(c, rec)
 											case "titles":
@@ -202,18 +202,18 @@ templ conferenceField(c views.Ctx, rec *bbl.Work) {
 	}
 }
 
-// templ keywordsField(c views.Ctx, rec *biblio.Work) {
-// 	if rec.Profile.Keywords.Use {
-// 		@forms.Tags(forms.TagsArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label:    "Keywords",
-// 				Name:     "Keywords",
-// 				Required: rec.Profile.Keywords.Required,
-// 			},
-// 			Values: rec.Keywords.Values(),
-// 		})
-// 	}
-// }
+templ keywordsField(c views.Ctx, rec *bbl.Work) {
+	if rec.Spec.Attrs["keyword"].Use {
+		@forms.Tags(forms.TagsArgs{
+			FieldArgs: forms.FieldArgs{
+				Label:    "Keywords",
+				Name:     "keyword",
+				Required: rec.Spec.Attrs["keyword"].Required,
+			},
+			Values: getCodes(rec.Keywords),
+		})
+	}
+}
 
 // templ kindField(c views.Ctx, rec *biblio.Work) {
 // 	<div class="form-group">
@@ -241,17 +241,18 @@ templ titlesField(c views.Ctx, rec *bbl.Work) {
 		@forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 			FieldArgs: forms.FieldArgs{
 				Name: "title",
+				Label: "Title",
+				Required: rec.Spec.Attrs["title"].Required,
 			},
 			Attrs: rec.Titles,
 		})
 	}
 }
 
-// func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
-// 	if len(only) == 0 {
-// 		return schemes
-// 	}
-// 	return lo.Filter(schemes, func(s bbl.WorkProfileScheme, _ int) bool {
-// 		return slices.Contains(only, s.Scheme)
-// 	})
-// }
+func getCodes(attrs []bbl.Attr[bbl.Code]) []string {
+	codes := make([]string, len(attrs))
+	for i, attr := range attrs {
+		codes[i] = attr.Val.Code
+	}
+	return codes
+}

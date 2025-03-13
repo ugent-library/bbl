@@ -410,11 +410,11 @@ templ fieldTooltip(args FieldArgs) {
 	}
 }
 
-templ fieldRequired(args FieldArgs) {
-	if args.Required {
-		<span class="required" aria-hidden="true" title="required">*</span>
-	}
-}
+// templ fieldRequired(args FieldArgs) {
+// 	if args.Required {
+// 		<span class="required" aria-hidden="true" title="required">*</span>
+// 	}
+// }
 
 templ fieldRequiredBadge(args FieldArgs) {
 	if args.Required {
@@ -454,7 +454,7 @@ func fieldAria(args FieldArgs) templ.Attributes {
 templ verticalField(args FieldArgs, labelFor string) {
 	<div class={ "form-group", templ.KV("is-invalid", args.Error != "") }>
 		<label class="form-label form-label-top" for={ labelFor }>
-			@fieldRequired(args)
+			// @fieldRequired(args)
 			@templ.Raw(args.Label)
 			@fieldTooltip(args)
 			@fieldRequiredBadge(args)

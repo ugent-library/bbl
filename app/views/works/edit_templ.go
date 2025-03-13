@@ -184,6 +184,10 @@ func editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) templ.Comp
 						return templ_7745c5c3_Err
 					}
 				case "keywords":
+					templ_7745c5c3_Err = keywordsField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				case "kind":
 				case "titles":
 					templ_7745c5c3_Err = titlesField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
@@ -358,18 +362,43 @@ func conferenceField(c views.Ctx, rec *bbl.Work) templ.Component {
 	})
 }
 
-// templ keywordsField(c views.Ctx, rec *biblio.Work) {
-// 	if rec.Profile.Keywords.Use {
-// 		@forms.Tags(forms.TagsArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label:    "Keywords",
-// 				Name:     "Keywords",
-// 				Required: rec.Profile.Keywords.Required,
-// 			},
-// 			Values: rec.Keywords.Values(),
-// 		})
-// 	}
-// }
+func keywordsField(c views.Ctx, rec *bbl.Work) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var12 == nil {
+			templ_7745c5c3_Var12 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if rec.Spec.Attrs["keyword"].Use {
+			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
+				FieldArgs: forms.FieldArgs{
+					Label:    "Keywords",
+					Name:     "keyword",
+					Required: rec.Spec.Attrs["keyword"].Required,
+				},
+				Values: getCodes(rec.Keywords),
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
 
 //	templ kindField(c views.Ctx, rec *biblio.Work) {
 //		<div class="form-group">
@@ -407,15 +436,17 @@ func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var12 == nil {
-			templ_7745c5c3_Var12 = templ.NopComponent
+		templ_7745c5c3_Var13 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var13 == nil {
+			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		if rec.Spec.Attrs["title"].Use {
 			templ_7745c5c3_Err = forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 				FieldArgs: forms.FieldArgs{
-					Name: "title",
+					Name:     "title",
+					Label:    "Title",
+					Required: rec.Spec.Attrs["title"].Required,
 				},
 				Attrs: rec.Titles,
 			}).Render(ctx, templ_7745c5c3_Buffer)
@@ -427,12 +458,12 @@ func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
 	})
 }
 
-//	func filterSchemes(schemes []bbl.WorkProfileScheme, only []string) []bbl.WorkProfileScheme {
-//		if len(only) == 0 {
-//			return schemes
-//		}
-//		return lo.Filter(schemes, func(s bbl.WorkProfileScheme, _ int) bool {
-//			return slices.Contains(only, s.Scheme)
-//		})
-//	}
+func getCodes(attrs []bbl.Attr[bbl.Code]) []string {
+	codes := make([]string, len(attrs))
+	for i, attr := range attrs {
+		codes[i] = attr.Val.Code
+	}
+	return codes
+}
+
 var _ = templruntime.GeneratedTemplate
