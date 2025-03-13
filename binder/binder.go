@@ -161,16 +161,16 @@ func (b *Values) BoolSlice(key string, ptr *[]bool) *Values {
 		return b
 	}
 	if vals := b.getSlice(key); len(vals) > 0 {
-		slice := make([]bool, len(vals))
+		s := make([]bool, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseBool(v); err == nil {
-				slice[i] = val
+				s[i] = val
 			} else {
 				b.binder.err = err
 				return b
 			}
 		}
-		*ptr = slice
+		*ptr = s
 	}
 	return b
 }
@@ -288,16 +288,16 @@ func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values 
 		return b
 	}
 	if vals := b.getSlice(key); len(vals) > 0 {
-		slice := make([]time.Time, len(vals))
+		s := make([]time.Time, len(vals))
 		for i, v := range vals {
 			if val, err := time.Parse(layout, v); err == nil {
-				slice[i] = val
+				s[i] = val
 			} else {
 				b.binder.err = err
 				return b
 			}
 		}
-		*ptr = slice
+		*ptr = s
 	}
 	return b
 }
@@ -319,16 +319,16 @@ func bindIntSlice[T constraints.Signed](b *Values, key string, ptr *[]T, bitSize
 		return b
 	}
 	if vals := b.getSlice(key); len(vals) > 0 {
-		slice := make([]T, len(vals))
+		s := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseInt(v, 10, bitSize); err == nil {
-				slice[i] = T(val)
+				s[i] = T(val)
 			} else {
 				b.binder.err = err
 				return b
 			}
 		}
-		*ptr = slice
+		*ptr = s
 	}
 	return b
 }
@@ -350,16 +350,16 @@ func bindUintSlice[T constraints.Unsigned](b *Values, key string, ptr *[]T, bitS
 		return b
 	}
 	if vals := b.getSlice(key); len(vals) > 0 {
-		slice := make([]T, len(vals))
+		s := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseUint(v, 10, bitSize); err == nil {
-				slice[i] = T(val)
+				s[i] = T(val)
 			} else {
 				b.binder.err = err
 				return b
 			}
 		}
-		*ptr = slice
+		*ptr = s
 	}
 	return b
 }
@@ -381,16 +381,16 @@ func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSiz
 		return b
 	}
 	if vals := b.getSlice(key); len(vals) > 0 {
-		slice := make([]T, len(vals))
+		s := make([]T, len(vals))
 		for i, v := range vals {
 			if val, err := strconv.ParseFloat(v, bitSize); err == nil {
-				slice[i] = T(val)
+				s[i] = T(val)
 			} else {
 				b.binder.err = err
 				return b
 			}
 		}
-		*ptr = slice
+		*ptr = s
 	}
 	return b
 }
