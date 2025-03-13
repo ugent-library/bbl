@@ -159,7 +159,7 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 		}
 	}
 	if len(keywords) > len(c.Work.Keywords) {
-		for _, code := range keywords[len(c.Work.Keywords)-1:] {
+		for _, code := range keywords[len(c.Work.Keywords):] {
 			changes = append(changes, bbl.AddAttr(c.Work.ID, "keyword", bbl.Code{Scheme: "other", Code: code}))
 		}
 	}
