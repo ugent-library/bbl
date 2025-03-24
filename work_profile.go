@@ -9,10 +9,12 @@ import (
 //go:embed work_profiles.json
 var workProfilesFile []byte
 
-var workProfiles = map[string]map[string]*WorkProfile{}
+var WorkProfiles = map[string]map[string]*WorkProfile{}
+var WorkKinds []string
+var WorkSubKinds = map[string][]string{}
 
-func loadWorkProfile(rec *Work) error {
-	if subKinds, ok := workProfiles[rec.Kind]; ok {
+func LoadWorkProfile(rec *Work) error {
+	if subKinds, ok := WorkProfiles[rec.Kind]; ok {
 		if !ok {
 			return fmt.Errorf("invalid work kind %s", rec.Kind)
 		}
@@ -37,12 +39,14 @@ func init() {
 	if err := json.Unmarshal(workProfilesFile, &profiles); err != nil {
 		panic(err)
 	}
+
 	for _, p := range profiles {
 		var kp WorkProfile
 		if err := json.Unmarshal(p.RawProfile, &kp); err != nil {
 			panic(err)
 		}
-		workProfiles[p.Kind] = map[string]*WorkProfile{"": &kp}
+		WorkKinds = append(WorkKinds, p.Kind)
+		WorkProfiles[p.Kind] = map[string]*WorkProfile{"": &kp}
 		for _, pp := range p.SubKinds {
 			var skp WorkProfile
 			if err := json.Unmarshal(p.RawProfile, &kp); err != nil {
@@ -51,7 +55,8 @@ func init() {
 			if err := json.Unmarshal(p.RawProfile, &skp); err != nil {
 				panic(err)
 			}
-			workProfiles[p.Kind][pp.SubKind] = &skp
+			WorkSubKinds[p.Kind] = append(WorkSubKinds[p.Kind], pp.SubKind)
+			WorkProfiles[p.Kind][pp.SubKind] = &skp
 		}
 	}
 }

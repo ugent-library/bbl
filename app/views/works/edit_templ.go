@@ -90,20 +90,56 @@ func editForm(c views.Ctx, rec *bbl.Work) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-bbl-target=\"work-edit\" class=\"d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative\"><div class=\"c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block\"><div class=\"bc-navbar bc-navbar--large\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><h4 class=\"bc-toolbar-title\">Sidebar</h4></div></div></div></div><div class=\"c-sub-sidebar__content pt-5\"><div class=\"ps-6\"><nav class=\"nav nav-pills flex-column\"><a class=\"nav-link\" href=\"#type\"><span class=\"c-sidebar__label\">Type</span></a> <a class=\"nav-link\" href=\"#description\"><span class=\"c-sidebar__label\">Description</span></a> <a class=\"nav-link\" href=\"#bibliographic_information\"><span class=\"c-sidebar__label\">Bibliographic information</span></a> <a class=\"nav-link\" href=\"#conference_details\"><span class=\"c-sidebar__label\">Conference details</span></a> <a class=\"nav-link\" href=\"#identifiers\"><span class=\"c-sidebar__label\">Identifiers</span></a></nav></div></div></div><div class=\"w-100 u-scroll-wrapper\"><div class=\"u-scroll-wrapper__body w-100 p-6\"><form hx-encoding=\"multipart/form-data\" hx-post=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-bbl-target=\"work-edit\" class=\"d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative\"><div class=\"c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block\"><div class=\"bc-navbar bc-navbar--large\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><h4 class=\"bc-toolbar-title\">Sidebar</h4></div></div></div></div><div class=\"c-sub-sidebar__content pt-5\"><div class=\"ps-6\"><nav class=\"nav nav-pills flex-column\"><a class=\"nav-link\" href=\"#type\"><span class=\"c-sidebar__label\">Type</span></a> <a class=\"nav-link\" href=\"#description\"><span class=\"c-sidebar__label\">Description</span></a> <a class=\"nav-link\" href=\"#bibliographic_information\"><span class=\"c-sidebar__label\">Bibliographic information</span></a> <a class=\"nav-link\" href=\"#conference_details\"><span class=\"c-sidebar__label\">Conference details</span></a> <a class=\"nav-link\" href=\"#identifiers\"><span class=\"c-sidebar__label\">Identifiers</span></a></nav></div></div></div><div class=\"w-100 u-scroll-wrapper\"><div class=\"u-scroll-wrapper__body w-100 p-6\"><form hx-encoding=\"multipart/form-data\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("update_work", "work_id", rec.ID).String())
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 98, Col: 65}
+		if rec.ID == "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " hx-post=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("create_work").String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 99, Col: 47}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " hx-post=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("update_work", "work_id", rec.ID).String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 101, Col: 66}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " hx-target=\"[data-bbl-target=work-edit]\" hx-swap=\"outerHTML\" hx-trigger=\"click from:[data-bbl-trigger=save-work]\"><div class=\"mb-6\" id=\"type\"><div class=\"mb-4\"><h2>Type</h2></div><div class=\"card mb-6\"><div class=\"card-body\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" hx-target=\"[data-bbl-target=work-edit]\" hx-swap=\"outerHTML\" hx-trigger=\"click from:[data-bbl-trigger=save-work]\"><div class=\"mb-6\" id=\"type\"><div class=\"mb-4\"><h2>Type</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div><div class=\"mb-6\" id=\"description\"><div class=\"mb-4\"><h2>Description</h2></div><div class=\"card mb-6\"><div class=\"card-body\">")
+		templ_7745c5c3_Err = kindField(c, rec).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div></div><div class=\"mb-6\" id=\"description\"><div class=\"mb-4\"><h2>Description</h2></div><div class=\"card mb-6\"><div class=\"card-body\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -115,7 +151,7 @@ func editForm(c views.Ctx, rec *bbl.Work) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div></div><div class=\"mb-6\" id=\"bibliographic_information\"><div class=\"mb-4\"><h2>Bibliographic information</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div><div class=\"mb-6\" id=\"conference_details\"><div class=\"mb-4\"><h2>Conference details</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div><div class=\"mb-6\" id=\"identifiers\"><div class=\"mb-4\"><h2>Identifiers</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div></form></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div></div><div class=\"mb-6\" id=\"bibliographic_information\"><div class=\"mb-4\"><h2>Bibliographic information</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div><div class=\"mb-6\" id=\"conference_details\"><div class=\"mb-4\"><h2>Conference details</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div><div class=\"mb-6\" id=\"identifiers\"><div class=\"mb-4\"><h2>Identifiers</h2></div><div class=\"card mb-6\"><div class=\"card-body\"></div></div></div></form></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -139,9 +175,9 @@ func RefreshEditForm(c views.Ctx, rec *bbl.Work) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = editForm(c, rec).Render(ctx, templ_7745c5c3_Buffer)
@@ -215,65 +251,7 @@ func RefreshEditForm(c views.Ctx, rec *bbl.Work) templ.Component {
 //			})
 //		}
 //	}
-func keywordsField(c views.Ctx, rec *bbl.Work) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var6 == nil {
-			templ_7745c5c3_Var6 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		if rec.Profile.Keywords != nil {
-			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
-				FieldArgs: forms.FieldArgs{
-					Label:    "Keywords",
-					Name:     "keywords",
-					Required: rec.Profile.Keywords.Required,
-				},
-				Values: rec.Attrs.Keywords,
-			}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		return nil
-	})
-}
-
-//	templ kindField(c views.Ctx, rec *biblio.Work) {
-//		<div class="form-group">
-//			<label class="form-label form-label-top">Work type</label>
-//			<select
-//				class="form-select"
-//				name="Kind"
-//				if rec.IsNew() {
-//					hx-post={ c.Route("refresh_new_work").String() }
-//				}
-//				hx-include="closest form"
-//				hx-target="[data-bbl-target=work-edit]"
-//				hx-swap="outerHTML"
-//			>
-//				<option></option>
-//				for _, profile := range biblio.WorkProfiles() {
-//					<option value={ profile.Kind } selected?={ rec.Kind == profile.Kind }>{ profile.Kind }</option>
-//				}
-//			</select>
-//		</div>
-//	}
-func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
+func kindField(c views.Ctx, rec *bbl.Work) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -294,6 +272,104 @@ func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"form-group\"><label class=\"form-label form-label-top\">Work type</label> <select class=\"form-select\" name=\"kind\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if rec.ID == "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " hx-post=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var8 string
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("refresh_new_work").String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 248, Col: 50}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " hx-include=\"closest form\" hx-target=\"[data-bbl-target=work-edit]\" hx-swap=\"outerHTML\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, kind := range bbl.WorkKinds {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<option value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 255, Col: 24}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if kind == rec.Kind {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " selected")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, ">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/edit.templ`, Line: 255, Col: 64}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</option>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</select></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var11 == nil {
+			templ_7745c5c3_Var11 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
 		if rec.Profile.Titles != nil {
 			templ_7745c5c3_Err = forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 				FieldArgs: forms.FieldArgs{
@@ -302,6 +378,44 @@ func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
 					Required: rec.Profile.Titles.Required,
 				},
 				Attrs: rec.Attrs.Titles,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
+
+func keywordsField(c views.Ctx, rec *bbl.Work) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var12 == nil {
+			templ_7745c5c3_Var12 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if rec.Profile.Keywords != nil {
+			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
+				FieldArgs: forms.FieldArgs{
+					Label:    "Keywords",
+					Name:     "keywords",
+					Required: rec.Profile.Keywords.Required,
+				},
+				Values: rec.Attrs.Keywords,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

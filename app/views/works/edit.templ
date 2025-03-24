@@ -95,11 +95,14 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			<div class="u-scroll-wrapper__body w-100 p-6">
 				<form
 					hx-encoding="multipart/form-data"
-					hx-post={ c.Route("update_work", "work_id", rec.ID).String() }
+					if rec.ID == "" {
+						hx-post={ c.Route("create_work").String() }
+					} else {
+						hx-post={ c.Route("update_work", "work_id", rec.ID).String() }
+					}
 					hx-target="[data-bbl-target=work-edit]"
 					hx-swap="outerHTML"
 					hx-trigger="click from:[data-bbl-trigger=save-work]"
-
 				>
 					<div class="mb-6" id="type">
 						<div class="mb-4">
@@ -107,6 +110,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						</div>
 						<div class="card mb-6">
 							<div class="card-body">
+								@kindField(c, rec)
 							</div>
 						</div>
 					</div>
@@ -234,39 +238,25 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work) {
 // 	}
 // }
 
-templ keywordsField(c views.Ctx, rec *bbl.Work) {
-	if rec.Profile.Keywords != nil {
-		@forms.Tags(forms.TagsArgs{
-			FieldArgs: forms.FieldArgs{
-				Label:    "Keywords",
-				Name:     "keywords",
-				Required: rec.Profile.Keywords.Required,
-			},
-			Values: rec.Attrs.Keywords,
-		})
-	}
+templ kindField(c views.Ctx, rec *bbl.Work) {
+	<div class="form-group">
+		<label class="form-label form-label-top">Work type</label>
+		<select
+			class="form-select"
+			name="kind"
+			if rec.ID == "" {
+				hx-post={ c.Route("refresh_new_work").String() }
+			}
+			hx-include="closest form"
+			hx-target="[data-bbl-target=work-edit]"
+			hx-swap="outerHTML"
+		>
+			for _, kind := range bbl.WorkKinds {
+				<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
+			}
+		</select>
+	</div>
 }
-
-// templ kindField(c views.Ctx, rec *biblio.Work) {
-// 	<div class="form-group">
-// 		<label class="form-label form-label-top">Work type</label>
-// 		<select
-// 			class="form-select"
-// 			name="Kind"
-// 			if rec.IsNew() {
-// 				hx-post={ c.Route("refresh_new_work").String() }
-// 			}
-// 			hx-include="closest form"
-// 			hx-target="[data-bbl-target=work-edit]"
-// 			hx-swap="outerHTML"
-// 		>
-// 			<option></option>
-// 			for _, profile := range biblio.WorkProfiles() {
-// 				<option value={ profile.Kind } selected?={ rec.Kind == profile.Kind }>{ profile.Kind }</option>
-// 			}
-// 		</select>
-// 	</div>
-// }
 
 templ titlesField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Titles != nil {
@@ -277,6 +267,19 @@ templ titlesField(c views.Ctx, rec *bbl.Work) {
 				Required: rec.Profile.Titles.Required,
 			},
 			Attrs: rec.Attrs.Titles,
+		})
+	}
+}
+
+templ keywordsField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Keywords != nil {
+		@forms.Tags(forms.TagsArgs{
+			FieldArgs: forms.FieldArgs{
+				Label:    "Keywords",
+				Name:     "keywords",
+				Required: rec.Profile.Keywords.Required,
+			},
+			Values: rec.Attrs.Keywords,
 		})
 	}
 }

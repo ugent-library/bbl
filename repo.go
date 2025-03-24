@@ -477,7 +477,7 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 		}
 	}
 
-	if err := loadWorkProfile(&rec); err != nil {
+	if err := LoadWorkProfile(&rec); err != nil {
 		return nil, err
 	}
 
