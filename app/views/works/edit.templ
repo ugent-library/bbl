@@ -239,7 +239,7 @@ templ keywordsField(c views.Ctx, rec *bbl.Work) {
 		@forms.Tags(forms.TagsArgs{
 			FieldArgs: forms.FieldArgs{
 				Label:    "Keywords",
-				Name:     "keyword",
+				Name:     "keywords",
 				Required: rec.Profile.Keywords.Required,
 			},
 			Values: rec.Attrs.Keywords,
@@ -272,7 +272,7 @@ templ titlesField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Titles != nil {
 		@forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 			FieldArgs: forms.FieldArgs{
-				Name: "title",
+				Name: "titles",
 				Label: "Title",
 				Required: rec.Profile.Titles.Required,
 			},

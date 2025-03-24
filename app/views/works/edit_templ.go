@@ -240,7 +240,7 @@ func keywordsField(c views.Ctx, rec *bbl.Work) templ.Component {
 			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
 				FieldArgs: forms.FieldArgs{
 					Label:    "Keywords",
-					Name:     "keyword",
+					Name:     "keywords",
 					Required: rec.Profile.Keywords.Required,
 				},
 				Values: rec.Attrs.Keywords,
@@ -297,7 +297,7 @@ func titlesField(c views.Ctx, rec *bbl.Work) templ.Component {
 		if rec.Profile.Titles != nil {
 			templ_7745c5c3_Err = forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 				FieldArgs: forms.FieldArgs{
-					Name:     "title",
+					Name:     "titles",
 					Label:    "Title",
 					Required: rec.Profile.Titles.Required,
 				},

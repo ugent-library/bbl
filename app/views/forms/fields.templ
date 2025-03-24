@@ -392,7 +392,13 @@ templ Tags(args TagsArgs) {
 				data-input-name={ args.Name }
 				aria-label={ args.Label }
 				{ fieldAria(args.FieldArgs)... }
-			>{ templ.JSONString(args.Values) }</textarea>
+			> 
+				if len(args.Values) > 0 {
+					{ templ.JSONString(args.Values) }
+				} else {
+					{"[]"}
+				}
+			</textarea>
 		</div>
 	}
 }

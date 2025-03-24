@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
 	workviews "github.com/ugent-library/bbl/app/views/works"
+	"github.com/ugent-library/bbl/binder"
 	"github.com/ugent-library/bbl/ctx"
 )
 
@@ -71,104 +72,41 @@ func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) e
 }
 
 func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	// var changes []*bbl.Change
+	b := binder.New(r).Form().Vacuum()
 
-	// b := binder.New(r).Form().Vacuum()
+	var titles []bbl.Text
+	b.Each("titles", func(b *binder.Values) bool {
+		var attr bbl.Text
+		b.String("lang", &attr.Lang)
+		b.String("val", &attr.Val)
+		if attr.Val != "" {
+			titles = append(titles, attr)
+		}
+		return true
+	})
 
-	// val := bbl.Conference{}
+	if err := b.Err(); err != nil {
+		return err
+	}
+	c.Work.Attrs.Titles = titles
 
-	// err := b.
-	// 	String("conference.name", &val.Name).
-	// 	String("conference.location", &val.Location).
-	// 	String("conference.organizer", &val.Organizer).
-	// 	Err()
+	var keywords []string
+	if err := b.StringSlice("keywords", &keywords).Err(); err != nil {
+		return err
+	}
+	c.Work.Attrs.Keywords = keywords
 
-	// if err != nil {
-	// 	return err
-	// }
+	rev := bbl.NewRev()
+	rev.Add(&bbl.UpdateWork{Work: c.Work})
 
-	// if c.Work.Conference.IsSet() && val.IsBlank() {
-	// 	changes = append(changes, bbl.DelAttr(c.Work.ID, c.Work.Conference.ID))
-	// } else if c.Work.Conference.IsSet() && !val.IsBlank() {
-	// 	changes = append(changes, bbl.SetAttr(c.Work.ID, c.Work.Conference.ID, val))
-	// } else if !val.IsBlank() {
-	// 	changes = append(changes, bbl.AddAttr(c.Work.ID, "conference", val))
-	// }
+	if err := h.repo.AddRev(r.Context(), rev); err != nil {
+		return err
+	}
 
-	// // TODO handle deletes (id's not in binder values)
-	// err = b.
-	// 	Each("identifier", func(b *binder.Values) bool {
-	// 		var id string
-	// 		var val bbl.Code
-	// 		b.String("id", &id)
-	// 		b.String("val.scheme", &val.Scheme)
-	// 		b.String("val.code", &val.Code)
-	// 		blank := val.IsBlank()
-	// 		if id == "" && !blank {
-	// 			changes = append(changes, bbl.AddAttr(c.Work.ID, "identifier", val))
-	// 		} else if id != "" && !blank {
-	// 			changes = append(changes, bbl.SetAttr(c.Work.ID, id, val))
-	// 		} else if id != "" && blank {
-	// 			changes = append(changes, bbl.DelAttr(c.Work.ID, id))
-	// 		}
-	// 		return true
-	// 	}).
-	// 	Err()
+	work, err := h.repo.GetWork(r.Context(), c.Work.ID)
+	if err != nil {
+		return err
+	}
 
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // TODO handle deletes (id's not in binder values)
-	// err = b.
-	// 	Each("title", func(b *binder.Values) bool {
-	// 		var id string
-	// 		var val bbl.Text
-	// 		b.String("id", &id)
-	// 		b.String("val.lang", &val.Lang)
-	// 		b.String("val.text", &val.Text)
-	// 		blank := val.IsBlank()
-	// 		if id == "" && !blank {
-	// 			changes = append(changes, bbl.AddAttr(c.Work.ID, "title", val))
-	// 		} else if id != "" && !blank {
-	// 			changes = append(changes, bbl.SetAttr(c.Work.ID, id, val))
-	// 		} else if id != "" && blank {
-	// 			changes = append(changes, bbl.DelAttr(c.Work.ID, id))
-	// 		}
-	// 		return true
-	// 	}).
-	// 	Err()
-
-	// if err != nil {
-	// 	return err
-	// }
-
-	// var keywords []string
-	// if b.StringSlice("keyword", &keywords).Err() != nil {
-	// 	return err
-	// }
-	// for i, attr := range c.Work.Keywords {
-	// 	if i < len(keywords) {
-	// 		changes = append(changes, bbl.SetAttr(c.Work.ID, attr.ID, bbl.Code{Scheme: "other", Code: keywords[i]}))
-	// 	} else if i >= len(keywords) {
-	// 		changes = append(changes, bbl.DelAttr(c.Work.ID, attr.ID))
-	// 	}
-	// }
-	// if len(keywords) > len(c.Work.Keywords) {
-	// 	for _, code := range keywords[len(c.Work.Keywords):] {
-	// 		changes = append(changes, bbl.AddAttr(c.Work.ID, "keyword", bbl.Code{Scheme: "other", Code: code}))
-	// 	}
-	// }
-
-	// if err := h.repo.AddRev(r.Context(), changes); err != nil {
-	// 	return err
-	// }
-
-	// work, err := h.repo.GetWork(r.Context(), c.Work.ID)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return workviews.RefreshEditForm(c.ViewCtx(), work).Render(r.Context(), w)
-	return nil
+	return workviews.RefreshEditForm(c.ViewCtx(), work).Render(r.Context(), w)
 }
