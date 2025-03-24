@@ -15,7 +15,7 @@ var workCmd = &cobra.Command{
 	Short: "Get work",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := newRepo(cmd.Context())
+		repo, close, err := NewRepo(cmd.Context())
 		if err != nil {
 			return err
 		}

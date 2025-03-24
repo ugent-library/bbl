@@ -1,0 +1,55 @@
+[
+    {
+        "kind": "book",
+        "profile": {
+            "identifiers": {
+                "schemes": [
+                    {"scheme": "doi"},
+                    {"scheme": "isbn"}
+                ]
+            },
+            "abstracts": {
+            },
+            "titles": {
+            },
+            "lay_summaries": {
+            },
+            "keywords": {
+            }
+        }
+    },
+    {
+        "kind": "journal_article",
+        "profile": {
+            "identifiers": {
+                "schemes": [
+                    {"scheme": "doi"},
+                    {"scheme": "issn"},
+                    {"scheme": "wos_id"}
+                ]
+            },
+            "abstracts": {
+            },
+            "titles": {
+            },
+            "lay_summaries": {
+            },
+            "keywords": {
+            }
+        },
+        "sub_kinds": [
+            {
+                "sub_kind": "original"
+            },
+            {
+                "sub_kind": "review"
+            },
+            {
+                "sub_kind": "letter_note"
+            },
+            {
+                "sub_kind": "proceedings_paper"
+            }
+        ]
+    }
+]

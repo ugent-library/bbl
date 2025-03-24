@@ -7,7 +7,7 @@ import (
 
 type TextAttrRepeatArgs struct {
 	FieldArgs
-	Attrs []bbl.Attr[bbl.Text]
+	Attrs []bbl.Text
 }
 
 templ TextAttrRepeat(args TextAttrRepeatArgs) {
@@ -18,30 +18,24 @@ templ TextAttrRepeat(args TextAttrRepeatArgs) {
 					<div class="d-flex">
 						<div class="input-group">
 							<input
-                                type="hidden"
-								name={ fmt.Sprintf("%s[%d].id", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-id", args.Name, i) }
-                                value={attr.ID}
-                            />
-							<input
 								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-								name={ fmt.Sprintf("%s[%d].val.text", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-val-text", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.text", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-text", args.Name) }
+								name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
+								id={ fmt.Sprintf("%s-%d-val", args.Name, i) }
+								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
+								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
 								type="text"
-								value={ attr.Val.Text }
+								value={ attr.Val }
 								{ fieldAria(args.FieldArgs)... }
 							/>
 							<select
 								class="form-control form-select"
-								name={ fmt.Sprintf("%s[%d].val.lang", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-val-lang", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.lang", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-lang", args.Name) }
+								name={ fmt.Sprintf("%s[%d].lang", args.Name, i) }
+								id={ fmt.Sprintf("%s-%d-lang", args.Name, i) }
+								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].lang", args.Name) }
+								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-lang", args.Name) }
 							>
 								for _, opt := range languageOptions {
-									<option value={ opt.Value } selected?={ opt.Value == attr.Val.Lang }>{ opt.Label }</option>
+									<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
 								}
 							</select>
 						</div>
@@ -56,27 +50,21 @@ templ TextAttrRepeat(args TextAttrRepeatArgs) {
 				<div class="d-flex">
 					<div class="input-group">
 						<input
-                            type="hidden"
-                            name={ fmt.Sprintf("%s[%d].id", args.Name, len(args.Attrs)) }
-                            id={ fmt.Sprintf("%s-%d-id", args.Name, len(args.Attrs)) }
-                            value=""
-                        />
-						<input
 							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ fmt.Sprintf("%s[%d].val.text", args.Name, len(args.Attrs)) }
-							id={ fmt.Sprintf("%s-%d-val-text", args.Name, len(args.Attrs)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.text", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-text", args.Name) }
+							name={ fmt.Sprintf("%s[%d].val", args.Name, len(args.Attrs)) }
+							id={ fmt.Sprintf("%s-%d-val", args.Name, len(args.Attrs)) }
+							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
 							type="text"
 							value=""
 							{ fieldAria(args.FieldArgs)... }
 						/>
 						<select
 							class="form-select form-control"
-							name={ fmt.Sprintf("%s[%d].val.lang", args.Name, len(args.Attrs)) }
-							id={ fmt.Sprintf("%s-%d-val-lang", args.Name, len(args.Attrs)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val.lang", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val-lang", args.Name) }
+							name={ fmt.Sprintf("%s[%d].lang", args.Name, len(args.Attrs)) }
+							id={ fmt.Sprintf("%s-%d-lang", args.Name, len(args.Attrs)) }
+							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].lang", args.Name) }
+							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-lang", args.Name) }
 						>
 							for _, o := range languageOptions {
 								<option value={ o.Value }>{ o.Label }</option>

@@ -1,91 +1,63 @@
 package bbl
 
-import "fmt"
-
-var workSpec = &RecordSpec{
-	Kind:     "work",
-	BaseKind: "work",
-	New:      func() Record { return &Work{} },
-	Attrs: map[string]*AttrSpec{
-		"note":           {},
-		"abstract":       {},
-		"classification": {},
-		"conference":     {},
-		"contributor":    {},
-		"identifier":     {},
-		"keyword":        {},
-		"lay_summary":    {},
-		"project":        {},
-		"title":          {},
-	},
-}
-
-func loadWork(rawRec *RawRecord, specMap map[string]*RecordSpec) (*Work, error) {
-	rec := &Work{}
-	if err := rec.Load(rawRec, specMap); err != nil {
-		return nil, err
-	}
-	return rec, nil
-}
+import (
+	"slices"
+	"time"
+)
 
 type Work struct {
-	Spec *RecordSpec `json:"-"`
-	RecordHeader
-	RecordIdentifiers
-	Notes           []Attr[Note]                    `json:"notes,omitempty"`
-	Abstracts       []Attr[Text]                    `json:"abstracts,omitempty"`
-	Classifications []Attr[Code]                    `json:"classifications,omitempty"`
-	Conference      *Attr[Conference]               `json:"conference,omitempty"`
-	Contributors    []RelAttr[Contributor, *Person] `json:"contributors,omitempty"`
-	Keywords        []Attr[Code]                    `json:"keywords,omitempty"`
-	LaySummaries    []Attr[Text]                    `json:"lay_summaries,omitempty"`
-	Projects        []RelAttr[Empty, *Project]      `json:"projects,omitempty"`
-	Titles          []Attr[Text]                    `json:"titles,omitempty"`
+	Profile   *WorkProfile `json:"-"`
+	ID        string       `json:"id,omitempty"`
+	Kind      string       `json:"kind"`
+	SubKind   string       `json:"sub_kind,omitempty"`
+	Attrs     WorkAttrs    `json:"attrs"`
+	Rels      []WorkRel    `json:"rels,omitempty"`
+	CreatedAt time.Time    `json:"created_at,omitzero"`
+	UpdatedAt time.Time    `json:"updated_at,omitzero"`
 }
 
-func (rec *Work) Load(rawRec *RawRecord, specMap map[string]*RecordSpec) error {
-	rec.ID = rawRec.ID
-	rec.Kind = rawRec.Kind
-	spec, ok := specMap[rec.Kind]
-	if !ok {
-		return fmt.Errorf("spec not found: %s", rec.Kind)
-	}
-	rec.Spec = spec
-
-	if err := loadAttrs(rawRec, "note", &rec.Notes); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "abstract", &rec.Abstracts); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "classification", &rec.Classifications); err != nil {
-		return err
-	}
-	if err := loadAttr(rawRec, "conference", &rec.Conference); err != nil {
-		return err
-	}
-	if err := loadRelAttrs(rawRec, "contributor", &rec.Contributors, loadPerson, specMap); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "identifier", &rec.Identifiers); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "keyword", &rec.Keywords); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "lay_summary", &rec.LaySummaries); err != nil {
-		return err
-	}
-	if err := loadRelAttrs(rawRec, "project", &rec.Projects, loadProject, specMap); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "title", &rec.Titles); err != nil {
-		return err
-	}
-
-	return nil
+type WorkAttrs struct {
+	Identifiers  []Identifier `json:"identifiers,omitempty"`
+	Titles       []Text       `json:"titles,omitempty"`
+	Abstracts    []Text       `json:"abstracts,omitempty"`
+	LaySummaries []Text       `json:"lay_summaries,omitempty"`
+	Keywords     []string     `json:"keywords,omitempty"`
 }
 
-func (rec *Work) Validate() error {
-	return nil
+type WorkRel struct {
+	ID     string `json:"id,omitempty"`
+	Kind   string `json:"kind"`
+	WorkID string `json:"work_id"`
+	Work   *Work  `json:"work,omitempty"`
+}
+
+func (rec *Work) Diff(otherRec *Work) map[string]any {
+	changes := map[string]any{}
+	if rec.Kind != otherRec.Kind {
+		changes["kind"] = rec.Kind
+	}
+	if rec.SubKind != otherRec.SubKind {
+		changes["sub_kind"] = rec.SubKind
+	}
+	if !slices.Equal(rec.Attrs.Identifiers, otherRec.Attrs.Identifiers) {
+		changes["identifiers"] = rec.Attrs.Identifiers
+	}
+	if !slices.Equal(rec.Attrs.Titles, otherRec.Attrs.Titles) {
+		changes["titles"] = rec.Attrs.Titles
+	}
+	if !slices.Equal(rec.Attrs.Abstracts, otherRec.Attrs.Abstracts) {
+		changes["abstracts"] = rec.Attrs.Abstracts
+	}
+	if !slices.Equal(rec.Attrs.LaySummaries, otherRec.Attrs.LaySummaries) {
+		changes["lay_summaries"] = rec.Attrs.LaySummaries
+	}
+	if !slices.Equal(rec.Attrs.Keywords, otherRec.Attrs.Keywords) {
+		changes["keywords"] = rec.Attrs.Keywords
+	}
+	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(rel, otherRel WorkRel) bool {
+		return rel.Kind == otherRel.Kind && rel.WorkID == otherRel.WorkID
+	}) {
+		changes["rels"] = rec.Rels
+	}
+	return changes
 }

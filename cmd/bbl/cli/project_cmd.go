@@ -7,21 +7,21 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(organizationCmd)
+	rootCmd.AddCommand(projectCmd)
 }
 
-var organizationCmd = &cobra.Command{
-	Use:   "organization [id]",
-	Short: "Get organization",
+var projectCmd = &cobra.Command{
+	Use:   "project [id]",
+	Short: "Get project",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := newRepo(cmd.Context())
+		repo, close, err := NewRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
 		defer close()
 
-		rec, err := repo.GetOrganization(cmd.Context(), args[0])
+		rec, err := repo.GetProject(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}

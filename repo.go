@@ -2,273 +2,484 @@ package bbl
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
-	"slices"
-	"strings"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"go.breu.io/ulid"
 )
 
-//go:embed record_specs.json
-var recordSpecsFile []byte
+var ErrNotFound = errors.New("not found")
 
-type Repo struct {
-	db          DbAdapter
-	recordSpecs map[string]*RecordSpec
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
+type pgxConn interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, optionsAndArgs ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, optionsAndArgs ...any) pgx.Row
 }
 
-func NewRepo(db DbAdapter) (*Repo, error) {
+type Repo struct {
+	conn *pgxpool.Pool
+}
+
+func NewRepo(conn *pgxpool.Pool) (*Repo, error) {
 	r := &Repo{
-		db: db,
-		recordSpecs: map[string]*RecordSpec{
-			organizationSpec.Kind: organizationSpec,
-			personSpec.Kind:       personSpec,
-			projectSpec.Kind:      projectSpec,
-			workSpec.Kind:         workSpec,
-		},
-	}
-	if err := r.loadRecSpecs(); err != nil {
-		return nil, err
+		conn: conn,
 	}
 	return r, nil
 }
 
 func (r *Repo) MigrateUp(ctx context.Context) error {
-	return r.db.MigrateUp(ctx)
-}
+	goose.SetBaseFS(migrationsFS)
 
-func (r *Repo) MigrateDown(ctx context.Context) error {
-	return r.db.MigrateDown(ctx)
-}
-
-func (r *Repo) AddRev(ctx context.Context, changes []*Change) error {
-	return r.db.Do(ctx, func(tx DbTx) error {
-		var rawRecs []*RawRecord
-		var changesApplied []*Change
-		var rec *RawRecord
-		var err error
-		for _, c := range changes {
-			if c.Op == OpAddRec {
-				c.ID = newID()
-				rec = &RawRecord{
-					ID:   c.ID,
-					Kind: c.AddRecArgs().Kind,
-				}
-				if _, ok := r.recordSpecs[rec.Kind]; !ok {
-					return fmt.Errorf("invalid rec kind %s", rec.Kind)
-				}
-				rawRecs = append(rawRecs, rec)
-			} else {
-				if rec != nil && c.ID == "" {
-					c.ID = rec.ID
-				}
-				if rec == nil || rec.ID != c.ID {
-					rec, err = tx.GetRec(ctx, c.ID)
-					if err != nil {
-						return err
-					}
-					if rec == nil {
-						return fmt.Errorf("rec %s doesn't exist", c.ID)
-					}
-					rawRecs = append(rawRecs, rec)
-				}
-
-				switch c.Op {
-				case OpDelRec:
-					rec = nil
-				case OpAddAttr: // TODO check RelID
-					recSpec := r.recordSpecs[rec.Kind]
-					args := c.AddAttrArgs()
-					_, ok := recSpec.Attrs[args.Kind]
-					if !ok {
-						return errors.New("invalid attr kind")
-					}
-					if args.ID == "" {
-						args.ID = newID()
-					}
-					rec.Attrs = append(rec.Attrs, &DbAttr{
-						ID:    args.ID,
-						Kind:  args.Kind,
-						Val:   args.Val,
-						RelID: args.RelID,
-					})
-				case OpSetAttr: // TODO check RelID
-					args := c.SetAttrArgs()
-					var attr *DbAttr
-					for _, a := range rec.Attrs {
-						if a.ID == args.ID {
-							attr = a
-							break
-						}
-					}
-					if attr == nil {
-						return errors.New("attr doesn't exist")
-					}
-					// skip if nothing changed
-					if args.RelID == attr.RelID {
-						var oldVal, newVal any
-						if err = json.Unmarshal(attr.Val, &oldVal); err != nil {
-							return err
-						}
-						if err = json.Unmarshal(args.Val, &newVal); err != nil {
-							return err
-						}
-						if reflect.DeepEqual(oldVal, newVal) {
-							continue
-						}
-					}
-					attr.Val = args.Val
-					attr.RelID = args.RelID
-				case OpDelAttr:
-					args := c.DelAttrArgs()
-					var exists bool
-					for i, a := range rec.Attrs {
-						if a.ID == args.ID {
-							exists = true
-							rec.Attrs = slices.Delete(rec.Attrs, i, i+1)
-							break
-						}
-					}
-					if !exists {
-						return errors.New("attr doesn't exist")
-					}
-				}
-			}
-
-			changesApplied = append(changesApplied, c)
-		}
-
-		for _, rawRec := range rawRecs {
-			spec, ok := r.recordSpecs[rawRec.Kind]
-			if !ok {
-				return fmt.Errorf("unknown record kind %s", rawRec.Kind)
-			}
-			rec := spec.New()
-			if err := rec.Load(rawRec, r.recordSpecs); err != nil {
-				return err
-			}
-			if err := rec.Validate(); err != nil {
-				return err
-			}
-		}
-
-		return tx.AddRev(ctx, &Rev{
-			ID:      newID(),
-			Changes: changesApplied,
-		})
-	})
-}
-
-func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
-	rec, err := r.db.GetRecWithKind(ctx, organizationSpec.BaseKind, id)
-	if err != nil {
-		return nil, err
-	}
-	return loadOrganization(rec, r.recordSpecs)
-}
-
-func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
-	rec, err := r.db.GetRecWithKind(ctx, personSpec.BaseKind, id)
-	if err != nil {
-		return nil, err
-	}
-	return loadPerson(rec, r.recordSpecs)
-}
-
-func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
-	rec, err := r.db.GetRecWithKind(ctx, projectSpec.BaseKind, id)
-	if err != nil {
-		return nil, err
-	}
-	return loadProject(rec, r.recordSpecs)
-}
-
-func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
-	rec, err := r.db.GetRecWithKind(ctx, workSpec.BaseKind, id)
-	if err != nil {
-		return nil, err
-	}
-	return loadWork(rec, r.recordSpecs)
-}
-
-func (r *Repo) loadRecSpecs() error {
-	var specs []*RecordSpec
-
-	if err := json.Unmarshal(recordSpecsFile, &specs); err != nil {
+	if err := goose.SetDialect("postgres"); err != nil {
 		return err
 	}
 
-	for _, spec := range specs {
-		if existingSpec, ok := r.recordSpecs[spec.Kind]; ok {
-			if err := copyAttrSpecs(spec.Attrs, existingSpec.Attrs); err != nil {
-				return fmt.Errorf("kind %s: %w", spec.Kind, err)
-			}
+	db := stdlib.OpenDBFromPool(r.conn)
+	defer db.Close()
 
-			continue
-		}
+	return goose.UpContext(ctx, db, "migrations")
+}
 
-		lastDot := strings.LastIndex(spec.Kind, ".")
-		if lastDot == -1 {
-			return fmt.Errorf("invalid kind %s", spec.Kind)
-		}
+func (r *Repo) MigrateDown(ctx context.Context) error {
+	goose.SetBaseFS(migrationsFS)
 
-		parentKind := spec.Kind[:lastDot]
-		parentSpec, ok := r.recordSpecs[parentKind]
-		if !ok {
-			return fmt.Errorf("parent kind %s not found for %s", parentKind, spec.Kind)
-		}
-
-		newSpec := &RecordSpec{
-			Kind:     spec.Kind,
-			BaseKind: parentSpec.BaseKind,
-			New:      parentSpec.New,
-			Attrs:    make(map[string]*AttrSpec),
-		}
-
-		for attr, attrSpec := range parentSpec.Attrs {
-			newSpec.Attrs[attr] = &AttrSpec{
-				Use:      attrSpec.Use,
-				Required: attrSpec.Required,
-				Schemes:  attrSpec.Schemes,
-			}
-		}
-
-		if err := copyAttrSpecs(spec.Attrs, newSpec.Attrs); err != nil {
-			return fmt.Errorf("kind %s: %w", spec.Kind, err)
-		}
-
-		r.recordSpecs[newSpec.Kind] = newSpec
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
 	}
 
-	// for kind, spec := range r.recordSpecs {
-	// 	j, _ := json.Marshal(spec)
-	// 	log.Printf("spec %s: %s", kind, j)
-	// }
+	db := stdlib.OpenDBFromPool(r.conn)
+	defer db.Close()
+
+	return goose.ResetContext(ctx, db, "migrations")
+}
+
+func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
+	return getOrganization(ctx, r.conn, id)
+}
+
+func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
+	return getProject(ctx, r.conn, id)
+}
+
+func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
+	return getWork(ctx, r.conn, id)
+}
+
+func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
+	revID := r.newID()
+
+	tx, err := r.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("AddRev: %s", err)
+	}
+	defer tx.Rollback(ctx)
+
+	batch := &pgx.Batch{}
+
+	batch.Queue(`
+		insert into bbl_revs (id)
+		values ($1);`,
+		revID,
+	)
+
+	for _, action := range rev.actions {
+		switch a := action.(type) {
+		case *CreateOrganization:
+			id := r.newID()
+			diff := a.Organization.Diff(&Organization{})
+
+			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				insert into bbl_organizations (id, kind, attrs)
+				values ($1, $2, $3);`,
+				id, a.Organization.Kind, jsonAttrs,
+			)
+			for _, rel := range a.Organization.Rels {
+				batch.Queue(`
+					insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
+					values ($1, $2, $3, $4);`,
+					r.newID(), rel.Kind, id, rel.OrganizationID,
+				)
+			}
+			batch.Queue(`
+				insert into bbl_changes (rev_id, organization_id, diff)
+				values ($1, $2, $3);`,
+				revID, id, jsonDiff,
+			)
+		case *UpdateOrganization:
+			currentRec, err := getOrganization(ctx, tx, a.Organization.ID)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			diff := a.Organization.Diff(currentRec)
+
+			if len(diff) == 0 {
+				continue
+			}
+
+			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				update bbl_organizations
+				set kind = $2,
+				    attrs = $3,
+				    updated_at = transaction_timestamp()
+				where id = $1;`,
+				a.Organization.ID, a.Organization.Kind, jsonAttrs,
+			)
+
+			if _, ok := diff["rels"]; ok {
+				for _, currentRel := range currentRec.Rels {
+					var found bool
+					for _, rel := range a.Organization.Rels {
+						if rel.ID == currentRel.ID {
+							found = true
+							break
+						}
+					}
+					if !found {
+						batch.Queue(`
+							delete from bbl_organizations_rels
+							where id = $1;`,
+							currentRel.ID,
+						)
+					}
+				}
+
+				for _, rel := range a.Organization.Rels {
+					var found bool
+					for _, currentRel := range currentRec.Rels {
+						if currentRel.ID == rel.ID {
+							found = true
+							break
+						}
+					}
+					if found {
+						batch.Queue(`
+							update bbl_organizations_rels
+							set kind = $2,
+							    rel_organization_id = $3
+							where id = $1;`,
+							rel.ID, rel.Kind, rel.OrganizationID,
+						)
+					} else {
+						batch.Queue(`
+							insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
+							values ($1, $2, $3, $4);`,
+							r.newID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
+						)
+					}
+				}
+			}
+
+			batch.Queue(`
+				insert into bbl_changes (rev_id, organization_id, diff)
+				values ($1, $2, $3);`,
+				revID, a.Organization.ID, jsonDiff,
+			)
+		case *CreateProject:
+			id := r.newID()
+			diff := a.Project.Diff(&Project{})
+
+			jsonAttrs, err := json.Marshal(a.Project.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				insert into bbl_projects (id, attrs)
+				values ($1, $2);`,
+				id, jsonAttrs,
+			)
+			batch.Queue(`
+				insert into bbl_changes (rev_id, project_id, diff)
+				values ($1, $2, $3);`,
+				revID, id, jsonDiff,
+			)
+		case *UpdateProject:
+			currentRec, err := getProject(ctx, tx, a.Project.ID)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			diff := a.Project.Diff(currentRec)
+
+			if len(diff) == 0 {
+				continue
+			}
+
+			jsonAttrs, err := json.Marshal(a.Project.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				update bbl_projects
+				set attrs = $2,
+				    updated_at = transaction_timestamp()
+				where id = $1;`,
+				a.Project.ID, jsonAttrs,
+			)
+
+			batch.Queue(`
+				insert into bbl_changes (rev_id, project_id, diff)
+				values ($1, $2, $3);`,
+				revID, a.Project.ID, jsonDiff,
+			)
+		case *CreateWork:
+			id := r.newID()
+			diff := a.Work.Diff(&Work{})
+
+			jsonAttrs, err := json.Marshal(a.Work.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				insert into bbl_works (id, kind, sub_kind, attrs)
+				values ($1, $2, nullif($3, ''), $4);`,
+				id, a.Work.Kind, a.Work.SubKind, jsonAttrs,
+			)
+			for _, rel := range a.Work.Rels {
+				batch.Queue(`
+					insert into bbl_works_rels (id, kind, work_id, rel_work_id)
+					values ($1, $2, $3, $4);`,
+					r.newID(), rel.Kind, id, rel.WorkID,
+				)
+			}
+			batch.Queue(`
+				insert into bbl_changes (rev_id, work_id, diff)
+				values ($1, $2, $3);`,
+				revID, id, jsonDiff,
+			)
+		case *UpdateWork:
+			currentRec, err := getWork(ctx, tx, a.Work.ID)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			diff := a.Work.Diff(currentRec)
+
+			if len(diff) == 0 {
+				continue
+			}
+
+			jsonAttrs, err := json.Marshal(a.Work.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				update bbl_works
+				set kind = $2,
+				    sub_kind = nullif($3, ''),
+				    attrs = $4,
+				    updated_at = transaction_timestamp()
+				where id = $1;`,
+				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
+			)
+
+			if _, ok := diff["rels"]; ok {
+				for _, currentRel := range currentRec.Rels {
+					var found bool
+					for _, rel := range a.Work.Rels {
+						if rel.ID == currentRel.ID {
+							found = true
+							break
+						}
+					}
+					if !found {
+						batch.Queue(`
+							delete from bbl_works_rels
+							where id = $1;`,
+							currentRel.ID,
+						)
+					}
+				}
+
+				for _, rel := range a.Work.Rels {
+					var found bool
+					for _, currentRel := range currentRec.Rels {
+						if currentRel.ID == rel.ID {
+							found = true
+							break
+						}
+					}
+					if found {
+						batch.Queue(`
+							update bbl_works_rels
+							set kind = $2,
+							    rel_organization_id = $3
+							where id = $1;`,
+							rel.ID, rel.Kind, rel.WorkID,
+						)
+					} else {
+						batch.Queue(`
+							insert into bbl_works_rels (id, kind, work_id, rel_work_id)
+							values ($1, $2, $3, $4);`,
+							r.newID(), rel.Kind, a.Work.ID, rel.WorkID,
+						)
+					}
+				}
+			}
+
+			batch.Queue(`
+				insert into bbl_changes (rev_id, work_id, diff)
+				values ($1, $2, $3);`,
+				revID, a.Work.ID, jsonDiff,
+			)
+		default:
+			return errors.New("AddRev: unknown action")
+		}
+	}
+
+	res := tx.SendBatch(ctx, batch)
+	defer res.Close()
+
+	for i := 0; i < batch.Len(); i++ {
+		if _, err := res.Exec(); err != nil {
+			return fmt.Errorf("AddRev: %w: %s", err, batch.QueuedQueries[i].SQL)
+		}
+	}
+
+	if err := res.Close(); err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
 
 	return nil
 }
 
-func copyAttrSpecs(from, to map[string]*AttrSpec) error {
-	for attr, fromSpec := range from {
-		toSpec, ok := to[attr]
-		if !ok {
-			return fmt.Errorf("unknown attr %s", attr)
-		}
-		toSpec.Use = fromSpec.Use
-		toSpec.Required = fromSpec.Required
-		toSpec.Schemes = fromSpec.Schemes
-		if fromSpec.Required {
-			toSpec.Use = true
-		}
-	}
-
-	return nil
-}
-
-func newID() string {
+func (r *Repo) newID() string {
 	return ulid.Make().UUIDString()
+}
+
+func getOrganization(ctx context.Context, conn pgxConn, id string) (*Organization, error) {
+	q := `
+		select id, kind, attrs, rels, created_at, updated_at
+		from bbl_organizations_view
+		where id = $1;`
+
+	var rec Organization
+	var rawAttrs json.RawMessage
+	var rawRels json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rawAttrs, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("GetOrganization: %w: %s", ErrNotFound, id)
+	} else if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+		return nil, fmt.Errorf("GetOrganization: unmarshal attrs: %s", err)
+	}
+
+	if rawRels != nil {
+		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
+			return nil, fmt.Errorf("GetOrganization: unmarshal rels: %s", err)
+		}
+	}
+
+	return &rec, nil
+}
+
+func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) {
+	q := `
+		select id, attrs, created_at, updated_at
+		from bbl_projects
+		where id = $1;`
+
+	var rec Project
+	var rawAttrs json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("Getproject: %w: %s", ErrNotFound, id)
+	} else if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+		return nil, fmt.Errorf("GetProject: unmarshal attrs: %s", err)
+	}
+
+	return &rec, nil
+}
+
+func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
+	q := `
+		select id, kind, sub_kind, attrs, rels, created_at, updated_at
+		from bbl_works_view
+		where id = $1;`
+
+	var rec Work
+	var rawAttrs json.RawMessage
+	var rawRels json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("GetWork: %w: %s", ErrNotFound, id)
+	} else if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+		return nil, fmt.Errorf("GetWork: unmarshal attrs: %s", err)
+	}
+
+	if rawRels != nil {
+		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
+			return nil, fmt.Errorf("GetWork: unmarshal rels: %s", err)
+		}
+	}
+
+	if err := loadWorkProfile(&rec); err != nil {
+		return nil, err
+	}
+
+	return &rec, nil
 }

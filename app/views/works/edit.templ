@@ -6,7 +6,7 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
-templ Edit(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
+templ Edit(c views.Ctx, rec *bbl.Work) {
 	@views.Page(c, "Edit") {
 		<div class="w-100 h-100 d-flex flex-column overflow-hidden">
 			<div class="bc-navbar bc-navbar--white bc-navbar--auto bc-navbar--bordered-bottom flex-column align-items-start">
@@ -52,12 +52,12 @@ templ Edit(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 				</div>
 			</div>
 
-			@editForm(c, rec, formProfile)
+			@editForm(c, rec)
 		</div>
 	}
 }
 
-templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
+templ editForm(c views.Ctx, rec *bbl.Work) {
 	<div data-bbl-target="work-edit" class="d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative">
 		<div class="c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block">
 			<div class="bc-navbar bc-navbar--large">
@@ -72,11 +72,21 @@ templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 			<div class="c-sub-sidebar__content pt-5">
 				<div class="ps-6">
 					<nav class="nav nav-pills flex-column">
-						for _, section := range formProfile.Sections {
-							<a class="nav-link" href={ section.Anchor() }>
-								<span class="c-sidebar__label">{ section.Name }</span>
+							<a class="nav-link" href="#type">
+								<span class="c-sidebar__label">Type</span>
 							</a>
-						}
+							<a class="nav-link" href="#description">
+								<span class="c-sidebar__label">Description</span>
+							</a>
+							<a class="nav-link" href="#bibliographic_information">
+								<span class="c-sidebar__label">Bibliographic information</span>
+							</a>
+							<a class="nav-link" href="#conference_details">
+								<span class="c-sidebar__label">Conference details</span>
+							</a>
+							<a class="nav-link" href="#identifiers">
+								<span class="c-sidebar__label">Identifiers</span>
+							</a>
 					</nav>
 				</div>
 			</div>
@@ -91,41 +101,59 @@ templ editForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 					hx-trigger="click from:[data-bbl-trigger=save-work]"
 
 				>
-					for _, section := range formProfile.Sections {
-						<div class="mb-6" id={ section.ID() }>
-							<div class="mb-4">
-								<h2>{ section.Name }</h2>
-							</div>
-							<div class="card mb-6">
-								<div class="card-body">
-									for _, field := range section.Fields {
-										switch field.Field {
-											case "classifications":
-												// @classificationsField(c, rec, field.Only)
-											case "conference":
-												@conferenceField(c, rec)
-											case "identifiers":
-												@identifiersField(c, rec)
-											case "keywords":
-												@keywordsField(c, rec)
-											case "kind":
-												// @kindField(c, rec)
-											case "titles":
-												@titlesField(c, rec)
-										}
-									}
-								</div>
+					<div class="mb-6" id="type">
+						<div class="mb-4">
+							<h2>Type</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
 							</div>
 						</div>
-					}
+					</div>
+					<div class="mb-6" id="description">
+						<div class="mb-4">
+							<h2>Description</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
+							</div>
+						</div>
+					</div>
+					<div class="mb-6" id="bibliographic_information">
+						<div class="mb-4">
+							<h2>Bibliographic information</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
+							</div>
+						</div>
+					</div>
+					<div class="mb-6" id="conference_details">
+						<div class="mb-4">
+							<h2>Conference details</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
+							</div>
+						</div>
+					</div>
+					<div class="mb-6" id="identifiers">
+						<div class="mb-4">
+							<h2>Identifiers</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
+							</div>
+						</div>
+					</div>
 				</form>
 			</div>
 		</div>
 	</div>
 }
 
-templ RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
-	@editForm(c, rec, formProfile)
+templ RefreshEditForm(c views.Ctx, rec *bbl.Work) {
+	@editForm(c, rec)
 	// <div hx-swap-oob="innerHTML:[data-bbl-target=work-summary-id]">
 	// 	@SummaryID(rec)
 	// </div>
@@ -164,53 +192,55 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work, formProfile *forms.Profile) {
 // 	}
 // }
 
-templ identifiersField(c views.Ctx, rec *bbl.Work) {
-	@forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
-		FieldArgs: forms.FieldArgs{
-			Name: "identifier",
-		},
-		Schemes: rec.Spec.Attrs["identifier"].Schemes,
-		Attrs: rec.Identifiers,
-	})
-}
+// templ identifiersField(c views.Ctx, rec *bbl.Work) {
+// 	if rec.Profile.Identifiers != nil {
+// 		@forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
+// 			FieldArgs: forms.FieldArgs{
+// 				Name: "identifier",
+// 			},
+// 			Schemes: rec.Spec.Attrs["identifier"].Schemes,
+// 			Attrs: rec.Attrs.Identifiers,
+// 		})
+// 	}
+// }
 
-templ conferenceField(c views.Ctx, rec *bbl.Work) {
-	if rec.Spec.Attrs["conference"].Use {
-		{{val := rec.Conference.GetVal()}}
+// templ conferenceField(c views.Ctx, rec *bbl.Work) {
+// 	if rec.Spec.Attrs["conference"].Use {
+// 		{{val := rec.Conference.GetVal()}}
 
-		@forms.TextInput(forms.TextInputArgs{
-			FieldArgs: forms.FieldArgs{
-				Label: "Conference",
-				Name:  "conference.name",
-			},
-			Value: val.Name,
-		})
-		@forms.TextInput(forms.TextInputArgs{
-			FieldArgs: forms.FieldArgs{
-				Label: "Conference location",
-				Name:  "conference.location",
-			},
-			Value: val.Location,
-		})
-		@forms.TextInput(forms.TextInputArgs{
-			FieldArgs: forms.FieldArgs{
-				Label: "Conference organizer",
-				Name:  "conference.organizer",
-			},
-			Value: val.Organizer,
-		})
-	}
-}
+// 		@forms.TextInput(forms.TextInputArgs{
+// 			FieldArgs: forms.FieldArgs{
+// 				Label: "Conference",
+// 				Name:  "conference.name",
+// 			},
+// 			Value: val.Name,
+// 		})
+// 		@forms.TextInput(forms.TextInputArgs{
+// 			FieldArgs: forms.FieldArgs{
+// 				Label: "Conference location",
+// 				Name:  "conference.location",
+// 			},
+// 			Value: val.Location,
+// 		})
+// 		@forms.TextInput(forms.TextInputArgs{
+// 			FieldArgs: forms.FieldArgs{
+// 				Label: "Conference organizer",
+// 				Name:  "conference.organizer",
+// 			},
+// 			Value: val.Organizer,
+// 		})
+// 	}
+// }
 
 templ keywordsField(c views.Ctx, rec *bbl.Work) {
-	if rec.Spec.Attrs["keyword"].Use {
+	if rec.Profile.Keywords != nil {
 		@forms.Tags(forms.TagsArgs{
 			FieldArgs: forms.FieldArgs{
 				Label:    "Keywords",
 				Name:     "keyword",
-				Required: rec.Spec.Attrs["keyword"].Required,
+				Required: rec.Profile.Keywords.Required,
 			},
-			Values: getCodes(rec.Keywords),
+			Values: rec.Attrs.Keywords,
 		})
 	}
 }
@@ -237,22 +267,14 @@ templ keywordsField(c views.Ctx, rec *bbl.Work) {
 // }
 
 templ titlesField(c views.Ctx, rec *bbl.Work) {
-	if rec.Spec.Attrs["title"].Use {
+	if rec.Profile.Titles != nil {
 		@forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
 			FieldArgs: forms.FieldArgs{
 				Name: "title",
 				Label: "Title",
-				Required: rec.Spec.Attrs["title"].Required,
+				Required: rec.Profile.Titles.Required,
 			},
-			Attrs: rec.Titles,
+			Attrs: rec.Attrs.Titles,
 		})
 	}
-}
-
-func getCodes(attrs []bbl.Attr[bbl.Code]) []string {
-	codes := make([]string, len(attrs))
-	for i, attr := range attrs {
-		codes[i] = attr.Val.Code
-	}
-	return codes
 }

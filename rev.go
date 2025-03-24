@@ -2,103 +2,99 @@ package bbl
 
 import (
 	"encoding/json"
-)
-
-type Op string
-
-const (
-	OpAddRec  Op = "add_rec"
-	OpDelRec  Op = "del_rec"
-	OpAddAttr Op = "add_attr"
-	OpSetAttr Op = "set_attr"
-	OpDelAttr Op = "del_attr"
+	"fmt"
 )
 
 type Rev struct {
-	ID      string
-	Changes []*Change
+	actions []Action
 }
 
-// TODO split into Change and DbChange
-// TODO just flatten?
-type Change struct {
-	ID   string `json:"id"`
-	Op   Op     `json:"op"`
-	Args any    `json:"args"`
+func NewRev() *Rev {
+	return &Rev{}
 }
 
-func (c *Change) UnmarshalJSON(b []byte) error {
-	rawChange := struct {
-		ID   string          `json:"id"`
-		Op   Op              `json:"op"`
-		Args json.RawMessage `json:"args"`
+func (r *Rev) Add(action Action) {
+	r.actions = append(r.actions, action)
+}
+
+func (r *Rev) UnmarshalJSON(b []byte) error {
+	rawRev := struct {
+		Actions []struct {
+			Action string          `json:"action"`
+			Data   json.RawMessage `json:"data"`
+		} `json:"actions"`
 	}{}
-	if err := json.Unmarshal(b, &rawChange); err != nil {
+	if err := json.Unmarshal(b, &rawRev); err != nil {
 		return err
 	}
-	var args any
-	switch rawChange.Op {
-	case OpAddRec:
-		args = &AddRecArgs{}
-	case OpDelRec:
-		args = &DelRecArgs{}
-	case OpAddAttr:
-		args = &AddAttrArgs{}
-	case OpSetAttr:
-		args = &SetAttrArgs{}
-	case OpDelAttr:
-		args = &DelAttrArgs{}
+
+	rev := Rev{}
+
+	for _, rawAction := range rawRev.Actions {
+		var action Action
+		switch rawAction.Action {
+		case "create_organization":
+			action = &CreateOrganization{}
+		case "update_organization":
+			action = &UpdateOrganization{}
+		case "create_project":
+			action = &CreateProject{}
+		case "update_project":
+			action = &UpdateProject{}
+		case "create_work":
+			action = &CreateWork{}
+		case "update_work":
+			action = &UpdateWork{}
+		default:
+			return fmt.Errorf("Rev: invalid action %q", rawAction.Action)
+		}
+		if err := json.Unmarshal(rawAction.Data, action); err != nil {
+			return err
+		}
+		rev.actions = append(rev.actions, action)
 	}
-	if err := json.Unmarshal(rawChange.Args, &args); err != nil {
-		return err
-	}
-	*c = Change{
-		ID:   rawChange.ID,
-		Op:   rawChange.Op,
-		Args: args,
-	}
+
+	*r = rev
+
 	return nil
 }
 
-func (c *Change) AddRecArgs() *AddRecArgs   { return c.Args.(*AddRecArgs) }
-func (c *Change) DelRecArgs() *DelRecArgs   { return c.Args.(*DelRecArgs) }
-func (c *Change) AddAttrArgs() *AddAttrArgs { return c.Args.(*AddAttrArgs) }
-func (c *Change) SetAttrArgs() *SetAttrArgs { return c.Args.(*SetAttrArgs) }
-func (c *Change) DelAttrArgs() *DelAttrArgs { return c.Args.(*DelAttrArgs) }
-
-type AddRecArgs struct {
-	Kind string `json:"kind"`
+type Action interface {
+	isAction()
 }
 
-type DelRecArgs struct{}
-
-type AddAttrArgs struct {
-	ID    string          `json:"id"`
-	Kind  string          `json:"kind"`
-	Val   json.RawMessage `json:"val"`
-	RelID string          `json:"rel_id,omitempty"`
+type CreateOrganization struct {
+	Organization *Organization `json:"organization"`
 }
 
-func AddAttr(recID, kind string, val any) *Change {
-	b, _ := json.Marshal(val) // TODO
-	return &Change{ID: recID, Op: OpAddAttr, Args: &AddAttrArgs{Kind: kind, Val: b}}
+func (*CreateOrganization) isAction() {}
+
+type UpdateOrganization struct {
+	Organization *Organization `json:"organization"`
 }
 
-type SetAttrArgs struct {
-	ID    string          `json:"id"`
-	Val   json.RawMessage `json:"val"`
-	RelID string          `json:"rel_id,omitempty"`
+func (*UpdateOrganization) isAction() {}
+
+type CreateProject struct {
+	Project *Project `json:"project"`
 }
 
-func SetAttr(recID, id string, val any) *Change {
-	b, _ := json.Marshal(val) // TODO
-	return &Change{ID: recID, Op: OpSetAttr, Args: &SetAttrArgs{ID: id, Val: b}}
+func (*CreateProject) isAction() {}
+
+type UpdateProject struct {
+	Project *Project `json:"project"`
 }
 
-type DelAttrArgs struct {
-	ID string `json:"id"`
+func (*UpdateProject) isAction() {}
+
+type CreateWork struct {
+	Work *Work `json:"work"`
 }
 
-func DelAttr(recID, id string) *Change {
-	return &Change{ID: recID, Op: OpDelAttr, Args: &DelAttrArgs{ID: id}}
+func (*CreateWork) isAction() {}
+
+type UpdateWork struct {
+	Work *Work `json:"work"`
 }
+
+func (*UpdateWork) isAction() {}

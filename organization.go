@@ -1,53 +1,46 @@
 package bbl
 
 import (
-	"fmt"
+	"slices"
 	"time"
 )
 
-var organizationSpec = &RecordSpec{
-	Kind:     "organization",
-	BaseKind: "organization",
-	New:      func() Record { return &Organization{} },
-	Attrs: map[string]*AttrSpec{
-		"ceased_on": {},
-		"name":      {},
-	},
-}
-
-func loadOrganization(rawRec *RawRecord, specMap map[string]*RecordSpec) (*Organization, error) {
-	rec := &Organization{}
-	if err := rec.Load(rawRec, specMap); err != nil {
-		return nil, err
-	}
-	return rec, nil
-}
-
 type Organization struct {
-	Spec *RecordSpec
-	RecordHeader
-	CeasedOn *Attr[time.Time] `json:"ceased_on,omitempty"`
-	Names    []Attr[Text]     `json:"names,omitempty"`
+	ID        string            `json:"id,omitempty"`
+	Kind      string            `json:"kind"`
+	Attrs     OrganizationAttrs `json:"attrs"`
+	Rels      []OrganizationRel `json:"rels,omitempty"`
+	CreatedAt time.Time         `json:"created_at,omitzero"`
+	UpdatedAt time.Time         `json:"updated_at,omitzero"`
 }
 
-func (rec *Organization) Load(rawRec *RawRecord, specMap map[string]*RecordSpec) error {
-	rec.ID = rawRec.ID
-	rec.Kind = rawRec.Kind
-	spec, ok := specMap[rec.Kind]
-	if !ok {
-		return fmt.Errorf("spec not found: %s", rec.Kind)
-	}
-	rec.Spec = spec
-
-	if err := loadAttr(rawRec, "ceased_on", &rec.CeasedOn); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "name", &rec.Names); err != nil {
-		return err
-	}
-	return nil
+type OrganizationAttrs struct {
+	Identifiers []Identifier `json:"identifiers,omitempty"`
+	Names       []Text       `json:"names,omitempty"`
 }
 
-func (rec *Organization) Validate() error {
-	return nil
+type OrganizationRel struct {
+	ID             string        `json:"id,omitempty"`
+	Kind           string        `json:"kind"`
+	OrganizationID string        `json:"organization_id"`
+	Organization   *Organization `json:"organization,omitempty"`
+}
+
+func (rec *Organization) Diff(otherRec *Organization) map[string]any {
+	changes := map[string]any{}
+	if rec.Kind != otherRec.Kind {
+		changes["kind"] = rec.Kind
+	}
+	if !slices.Equal(rec.Attrs.Identifiers, otherRec.Attrs.Identifiers) {
+		changes["identifiers"] = rec.Attrs.Identifiers
+	}
+	if !slices.Equal(rec.Attrs.Names, otherRec.Attrs.Names) {
+		changes["names"] = rec.Attrs.Names
+	}
+	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(rel, otherRel OrganizationRel) bool {
+		return rel.Kind == otherRel.Kind && rel.OrganizationID == otherRel.OrganizationID
+	}) {
+		changes["rels"] = rec.Rels
+	}
+	return changes
 }

@@ -4,7 +4,7 @@ dev/server:
 	@go tool templ generate \
 	--watch \
 	--proxy='http://localhost:3000' \
-	--cmd='go run cmd/bbld/main.go start'
+	--cmd='go run cmd/bbl/main.go start'
 
 dev/assets:
 	@go run $(wgo) -dir app/assets -cd app node esbuild.mjs

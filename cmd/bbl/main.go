@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ugent-library/bbl/cmd/bbld/cli"
+	"github.com/ugent-library/bbl/cmd/bbl/cli"
 )
 
 func main() {

@@ -14,7 +14,7 @@ var migrateCmd = &cobra.Command{
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: []string{"up", "down"},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := newRepo(cmd.Context())
+		repo, close, err := NewRepo(cmd.Context())
 		if err != nil {
 			return err
 		}

@@ -1,55 +1,33 @@
 package bbl
 
-import "fmt"
-
-var projectSpec = &RecordSpec{
-	Kind:     "project",
-	BaseKind: "project",
-	New:      func() Record { return &Project{} },
-	Attrs: map[string]*AttrSpec{
-		"abstract":   {},
-		"identifier": {},
-		"name":       {},
-	},
-}
-
-func loadProject(rawRec *RawRecord, specMap map[string]*RecordSpec) (*Project, error) {
-	rec := &Project{}
-	if err := rec.Load(rawRec, specMap); err != nil {
-		return nil, err
-	}
-	return rec, nil
-}
+import (
+	"slices"
+	"time"
+)
 
 type Project struct {
-	Spec *RecordSpec
-	RecordHeader
-	Abstracts   []Attr[Text] `json:"abstracts,omitempty"`
-	Identifiers []Attr[Code] `json:"identifiers,omitempty"`
-	Names       []Attr[Text] `json:"names,omitempty"`
+	ID        string       `json:"id,omitempty"`
+	Attrs     ProjectAttrs `json:"attrs"`
+	CreatedAt time.Time    `json:"created_at,omitzero"`
+	UpdatedAt time.Time    `json:"updated_at,omitzero"`
 }
 
-func (rec *Project) Load(rawRec *RawRecord, specMap map[string]*RecordSpec) error {
-	rec.ID = rawRec.ID
-	rec.Kind = rawRec.Kind
-	spec, ok := specMap[rec.Kind]
-	if !ok {
-		return fmt.Errorf("spec not found: %s", rec.Kind)
-	}
-	rec.Spec = spec
-
-	if err := loadAttrs(rawRec, "abstract", &rec.Abstracts); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "identifier", &rec.Identifiers); err != nil {
-		return err
-	}
-	if err := loadAttrs(rawRec, "name", &rec.Names); err != nil {
-		return err
-	}
-	return nil
+type ProjectAttrs struct {
+	Identifiers []Identifier `json:"identifiers,omitempty"`
+	Names       []Text       `json:"names,omitempty"`
+	Abstracts   []Text       `json:"abstracts,omitempty"`
 }
 
-func (rec *Project) Validate() error {
-	return nil
+func (rec *Project) Diff(otherRec *Project) map[string]any {
+	changes := map[string]any{}
+	if !slices.Equal(rec.Attrs.Identifiers, otherRec.Attrs.Identifiers) {
+		changes["identifiers"] = rec.Attrs.Identifiers
+	}
+	if !slices.Equal(rec.Attrs.Names, otherRec.Attrs.Names) {
+		changes["names"] = rec.Attrs.Names
+	}
+	if !slices.Equal(rec.Attrs.Abstracts, otherRec.Attrs.Abstracts) {
+		changes["abstracts"] = rec.Attrs.Abstracts
+	}
+	return changes
 }

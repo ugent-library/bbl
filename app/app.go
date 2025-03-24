@@ -12,15 +12,11 @@ import (
 	sloghttp "github.com/samber/slog-http"
 
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/views/forms"
 	"github.com/ugent-library/bbl/ctx"
 )
 
 //go:embed static
 var staticFiles embed.FS
-
-//go:embed form_profiles.json
-var formProfilesFile []byte
 
 type Config struct {
 	Env     string
@@ -88,11 +84,6 @@ func New(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	formProfiles, err := parseFormProfiles()
-	if err != nil {
-		return nil, err
-	}
-
 	// appCtx := ctx.New(h.BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.Users()))
 	appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development"))
 	// loggedInCtx := appCtx.With(h.RequireUser)
@@ -120,7 +111,7 @@ func New(config *Config) (http.Handler, error) {
 	// }).AddRoutes(router, appCtx)
 
 	// h.NewWorkHandler(config.Repo).AddRoutes(router, loggedInCtx)
-	NewWorkHandler(config.Repo, formProfiles["work"]).AddRoutes(router, appCtx)
+	NewWorkHandler(config.Repo).AddRoutes(router, appCtx)
 
 	// h.NewSearchWorksHandler(config.Repo.Works(), config.Index).AddRoutes(router, loggedInCtx)
 
@@ -138,20 +129,4 @@ func parseManifest() (map[string]string, error) {
 	}
 
 	return assets, nil
-}
-
-func parseFormProfiles() (map[string]*forms.Profile, error) {
-	formProfiles := make(map[string]*forms.Profile)
-	if err := json.Unmarshal(formProfilesFile, &formProfiles); err != nil {
-		return nil, fmt.Errorf("couldn't parse form profiles: %w", err)
-	}
-
-	for name, p := range formProfiles {
-		p.BaseName = name
-		for _, s := range p.Sections {
-			s.BaseName = name
-		}
-	}
-
-	return formProfiles, nil
 }

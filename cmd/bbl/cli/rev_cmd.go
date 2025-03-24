@@ -23,27 +23,23 @@ var addRevCmd = &cobra.Command{
 	Short: "Add revision",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := newRepo(cmd.Context())
+		repo, close, err := NewRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
 		defer close()
 
-		var changes []*bbl.Change
-
 		dec := json.NewDecoder(cmd.InOrStdin())
 		for {
-			var c bbl.Change
-			if err := dec.Decode(&c); err == io.EOF {
+			rev := bbl.NewRev()
+			if err := dec.Decode(rev); err == io.EOF {
 				break
 			} else if err != nil {
 				return err
 			}
-			changes = append(changes, &c)
-		}
-
-		if err := repo.AddRev(cmd.Context(), changes); err != nil {
-			return err
+			if err := repo.AddRev(cmd.Context(), rev); err != nil {
+				return err
+			}
 		}
 
 		return nil
