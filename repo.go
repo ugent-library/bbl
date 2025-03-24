@@ -453,7 +453,7 @@ func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) 
 
 func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 	q := `
-		select id, kind, sub_kind, attrs, rels, created_at, updated_at
+		select id, kind, coalesce(sub_kind, ''), attrs, rels, created_at, updated_at
 		from bbl_works_view
 		where id = $1;`
 

@@ -116,6 +116,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						</div>
 						<div class="card mb-6">
 							<div class="card-body">
+								@titlesField(c, rec)
+								@keywordsField(c, rec)
 							</div>
 						</div>
 					</div>
