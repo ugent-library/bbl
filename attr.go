@@ -28,6 +28,6 @@ type Conference struct {
 	Name      string    `json:"name,omitempty"`
 	Organizer string    `json:"organizer,omitempty"`
 	Location  string    `json:"location,omitempty"`
-	StartsOn  time.Time `json:"starts_on,omitzero"`
-	EndsOn    time.Time `json:"ends_on,omitzero"`
+	StartDate time.Time `json:"start_date,omitzero"`
+	EndDate   time.Time `json:"end_date,omitzero"`
 }

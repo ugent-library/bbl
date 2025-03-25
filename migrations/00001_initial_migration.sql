@@ -13,8 +13,13 @@ create table bbl_works_rels (
   id uuid primary key,
   kind text not null,
   work_id uuid not null references bbl_works (id) on delete cascade,
-  rel_work_id uuid not null references bbl_works (id) on delete cascade
+  rel_work_id uuid not null references bbl_works (id) on delete cascade,
+
+  check (work_id <> rel_work_id)
 );
+
+create index on biblio_works_rels (work_id);
+create index on biblio_works_rels (rel_work_id);
 
 create table bbl_organizations (
   id uuid primary key,
@@ -28,8 +33,13 @@ create table bbl_organizations_rels (
   id uuid primary key,
   kind text not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  rel_organization_id uuid not null references bbl_organizations (id) on delete cascade
+  rel_organization_id uuid not null references bbl_organizations (id) on delete cascade,
+
+  check (organization_id <> rel_organization_id)
 );
+
+create index on biblio_organizations_rels (organization_id);
+create index on biblio_organizations_rels (rel_organization_id);
 
 create table bbl_projects (
   id uuid primary key,
@@ -51,6 +61,9 @@ create table bbl_people_organizations (
   organization_id uuid not null references bbl_organizations (id) on delete cascade
 );
 
+create index on bbl_people_organizations (person_id);
+create index on bbl_people_organizations (organization_id);
+
 create table bbl_works_contributors (
   id uuid primary key,
   kind text not null,
@@ -60,17 +73,25 @@ create table bbl_works_contributors (
   attrs jsonb not null default '{}'
 );
 
+create index on bbl_works_contributors (person_id) where person_id is not null;
+
 create table bbl_works_organizations (
   id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
   organization_id uuid not null references bbl_organizations (id) on delete cascade
 );
 
+create index on bbl_works_organizations (work_id);
+create index on bbl_works_organizations (organization_id);
+
 create table bbl_works_projects (
   id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
   project_id uuid not null references bbl_projects (id) on delete cascade
 );
+
+create index on bbl_works_projects (work_id);
+create index on bbl_works_projects (project_id);
 
 create table bbl_revs (
   id uuid primary key,
@@ -86,7 +107,7 @@ create table bbl_changes (
   work_id uuid references bbl_works (id) on delete cascade,
   diff jsonb not null,
 
-  constraint bbl_changes_record_id_check check (
+  check (
     (case when organization_id is null then 0 else 1 end) +
     (case when person_id is null then 0 else 1 end) +
     (case when project_id is null then 0 else 1 end) +
@@ -94,6 +115,7 @@ create table bbl_changes (
   )
 );
 
+create index on bbl_changes (rev_id);
 create index on bbl_changes (organization_id) where organization_id is not null;
 create index on bbl_changes (person_id) where person_id is not null;
 create index on bbl_changes (project_id) where project_id is not null;
