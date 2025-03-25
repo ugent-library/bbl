@@ -1,10 +1,12 @@
 package bbl
 
+import "time"
+
 type AttrProfile struct {
 	Required bool `json:"required"`
 }
 
-type SchemeAttrProfile struct {
+type CodeAttrProfile struct {
 	AttrProfile
 	Schemes []struct {
 		Scheme   string `json:"scheme"`
@@ -17,7 +19,15 @@ type Text struct {
 	Val  string `json:"val"`
 }
 
-type Identifier struct {
+type Code struct {
 	Scheme string `json:"scheme"`
 	Val    string `json:"val"`
+}
+
+type Conference struct {
+	Name      string    `json:"name,omitempty"`
+	Organizer string    `json:"organizer,omitempty"`
+	Location  string    `json:"location,omitempty"`
+	StartsOn  time.Time `json:"starts_on,omitzero"`
+	EndsOn    time.Time `json:"ends_on,omitzero"`
 }

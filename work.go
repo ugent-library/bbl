@@ -17,11 +17,12 @@ type Work struct {
 }
 
 type WorkAttrs struct {
-	Identifiers  []Identifier `json:"identifiers,omitempty"`
-	Titles       []Text       `json:"titles,omitempty"`
-	Abstracts    []Text       `json:"abstracts,omitempty"`
-	LaySummaries []Text       `json:"lay_summaries,omitempty"`
-	Keywords     []string     `json:"keywords,omitempty"`
+	Identifiers  []Code     `json:"identifiers,omitempty"`
+	Titles       []Text     `json:"titles,omitempty"`
+	Abstracts    []Text     `json:"abstracts,omitempty"`
+	LaySummaries []Text     `json:"lay_summaries,omitempty"`
+	Keywords     []string   `json:"keywords,omitempty"`
+	Conference   Conference `json:"conference,omitzero"`
 }
 
 type WorkRel struct {
@@ -53,6 +54,9 @@ func (rec *Work) Diff(otherRec *Work) map[string]any {
 	}
 	if !slices.Equal(rec.Attrs.Keywords, otherRec.Attrs.Keywords) {
 		changes["keywords"] = rec.Attrs.Keywords
+	}
+	if rec.Attrs.Conference != otherRec.Attrs.Conference {
+		changes["conference"] = rec.Attrs.Conference
 	}
 	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(rel, otherRel WorkRel) bool {
 		return rel.Kind == otherRel.Kind && rel.WorkID == otherRel.WorkID

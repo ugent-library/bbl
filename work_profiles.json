@@ -4,18 +4,20 @@
         "profile": {
             "identifiers": {
                 "schemes": [
-                    {"scheme": "doi"},
-                    {"scheme": "isbn"}
+                    {
+                        "scheme": "doi"
+                    },
+                    {
+                        "scheme": "isbn"
+                    }
                 ]
             },
-            "abstracts": {
-            },
+            "abstracts": {},
             "titles": {
+                "required": true
             },
-            "lay_summaries": {
-            },
-            "keywords": {
-            }
+            "lay_summaries": {},
+            "keywords": {}
         }
     },
     {
@@ -23,19 +25,23 @@
         "profile": {
             "identifiers": {
                 "schemes": [
-                    {"scheme": "doi"},
-                    {"scheme": "issn"},
-                    {"scheme": "wos_id"}
+                    {
+                        "scheme": "doi"
+                    },
+                    {
+                        "scheme": "issn"
+                    },
+                    {
+                        "scheme": "wos_id"
+                    }
                 ]
             },
-            "abstracts": {
-            },
+            "abstracts": {},
             "titles": {
+                "required": true
             },
-            "lay_summaries": {
-            },
-            "keywords": {
-            }
+            "lay_summaries": {},
+            "keywords": {}
         },
         "sub_kinds": [
             {
@@ -48,7 +54,10 @@
                 "sub_kind": "letter_note"
             },
             {
-                "sub_kind": "proceedings_paper"
+                "sub_kind": "proceedings_paper",
+                "profile": {
+                    "conference": {}
+                }
             }
         ]
     }

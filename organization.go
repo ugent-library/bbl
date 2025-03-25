@@ -15,8 +15,8 @@ type Organization struct {
 }
 
 type OrganizationAttrs struct {
-	Identifiers []Identifier `json:"identifiers,omitempty"`
-	Names       []Text       `json:"names,omitempty"`
+	Identifiers []Code `json:"identifiers,omitempty"`
+	Names       []Text `json:"names,omitempty"`
 }
 
 type OrganizationRel struct {

@@ -34,7 +34,7 @@ func init() {
 		SubKinds   []struct {
 			SubKind    string          `json:"sub_kind"`
 			RawProfile json.RawMessage `json:"profile"`
-		}
+		} `json:"sub_kinds"`
 	}
 	if err := json.Unmarshal(workProfilesFile, &profiles); err != nil {
 		panic(err)
@@ -45,15 +45,27 @@ func init() {
 		if err := json.Unmarshal(p.RawProfile, &kp); err != nil {
 			panic(err)
 		}
+		if kp.Identifiers != nil {
+			for _, scheme := range kp.Identifiers.Schemes {
+				kp.IdentifierSchemes = append(kp.IdentifierSchemes, scheme.Scheme)
+			}
+		}
 		WorkKinds = append(WorkKinds, p.Kind)
 		WorkProfiles[p.Kind] = map[string]*WorkProfile{"": &kp}
 		for _, pp := range p.SubKinds {
 			var skp WorkProfile
-			if err := json.Unmarshal(p.RawProfile, &kp); err != nil {
-				panic(err)
-			}
 			if err := json.Unmarshal(p.RawProfile, &skp); err != nil {
 				panic(err)
+			}
+			if pp.RawProfile != nil {
+				if err := json.Unmarshal(pp.RawProfile, &skp); err != nil {
+					panic(err)
+				}
+			}
+			if skp.Identifiers != nil {
+				for _, scheme := range skp.Identifiers.Schemes {
+					skp.IdentifierSchemes = append(skp.IdentifierSchemes, scheme.Scheme)
+				}
 			}
 			WorkSubKinds[p.Kind] = append(WorkSubKinds[p.Kind], pp.SubKind)
 			WorkProfiles[p.Kind][pp.SubKind] = &skp
@@ -62,9 +74,12 @@ func init() {
 }
 
 type WorkProfile struct {
-	Identifiers  *SchemeAttrProfile `json:"identifiers,omitempty"`
-	Titles       *AttrProfile       `json:"titles,omitempty"`
-	Abstracts    *AttrProfile       `json:"abstracts,omitempty"`
-	LaySummaries *AttrProfile       `json:"lay_summaries,omitempty"`
-	Keywords     *AttrProfile       `json:"keywords,omitempty"`
+	Identifiers  *CodeAttrProfile `json:"identifiers,omitempty"`
+	Titles       *AttrProfile     `json:"titles,omitempty"`
+	Abstracts    *AttrProfile     `json:"abstracts,omitempty"`
+	LaySummaries *AttrProfile     `json:"lay_summaries,omitempty"`
+	Keywords     *AttrProfile     `json:"keywords,omitempty"`
+	Conference   *AttrProfile     `json:"conference,omitempty"`
+
+	IdentifierSchemes []string `json:"-"`
 }

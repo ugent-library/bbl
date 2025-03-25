@@ -1,9 +1,9 @@
 package workviews
 
 import (
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
-	"github.com/ugent-library/bbl"
 )
 
 templ Edit(c views.Ctx, rec *bbl.Work) {
@@ -51,7 +51,6 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 					</div>
 				</div>
 			</div>
-
 			@editForm(c, rec)
 		</div>
 	}
@@ -72,21 +71,21 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			<div class="c-sub-sidebar__content pt-5">
 				<div class="ps-6">
 					<nav class="nav nav-pills flex-column">
-							<a class="nav-link" href="#type">
-								<span class="c-sidebar__label">Type</span>
-							</a>
-							<a class="nav-link" href="#description">
-								<span class="c-sidebar__label">Description</span>
-							</a>
-							<a class="nav-link" href="#bibliographic_information">
-								<span class="c-sidebar__label">Bibliographic information</span>
-							</a>
-							<a class="nav-link" href="#conference_details">
-								<span class="c-sidebar__label">Conference details</span>
-							</a>
-							<a class="nav-link" href="#identifiers">
-								<span class="c-sidebar__label">Identifiers</span>
-							</a>
+						<a class="nav-link" href="#type">
+							<span class="c-sidebar__label">Type</span>
+						</a>
+						<a class="nav-link" href="#description">
+							<span class="c-sidebar__label">Description</span>
+						</a>
+						<a class="nav-link" href="#bibliographic_information">
+							<span class="c-sidebar__label">Bibliographic information</span>
+						</a>
+						<a class="nav-link" href="#conference_details">
+							<span class="c-sidebar__label">Conference details</span>
+						</a>
+						<a class="nav-link" href="#identifiers">
+							<span class="c-sidebar__label">Identifiers</span>
+						</a>
 					</nav>
 				</div>
 			</div>
@@ -98,7 +97,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 					if rec.ID == "" {
 						hx-post={ c.Route("create_work").String() }
 					} else {
-						hx-post={ c.Route("update_work", "work_id", rec.ID).String() }
+						hx-post={ c.Route("update_work", "id", rec.ID).String() }
 					}
 					hx-target="[data-bbl-target=work-edit]"
 					hx-swap="outerHTML"
@@ -121,6 +120,8 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						<div class="card mb-6">
 							<div class="card-body">
 								@titlesField(c, rec)
+								@abstractsField(c, rec)
+								@laySummariesField(c, rec)
 								@keywordsField(c, rec)
 							</div>
 						</div>
@@ -130,8 +131,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 							<h2>Bibliographic information</h2>
 						</div>
 						<div class="card mb-6">
-							<div class="card-body">
-							</div>
+							<div class="card-body"></div>
 						</div>
 					</div>
 					<div class="mb-6" id="conference_details">
@@ -140,6 +140,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						</div>
 						<div class="card mb-6">
 							<div class="card-body">
+								@conferenceField(c, rec)
 							</div>
 						</div>
 					</div>
@@ -149,6 +150,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						</div>
 						<div class="card mb-6">
 							<div class="card-body">
+								@identifiersField(c, rec)
 							</div>
 						</div>
 					</div>
@@ -174,78 +176,16 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work) {
 	// </div>
 }
 
-// templ classificationsField(c views.Ctx, rec *biblio.Work, only []string) {
-// 	for _, p := range filterSchemes(rec.Profile.Classifications.Schemes, only) {
-// 		if p.Multiple {
-// 			@forms.TextInputRepeat(forms.TextInputRepeatArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Classifications[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Values: rec.Classifications.ValuesFor(p.Scheme),
-// 			})
-// 		} else {
-// 			@forms.TextInput(forms.TextInputArgs{
-// 				FieldArgs: forms.FieldArgs{
-// 					Label:    p.Scheme,
-// 					Name:     fmt.Sprintf("Classifications[%s]", p.Scheme),
-// 					Required: p.Required,
-// 				},
-// 				Value: rec.Classifications.ValueFor(p.Scheme),
-// 			})
-// 		}
-// 	}
-// }
-
-// templ identifiersField(c views.Ctx, rec *bbl.Work) {
-// 	if rec.Profile.Identifiers != nil {
-// 		@forms.CodeAttrRepeat(forms.CodeAttrRepeatArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Name: "identifier",
-// 			},
-// 			Schemes: rec.Spec.Attrs["identifier"].Schemes,
-// 			Attrs: rec.Attrs.Identifiers,
-// 		})
-// 	}
-// }
-
-// templ conferenceField(c views.Ctx, rec *bbl.Work) {
-// 	if rec.Spec.Attrs["conference"].Use {
-// 		{{val := rec.Conference.GetVal()}}
-
-// 		@forms.TextInput(forms.TextInputArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label: "Conference",
-// 				Name:  "conference.name",
-// 			},
-// 			Value: val.Name,
-// 		})
-// 		@forms.TextInput(forms.TextInputArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label: "Conference location",
-// 				Name:  "conference.location",
-// 			},
-// 			Value: val.Location,
-// 		})
-// 		@forms.TextInput(forms.TextInputArgs{
-// 			FieldArgs: forms.FieldArgs{
-// 				Label: "Conference organizer",
-// 				Name:  "conference.organizer",
-// 			},
-// 			Value: val.Organizer,
-// 		})
-// 	}
-// }
-
 templ kindField(c views.Ctx, rec *bbl.Work) {
 	<div class="form-group">
-		<label class="form-label form-label-top">Work type</label>
+		<label class="form-label form-label-top">Type</label>
 		<select
 			class="form-select"
 			name="kind"
 			if rec.ID == "" {
 				hx-post={ c.Route("refresh_new_work").String() }
+			} else {
+				hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
 			}
 			hx-include="closest form"
 			hx-target="[data-bbl-target=work-edit]"
@@ -255,18 +195,66 @@ templ kindField(c views.Ctx, rec *bbl.Work) {
 				<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
 			}
 		</select>
+		if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
+			<label class="form-label form-label-top">{ rec.Kind } type</label>
+			<select
+				class="form-select"
+				name="sub_kind"
+				if rec.ID == "" {
+					hx-post={ c.Route("refresh_new_work").String() }
+				} else {
+					hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
+				}
+				hx-include="closest form"
+				hx-target="[data-bbl-target=work-edit]"
+				hx-swap="outerHTML"
+			>
+				<option></option>
+				for _, kind := range subKinds {
+					<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
+				}
+			</select>
+		}
 	</div>
 }
 
 templ titlesField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Titles != nil {
-		@forms.TextAttrRepeat(forms.TextAttrRepeatArgs{
+		@forms.TextRepeat(forms.TextRepeatArgs{
 			FieldArgs: forms.FieldArgs{
-				Name: "titles",
-				Label: "Title",
+				Name:     "titles",
+				Label:    "Title",
 				Required: rec.Profile.Titles.Required,
 			},
 			Attrs: rec.Attrs.Titles,
+		})
+	}
+}
+
+templ abstractsField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Abstracts != nil {
+		@forms.TextCardRepeat(forms.TextCardRepeatArgs{
+			FieldArgs: forms.FieldArgs{
+				Name:     "abstracts",
+				Label:    "Abstract",
+				Required: rec.Profile.Abstracts.Required,
+			},
+			Attrs: rec.Attrs.Abstracts,
+			Rows:  3,
+		})
+	}
+}
+
+templ laySummariesField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.LaySummaries != nil {
+		@forms.TextCardRepeat(forms.TextCardRepeatArgs{
+			FieldArgs: forms.FieldArgs{
+				Name:     "lay_summaries",
+				Label:    "Lay summary",
+				Required: rec.Profile.LaySummaries.Required,
+			},
+			Attrs: rec.Attrs.LaySummaries,
+			Rows:  3,
 		})
 	}
 }
@@ -280,6 +268,45 @@ templ keywordsField(c views.Ctx, rec *bbl.Work) {
 				Required: rec.Profile.Keywords.Required,
 			},
 			Values: rec.Attrs.Keywords,
+		})
+	}
+}
+
+templ conferenceField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Conference != nil {
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference",
+				Name:  "conference.name",
+			},
+			Value: rec.Attrs.Conference.Name,
+		})
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference location",
+				Name:  "conference.location",
+			},
+			Value: rec.Attrs.Conference.Location,
+		})
+		@forms.TextInput(forms.TextInputArgs{
+			FieldArgs: forms.FieldArgs{
+				Label: "Conference organizer",
+				Name:  "conference.organizer",
+			},
+			Value: rec.Attrs.Conference.Organizer,
+		})
+	}
+}
+
+templ identifiersField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Identifiers != nil {
+		@forms.CodeRepeat(forms.CodeRepeatArgs{
+			FieldArgs: forms.FieldArgs{
+				Name:     "identifiers",
+				Required: rec.Profile.Identifiers.Required,
+			},
+			Attrs:   rec.Attrs.Identifiers,
+			Schemes: rec.Profile.IdentifierSchemes,
 		})
 	}
 }

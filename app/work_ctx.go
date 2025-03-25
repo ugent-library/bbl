@@ -15,7 +15,7 @@ type WorkCtx struct {
 
 func BindWorkCtx(repo *bbl.Repo) ctx.Deriver[*AppCtx, *WorkCtx] {
 	return func(r *http.Request, appCtx *AppCtx) (*WorkCtx, error) {
-		work, err := repo.GetWork(r.Context(), mux.Vars(r)["work_id"])
+		work, err := repo.GetWork(r.Context(), mux.Vars(r)["id"])
 		if err != nil {
 			return nil, err
 		}

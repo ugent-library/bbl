@@ -13,9 +13,9 @@ type Project struct {
 }
 
 type ProjectAttrs struct {
-	Identifiers []Identifier `json:"identifiers,omitempty"`
-	Names       []Text       `json:"names,omitempty"`
-	Abstracts   []Text       `json:"abstracts,omitempty"`
+	Identifiers []Code `json:"identifiers,omitempty"`
+	Names       []Text `json:"names,omitempty"`
+	Abstracts   []Text `json:"abstracts,omitempty"`
 }
 
 func (rec *Project) Diff(otherRec *Project) map[string]any {
