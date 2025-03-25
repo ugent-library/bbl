@@ -6,14 +6,15 @@ import (
 )
 
 type Work struct {
-	Profile   *WorkProfile `json:"-"`
-	ID        string       `json:"id,omitempty"`
-	Kind      string       `json:"kind"`
-	SubKind   string       `json:"sub_kind,omitempty"`
-	Attrs     WorkAttrs    `json:"attrs"`
-	Rels      []WorkRel    `json:"rels,omitempty"`
-	CreatedAt time.Time    `json:"created_at,omitzero"`
-	UpdatedAt time.Time    `json:"updated_at,omitzero"`
+	Profile      *WorkProfile      `json:"-"`
+	ID           string            `json:"id,omitempty"`
+	Kind         string            `json:"kind"`
+	SubKind      string            `json:"sub_kind,omitempty"`
+	Attrs        WorkAttrs         `json:"attrs"`
+	Contributors []WorkContributor `json:"contributors,omitempty"`
+	Rels         []WorkRel         `json:"rels,omitempty"`
+	CreatedAt    time.Time         `json:"created_at,omitzero"`
+	UpdatedAt    time.Time         `json:"updated_at,omitzero"`
 }
 
 type WorkAttrs struct {
@@ -30,6 +31,18 @@ type WorkRel struct {
 	Kind   string `json:"kind"`
 	WorkID string `json:"work_id"`
 	Work   *Work  `json:"work,omitempty"`
+}
+
+type WorkContributor struct {
+	ID       string               `json:"id,omitempty"`
+	Attrs    WorkContributorAttrs `json:"attrs"`
+	PersonID string               `json:"person_id,omitempty"`
+}
+
+type WorkContributorAttrs struct {
+	CreditRoles []string  `json:"credit_roles,omitempty"`
+	Name        string    `json:"name"`
+	NameParts   NameParts `json:"name_parts,omitzero"`
 }
 
 func (rec *Work) Diff(otherRec *Work) map[string]any {
@@ -58,8 +71,17 @@ func (rec *Work) Diff(otherRec *Work) map[string]any {
 	if rec.Attrs.Conference != otherRec.Attrs.Conference {
 		changes["conference"] = rec.Attrs.Conference
 	}
-	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(rel, otherRel WorkRel) bool {
-		return rel.Kind == otherRel.Kind && rel.WorkID == otherRel.WorkID
+	if !slices.EqualFunc(rec.Contributors, otherRec.Contributors, func(c1, c2 WorkContributor) bool {
+		return c1.ID == c2.ID &&
+			c1.PersonID == c2.PersonID &&
+			slices.Equal(c1.Attrs.CreditRoles, c2.Attrs.CreditRoles) &&
+			c1.Attrs.Name == c2.Attrs.Name &&
+			c1.Attrs.NameParts == c2.Attrs.NameParts
+	}) {
+		changes["contributors"] = rec.Contributors
+	}
+	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(r1, r2 WorkRel) bool {
+		return r1.Kind == r2.Kind && r1.WorkID == r2.WorkID
 	}) {
 		changes["rels"] = rec.Rels
 	}

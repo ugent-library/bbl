@@ -453,15 +453,16 @@ func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) 
 
 func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 	q := `
-		select id, kind, coalesce(sub_kind, ''), attrs, rels, created_at, updated_at
+		select id, kind, coalesce(sub_kind, ''), attrs, contributors, rels, created_at, updated_at
 		from bbl_works_view
 		where id = $1;`
 
 	var rec Work
 	var rawAttrs json.RawMessage
+	var rawContributors json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawRels, &rawContributors, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("GetWork: %w: %s", ErrNotFound, id)
 	} else if err != nil {
 		return nil, err
@@ -469,6 +470,12 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
 		return nil, fmt.Errorf("GetWork: unmarshal attrs: %s", err)
+	}
+
+	if rawContributors != nil {
+		if err := json.Unmarshal(rawContributors, &rec.Contributors); err != nil {
+			return nil, fmt.Errorf("GetWork: unmarshal contributors: %s", err)
+		}
 	}
 
 	if rawRels != nil {

@@ -1,26 +1,5 @@
 -- +goose Up
 
-create table bbl_works (
-  id uuid primary key,
-  kind text not null,
-  sub_kind text,
-  attrs jsonb not null default '{}',
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
-);
-
-create table bbl_works_rels (
-  id uuid primary key,
-  kind text not null,
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  rel_work_id uuid not null references bbl_works (id) on delete cascade,
-
-  check (work_id <> rel_work_id)
-);
-
-create index on biblio_works_rels (work_id);
-create index on biblio_works_rels (rel_work_id);
-
 create table bbl_organizations (
   id uuid primary key,
   kind text not null,
@@ -34,12 +13,13 @@ create table bbl_organizations_rels (
   kind text not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
   rel_organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  idx int not null,
 
   check (organization_id <> rel_organization_id)
 );
 
-create index on biblio_organizations_rels (organization_id);
-create index on biblio_organizations_rels (rel_organization_id);
+create index on bbl_organizations_rels (organization_id);
+create index on bbl_organizations_rels (rel_organization_id);
 
 create table bbl_projects (
   id uuid primary key,
@@ -58,18 +38,40 @@ create table bbl_people (
 create table bbl_people_organizations (
   id uuid primary key,
   person_id uuid not null references bbl_people (id) on delete cascade,
-  organization_id uuid not null references bbl_organizations (id) on delete cascade
+  organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  idx int not null
 );
 
 create index on bbl_people_organizations (person_id);
 create index on bbl_people_organizations (organization_id);
 
-create table bbl_works_contributors (
+create table bbl_works (
+  id uuid primary key,
+  kind text not null,
+  sub_kind text,
+  attrs jsonb not null default '{}',
+  created_at timestamptz not null default transaction_timestamp(),
+  updated_at timestamptz not null default transaction_timestamp()
+);
+
+create table bbl_works_rels (
   id uuid primary key,
   kind text not null,
   work_id uuid not null references bbl_works (id) on delete cascade,
+  rel_work_id uuid not null references bbl_works (id) on delete cascade,
+  idx int not null
+
+  check (work_id <> rel_work_id)
+);
+
+create index on bbl_works_rels (work_id);
+create index on bbl_works_rels (rel_work_id);
+
+create table bbl_works_contributors (
+  id uuid primary key,
+  work_id uuid not null references bbl_works (id) on delete cascade,
   person_id uuid references bbl_people (id) on delete set null,
-  seq int not null default 1,
+  idx int not null,
   attrs jsonb not null default '{}'
 );
 
@@ -79,7 +81,8 @@ create index on bbl_works_contributors (person_id) where person_id is not null;
 create table bbl_works_organizations (
   id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
-  organization_id uuid not null references bbl_organizations (id) on delete cascade
+  organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  idx int not null
 );
 
 create index on bbl_works_organizations (work_id);
@@ -88,7 +91,8 @@ create index on bbl_works_organizations (organization_id);
 create table bbl_works_projects (
   id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
-  project_id uuid not null references bbl_projects (id) on delete cascade
+  project_id uuid not null references bbl_projects (id) on delete cascade,
+  idx int not null
 );
 
 create index on bbl_works_projects (work_id);

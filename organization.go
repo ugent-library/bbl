@@ -37,8 +37,8 @@ func (rec *Organization) Diff(otherRec *Organization) map[string]any {
 	if !slices.Equal(rec.Attrs.Names, otherRec.Attrs.Names) {
 		changes["names"] = rec.Attrs.Names
 	}
-	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(rel, otherRel OrganizationRel) bool {
-		return rel.Kind == otherRel.Kind && rel.OrganizationID == otherRel.OrganizationID
+	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(r1, r2 OrganizationRel) bool {
+		return r1.Kind == r2.Kind && r1.OrganizationID == r2.OrganizationID
 	}) {
 		changes["rels"] = rec.Rels
 	}
