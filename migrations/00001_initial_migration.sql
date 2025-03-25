@@ -73,6 +73,7 @@ create table bbl_works_contributors (
   attrs jsonb not null default '{}'
 );
 
+create index on bbl_works_contributors (work_id);
 create index on bbl_works_contributors (person_id) where person_id is not null;
 
 create table bbl_works_organizations (
