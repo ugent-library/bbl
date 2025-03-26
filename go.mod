@@ -48,6 +48,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lmittmann/tint v1.0.7
 	github.com/mfridman/interpolate v0.0.2 // indirect
+	github.com/opensearch-project/opensearch-go/v4 v4.4.0
 	github.com/samber/slog-http v1.6.0
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/spf13/cobra v1.9.1
