@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/ugent-library/tonga"
 	"go.breu.io/ulid"
 
 	_ "github.com/ugent-library/bbl/migrations"
@@ -32,11 +33,13 @@ type pgxConn interface {
 
 type Repo struct {
 	conn *pgxpool.Pool
+	mq   *tonga.Client
 }
 
 func NewRepo(conn *pgxpool.Pool) (*Repo, error) {
 	r := &Repo{
 		conn: conn,
+		mq:   tonga.New(conn),
 	}
 	return r, nil
 }
