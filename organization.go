@@ -26,18 +26,18 @@ type OrganizationRel struct {
 	Organization   *Organization `json:"organization,omitempty"`
 }
 
-func (rec *Organization) Diff(otherRec *Organization) map[string]any {
+func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	changes := map[string]any{}
-	if rec.Kind != otherRec.Kind {
+	if rec.Kind != rec2.Kind {
 		changes["kind"] = rec.Kind
 	}
-	if !slices.Equal(rec.Attrs.Identifiers, otherRec.Attrs.Identifiers) {
+	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {
 		changes["identifiers"] = rec.Attrs.Identifiers
 	}
-	if !slices.Equal(rec.Attrs.Names, otherRec.Attrs.Names) {
+	if !slices.Equal(rec.Attrs.Names, rec2.Attrs.Names) {
 		changes["names"] = rec.Attrs.Names
 	}
-	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(r1, r2 OrganizationRel) bool {
+	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 OrganizationRel) bool {
 		return r1.Kind == r2.Kind && r1.OrganizationID == r2.OrganizationID
 	}) {
 		changes["rels"] = rec.Rels

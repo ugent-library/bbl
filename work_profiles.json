@@ -12,6 +12,7 @@
                     }
                 ]
             },
+            "contributors": {},
             "abstracts": {},
             "titles": {
                 "required": true
@@ -36,6 +37,7 @@
                     }
                 ]
             },
+            "contributors": {},
             "abstracts": {},
             "titles": {
                 "required": true

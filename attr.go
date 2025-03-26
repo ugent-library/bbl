@@ -31,9 +31,3 @@ type Conference struct {
 	StartDate time.Time `json:"start_date,omitzero"`
 	EndDate   time.Time `json:"end_date,omitzero"`
 }
-
-type NameParts struct {
-	GivenName  string `json:"given_name,omitempty"`
-	MiddleName string `json:"middle_name,omitempty"`
-	FamilyName string `json:"family_name,omitempty"`
-}

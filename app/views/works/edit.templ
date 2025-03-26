@@ -77,6 +77,9 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 						<a class="nav-link" href="#description">
 							<span class="c-sidebar__label">Description</span>
 						</a>
+						<a class="nav-link" href="#contributors_affiliations">
+							<span class="c-sidebar__label">People & affiliations</span>
+						</a>
 						<a class="nav-link" href="#bibliographic_information">
 							<span class="c-sidebar__label">Bibliographic information</span>
 						</a>
@@ -123,6 +126,16 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 								@abstractsField(c, rec)
 								@laySummariesField(c, rec)
 								@keywordsField(c, rec)
+							</div>
+						</div>
+					</div>
+					<div class="mb-6" id="contributors_affiliations">
+						<div class="mb-4">
+							<h2>People & affiliations</h2>
+						</div>
+						<div class="card mb-6">
+							<div class="card-body">
+								@contributorsField(c, rec)
 							</div>
 						</div>
 					</div>
@@ -269,6 +282,60 @@ templ keywordsField(c views.Ctx, rec *bbl.Work) {
 			},
 			Values: rec.Attrs.Keywords,
 		})
+	}
+}
+
+templ contributorsField(c views.Ctx, rec *bbl.Work) {
+	if rec.Profile.Contributors != nil {
+		<div class="form-group">
+			<div class="bc-toolbar h-auto">
+				<div class="bc-toolbar-left">
+					<label class="form-label form-label-top">Contributors</label>
+				</div>
+				<div class="bc-toolbar-right">
+					<button class="btn btn-tertiary" type="button">
+						<i class="if if-add"></i>
+						<div class="btn-text">Add contributor</div>
+					</button>
+				</div>
+			</div>
+			<div class="list-group rounded-lg">
+				for _, c := range rec.Contributors {
+					<div class="list-group-item">
+						<div class="bc-avatar-and-text align-items-start">
+							<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+								<i class="if if-ghent-university"></i>
+							</div>
+							<div class="bc-avatar-text">
+								<div class="hstack-md-responsive gap-3 gap-lg-4">
+									<div class="vstack gap-3">
+										<h4 class="mb-0">{ c.Attrs.Name }</h4>
+									</div>
+									<div class="c-button-toolbar">
+										<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+											<i class="if if-edit"></i>
+											<span class="btn-text">Edit</span>
+										</button>
+										<div class="dropdown">
+											<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+												<i class="if if-more"></i>
+												<span class="btn-text">Actions</span>
+											</button>
+											<div class="dropdown-menu">
+												<button class="dropdown-item" type="button">
+													<i class="if if-delete"></i>
+													<span>Remove from work</span>
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
 	}
 }
 

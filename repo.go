@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -462,7 +463,7 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 	var rawContributors json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawRels, &rawContributors, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawContributors, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("GetWork: %w: %s", ErrNotFound, id)
 	} else if err != nil {
 		return nil, err
@@ -487,6 +488,9 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 	if err := LoadWorkProfile(&rec); err != nil {
 		return nil, err
 	}
+
+	j, _ := json.Marshal(&rec)
+	log.Printf("getrec: %s", j)
 
 	return &rec, nil
 }

@@ -37,50 +37,55 @@ type WorkContributor struct {
 	ID       string               `json:"id,omitempty"`
 	Attrs    WorkContributorAttrs `json:"attrs"`
 	PersonID string               `json:"person_id,omitempty"`
+	Person   *Person              `json:"person,omitempty"`
 }
 
 type WorkContributorAttrs struct {
-	CreditRoles []string  `json:"credit_roles,omitempty"`
-	Name        string    `json:"name"`
-	NameParts   NameParts `json:"name_parts,omitzero"`
+	CreditRoles []string `json:"credit_roles,omitempty"`
+	Name        string   `json:"name"`
+	GivenName   string   `json:"given_name,omitempty"`
+	MiddleName  string   `json:"middle_name,omitempty"`
+	FamilyName  string   `json:"family_name,omitempty"`
 }
 
-func (rec *Work) Diff(otherRec *Work) map[string]any {
+func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
-	if rec.Kind != otherRec.Kind {
+	if rec.Kind != rec2.Kind {
 		changes["kind"] = rec.Kind
 	}
-	if rec.SubKind != otherRec.SubKind {
+	if rec.SubKind != rec2.SubKind {
 		changes["sub_kind"] = rec.SubKind
 	}
-	if !slices.Equal(rec.Attrs.Identifiers, otherRec.Attrs.Identifiers) {
+	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {
 		changes["identifiers"] = rec.Attrs.Identifiers
 	}
-	if !slices.Equal(rec.Attrs.Titles, otherRec.Attrs.Titles) {
+	if !slices.Equal(rec.Attrs.Titles, rec2.Attrs.Titles) {
 		changes["titles"] = rec.Attrs.Titles
 	}
-	if !slices.Equal(rec.Attrs.Abstracts, otherRec.Attrs.Abstracts) {
+	if !slices.Equal(rec.Attrs.Abstracts, rec2.Attrs.Abstracts) {
 		changes["abstracts"] = rec.Attrs.Abstracts
 	}
-	if !slices.Equal(rec.Attrs.LaySummaries, otherRec.Attrs.LaySummaries) {
+	if !slices.Equal(rec.Attrs.LaySummaries, rec2.Attrs.LaySummaries) {
 		changes["lay_summaries"] = rec.Attrs.LaySummaries
 	}
-	if !slices.Equal(rec.Attrs.Keywords, otherRec.Attrs.Keywords) {
+	if !slices.Equal(rec.Attrs.Keywords, rec2.Attrs.Keywords) {
 		changes["keywords"] = rec.Attrs.Keywords
 	}
-	if rec.Attrs.Conference != otherRec.Attrs.Conference {
+	if rec.Attrs.Conference != rec2.Attrs.Conference {
 		changes["conference"] = rec.Attrs.Conference
 	}
-	if !slices.EqualFunc(rec.Contributors, otherRec.Contributors, func(c1, c2 WorkContributor) bool {
+	if !slices.EqualFunc(rec.Contributors, rec2.Contributors, func(c1, c2 WorkContributor) bool {
 		return c1.ID == c2.ID &&
 			c1.PersonID == c2.PersonID &&
 			slices.Equal(c1.Attrs.CreditRoles, c2.Attrs.CreditRoles) &&
 			c1.Attrs.Name == c2.Attrs.Name &&
-			c1.Attrs.NameParts == c2.Attrs.NameParts
+			c1.Attrs.GivenName == c2.Attrs.GivenName &&
+			c1.Attrs.MiddleName == c2.Attrs.MiddleName &&
+			c1.Attrs.FamilyName == c2.Attrs.FamilyName
 	}) {
 		changes["contributors"] = rec.Contributors
 	}
-	if !slices.EqualFunc(rec.Rels, otherRec.Rels, func(r1, r2 WorkRel) bool {
+	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 WorkRel) bool {
 		return r1.Kind == r2.Kind && r1.WorkID == r2.WorkID
 	}) {
 		changes["rels"] = rec.Rels

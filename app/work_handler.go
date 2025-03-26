@@ -61,7 +61,7 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 		return err
 	}
 
-	// TODO how do we get the id?
+	// TODO how do we get or pass the id?
 	rec, err := h.repo.GetWork(r.Context(), rec.ID)
 	if err != nil {
 		return err

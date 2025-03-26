@@ -80,6 +80,8 @@ type WorkProfile struct {
 	LaySummaries *AttrProfile     `json:"lay_summaries,omitempty"`
 	Keywords     *AttrProfile     `json:"keywords,omitempty"`
 	Conference   *AttrProfile     `json:"conference,omitempty"`
+	Contributors *AttrProfile     `json:"contributors,omitempty"`
+	Rels         *AttrProfile     `json:"rels,omitempty"`
 
 	IdentifierSchemes []string `json:"-"`
 }

@@ -21,8 +21,9 @@ from bbl_works w
 left join lateral (
   select
    	work_id,
-    json_agg(json_build_object('id', w_c.id, 'person_id', w_c.person_id, 'attrs', w_c.attrs) order by w_c.idx) filter (where w_c.id is not null) as contributors
+    json_agg(json_build_object('id', w_c.id, 'person_id', w_c.person_id, 'person', p, 'attrs', w_c.attrs) order by w_c.idx) filter (where w_c.id is not null) as contributors
   from bbl_works_contributors w_c
+  left join bbl_people p on p.id = w_c.person_id
   where w_c.work_id=w.id
   group by work_id
 ) w_c on w_c.work_id=w.id
