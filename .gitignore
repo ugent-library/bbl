@@ -25,8 +25,14 @@ node_modules
 .env.*
 !.env.example
 
+# direnv
+.direnv
+
 # local workspace
 go.work*
 
 # tmp
 tmp
+
+# templ txt files
+*_templ.txt
