@@ -11,9 +11,6 @@
 # output of the go coverage tool
 *.out
 
-# dependency directories
-node_modules
-
 # junk files
 .DS_Store
 
@@ -33,6 +30,9 @@ go.work*
 
 # tmp
 tmp
+
+# dependency directories
+node_modules
 
 # templ txt files
 *_templ.txt

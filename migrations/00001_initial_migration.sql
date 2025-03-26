@@ -1,4 +1,4 @@
--- +goose Up
+-- +goose up
 
 create table bbl_organizations (
   id uuid primary key,
@@ -126,7 +126,7 @@ create index on bbl_changes (person_id) where person_id is not null;
 create index on bbl_changes (project_id) where project_id is not null;
 create index on bbl_changes (work_id) where work_id is not null;
 
--- +goose Down
+-- +goose down
 
 drop table bbl_changes cascade;
 drop table bbl_revs cascade;

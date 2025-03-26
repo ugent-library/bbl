@@ -1,4 +1,4 @@
--- +goose Up
+-- +goose up
 
 create view bbl_organizations_view as
 select o.*,
@@ -36,7 +36,7 @@ left join lateral (
   group by work_id
 ) w_r on w_r.work_id=w.id;
 
--- +goose Down
+-- +goose down
 
 drop view bbl_organizations_view;
 drop view bbl_works_view;
