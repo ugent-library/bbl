@@ -130,11 +130,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -156,12 +156,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "organization.create", a.Organization.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *UpdateOrganization:
 			currentRec, err := getOrganization(ctx, tx, a.Organization.ID)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			diff := a.Organization.Diff(currentRec)
@@ -172,11 +172,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -239,7 +239,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "organization.update", a.Organization.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *CreatePerson:
 			if a.Person.ID == "" {
@@ -250,11 +250,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Person.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -269,12 +269,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "person.create", a.Person.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *UpdatePerson:
 			currentRec, err := getPerson(ctx, tx, a.Person.ID)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			diff := a.Person.Diff(currentRec)
@@ -285,11 +285,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Person.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -307,7 +307,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "person.update", a.Person.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *CreateProject:
 			if a.Project.ID == "" {
@@ -318,11 +318,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Project.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -336,12 +336,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 			if err := mq.Send(ctx, "project.create", a.Project.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *UpdateProject:
 			currentRec, err := getProject(ctx, tx, a.Project.ID)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			diff := a.Project.Diff(currentRec)
@@ -352,11 +352,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Project.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -374,7 +374,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "project.update", a.Project.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *CreateWork:
 			if a.Work.ID == "" {
@@ -385,11 +385,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Work.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -411,12 +411,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "work.create", a.Work.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *UpdateWork:
 			currentRec, err := getWork(ctx, tx, a.Work.ID)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			diff := a.Work.Diff(currentRec)
@@ -427,11 +427,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			jsonAttrs, err := json.Marshal(a.Work.Attrs)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
-				return fmt.Errorf("AddRev: %s", err)
+				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
@@ -495,7 +495,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			)
 
 			if err := mq.Send(ctx, "work.update", a.Work.ID, tonga.SendOpts{}); err != nil {
-				return err
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		default:
 			return errors.New("AddRev: unknown action")
