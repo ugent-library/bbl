@@ -54,6 +54,8 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 		return err
 	}
 
+	rec.ID = h.repo.NewID()
+
 	rev := bbl.NewRev()
 	rev.Add(&bbl.CreateWork{Work: rec})
 
@@ -61,7 +63,6 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 		return err
 	}
 
-	// TODO how do we get or pass the id?
 	rec, err := h.repo.GetWork(r.Context(), rec.ID)
 	if err != nil {
 		return err

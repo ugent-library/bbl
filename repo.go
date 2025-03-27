@@ -83,7 +83,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
 }
 
 func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
-	revID := r.newID()
+	revID := r.NewID()
 
 	tx, err := r.conn.Begin(ctx)
 	if err != nil {
@@ -102,7 +102,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 	for _, action := range rev.actions {
 		switch a := action.(type) {
 		case *CreateOrganization:
-			id := r.newID()
+			if a.Organization.ID == "" {
+				a.Organization.ID = r.NewID()
+			}
 			diff := a.Organization.Diff(&Organization{})
 
 			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
@@ -117,19 +119,19 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			batch.Queue(`
 				insert into bbl_organizations (id, kind, attrs)
 				values ($1, $2, $3);`,
-				id, a.Organization.Kind, jsonAttrs,
+				a.Organization.ID, a.Organization.Kind, jsonAttrs,
 			)
 			for _, rel := range a.Organization.Rels {
 				batch.Queue(`
 					insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
 					values ($1, $2, $3, $4);`,
-					r.newID(), rel.Kind, id, rel.OrganizationID,
+					r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
 				)
 			}
 			batch.Queue(`
 				insert into bbl_changes (rev_id, organization_id, diff)
 				values ($1, $2, $3);`,
-				revID, id, jsonDiff,
+				revID, a.Organization.ID, jsonDiff,
 			)
 		case *UpdateOrganization:
 			currentRec, err := getOrganization(ctx, tx, a.Organization.ID)
@@ -199,7 +201,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 						batch.Queue(`
 							insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
 							values ($1, $2, $3, $4);`,
-							r.newID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
+							r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
 						)
 					}
 				}
@@ -211,7 +213,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 		case *CreateProject:
-			id := r.newID()
+			if a.Project.ID == "" {
+				a.Project.ID = r.NewID()
+			}
+
 			diff := a.Project.Diff(&Project{})
 
 			jsonAttrs, err := json.Marshal(a.Project.Attrs)
@@ -226,12 +231,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			batch.Queue(`
 				insert into bbl_projects (id, attrs)
 				values ($1, $2);`,
-				id, jsonAttrs,
+				a.Project.ID, jsonAttrs,
 			)
 			batch.Queue(`
 				insert into bbl_changes (rev_id, project_id, diff)
 				values ($1, $2, $3);`,
-				revID, id, jsonDiff,
+				revID, a.Project.ID, jsonDiff,
 			)
 		case *UpdateProject:
 			currentRec, err := getProject(ctx, tx, a.Project.ID)
@@ -268,7 +273,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 		case *CreateWork:
-			id := r.newID()
+			if a.Work.ID == "" {
+				a.Work.ID = r.NewID()
+			}
+
 			diff := a.Work.Diff(&Work{})
 
 			jsonAttrs, err := json.Marshal(a.Work.Attrs)
@@ -283,19 +291,19 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			batch.Queue(`
 				insert into bbl_works (id, kind, sub_kind, attrs)
 				values ($1, $2, nullif($3, ''), $4);`,
-				id, a.Work.Kind, a.Work.SubKind, jsonAttrs,
+				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
 			)
 			for _, rel := range a.Work.Rels {
 				batch.Queue(`
 					insert into bbl_works_rels (id, kind, work_id, rel_work_id)
 					values ($1, $2, $3, $4);`,
-					r.newID(), rel.Kind, id, rel.WorkID,
+					r.NewID(), rel.Kind, a.Work.ID, rel.WorkID,
 				)
 			}
 			batch.Queue(`
 				insert into bbl_changes (rev_id, work_id, diff)
 				values ($1, $2, $3);`,
-				revID, id, jsonDiff,
+				revID, a.Work.ID, jsonDiff,
 			)
 		case *UpdateWork:
 			currentRec, err := getWork(ctx, tx, a.Work.ID)
@@ -366,7 +374,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 						batch.Queue(`
 							insert into bbl_works_rels (id, kind, work_id, rel_work_id)
 							values ($1, $2, $3, $4);`,
-							r.newID(), rel.Kind, a.Work.ID, rel.WorkID,
+							r.NewID(), rel.Kind, a.Work.ID, rel.WorkID,
 						)
 					}
 				}
@@ -402,7 +410,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 	return nil
 }
 
-func (r *Repo) newID() string {
+func (r *Repo) NewID() string {
 	return ulid.Make().UUIDString()
 }
 
