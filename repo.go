@@ -36,10 +36,25 @@ type Repo struct {
 	mq   *tonga.Client
 }
 
-func NewRepo(conn *pgxpool.Pool) (*Repo, error) {
+func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
+	mq := tonga.New(conn)
+
+	if err := mq.CreateChannel(ctx, "organization_changes", "organization", tonga.ChannelOpts{}); err != nil {
+		return nil, fmt.Errorf("NewRepo: %w", err)
+	}
+	if err := mq.CreateChannel(ctx, "person_changes", "person", tonga.ChannelOpts{}); err != nil {
+		return nil, fmt.Errorf("NewRepo: %w", err)
+	}
+	if err := mq.CreateChannel(ctx, "project_changes", "project", tonga.ChannelOpts{}); err != nil {
+		return nil, fmt.Errorf("NewRepo: %w", err)
+	}
+	if err := mq.CreateChannel(ctx, "work_changes", "work", tonga.ChannelOpts{}); err != nil {
+		return nil, fmt.Errorf("NewRepo: %w", err)
+	}
+
 	r := &Repo{
 		conn: conn,
-		mq:   tonga.New(conn),
+		mq:   mq,
 	}
 	return r, nil
 }
@@ -95,6 +110,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 	}
 	defer tx.Rollback(ctx)
 
+	mq := tonga.New(tx)
+
 	batch := &pgx.Batch{}
 
 	batch.Queue(`
@@ -137,6 +154,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "organization.create", a.Organization.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *UpdateOrganization:
 			currentRec, err := getOrganization(ctx, tx, a.Organization.ID)
 			if err != nil {
@@ -216,6 +237,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "organization.update", a.Organization.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *CreatePerson:
 			if a.Person.ID == "" {
 				a.Person.ID = r.NewID()
@@ -242,6 +267,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Person.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "person.create", a.Person.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *UpdatePerson:
 			currentRec, err := getPerson(ctx, tx, a.Person.ID)
 			if err != nil {
@@ -276,6 +305,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Person.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "person.update", a.Person.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *CreateProject:
 			if a.Project.ID == "" {
 				a.Project.ID = r.NewID()
@@ -302,6 +335,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Project.ID, jsonDiff,
 			)
+			if err := mq.Send(ctx, "project.create", a.Project.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *UpdateProject:
 			currentRec, err := getProject(ctx, tx, a.Project.ID)
 			if err != nil {
@@ -336,6 +372,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Project.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "project.update", a.Project.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *CreateWork:
 			if a.Work.ID == "" {
 				a.Work.ID = r.NewID()
@@ -369,6 +409,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Work.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "work.create", a.Work.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		case *UpdateWork:
 			currentRec, err := getWork(ctx, tx, a.Work.ID)
 			if err != nil {
@@ -449,6 +493,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Work.ID, jsonDiff,
 			)
+
+			if err := mq.Send(ctx, "work.update", a.Work.ID, tonga.SendOpts{}); err != nil {
+				return err
+			}
 		default:
 			return errors.New("AddRev: unknown action")
 		}

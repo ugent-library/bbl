@@ -23,7 +23,7 @@ func NewRepo(ctx context.Context) (*bbl.Repo, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	repo, err := bbl.NewRepo(conn)
+	repo, err := bbl.NewRepo(ctx, conn)
 	if err != nil {
 		return nil, nil, err
 	}
