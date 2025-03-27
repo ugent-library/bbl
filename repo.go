@@ -74,6 +74,10 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 	return getOrganization(ctx, r.conn, id)
 }
 
+func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
+	return getPerson(ctx, r.conn, id)
+}
+
 func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
 	return getProject(ctx, r.conn, id)
 }
@@ -211,6 +215,66 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				insert into bbl_changes (rev_id, organization_id, diff)
 				values ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
+			)
+		case *CreatePerson:
+			if a.Person.ID == "" {
+				a.Person.ID = r.NewID()
+			}
+
+			diff := a.Person.Diff(&Person{})
+
+			jsonAttrs, err := json.Marshal(a.Person.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				insert into bbl_people (id, attrs)
+				values ($1, $2);`,
+				a.Person.ID, jsonAttrs,
+			)
+			batch.Queue(`
+				insert into bbl_changes (rev_id, person_id, diff)
+				values ($1, $2, $3);`,
+				revID, a.Person.ID, jsonDiff,
+			)
+		case *UpdatePerson:
+			currentRec, err := getPerson(ctx, tx, a.Person.ID)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			diff := a.Person.Diff(currentRec)
+
+			if len(diff) == 0 {
+				continue
+			}
+
+			jsonAttrs, err := json.Marshal(a.Person.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+			jsonDiff, err := json.Marshal(diff)
+			if err != nil {
+				return fmt.Errorf("AddRev: %s", err)
+			}
+
+			batch.Queue(`
+				update bbl_people
+				set attrs = $2,
+				    updated_at = transaction_timestamp()
+				where id = $1;`,
+				a.Person.ID, jsonAttrs,
+			)
+
+			batch.Queue(`
+				insert into bbl_changes (rev_id, person_id, diff)
+				values ($1, $2, $3);`,
+				revID, a.Person.ID, jsonDiff,
 			)
 		case *CreateProject:
 			if a.Project.ID == "" {
@@ -443,6 +507,28 @@ func getOrganization(ctx context.Context, conn pgxConn, id string) (*Organizatio
 	return &rec, nil
 }
 
+func getPerson(ctx context.Context, conn pgxConn, id string) (*Person, error) {
+	q := `
+		select id, attrs, created_at, updated_at
+		from bbl_people
+		where id = $1;`
+
+	var rec Person
+	var rawAttrs json.RawMessage
+
+	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("GetPerson: %w: %s", ErrNotFound, id)
+	} else if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+		return nil, fmt.Errorf("GetPerson: unmarshal attrs: %s", err)
+	}
+
+	return &rec, nil
+}
+
 func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) {
 	q := `
 		select id, attrs, created_at, updated_at
@@ -453,7 +539,7 @@ func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) 
 	var rawAttrs json.RawMessage
 
 	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("Getproject: %w: %s", ErrNotFound, id)
+		return nil, fmt.Errorf("GetProject: %w: %s", ErrNotFound, id)
 	} else if err != nil {
 		return nil, err
 	}

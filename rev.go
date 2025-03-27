@@ -37,6 +37,10 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 			action = &CreateOrganization{}
 		case "update_organization":
 			action = &UpdateOrganization{}
+		case "create_person":
+			action = &CreatePerson{}
+		case "update_person":
+			action = &UpdatePerson{}
 		case "create_project":
 			action = &CreateProject{}
 		case "update_project":
@@ -74,6 +78,18 @@ type UpdateOrganization struct {
 }
 
 func (*UpdateOrganization) isAction() {}
+
+type CreatePerson struct {
+	Person *Person `json:"person"`
+}
+
+func (*CreatePerson) isAction() {}
+
+type UpdatePerson struct {
+	Person *Person `json:"person"`
+}
+
+func (*UpdatePerson) isAction() {}
 
 type CreateProject struct {
 	Project *Project `json:"project"`
