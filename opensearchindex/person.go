@@ -35,9 +35,9 @@ func generatePersonQuery(str string) (string, error) {
 						"query": "` + jsonStr + `",
 						"type": "bool_prefix",
 						"fields": [
-							"record.fields.name.suggest",
-							"record.fields.name.suggest._2gram",
-							"record.fields.name.suggest._3gram"
+							"completion",
+							"completion._2gram",
+							"completion._3gram"
 						]
 					}
 				},
@@ -46,9 +46,9 @@ func generatePersonQuery(str string) (string, error) {
 						"query": "` + jsonStr + `",
 						"fuzziness": "AUTO",
 						"fields": [
-							"record.fields.name.suggest",
-							"record.fields.name.suggest._2gram",
-							"record.fields.name.suggest._3gram"
+							"completion",
+							"completion._2gram",
+							"completion._3gram"
 						]
 					}
 				}
