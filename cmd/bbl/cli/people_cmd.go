@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl"
 )
 
 func init() {
 	rootCmd.AddCommand(peopleCmd)
 	peopleCmd.AddCommand(searchPeopleCmd)
+	searchPeopleCmd.Flags().IntVar(&searchArgs.Limit, "limit", 20, "")
+	searchPeopleCmd.Flags().StringVarP(&searchArgs.Query, "query", "q", "", "")
 }
 
 var peopleCmd = &cobra.Command{
@@ -26,7 +27,7 @@ var searchPeopleCmd = &cobra.Command{
 			return err
 		}
 
-		hits, err := index.People().Search(cmd.Context(), bbl.SearchArgs{Limit: 20})
+		hits, err := index.People().Search(cmd.Context(), searchArgs)
 		if err != nil {
 			return err
 		}
