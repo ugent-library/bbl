@@ -18,6 +18,10 @@ type ProjectAttrs struct {
 	Abstracts   []Text `json:"abstracts,omitempty"`
 }
 
+func (rec *Project) RecID() string {
+	return rec.ID
+}
+
 func (rec *Project) Diff(rec2 *Project) map[string]any {
 	changes := map[string]any{}
 	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {

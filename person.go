@@ -20,6 +20,10 @@ type PersonAttrs struct {
 	FamilyName  string `json:"family_name,omitempty"`
 }
 
+func (rec *Person) RecID() string {
+	return rec.ID
+}
+
 func (rec *Person) Diff(rec2 *Person) map[string]any {
 	changes := map[string]any{}
 	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {

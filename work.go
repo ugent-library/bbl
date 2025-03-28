@@ -48,6 +48,10 @@ type WorkContributorAttrs struct {
 	FamilyName  string   `json:"family_name,omitempty"`
 }
 
+func (rec *Work) RecID() string {
+	return rec.ID
+}
+
 func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
 	if rec.Kind != rec2.Kind {

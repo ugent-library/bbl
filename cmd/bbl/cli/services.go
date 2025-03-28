@@ -2,12 +2,17 @@ package cli
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"log/slog"
+	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/opensearchindex"
 )
 
 func NewLogger(w io.Writer) *slog.Logger {
@@ -28,4 +33,22 @@ func NewRepo(ctx context.Context) (*bbl.Repo, func(), error) {
 		return nil, nil, err
 	}
 	return repo, conn.Close, nil
+}
+
+func NewIndex(ctx context.Context) (bbl.Index, error) {
+	client, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Addresses: config.OpenSearch.URL,
+			Username:  config.OpenSearch.Username,
+			Password:  config.OpenSearch.Password,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearchindex.New(ctx, client)
 }

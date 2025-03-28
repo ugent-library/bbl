@@ -84,7 +84,7 @@ func New[T any](ctx context.Context, c Config[T]) (*Switcher[T], error) {
 }
 
 // TODO error handling (but don't error on version conflict or already exists error)
-func (switcher Switcher[T]) Index(ctx context.Context, t T) error {
+func (switcher Switcher[T]) Add(ctx context.Context, t T) error {
 	item, err := switcher.ItemFunc(t)
 	if err != nil {
 		return err

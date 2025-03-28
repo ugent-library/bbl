@@ -21,6 +21,9 @@ func RunWithContext(ctx context.Context) error {
 	v.BindEnv("port")
 	v.BindEnv("base_url")
 	v.BindEnv("pg_conn")
+	v.BindEnv("opensearch.url")
+	v.BindEnv("opensearch.username")
+	v.BindEnv("opensearch.password")
 
 	if err := v.Unmarshal(&config); err != nil {
 		return err

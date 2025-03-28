@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"iter"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -38,19 +40,6 @@ type Repo struct {
 
 func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
 	mq := tonga.New(conn)
-
-	if err := mq.CreateChannel(ctx, "organization_changes", "organization", tonga.ChannelOpts{}); err != nil {
-		return nil, fmt.Errorf("NewRepo: %w", err)
-	}
-	if err := mq.CreateChannel(ctx, "person_changes", "person", tonga.ChannelOpts{}); err != nil {
-		return nil, fmt.Errorf("NewRepo: %w", err)
-	}
-	if err := mq.CreateChannel(ctx, "project_changes", "project", tonga.ChannelOpts{}); err != nil {
-		return nil, fmt.Errorf("NewRepo: %w", err)
-	}
-	if err := mq.CreateChannel(ctx, "work_changes", "work", tonga.ChannelOpts{}); err != nil {
-		return nil, fmt.Errorf("NewRepo: %w", err)
-	}
 
 	r := &Repo{
 		conn: conn,
@@ -99,6 +88,57 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
 
 func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
 	return getWork(ctx, r.conn, id)
+}
+
+func (r *Repo) Listen(ctx context.Context, queue, topic string, hideFor time.Duration) iter.Seq[Msg] {
+	// TODO make channel opts configurable
+	if err := r.mq.CreateChannel(ctx, queue, topic, tonga.ChannelOpts{}); err != nil {
+		// TODO error handling
+		log.Printf("listen: %s", err)
+		return nil
+	}
+
+	return func(yield func(Msg) bool) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// TODO make quantity configurable
+				msgs, err := r.mq.Read(ctx, queue, 10, hideFor)
+				if err != nil {
+					// TODO error handling
+					log.Printf("listen: %s", err)
+					return
+				}
+
+				for _, m := range msgs {
+					msg := Msg{
+						queue:     queue,
+						id:        m.ID,
+						Topic:     m.Topic,
+						Body:      m.Body,
+						CreatedAt: m.CreatedAt,
+					}
+					if ok := yield(msg); !ok {
+						return
+					}
+				}
+
+				if len(msgs) < 10 {
+					// TODO make backoff configurable
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+	}
+}
+
+func (r *Repo) Ack(ctx context.Context, msg Msg) error {
+	if _, err := r.mq.Delete(ctx, msg.queue, msg.id); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {

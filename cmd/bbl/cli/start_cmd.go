@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,15 +31,15 @@ var startCmd = &cobra.Command{
 		}
 		defer close()
 
+		index, err := NewIndex(cmd.Context())
+		if err != nil {
+			return err
+		}
+
 		logger := NewLogger(cmd.OutOrStdout())
 
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
-
-		// index, err := services.NewOpenSearchIndex(ctx, config)
-		// if err != nil {
-		// 	return err
-		// }
 
 		// ldapAdapter, err := services.NewLDAPAdapter(ctx, config)
 		// if err != nil {
@@ -50,8 +51,7 @@ var startCmd = &cobra.Command{
 			BaseURL: config.BaseURL,
 			Logger:  logger,
 			Repo:    repo,
-			// Queue:            pgAdapter.Queue(),
-			// Index:            index,
+			Index:   index,
 			// UserSource:       ldapAdapter,
 			// CookieSecret:     []byte(config.CookieSecret),
 			// CookieHashSecret: []byte(config.CookieHashSecret),
@@ -73,13 +73,29 @@ var startCmd = &cobra.Command{
 
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
-		// group.Go(func() error {
-		// 	return jobs.Funnel(groupCtx, pgAdapter.Queue(), "work_indexer", biblio.WorkTopic, pgAdapter.Works().Get, index.IndexWork)
-		// })
-
-		// group.Go(func() error {
-		// 	return jobs.Funnel(groupCtx, pgAdapter.Queue(), "project_indexer", biblio.ProjectTopic, pgAdapter.Projects().Get, index.IndexProject)
-		// })
+		// person indexer
+		group.Go(func() error {
+			var err error
+			for msg := range repo.Listen(groupCtx, "person_index", "person", 10*time.Second) {
+				var id string
+				if err = json.Unmarshal(msg.Body, &id); err != nil {
+					logger.Error("person_index", "err", err)
+					continue
+				}
+				rec, err := repo.GetPerson(groupCtx, id)
+				if err != nil {
+					logger.Error("person_index", "err", err)
+					continue
+				}
+				if err = index.People().Add(groupCtx, rec); err != nil {
+					logger.Error("person_index", "err", err)
+				}
+				if err = repo.Ack(groupCtx, msg); err != nil {
+					logger.Error("person_index", "err", err)
+				}
+			}
+			return err
+		})
 
 		// group.Go(func() error {
 		// 	return jobs.WorkRepresentations(groupCtx, pgAdapter.Queue(), pgAdapter.WorkRepresentations(), pgAdapter.Works(), services.WorkEncoders())

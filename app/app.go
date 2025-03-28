@@ -23,8 +23,7 @@ type Config struct {
 	BaseURL string
 	Logger  *slog.Logger
 	Repo    *bbl.Repo
-	// Queue            biblio.Queue
-	// Index            biblio.Index
+	Index   bbl.Index
 	// UserSource       biblio.UserSource
 	CookieSecret     []byte
 	CookieHashSecret []byte
