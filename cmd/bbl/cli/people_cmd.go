@@ -11,6 +11,7 @@ func init() {
 	peopleCmd.AddCommand(searchPeopleCmd)
 	searchPeopleCmd.Flags().IntVar(&searchArgs.Limit, "limit", 20, "")
 	searchPeopleCmd.Flags().StringVarP(&searchArgs.Query, "query", "q", "", "")
+	searchPeopleCmd.Flags().StringVar(&searchArgs.Cursor, "cursor", "", "")
 }
 
 var peopleCmd = &cobra.Command{

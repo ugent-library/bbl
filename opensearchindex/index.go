@@ -3,6 +3,7 @@ package opensearchindex
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -106,7 +107,8 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 
 func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.RecHits[T], error) {
 	query := `{"match_all": {}}`
-	sort := `{"_id":"asc"}`
+	sort := `{"_id": "asc"}`
+	searchAfter := ``
 
 	if args.Query != "" {
 		q, err := idx.generateQuery(args.Query)
@@ -115,26 +117,26 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 		}
 		query = q
 
-		sort = `{"_score":"desc"}`
+		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
+	}
+
+	if args.Cursor != "" {
+		cursor, err := base64.StdEncoding.DecodeString(args.Cursor)
+		if err != nil {
+			return nil, err
+		}
+		searchAfter = `"search_after": ` + string(cursor) + `,`
 	}
 
 	body := `{
-		"size": ` + fmt.Sprint(args.Limit) + `,
 		"query": ` + query + `,
 		"sort": ` + sort + `,
+		"size": ` + fmt.Sprint(args.Limit) + `,` +
+		searchAfter + `
 		"_source": {
 			"includes": ["rec"]
 		}
 	}`
-
-	// TODO
-	// if args.Cursor != "" {
-	// 	searchAfter, err := base64.StdEncoding.DecodeString(args.Cursor)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	body, _ = sjson.SetRaw(body, "search_after", string(searchAfter))
-	// }
 
 	res, err := idx.client.Search(ctx, &opensearchapi.SearchReq{
 		Indices: []string{idx.alias},
@@ -144,17 +146,17 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 		return nil, err
 	}
 
-	// cursor, err := encodeCursor(res, args)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	cursor, err := encodeCursor(res, args)
+	if err != nil {
+		return nil, err
+	}
 
 	hits := &bbl.RecHits[T]{
-		Hits:  make([]bbl.RecHit[T], len(res.Hits.Hits)),
-		Total: res.Hits.Total.Value,
-		Limit: args.Limit,
-		Query: args.Query,
-		// Cursor: cursor,
+		Hits:   make([]bbl.RecHit[T], len(res.Hits.Hits)),
+		Total:  res.Hits.Total.Value,
+		Limit:  args.Limit,
+		Query:  args.Query,
+		Cursor: cursor,
 	}
 	for i, hit := range res.Hits.Hits {
 		var src struct {
