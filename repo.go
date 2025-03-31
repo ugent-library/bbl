@@ -676,8 +676,5 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
 		return nil, err
 	}
 
-	j, _ := json.Marshal(&rec)
-	log.Printf("getrec: %s", j)
-
 	return &rec, nil
 }

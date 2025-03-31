@@ -111,8 +111,7 @@ func New(config *Config) (http.Handler, error) {
 
 	// h.NewWorkHandler(config.Repo).AddRoutes(router, loggedInCtx)
 	NewWorkHandler(config.Repo).AddRoutes(router, appCtx)
-
-	// h.NewSearchWorksHandler(config.Repo.Works(), config.Index).AddRoutes(router, loggedInCtx)
+	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
 
 	return router, nil
 }

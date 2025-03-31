@@ -4,6 +4,7 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
+	"github.com/ugent-library/bbl/app/views/people"
 )
 
 templ Edit(c views.Ctx, rec *bbl.Work) {
@@ -287,13 +288,23 @@ templ keywordsField(c views.Ctx, rec *bbl.Work) {
 
 templ contributorsField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Contributors != nil {
+		@personviews.SuggestDialog(c, personviews.SuggestDialogArgs{
+			ID:        "bbl-work-add-contributor",
+			Title:     "Add contributor",
+			FormTitle: "Search contributor",
+		})
 		<div class="form-group">
 			<div class="bc-toolbar h-auto">
 				<div class="bc-toolbar-left">
 					<label class="form-label form-label-top">Contributors</label>
 				</div>
 				<div class="bc-toolbar-right">
-					<button class="btn btn-tertiary" type="button">
+					<button
+						class="btn btn-tertiary"
+						type="button"
+						data-bs-toggle="modal"
+						data-bs-target="#bbl-work-add-contributor"
+					>
 						<i class="if if-add"></i>
 						<div class="btn-text">Add contributor</div>
 					</button>
