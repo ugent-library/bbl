@@ -48,6 +48,16 @@ type WorkContributorAttrs struct {
 	FamilyName  string   `json:"family_name,omitempty"`
 }
 
+func (c *WorkContributor) GetName() string {
+	if c.Attrs.Name != "" {
+		return c.Attrs.Name
+	}
+	if c.Person != nil {
+		return c.Person.Attrs.Name
+	}
+	return ""
+}
+
 func (rec *Work) RecID() string {
 	return rec.ID
 }

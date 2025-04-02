@@ -25,6 +25,7 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
+	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("add_work_contributor")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
@@ -175,4 +176,29 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	rec.Attrs.Conference = conference
 
 	return nil
+}
+
+func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var i int
+	var personID string
+	err := binder.New(r).Form().Vacuum().
+		Int("i", &i).
+		String("person_id", &personID).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	var con bbl.WorkContributor
+
+	if personID != "" {
+		p, err := h.repo.GetPerson(r.Context(), personID)
+		if err != nil {
+			return err
+		}
+		con.PersonID = p.ID
+		con.Person = p
+	}
+
+	return workviews.Contributor(c.ViewCtx(), i, con).Render(r.Context(), w)
 }

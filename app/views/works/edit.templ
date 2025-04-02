@@ -1,6 +1,7 @@
 package workviews
 
 import (
+	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
@@ -310,44 +311,49 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 					</button>
 				</div>
 			</div>
-			<div class="list-group rounded-lg">
-				for _, c := range rec.Contributors {
-					<div class="list-group-item">
-						<div class="bc-avatar-and-text align-items-start">
-							<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-								<i class="if if-ghent-university"></i>
-							</div>
-							<div class="bc-avatar-text">
-								<div class="hstack-md-responsive gap-3 gap-lg-4">
-									<div class="vstack gap-3">
-										<h4 class="mb-0">{ c.Attrs.Name }</h4>
-									</div>
-									<div class="c-button-toolbar">
-										<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-											<i class="if if-edit"></i>
-											<span class="btn-text">Edit</span>
-										</button>
-										<div class="dropdown">
-											<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-												<i class="if if-more"></i>
-												<span class="btn-text">Actions</span>
-											</button>
-											<div class="dropdown-menu">
-												<button class="dropdown-item" type="button">
-													<i class="if if-delete"></i>
-													<span>Remove from work</span>
-												</button>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+			<div id="contributors-list" class="list-group rounded-lg">
+				for i, con := range rec.Contributors {
+					@Contributor(c, i, con)
 				}
 			</div>
 		</div>
 	}
+}
+
+templ Contributor(c views.Ctx, i int, con bbl.WorkContributor) {
+	<div class="list-group-item" data-bbl-contributor>
+		<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", i) } value={ con.PersonID }/>
+		<div class="bc-avatar-and-text align-items-start">
+			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+				<i class="if if-ghent-university"></i>
+			</div>
+			<div class="bc-avatar-text">
+				<div class="hstack-md-responsive gap-3 gap-lg-4">
+					<div class="vstack gap-3">
+						<h4 class="mb-0">{ con.GetName() }</h4>
+					</div>
+					<div class="c-button-toolbar">
+						<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+							<i class="if if-edit"></i>
+							<span class="btn-text">Edit</span>
+						</button>
+						<div class="dropdown">
+							<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<i class="if if-more"></i>
+								<span class="btn-text">Actions</span>
+							</button>
+							<div class="dropdown-menu">
+								<button class="dropdown-item" type="button">
+									<i class="if if-delete"></i>
+									<span>Remove from work</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 }
 
 templ conferenceField(c views.Ctx, rec *bbl.Work) {
