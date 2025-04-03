@@ -11,73 +11,46 @@ type CodeRepeatArgs struct {
 	Schemes []string
 }
 
+// TODO fix label for
 templ CodeRepeat(args CodeRepeatArgs) {
-	@Field(args.FieldArgs, fmt.Sprintf("%s-0-val", args.Name)) {
-		<div data-bb-repeated-fields>
-			for i, attr := range args.Attrs {
-				<div class="form-group" data-bb-repeated-field>
-					<div class="d-flex">
-						<div class="input-group">
-							<select
-								class="form-control form-select"
-								name={ fmt.Sprintf("%s[%d].scheme", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-scheme", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].scheme", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-scheme", args.Name) }
-							>
-								for _, scheme := range args.Schemes {
-									<option value={ scheme } selected?={ scheme == attr.Scheme }>{ scheme }</option>
-								}
-							</select>
-							<input
-								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-								name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
-								id={ fmt.Sprintf("%s-%d-val", args.Name, i) }
-								data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
-								type="text"
-								value={ attr.Val }
-								{ fieldAria(args.FieldArgs)... }
-							/>
-						</div>
-						<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-							<i class="if if-delete"></i>
-							<span class="visually-hidden">Delete</span>
-						</button>
-					</div>
-				</div>
-			}
-			<div class="form-group" data-bb-repeated-field>
+	{{
+		if len(args.Attrs) == 0 {
+			args.Attrs = []bbl.Code{{}}
+		}
+	}}
+
+	@Field(args.FieldArgs, "") {
+		for i, attr := range args.Attrs {
+			<div class="form-group" data-bbl-repeated-field={ args.Name }>
 				<div class="d-flex">
 					<div class="input-group">
 						<select
-							class="form-select form-control"
-							name={ fmt.Sprintf("%s[%d].scheme", args.Name, len(args.Attrs)) }
-							id={ fmt.Sprintf("%s-%d-scheme", args.Name, len(args.Attrs)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].scheme", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-scheme", args.Name) }
+							class="form-control form-select"
+							name={ fmt.Sprintf("%s[%d].scheme", args.Name, i) }
 						>
 							for _, scheme := range args.Schemes {
-								<option value={ scheme }>{ scheme }</option>
+								<option value={ scheme } selected?={ scheme == attr.Scheme }>{ scheme }</option>
 							}
 						</select>
 						<input
 							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ fmt.Sprintf("%s[%d].val", args.Name, len(args.Attrs)) }
-							id={ fmt.Sprintf("%s-%d-val", args.Name, len(args.Attrs)) }
-							data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
+							name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
 							type="text"
-							value=""
+							value={ attr.Val }
+							data-bbl-clear-value
 							{ fieldAria(args.FieldArgs)... }
 						/>
 					</div>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
+					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-remove>
+						<i class="if if-delete"></i>
+						<span class="visually-hidden">Delete</span>
+					</button>
+					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-add>
 						<i class="if if-add"></i>
-						<div class="visually-hidden">Add</div>
+						<span class="visually-hidden">Add</span>
 					</button>
 				</div>
 			</div>
-		</div>
+		}
 	}
 }
