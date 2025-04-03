@@ -71,7 +71,7 @@ templ Suggest(c views.Ctx, args SuggestArgs) {
 							class="btn btn-primary"
 							type="button"
 							data-bs-dismiss="modal"
-							hx-vals={ fmt.Sprintf(`js:{"person_id": "%s", "i": document.querySelectorAll("[data-bbl-contributor]").length}`, hit.Rec.ID) }
+							hx-vals={ fmt.Sprintf(`js:{"person_id": "%s", "i": document.querySelectorAll('[data-bbl-repeated-field="contributors"]').length}`, hit.Rec.ID) }
 							hx-post={ c.Route("add_work_contributor").String() }
 							hx-target="#contributors-list"
 							hx-swap="beforeend"

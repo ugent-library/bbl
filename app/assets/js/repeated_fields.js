@@ -2,6 +2,11 @@ import htmx from "htmx.org/dist/htmx.esm.js";
 
 const reTmpl = /^data-bb-tmpl-(.+)/;
 
+// NEW
+const repeatedFieldAttr = 'data-bbl-repeated-field';
+const repeatedFieldSelector = '[data-bbl-repeated-field]';
+const removeSelector = '[data-bbl-remove]';
+
 export default function (rootEl) {
     rootEl
         .querySelectorAll("[data-bb-repeated-field-add]")
@@ -9,6 +14,32 @@ export default function (rootEl) {
     rootEl
         .querySelectorAll("[data-bb-repeated-field-delete]")
         .forEach((el) => el.addEventListener("click", deleteFormValue));
+    // NEW
+    if (rootEl.matches(repeatedFieldSelector)) initRepeatedField(rootEl);
+    rootEl.querySelectorAll(repeatedFieldSelector).forEach((el) => initRepeatedField(el));
+}
+
+// NEW
+function initRepeatedField(fieldEl) {
+    const fieldName = fieldEl.getAttribute(repeatedFieldAttr);
+
+    // remove
+    fieldEl.querySelectorAll(removeSelector).forEach((btnEl) => {
+        btnEl.addEventListener('click', e => {
+            fieldEl.remove();
+
+            // recalculate indices in form field names
+            document.querySelectorAll(`[${repeatedFieldAttr}='${fieldName}']`).forEach((el, idx) => {
+                el.querySelectorAll(`[name^='${fieldName}[']`).forEach((formEl) => {
+                    const name = formEl.getAttribute('name');
+                    const beforeIdx = name.slice(0, fieldName.length+1);
+                    const afterIdx = name.slice(name.indexOf(']'));
+                    const newName = beforeIdx + idx.toString() + afterIdx;
+                    formEl.setAttribute('name', newName);
+                });
+            });
+        })
+    });
 }
 
 function setValueIndex(formValue, valueIndex) {
