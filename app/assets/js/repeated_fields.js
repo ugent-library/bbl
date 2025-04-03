@@ -78,8 +78,4 @@ function addFormValue(e) {
     newValue
         .querySelector("[data-bb-repeated-field-add]")
         .addEventListener("click", addFormValue);
-    // fire added event
-    // newValue.dispatchEvent(
-    //     new CustomEvent("bb-repeated-field-add", { bubbles: true }),
-    // );
 }

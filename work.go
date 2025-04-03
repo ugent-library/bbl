@@ -42,7 +42,7 @@ type WorkContributor struct {
 
 type WorkContributorAttrs struct {
 	CreditRoles []string `json:"credit_roles,omitempty"`
-	Name        string   `json:"name"`
+	Name        string   `json:"name,omitempty"`
 	GivenName   string   `json:"given_name,omitempty"`
 	MiddleName  string   `json:"middle_name,omitempty"`
 	FamilyName  string   `json:"family_name,omitempty"`

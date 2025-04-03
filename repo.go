@@ -182,11 +182,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, $3);`,
 				a.Organization.ID, a.Organization.Kind, jsonAttrs,
 			)
-			for _, rel := range a.Organization.Rels {
+			for i, rel := range a.Organization.Rels {
 				batch.Queue(`
-					insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
-					values ($1, $2, $3, $4);`,
-					r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
+					insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id, idx)
+					values ($1, $2, $3, $4, $5);`,
+					r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID, i,
 				)
 			}
 			batch.Queue(`
@@ -246,7 +246,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 					}
 				}
 
-				for _, rel := range a.Organization.Rels {
+				for i, rel := range a.Organization.Rels {
 					var found bool
 					for _, currentRel := range currentRec.Rels {
 						if currentRel.ID == rel.ID {
@@ -258,15 +258,16 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 						batch.Queue(`
 							update bbl_organizations_rels
 							set kind = $2,
-							    rel_organization_id = $3
+							    rel_organization_id = $3,
+								idx = $4
 							where id = $1;`,
-							rel.ID, rel.Kind, rel.OrganizationID,
+							rel.ID, rel.Kind, rel.OrganizationID, i,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id)
-							values ($1, $2, $3, $4);`,
-							r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID,
+							insert into bbl_organizations_rels (id, kind, organization_id, rel_organization_id, idx)
+							values ($1, $2, $3, $4, $5);`,
+							r.NewID(), rel.Kind, a.Organization.ID, rel.OrganizationID, i,
 						)
 					}
 				}
@@ -437,11 +438,23 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				values ($1, $2, nullif($3, ''), $4);`,
 				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
 			)
-			for _, rel := range a.Work.Rels {
+			for i, con := range a.Work.Contributors {
+				jsonAttrs, err := json.Marshal(con.Attrs)
+				if err != nil {
+					return fmt.Errorf("AddRev: %w", err)
+				}
+
 				batch.Queue(`
-					insert into bbl_works_rels (id, kind, work_id, rel_work_id)
-					values ($1, $2, $3, $4);`,
-					r.NewID(), rel.Kind, a.Work.ID, rel.WorkID,
+				insert into bbl_works_contributors (id, work_id, attrs, person_id, idx)
+				values ($1, $2, $3, $4, $5);`,
+					r.NewID(), a.Work.ID, jsonAttrs, con.PersonID, i,
+				)
+			}
+			for i, rel := range a.Work.Rels {
+				batch.Queue(`
+					insert into bbl_works_rels (id, kind, work_id, rel_work_id, idx)
+					values ($1, $2, $3, $4, $5);`,
+					r.NewID(), rel.Kind, a.Work.ID, rel.WorkID, i,
 				)
 			}
 			batch.Queue(`
@@ -484,6 +497,56 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
 			)
 
+			if _, ok := diff["contributors"]; ok {
+				for _, currentCon := range currentRec.Contributors {
+					var found bool
+					for _, con := range a.Work.Contributors {
+						if con.ID == currentCon.ID {
+							found = true
+							break
+						}
+					}
+					if !found {
+						batch.Queue(`
+							delete from bbl_works_contributors
+							where id = $1;`,
+							currentCon.ID,
+						)
+					}
+				}
+
+				for i, con := range a.Work.Contributors {
+					jsonAttrs, err := json.Marshal(con.Attrs)
+					if err != nil {
+						return fmt.Errorf("AddRev: %w", err)
+					}
+
+					var found bool
+					for _, currentCon := range currentRec.Contributors {
+						if currentCon.ID == con.ID {
+							found = true
+							break
+						}
+					}
+					if found {
+						batch.Queue(`
+							update bbl_works_contributors
+							set attrs = $2,
+							    person_id = $3,
+								idx = $4,
+							where id = $1;`,
+							con.ID, jsonAttrs, con.PersonID, i,
+						)
+					} else {
+						batch.Queue(`
+							insert into bbl_works_contributors (id, work_id, attrs, person_id, idx)
+							values ($1, $2, $3, $4, $5);`,
+							r.NewID(), a.Work.ID, jsonAttrs, con.PersonID, i,
+						)
+					}
+				}
+			}
+
 			if _, ok := diff["rels"]; ok {
 				for _, currentRel := range currentRec.Rels {
 					var found bool
@@ -502,7 +565,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 					}
 				}
 
-				for _, rel := range a.Work.Rels {
+				for i, rel := range a.Work.Rels {
 					var found bool
 					for _, currentRel := range currentRec.Rels {
 						if currentRel.ID == rel.ID {
@@ -514,15 +577,16 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 						batch.Queue(`
 							update bbl_works_rels
 							set kind = $2,
-							    rel_organization_id = $3
+							    rel_organization_id = $3,
+								idx = $4
 							where id = $1;`,
-							rel.ID, rel.Kind, rel.WorkID,
+							rel.ID, rel.Kind, rel.WorkID, i,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_works_rels (id, kind, work_id, rel_work_id)
-							values ($1, $2, $3, $4);`,
-							r.NewID(), rel.Kind, a.Work.ID, rel.WorkID,
+							insert into bbl_works_rels (id, kind, work_id, rel_work_id, i)
+							values ($1, $2, $3, $4, $5);`,
+							r.NewID(), rel.Kind, a.Work.ID, rel.WorkID, i,
 						)
 					}
 				}

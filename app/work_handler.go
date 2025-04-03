@@ -113,6 +113,7 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	var laySummaries []bbl.Text
 	var keywords []string
 	var conference bbl.Conference
+	var contributors []bbl.WorkContributor
 
 	err := binder.New(r).Form().Vacuum().
 		String("kind", &kind).
@@ -157,6 +158,17 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		String("conference.name", &conference.Name).
 		String("conference.organizer", &conference.Organizer).
 		String("conference.location", &conference.Location).
+		Each("contributors", func(b *binder.Values) bool {
+			var con bbl.WorkContributor
+			b.String("id", &con.ID)
+			b.String("attrs.name", &con.Attrs.Name)
+			b.String("attrs.given_name", &con.Attrs.GivenName)
+			b.String("attrs.middle_name", &con.Attrs.MiddleName)
+			b.String("attrs.family_name", &con.Attrs.FamilyName)
+			b.String("person_id", &con.PersonID)
+			contributors = append(contributors, con)
+			return true
+		}).
 		Err()
 	if err != nil {
 		return err
@@ -174,6 +186,8 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	rec.Attrs.LaySummaries = laySummaries
 	rec.Attrs.Keywords = keywords
 	rec.Attrs.Conference = conference
+
+	rec.Contributors = contributors
 
 	return nil
 }
