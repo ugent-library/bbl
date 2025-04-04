@@ -25,8 +25,9 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/_add_abstract", appCtx.Bind(h.AddAbstract)).Methods("GET").Name("work_add_abstract")
-	router.Handle("/works/_abstract", appCtx.Bind(h.Abstract)).Methods("POST").Name("work_abstract")
+	router.Handle("/works/_add_abstract", appCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
+	router.Handle("/works/_edit_abstract", appCtx.Bind(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
+	router.Handle("/works/_remove_abstract", appCtx.Bind(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
 	router.Handle("/works/_contributor", appCtx.Bind(h.Contributor)).Methods("POST").Name("work_contributor")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
@@ -107,22 +108,77 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 }
 
 func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	return workviews.AddAbstractDialog(c.ViewCtx(), bbl.Text{}).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) Abstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
 	var text bbl.Text
+	var texts []bbl.Text
 	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		String("val", &text.Val).
 		String("lang", &text.Lang).
+		String("val", &text.Val).
+		Each("abstracts", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
 		Err()
 	if err != nil {
 		return err
 	}
 
-	return workviews.AbstractField(c.ViewCtx(), idx, text).Render(r.Context(), w)
+	texts = append(texts, text)
+
+	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var text bbl.Text
+	var texts []bbl.Text
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		String("lang", &text.Lang).
+		String("val", &text.Val).
+		Each("abstracts", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(texts) {
+		texts[idx] = text
+	}
+
+	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var texts []bbl.Text
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		Each("abstracts", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(texts) {
+		texts = append(texts[:idx], texts[idx+1:]...)
+	}
+
+	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Contributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {

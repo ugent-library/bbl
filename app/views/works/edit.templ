@@ -248,88 +248,140 @@ templ titlesField(c views.Ctx, rec *bbl.Work) {
 
 templ abstractsField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Abstracts != nil {
-		<div class="form-group">
-			<div class="bc-toolbar h-auto">
-				<div class="bc-toolbar-left">
-					<label class="form-label form-label-top">Abstracts</label>
-				</div>
-				<div class="bc-toolbar-right">
-					<button
-						class="btn btn-tertiary"
-						type="button"
-						hx-get={ c.Route("work_add_abstract").String() }
-						hx-trigger="click"
-						hx-target="#modals"
-						hx-swap="innerHTML"
-						data-bs-toggle="modal"
-						data-bs-target="#modals"
-					>
-						<i class="if if-add"></i>
-						<div class="btn-text">Add abstract</div>
-					</button>
-				</div>
-			</div>
-			<div id="abstract-fields">
-				for i, text := range rec.Attrs.Abstracts {
-					@AbstractField(c, i, text)
-				}
-			</div>
+		<div id="abstract-fields">
+			@AbstractFields(c, rec.Attrs.Abstracts)
 		</div>
 	}
 }
 
-templ AddAbstractDialog(c views.Ctx, text bbl.Text) {
-	<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h2 class="modal-title">Add abstract</h2>
-			</div>
-			<div class="modal-body">
-				<form>
-					@forms.Text(forms.TextArgs{
-						Rows: 8,
-					})
-				</form>
-			</div>
-			<div class="modal-footer">
-				<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
-				<button
-					class="btn btn-primary"
-					type="button"
-					data-bs-dismiss="modal"
-					hx-include="#modals form"
-					hx-vals={ `js:{"idx": document.querySelectorAll('[data-bbl-repeated-field="abstracts"]').length}` }
-					hx-post={ c.Route("work_abstract").String() }
-					hx-encoding="multipart/form-data"
-					hx-target="#abstract-fields"
-					hx-swap="beforeend"
-				>
-					<span class="btn-text">Add abstract</span>
-					<i class="if if-arrow-right"></i>
-				</button>
+templ AbstractFields(c views.Ctx, texts []bbl.Text) {
+	<div id="add-abstract" class="modal fade" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 class="modal-title">Add abstract</h2>
+				</div>
+				<div class="modal-body">
+					<form>
+						@forms.Text(forms.TextArgs{
+							Rows: 8,
+						})
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-link" type="button" data-bs-dismiss="modal">Cancel</button>
+					<button
+						class="btn btn-primary"
+						type="button"
+						data-bs-dismiss="modal"
+						hx-include="#abstract-fields"
+						hx-post={ c.Route("work_add_abstract").String() }
+						hx-encoding="multipart/form-data"
+						hx-target="#abstract-fields"
+						hx-swap="innerHTML"
+					>
+						<span class="btn-text">Add abstract</span>
+						<i class="if if-arrow-right"></i>
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
-}
-
-templ AbstractField(c views.Ctx, idx int, text bbl.Text) {
-	<div class="card shadow-none mb-6 bg-lightest" data-bbl-repeated-field="abstracts">
-		<input type="hidden" name={ fmt.Sprintf("abstracts[%d].lang", idx) } value={ text.Lang }/>
-		<input type="hidden" name={ fmt.Sprintf("abstracts[%d].val", idx) } value={ text.Val }/>
-		<div class="card-body">
-			<div class="c-button-toolbar">
-				<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-					<i class="if if-edit"></i>
-					<span class="btn-text">Edit</span>
-				</button>
-				<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bbl-remove>
-					<i class="if if-delete"></i>
-					<span class="btn-text">Remove</span>
+	<div class="form-group">
+		<div class="bc-toolbar h-auto">
+			<div class="bc-toolbar-left">
+				<label class="form-label form-label-top">Abstracts</label>
+			</div>
+			<div class="bc-toolbar-right">
+				<button
+					class="btn btn-tertiary"
+					type="button"
+					data-bs-toggle="modal"
+					data-bs-target="#add-abstract"
+				>
+					<i class="if if-add"></i>
+					<div class="btn-text">Add abstract</div>
 				</button>
 			</div>
-			<p class="c-body-small text-muted mb-1">{ text.Lang }</p>
-			<p>{ text.Val }</p>
 		</div>
+		if len(texts) == 0 {
+			<div class="card shadow-none mb-6 bg-lightest">
+				<div class="card-body">
+					<div class="c-blank-slate py-4">
+						<p>No abstracts.</p>
+					</div>
+				</div>
+			</div>
+		} else {
+			for idx, text := range texts {
+				<div id={ fmt.Sprintf("edit-abstract-%d", idx) } class="modal fade" tabindex="-1">
+					<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h2 class="modal-title">Edit abstract</h2>
+							</div>
+							<div class="modal-body">
+								<form>
+									@forms.Text(forms.TextArgs{
+										Attr: text,
+										Rows: 8,
+									})
+								</form>
+							</div>
+							<div class="modal-footer">
+								<button class="btn btn-link" type="button" data-bs-dismiss="modal">Cancel</button>
+								<button
+									class="btn btn-primary"
+									type="button"
+									data-bs-dismiss="modal"
+									hx-include={ fmt.Sprintf(`[name^='abstracts'], #edit-abstract-%d`, idx) }
+									hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+									hx-post={ c.Route("work_edit_abstract").String() }
+									hx-encoding="multipart/form-data"
+									hx-target="#abstract-fields"
+									hx-swap="innerHTML"
+								>
+									<span class="btn-text">Edit abstract</span>
+									<i class="if if-arrow-right"></i>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="card shadow-none mb-6 bg-lightest" data-bbl-repeated-field="abstracts">
+					<input type="hidden" name={ fmt.Sprintf("abstracts[%d].lang", idx) } value={ text.Lang }/>
+					<input type="hidden" name={ fmt.Sprintf("abstracts[%d].val", idx) } value={ text.Val }/>
+					<div class="card-body">
+						<div class="c-button-toolbar">
+							<button
+								class="btn btn-tertiary btn-lg-only-responsive"
+								type="button"
+								data-bs-toggle="modal"
+								data-bs-target={ fmt.Sprintf("#edit-abstract-%d", idx) }
+							>
+								<i class="if if-edit"></i>
+								<span class="btn-text">Edit</span>
+							</button>
+							<button
+								class="btn btn-tertiary btn-lg-only-responsive"
+								type="button"
+								hx-include="#abstract-fields"
+								hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+								hx-post={ c.Route("work_remove_abstract").String() }
+								hx-encoding="multipart/form-data"
+								hx-target="#abstract-fields"
+								hx-swap="innerHTML"
+							>
+								<i class="if if-delete"></i>
+								<span class="btn-text">Remove</span>
+							</button>
+						</div>
+						<p class="c-body-small text-muted mb-1">{ text.Lang }</p>
+						<p>{ text.Val }</p>
+					</div>
+				</div>
+			}
+		}
 	</div>
 }
 

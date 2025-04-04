@@ -20,8 +20,8 @@ function initRepeatedField(fieldEl) {
     fieldEl.querySelectorAll(removeSelector).forEach((btnEl) => {
         btnEl.addEventListener('click', () => {
             let fields = document.querySelectorAll(`[${repeatedFieldAttr}='${fieldName}']`);
-            // only clear if it's the last remaining field and it contains the add button
-            if (fields.length == 1 && fieldEl.querySelectorAll(addSelector).length > 0) {
+            // only clear if it's the last remaining field
+            if (fields.length == 1) {
                 clearField(fieldEl)
             } else {
                 fieldEl.remove();
