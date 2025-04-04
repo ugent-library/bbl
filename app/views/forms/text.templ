@@ -5,6 +5,47 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
+type TextArgs struct {
+	FieldArgs
+	Attr bbl.Text
+	Rows int
+}
+
+templ Text(args TextArgs) {
+	{{
+		if args.Rows == 0 {
+			args.Rows = 1
+		}
+	}}
+	@Field(args.FieldArgs, "") {
+		<div class="card-body">
+			<div class="form-group">
+				<label class="form-label form-label-top">
+					Abstract
+				</label>
+				<textarea
+					class="form-control"
+					rows={ fmt.Sprint(args.Rows) }
+					name={ args.NameFor("val") }
+				>{ args.Attr.Val }</textarea>
+			</div>
+			<div class="form-group">
+				<label class="form-label form-label-top">
+					Language
+				</label>
+				<select
+					class="form-control form-select"
+					name={ args.NameFor("lang") }
+				>
+					for _, opt := range languageOptions {
+						<option value={ opt.Value } selected?={ opt.Value == args.Attr.Lang }>{ opt.Label }</option>
+					}
+				</select>
+			</div>
+		</div>
+	}
+}
+
 type TextRepeatArgs struct {
 	FieldArgs
 	Attrs []bbl.Text

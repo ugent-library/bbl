@@ -150,9 +150,9 @@ func Suggest(c views.Ctx, args SuggestArgs) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`js:{"person_id": "%s", "i": document.querySelectorAll('[data-bbl-repeated-field="contributors"]').length}`, hit.Rec.ID))
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`js:{"person_id": "%s", "idx": document.querySelectorAll('[data-bbl-repeated-field="contributors"]').length}`, hit.Rec.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/people/suggest.templ`, Line: 74, Col: 149}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/people/suggest.templ`, Line: 74, Col: 151}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -163,15 +163,15 @@ func Suggest(c views.Ctx, args SuggestArgs) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("add_work_contributor").String())
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_contributor").String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/people/suggest.templ`, Line: 75, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/people/suggest.templ`, Line: 75, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-target=\"#contributors-list\" hx-swap=\"beforeend\"><span class=\"btn-text\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-target=\"#contributor-fields\" hx-swap=\"beforeend\"><span class=\"btn-text\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

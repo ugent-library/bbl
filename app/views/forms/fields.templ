@@ -36,6 +36,22 @@ type FieldArgs struct {
 	AutoFocus bool
 }
 
+func (args FieldArgs) NameFor(parts ...any) string {
+	name := args.Name
+	for _, p := range parts {
+		switch pt := p.(type) {
+		case int:
+			name += fmt.Sprintf("[%d]", pt)
+		case string:
+			if name != "" {
+				name += "."				
+			}
+			name += pt
+		}
+	}
+	return name
+}
+
 templ Field(args FieldArgs, labelFor string) {
 	switch args.Theme {
 		case ThemeVertical:

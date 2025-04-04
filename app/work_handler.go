@@ -25,7 +25,9 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("add_work_contributor")
+	router.Handle("/works/_add_abstract", appCtx.Bind(h.AddAbstract)).Methods("GET").Name("work_add_abstract")
+	router.Handle("/works/_abstract", appCtx.Bind(h.Abstract)).Methods("POST").Name("work_abstract")
+	router.Handle("/works/_contributor", appCtx.Bind(h.Contributor)).Methods("POST").Name("work_contributor")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
@@ -102,6 +104,50 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 	}
 
 	return workviews.RefreshEditForm(c.ViewCtx(), work).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	return workviews.AddAbstractDialog(c.ViewCtx(), bbl.Text{}).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) Abstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var text bbl.Text
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		String("val", &text.Val).
+		String("lang", &text.Lang).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	return workviews.AbstractField(c.ViewCtx(), idx, text).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) Contributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var personID string
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		String("person_id", &personID).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	var con bbl.WorkContributor
+
+	if personID != "" {
+		p, err := h.repo.GetPerson(r.Context(), personID)
+		if err != nil {
+			return err
+		}
+		con.PersonID = p.ID
+		con.Person = p
+	}
+
+	return workviews.ContributorField(c.ViewCtx(), idx, con).Render(r.Context(), w)
 }
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {
@@ -190,29 +236,4 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	rec.Contributors = contributors
 
 	return nil
-}
-
-func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var i int
-	var personID string
-	err := binder.New(r).Form().Vacuum().
-		Int("i", &i).
-		String("person_id", &personID).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	var con bbl.WorkContributor
-
-	if personID != "" {
-		p, err := h.repo.GetPerson(r.Context(), personID)
-		if err != nil {
-			return err
-		}
-		con.PersonID = p.ID
-		con.Person = p
-	}
-
-	return workviews.Contributor(c.ViewCtx(), i, con).Render(r.Context(), w)
 }

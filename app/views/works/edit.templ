@@ -248,16 +248,89 @@ templ titlesField(c views.Ctx, rec *bbl.Work) {
 
 templ abstractsField(c views.Ctx, rec *bbl.Work) {
 	if rec.Profile.Abstracts != nil {
-		@forms.TextCardRepeat(forms.TextCardRepeatArgs{
-			FieldArgs: forms.FieldArgs{
-				Name:     "abstracts",
-				Label:    "Abstract",
-				Required: rec.Profile.Abstracts.Required,
-			},
-			Attrs: rec.Attrs.Abstracts,
-			Rows:  3,
-		})
+		<div class="form-group">
+			<div class="bc-toolbar h-auto">
+				<div class="bc-toolbar-left">
+					<label class="form-label form-label-top">Abstracts</label>
+				</div>
+				<div class="bc-toolbar-right">
+					<button
+						class="btn btn-tertiary"
+						type="button"
+						hx-get={ c.Route("work_add_abstract").String() }
+						hx-trigger="click"
+						hx-target="#modals"
+						hx-swap="innerHTML"
+						data-bs-toggle="modal"
+						data-bs-target="#modals"
+					>
+						<i class="if if-add"></i>
+						<div class="btn-text">Add abstract</div>
+					</button>
+				</div>
+			</div>
+			<div id="abstract-fields">
+				for i, text := range rec.Attrs.Abstracts {
+					@AbstractField(c, i, text)
+				}
+			</div>
+		</div>
 	}
+}
+
+templ AddAbstractDialog(c views.Ctx, text bbl.Text) {
+	<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 class="modal-title">Add abstract</h2>
+			</div>
+			<div class="modal-body">
+				<form>
+					@forms.Text(forms.TextArgs{
+						Rows: 8,
+					})
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+				<button
+					class="btn btn-primary"
+					type="button"
+					data-bs-dismiss="modal"
+					hx-include="#modals form"
+					hx-vals={ `js:{"idx": document.querySelectorAll('[data-bbl-repeated-field="abstracts"]').length}` }
+					hx-post={ c.Route("work_abstract").String() }
+					hx-encoding="multipart/form-data"
+					hx-target="#abstract-fields"
+					hx-swap="beforeend"
+				>
+					<span class="btn-text">Add abstract</span>
+					<i class="if if-arrow-right"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ AbstractField(c views.Ctx, idx int, text bbl.Text) {
+	<div class="card shadow-none mb-6 bg-lightest" data-bbl-repeated-field="abstracts">
+		<input type="hidden" name={ fmt.Sprintf("abstracts[%d].lang", idx) } value={ text.Lang }/>
+		<input type="hidden" name={ fmt.Sprintf("abstracts[%d].val", idx) } value={ text.Val }/>
+		<div class="card-body">
+			<div class="c-button-toolbar">
+				<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+					<i class="if if-edit"></i>
+					<span class="btn-text">Edit</span>
+				</button>
+				<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bbl-remove>
+					<i class="if if-delete"></i>
+					<span class="btn-text">Remove</span>
+				</button>
+			</div>
+			<p class="c-body-small text-muted mb-1">{ text.Lang }</p>
+			<p>{ text.Val }</p>
+		</div>
+	</div>
 }
 
 templ laySummariesField(c views.Ctx, rec *bbl.Work) {
@@ -311,18 +384,18 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 					</button>
 				</div>
 			</div>
-			<div id="contributors-list" class="list-group rounded-lg">
+			<div id="contributor-fields" class="list-group rounded-lg">
 				for i, con := range rec.Contributors {
-					@Contributor(c, i, con)
+					@ContributorField(c, i, con)
 				}
 			</div>
 		</div>
 	}
 }
 
-templ Contributor(c views.Ctx, i int, con bbl.WorkContributor) {
+templ ContributorField(c views.Ctx, idx int, con bbl.WorkContributor) {
 	<div class="list-group-item" data-bbl-repeated-field="contributors">
-		<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", i) } value={ con.PersonID }/>
+		<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", idx) } value={ con.PersonID }/>
 		<div class="bc-avatar-and-text align-items-start">
 			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
 				<i class="if if-ghent-university"></i>
