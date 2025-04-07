@@ -2,6 +2,7 @@ package forms
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Theme int
@@ -25,6 +26,7 @@ templ Errors(errors []string) {
 type FieldArgs struct {
 	Label     string
 	Name      string
+	Form      string
 	Readonly  bool
 	Tooltip   string
 	Required  bool
@@ -44,12 +46,26 @@ func (args FieldArgs) NameFor(parts ...any) string {
 			name += fmt.Sprintf("[%d]", pt)
 		case string:
 			if name != "" {
-				name += "."				
+				name += "."
 			}
 			name += pt
 		}
 	}
 	return name
+}
+
+func (args FieldArgs) WithNameFor(parts ...any) FieldArgs {
+	args.Name = args.NameFor(parts...)
+	return args
+}
+
+func (args FieldArgs) ID() string {
+	return strings.Map(func(r rune) rune {
+		if r == '.' || r == '[' || r == ']' {
+			return '-'
+		}
+		return r
+	}, args.Name)
 }
 
 templ Field(args FieldArgs, labelFor string) {
@@ -66,19 +82,26 @@ type TextInputArgs struct {
 	Value string
 }
 
-templ TextInput(args TextInputArgs) {
+templ TextInputField(args TextInputArgs) {
 	@Field(args.FieldArgs, args.Name) {
-		<input
-			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-			id={ args.Name }
-			name={ args.Name }
-			type="text"
-			value={ args.Value }
-			readonly?={ args.Readonly }
-			autofocus?={ args.AutoFocus }
-			{ fieldAria(args.FieldArgs)... }
-		/>
+		@TextInput(args)
 	}
+}
+
+templ TextInput(args TextInputArgs) {
+	<input
+		class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+		name={ args.Name }
+		if args.Form !="" {
+			form={ args.Form }
+		}
+		id={ args.ID() }
+		type="text"
+		value={ args.Value }
+		readonly?={ args.Readonly }
+		autofocus?={ args.AutoFocus }
+		{ fieldAria(args.FieldArgs)... }
+	/>
 }
 
 type TextAreaArgs struct {
@@ -87,18 +110,30 @@ type TextAreaArgs struct {
 	Rows  int
 }
 
+func (args TextAreaArgs) WithNameFor(parts ...any) TextAreaArgs {
+	args.Name = args.NameFor(parts...)
+	return args
+}
+
 templ TextArea(args TextAreaArgs) {
 	@Field(args.FieldArgs, args.Name) {
-		<textarea
-			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-			id={ args.Name }
-			name={ args.Name }
-			readonly?={ args.Readonly }
-			rows={ fmt.Sprint(args.Rows) }
-			autofocus?={ args.AutoFocus }
-			{ fieldAria(args.FieldArgs)... }
-		>{ args.Value }</textarea>
+		@TextAreaControl(args)
 	}
+}
+
+templ TextAreaControl(args TextAreaArgs) {
+	<textarea
+		class={ "form-control", templ.KV("is-invalid", args.Error != "") }
+		id={ args.ID() }
+		name={ args.Name }
+		if args.Form != "" {
+			form={ args.Form }
+		}
+		readonly?={ args.Readonly }
+		rows={ fmt.Sprint(args.Rows) }
+		autofocus?={ args.AutoFocus }
+		{ fieldAria(args.FieldArgs)... }
+	>{ args.Value }</textarea>
 }
 
 type SelectArgs struct {
@@ -108,22 +143,35 @@ type SelectArgs struct {
 	Options     []Option
 }
 
+func (args SelectArgs) WithNameFor(parts ...any) SelectArgs {
+	args.Name = args.NameFor(parts...)
+	return args
+}
+
 templ Select(args SelectArgs) {
 	@Field(args.FieldArgs, args.Name) {
-		<select
-			class={ "form-control", "form-select", templ.KV("is-invalid", args.Error != "") }
-			id={ args.Name }
-			name={ args.Name }
-			{ fieldAria(args.FieldArgs)... }
-		>
-			if args.EmptyOption {
-				<option></option>
-			}
-			for _, o := range args.Options {
-				<option value={ o.Value } selected?={ o.Value == args.Value }>{ o.Label }</option>
-			}
-		</select>
+		@SelectControl(args)
 	}
+}
+
+templ SelectControl(args SelectArgs) {
+	<select
+		class={ "form-control", "form-select", templ.KV("is-invalid", args.Error != "") }
+		id={ args.ID() }
+		name={ args.Name }
+		if args.Form != "" {
+			form={ args.Form }
+		}
+		autofocus?={ args.AutoFocus }
+		{ fieldAria(args.FieldArgs)... }
+	>
+		if args.EmptyOption {
+			<option></option>
+		}
+		for _, o := range args.Options {
+			<option value={ o.Value } selected?={ o.Value == args.Value }>{ o.Label }</option>
+		}
+	</select>
 }
 
 type CheckboxArgs struct {
@@ -138,8 +186,11 @@ templ Checkbox(args CheckboxArgs) {
 			<div class="form-check">
 				<input
 					class={ "form-check-input", templ.KV("is-invalid", args.Error != "") }
-					id={ args.Name }
+					id={ args.ID() }
 					name={ args.Name }
+					if args.Form != "" {
+						form={ args.Form }
+					}
 					value={ args.Value }
 					type="checkbox"
 					checked?={ args.Checked }
@@ -184,6 +235,9 @@ templ RadioGroup(args RadioGroupArgs) {
 						class="pe-3"
 						type="radio"
 						name={ args.Name }
+						if args.Form != "" {
+							form={ args.Form }
+						}
 						checked?={ o.Value == args.Value }
 						value={ o.Value }
 						{ fieldAria(args.FieldArgs)... }
@@ -213,6 +267,9 @@ templ TextInputRepeat(args TextInputRepeatArgs) {
 							<input
 								class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 								name={ args.Name }
+								if args.Form != "" {
+									form={ args.Form }
+								}
 								id={ fmt.Sprintf("%s-%d", args.Name, i) }
 								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
 								type="text"
@@ -238,6 +295,9 @@ templ TextInputRepeat(args TextInputRepeatArgs) {
 						<input
 							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 							name={ args.Name }
+							if args.Form != "" {
+								form={ args.Form }
+							}
 							id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
 							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
 							type="text"
@@ -271,6 +331,9 @@ templ TextInputRepeat(args TextInputRepeatArgs) {
 						<input
 							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 							name={ args.Name }
+							if args.Form != "" {
+								form={ args.Form }
+							}
 							id={ fmt.Sprintf("%s-%d", args.Name, i) }
 							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
 							type="text"
@@ -287,6 +350,9 @@ templ TextInputRepeat(args TextInputRepeatArgs) {
 					<input
 						class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 						name={ args.Name }
+						if args.Form != "" {
+							form={ args.Form }
+						}
 						id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
 						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
 						type="text"
@@ -323,6 +389,9 @@ templ SelectRepeat(args SelectRepeatArgs) {
 					<select
 						class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
 						name={ args.Name }
+						if args.Form != "" {
+							form={ args.Form }
+						}
 						id={ fmt.Sprintf("%s-%d", args.Name, i) }
 						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
 						{ fieldAria(args.FieldArgs)... }
@@ -344,6 +413,9 @@ templ SelectRepeat(args SelectRepeatArgs) {
 				<select
 					class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
 					name={ args.Name }
+					if args.Form != "" {
+						form={ args.Form }
+					}
 					id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
 					autofocus?={ args.AutoFocus }
 					data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
@@ -378,6 +450,9 @@ templ DateInput(args DateInputArgs) {
 			class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 			id={ args.Name }
 			name={ args.Name }
+			if args.Form != "" {
+				form={ args.Form }
+			}
 			type="date"
 			value={ args.Value }
 			if args.Min != "" {
@@ -401,18 +476,18 @@ templ Tags(args TagsArgs) {
 		<div data-bb-tags>
 			<span data-bb-tags-values class="d-none"></span>
 			<textarea
-				id={ args.Name }
+				id={ args.ID() }
 				data-bb-tags-widget-values
 				class="form-control tagify-custom"
 				autofocus?={ args.AutoFocus }
 				data-input-name={ args.Name }
 				aria-label={ args.Label }
 				{ fieldAria(args.FieldArgs)... }
-			> 
+			>
 				if len(args.Values) > 0 {
 					{ templ.JSONString(args.Values) }
 				} else {
-					{"[]"}
+					{ "[]" }
 				}
 			</textarea>
 		</div>
@@ -420,7 +495,7 @@ templ Tags(args TagsArgs) {
 }
 
 func helpID(args FieldArgs) string {
-	return fmt.Sprintf("%s-help", args.Name)
+	return fmt.Sprintf("%s-help", args.ID())
 }
 
 templ fieldTooltip(args FieldArgs) {
@@ -437,7 +512,6 @@ templ fieldTooltip(args FieldArgs) {
 // 		<span class="required" aria-hidden="true" title="required">*</span>
 // 	}
 // }
-
 templ fieldRequiredBadge(args FieldArgs) {
 	if args.Required {
 		<span class="badge badge-outline-primary badge-sm">Required</span>

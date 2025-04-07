@@ -7,8 +7,9 @@ import (
 
 type TextArgs struct {
 	FieldArgs
-	Attr bbl.Text
-	Rows int
+	Attr      bbl.Text
+	Rows      int
+	ValLabel  string
 }
 
 templ Text(args TextArgs) {
@@ -17,30 +18,26 @@ templ Text(args TextArgs) {
 			args.Rows = 1
 		}
 	}}
-	@Field(args.FieldArgs, "") {
+	@Field(args.FieldArgs, args.NameFor("val")) {
 		<div class="card-body">
 			<div class="form-group">
-				<label class="form-label form-label-top">
-					Abstract
-				</label>
-				<textarea
-					class="form-control"
-					rows={ fmt.Sprint(args.Rows) }
-					name={ args.NameFor("val") }
-				>{ args.Attr.Val }</textarea>
+				if args.ValLabel != "" {
+					<label class="form-label form-label-top">{ args.ValLabel }</label>
+				}
+				@TextAreaControl(TextAreaArgs{
+					FieldArgs: args.WithNameFor("val"),
+					Rows:      args.Rows,
+					Value:     args.Attr.Val,
+				})
 			</div>
 			<div class="form-group">
 				<label class="form-label form-label-top">
 					Language
 				</label>
-				<select
-					class="form-control form-select"
-					name={ args.NameFor("lang") }
-				>
-					for _, opt := range languageOptions {
-						<option value={ opt.Value } selected?={ opt.Value == args.Attr.Lang }>{ opt.Label }</option>
-					}
-				</select>
+				@SelectControl(SelectArgs{
+					FieldArgs: args.WithNameFor("lang"),
+					Options:   languageOptions,
+				})
 			</div>
 		</div>
 	}
@@ -91,94 +88,5 @@ templ TextRepeat(args TextRepeatArgs) {
 				</div>
 			</div>
 		}
-	}
-}
-
-type TextCardRepeatArgs struct {
-	FieldArgs
-	Attrs []bbl.Text
-	Rows  int
-}
-
-templ TextCardRepeat(args TextCardRepeatArgs) {
-	@Field(args.FieldArgs, fmt.Sprintf("%s-0-val", args.Name)) {
-		<div data-bb-repeated-fields>
-			for i, attr := range args.Attrs {
-				<div class="form-group" data-bb-repeated-field>
-					<div class="d-flex">
-						<div class="card shadow-none mb-6 bg-lightest w-100">
-							<div class="card-body">
-								<div class="form-group">
-									<textarea
-										class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-										name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
-										id={ fmt.Sprintf("%s-%d-val", args.Name, i) }
-										data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
-										data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
-										rows={ fmt.Sprint(args.Rows) }
-										{ fieldAria(args.FieldArgs)... }
-									>{ attr.Val }</textarea>
-								</div>
-								<div class="form-group">
-									<label class="form-label form-label-top">Language</label>
-									<select
-										class="form-select"
-										name={ fmt.Sprintf("%s[%d].lang", args.Name, i) }
-										id={ fmt.Sprintf("%s-%d-lang", args.Name, i) }
-										data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].lang", args.Name) }
-										data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-lang", args.Name) }
-									>
-										for _, opt := range languageOptions {
-											<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
-										}
-									</select>
-								</div>
-							</div>
-						</div>
-						<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-							<i class="if if-delete"></i>
-							<span class="visually-hidden">Delete</span>
-						</button>
-					</div>
-				</div>
-			}
-			<div class="form-group" data-bb-repeated-field>
-				<div class="d-flex">
-					<div class="card shadow-none mb-6 bg-lightest w-100">
-						<div class="card-body">
-							<div class="form-group">
-								<textarea
-									class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-									name={ fmt.Sprintf("%s[%d].val", args.Name, len(args.Attrs)) }
-									id={ fmt.Sprintf("%s-%d-val", args.Name, len(args.Attrs)) }
-									data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].val", args.Name) }
-									data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-val", args.Name) }
-									rows={ fmt.Sprint(args.Rows) }
-									{ fieldAria(args.FieldArgs)... }
-								></textarea>
-							</div>
-							<div class="form-group">
-								<label class="form-label form-label-top">Language</label>
-								<select
-									class="form-select"
-									name={ fmt.Sprintf("%s[%d].lang", args.Name, len(args.Attrs)) }
-									id={ fmt.Sprintf("%s-%d-lang", args.Name, len(args.Attrs)) }
-									data-bb-tmpl-name={ fmt.Sprintf("%s[{i}].lang", args.Name) }
-									data-bb-tmpl-id={ fmt.Sprintf("%s-{i}-lang", args.Name) }
-								>
-									for _, o := range languageOptions {
-										<option value={ o.Value }>{ o.Label }</option>
-									}
-								</select>
-							</div>
-						</div>
-					</div>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
-						<i class="if if-add"></i>
-						<div class="visually-hidden">Add</div>
-					</button>
-				</div>
-			</div>
-		</div>
 	}
 }

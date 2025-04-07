@@ -11,12 +11,14 @@ import (
 )
 
 type WorkHandler struct {
-	repo *bbl.Repo
+	repo  *bbl.Repo
+	index bbl.Index
 }
 
-func NewWorkHandler(repo *bbl.Repo) *WorkHandler {
+func NewWorkHandler(repo *bbl.Repo, index bbl.Index) *WorkHandler {
 	return &WorkHandler{
-		repo: repo,
+		repo:  repo,
+		index: index,
 	}
 }
 
@@ -25,10 +27,16 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
+
 	router.Handle("/works/_add_abstract", appCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
 	router.Handle("/works/_edit_abstract", appCtx.Bind(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
 	router.Handle("/works/_remove_abstract", appCtx.Bind(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
-	router.Handle("/works/_contributor", appCtx.Bind(h.Contributor)).Methods("POST").Name("work_contributor")
+	router.Handle("/works/_add_lay_summary", appCtx.Bind(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
+	router.Handle("/works/_edit_lay_summary", appCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
+	router.Handle("/works/_remove_lay_summary", appCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
+	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
+	router.Handle("/works/_suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
+
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
@@ -127,7 +135,7 @@ func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *App
 
 	texts = append(texts, text)
 
-	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
+	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -154,7 +162,7 @@ func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *Ap
 		texts[idx] = text
 	}
 
-	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
+	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -178,32 +186,138 @@ func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *
 		texts = append(texts[:idx], texts[idx+1:]...)
 	}
 
-	return workviews.AbstractFields(c.ViewCtx(), texts).Render(r.Context(), w)
+	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) Contributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var personID string
+func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var text bbl.Text
+	var texts []bbl.Text
 	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		String("person_id", &personID).
+		String("lang", &text.Lang).
+		String("val", &text.Val).
+		Each("lay_summaries", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
 		Err()
 	if err != nil {
 		return err
 	}
 
-	var con bbl.WorkContributor
+	texts = append(texts, text)
+
+	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var text bbl.Text
+	var texts []bbl.Text
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		String("lang", &text.Lang).
+		String("val", &text.Val).
+		Each("lay_summaries", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(texts) {
+		texts[idx] = text
+	}
+
+	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var texts []bbl.Text
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		Each("lay_summaries", func(b *binder.Values) bool {
+			var attr bbl.Text
+			b.String("lang", &attr.Lang)
+			b.String("val", &attr.Val)
+			texts = append(texts, attr)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(texts) {
+		texts = append(texts[:idx], texts[idx+1:]...)
+	}
+
+	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var query string
+	if err := binder.New(r).Query().String("q", &query).Err(); err != nil {
+		return err
+	}
+	hits, err := h.index.People().Search(r.Context(), bbl.SearchArgs{Query: query, Limit: 10})
+	if err != nil {
+		return err
+	}
+	return workviews.ContributorSuggestions(c.ViewCtx(), hits).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var personID string
+	var contributors []bbl.WorkContributor
+	err := binder.New(r).Form().Vacuum().
+		String("person_id", &personID).
+		Each("contributors", func(b *binder.Values) bool {
+			var con bbl.WorkContributor
+			b.String("id", &con.ID)
+			b.String("attrs.name", &con.Attrs.Name)
+			b.String("attrs.given_name", &con.Attrs.GivenName)
+			b.String("attrs.middle_name", &con.Attrs.MiddleName)
+			b.String("attrs.family_name", &con.Attrs.FamilyName)
+			b.String("person_id", &con.PersonID)
+			contributors = append(contributors, con)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	for i, con := range contributors {
+		if con.PersonID != "" {
+			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
+			if err != nil {
+				return err
+			}
+			contributors[i].Person = p
+		}
+	}
 
 	if personID != "" {
 		p, err := h.repo.GetPerson(r.Context(), personID)
 		if err != nil {
 			return err
 		}
-		con.PersonID = p.ID
-		con.Person = p
+		contributors = append(contributors, bbl.WorkContributor{
+			PersonID: p.ID,
+			Person:   p,
+		})
 	}
 
-	return workviews.ContributorField(c.ViewCtx(), idx, con).Render(r.Context(), w)
+	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
 }
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {

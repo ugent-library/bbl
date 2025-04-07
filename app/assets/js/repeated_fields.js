@@ -53,6 +53,7 @@ function clearField(fieldEl) {
     });
 }
 
+// TODO also set correct id
 function setFieldIndices(fieldName) {
     document.querySelectorAll(`[${repeatedFieldAttr}='${fieldName}']`).forEach((el, idx) => {
         el.querySelectorAll(`[name^='${fieldName}[']`).forEach((formEl) => {
