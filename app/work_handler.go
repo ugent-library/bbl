@@ -34,8 +34,10 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_add_lay_summary", appCtx.Bind(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
 	router.Handle("/works/_edit_lay_summary", appCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
 	router.Handle("/works/_remove_lay_summary", appCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
-	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
 	router.Handle("/works/_suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
+	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
+	router.Handle("/works/_edit_contributor", appCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
+	router.Handle("/works/_remove_contributor", appCtx.Bind(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
 
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
@@ -265,14 +267,15 @@ func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c
 
 func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	var query string
-	if err := binder.New(r).Query().String("q", &query).Err(); err != nil {
+	var idx int = -1
+	if err := binder.New(r).Query().String("q", &query).Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 	hits, err := h.index.People().Search(r.Context(), bbl.SearchArgs{Query: query, Limit: 10})
 	if err != nil {
 		return err
 	}
-	return workviews.ContributorSuggestions(c.ViewCtx(), hits).Render(r.Context(), w)
+	return workviews.ContributorSuggestions(c.ViewCtx(), hits, idx).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -315,6 +318,90 @@ func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *
 			PersonID: p.ID,
 			Person:   p,
 		})
+	}
+
+	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var personID string
+	var contributors []bbl.WorkContributor
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		String("person_id", &personID).
+		Each("contributors", func(b *binder.Values) bool {
+			var con bbl.WorkContributor
+			b.String("id", &con.ID)
+			b.String("attrs.name", &con.Attrs.Name)
+			b.String("attrs.given_name", &con.Attrs.GivenName)
+			b.String("attrs.middle_name", &con.Attrs.MiddleName)
+			b.String("attrs.family_name", &con.Attrs.FamilyName)
+			b.String("person_id", &con.PersonID)
+			contributors = append(contributors, con)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(contributors) {
+		if personID != "" {
+			p, err := h.repo.GetPerson(r.Context(), personID)
+			if err != nil {
+				return err
+			}
+			contributors[idx].Person = p
+		}
+	}
+
+	for i, con := range contributors {
+		if i != idx && con.PersonID != "" {
+			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
+			if err != nil {
+				return err
+			}
+			contributors[i].Person = p
+		}
+	}
+
+	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var idx int
+	var contributors []bbl.WorkContributor
+	err := binder.New(r).Form().Vacuum().
+		Int("idx", &idx).
+		Each("contributors", func(b *binder.Values) bool {
+			var con bbl.WorkContributor
+			b.String("id", &con.ID)
+			b.String("attrs.name", &con.Attrs.Name)
+			b.String("attrs.given_name", &con.Attrs.GivenName)
+			b.String("attrs.middle_name", &con.Attrs.MiddleName)
+			b.String("attrs.family_name", &con.Attrs.FamilyName)
+			b.String("person_id", &con.PersonID)
+			contributors = append(contributors, con)
+			return true
+		}).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if idx >= 0 && idx < len(contributors) {
+		contributors = append(contributors[:idx], contributors[idx+1:]...)
+	}
+
+	for i, con := range contributors {
+		if con.PersonID != "" {
+			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
+			if err != nil {
+				return err
+			}
+			contributors[i].Person = p
+		}
 	}
 
 	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)

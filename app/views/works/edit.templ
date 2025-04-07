@@ -576,6 +576,37 @@ templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 			</div>
 			<div class="list-group rounded-lg">
 				for idx, con := range contributors {
+					<div id={ fmt.Sprintf("edit-contributor-%d", idx) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
+						<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h2 class="modal-title">Edit contributor</h2>
+								</div>
+								<div class="p-6 border-bottom">
+									<h3>Search contributor</h3>
+									<form class="row">
+										<div class="form-group col">
+											<label class="col-form-label">Name</label>
+											<input
+												class="form-control"
+												type="search"
+												name="q"
+												hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+												hx-get={ c.Route("work_suggest_contributors").String() }
+												hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+												hx-target={ fmt.Sprintf("#contributor-suggestions-%d", idx) }
+												hx-swap="innerHTML"
+											/>
+										</div>
+									</form>
+								</div>
+								<div id={ fmt.Sprintf("contributor-suggestions-%d", idx) } class="modal-body"></div>
+								<div class="modal-footer">
+									<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+								</div>
+							</div>
+						</div>
+					</div>
 					<div class="list-group-item">
 						<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", idx) } value={ con.PersonID }/>
 						<div class="bc-avatar-and-text align-items-start">
@@ -590,9 +621,22 @@ templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 									<div class="c-button-toolbar">
 										<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
 											<i class="if if-edit"></i>
-											<span class="btn-text">Edit</span>
+											<span
+												class="btn-text"
+												data-bs-toggle="modal"
+												data-bs-target={ fmt.Sprintf("#edit-contributor-%d", idx) }
+											>Edit</span>
 										</button>
-										<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+										<button
+											class="btn btn-tertiary btn-lg-only-responsive"
+											type="button"
+											hx-include="#contributors-field"
+											hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+											hx-post={ c.Route("work_remove_contributor").String() }
+											hx-encoding="multipart/form-data"
+											hx-target="#contributors-field"
+											hx-swap="outerHTML"
+										>
 											<i class="if if-delete"></i>
 											<span class="btn-text">Remove</span>
 										</button>
@@ -607,7 +651,7 @@ templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 	</div>
 }
 
-templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
+templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx int) {
 	<ul class="list-group">
 		for _, hit := range hits.Hits {
 			<li class="list-group-item">
@@ -628,13 +672,24 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 							type="button"
 							data-bs-dismiss="modal"
 							hx-include="#contributors-field [name^='contributors']"
-							hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
-							hx-post={ c.Route("work_add_contributor").String() }
+							if idx >= 0 {
+								hx-vals={ fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID) }
+								hx-post={ c.Route("work_edit_contributor").String() }
+							} else {
+								hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
+								hx-post={ c.Route("work_add_contributor").String() }
+							}
 							hx-encoding="multipart/form-data"
 							hx-target="#contributors-field"
 							hx-swap="outerHTML"
 						>
-							<span class="btn-text">Add contributor</span>
+							<span class="btn-text">
+								if idx >= 0 {
+									Edit contributor
+								} else {
+									Add contributor
+								}
+							</span>
 							<i class="if if-arrow-right"></i>
 						</button>
 					</div>
