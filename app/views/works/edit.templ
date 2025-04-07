@@ -200,43 +200,51 @@ templ RefreshEditForm(c views.Ctx, rec *bbl.Work) {
 }
 
 templ kindField(c views.Ctx, rec *bbl.Work) {
-	<div class="form-group">
-		<label class="form-label form-label-top">Type</label>
-		<select
-			class="form-select"
-			name="kind"
-			if rec.ID == "" {
-				hx-post={ c.Route("refresh_new_work").String() }
-			} else {
-				hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
-			}
-			hx-encoding="multipart/form-data"
-			hx-include="#edit-work"
-			hx-target="#edit-work"
-		>
-			for _, kind := range bbl.WorkKinds {
-				<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
-			}
-		</select>
+	<div class="row">
+		<div class="col-lg-6">
+			<div class="form-group mb-6 mb-lg-0">
+				<label class="form-label form-label-top">Publication type</label>
+				<select
+					class="form-select w-100"
+					name="kind"
+					if rec.ID == "" {
+						hx-post={ c.Route("refresh_new_work").String() }
+					} else {
+						hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
+					}
+					hx-encoding="multipart/form-data"
+					hx-include="#edit-work"
+					hx-target="#edit-work"
+				>
+					for _, kind := range bbl.WorkKinds {
+						<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
+					}
+				</select>
+			</div>
+		</div>
 		if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
-			<label class="form-label form-label-top">{ rec.Kind } type</label>
-			<select
-				class="form-select"
-				name="sub_kind"
-				if rec.ID == "" {
-					hx-post={ c.Route("refresh_new_work").String() }
-				} else {
-					hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
-				}
-				hx-encoding="multipart/form-data"
-				hx-include="#edit-work"
-				hx-target="#edit-work"
-			>
-				<option></option>
-				for _, kind := range subKinds {
-					<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
-				}
-			</select>
+			<div class="col-lg-6">
+				<div class="form-group">
+					<label class="form-label form-label-top">{ rec.Kind } type</label>
+					<select
+						class="form-select w-100"
+						name="sub_kind"
+						if rec.ID == "" {
+							hx-post={ c.Route("refresh_new_work").String() }
+						} else {
+							hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
+						}
+						hx-encoding="multipart/form-data"
+						hx-include="#edit-work"
+						hx-target="#edit-work"
+					>
+						<option></option>
+						for _, kind := range subKinds {
+							<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
+						}
+					</select>
+				</div>
+			</div>
 		}
 	</div>
 }
