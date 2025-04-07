@@ -37,130 +37,130 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 					</div>
 				</div>
 			</div>
-			<div id="edit-work">
-				@editForm(c, rec)
+			<div class="d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative">
+				<div class="c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block">
+					<div class="bc-navbar bc-navbar--large">
+						<div class="bc-toolbar">
+							<div class="bc-toolbar-left">
+								<div class="bc-toolbar-item">
+									<h4 class="bc-toolbar-title">Sidebar</h4>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="c-sub-sidebar__content pt-5">
+						<div class="ps-6">
+							<nav class="nav nav-pills flex-column" id="edit-work-nav">
+								<a class="nav-link" href="#type">
+									<span class="c-sidebar__label">Type</span>
+								</a>
+								<a class="nav-link" href="#description">
+									<span class="c-sidebar__label">Description</span>
+								</a>
+								<a class="nav-link" href="#contributors_affiliations">
+									<span class="c-sidebar__label">People & affiliations</span>
+								</a>
+								<a class="nav-link" href="#bibliographic_information">
+									<span class="c-sidebar__label">Bibliographic information</span>
+								</a>
+								<a class="nav-link" href="#conference_details">
+									<span class="c-sidebar__label">Conference details</span>
+								</a>
+								<a class="nav-link" href="#identifiers">
+									<span class="c-sidebar__label">Identifiers</span>
+								</a>
+							</nav>
+						</div>
+					</div>
+				</div>
+				<div class="w-100 u-scroll-wrapper">
+					<div class="u-scroll-wrapper__body u-smooth-scroll p-6" data-bs-spy="scroll" data-bs-target="#edit-work-nav" data-bs-offset="160" data-scroll-area>
+						<div id="edit-work">
+							@editForm(c, rec)
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	}
 }
 
 templ editForm(c views.Ctx, rec *bbl.Work) {
-	<div class="d-flex flex-grow-1 flex-shrink-1 overflow-hidden position-relative">
-		<div class="c-sub-sidebar c-sub-sidebar--responsive h-100 u-z-reset d-none d-lg-block">
-			<div class="bc-navbar bc-navbar--large">
-				<div class="bc-toolbar">
-					<div class="bc-toolbar-left">
-						<div class="bc-toolbar-item">
-							<h4 class="bc-toolbar-title">Sidebar</h4>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="c-sub-sidebar__content pt-5">
-				<div class="ps-6">
-					<nav class="nav nav-pills flex-column">
-						<a class="nav-link" href="#type">
-							<span class="c-sidebar__label">Type</span>
-						</a>
-						<a class="nav-link" href="#description">
-							<span class="c-sidebar__label">Description</span>
-						</a>
-						<a class="nav-link" href="#contributors_affiliations">
-							<span class="c-sidebar__label">People & affiliations</span>
-						</a>
-						<a class="nav-link" href="#bibliographic_information">
-							<span class="c-sidebar__label">Bibliographic information</span>
-						</a>
-						<a class="nav-link" href="#conference_details">
-							<span class="c-sidebar__label">Conference details</span>
-						</a>
-						<a class="nav-link" href="#identifiers">
-							<span class="c-sidebar__label">Identifiers</span>
-						</a>
-					</nav>
-				</div>
+	<div class="mb-6" id="type">
+		<div class="mb-4">
+			<h2>Type</h2>
+		</div>
+		<div class="card mb-6">
+			<div class="card-body">
+				@kindField(c, rec)
 			</div>
 		</div>
-		<div class="w-100 u-scroll-wrapper">
-			<div class="u-scroll-wrapper__body w-100 p-6">
-				<div class="mb-6" id="type">
-					<div class="mb-4">
-						<h2>Type</h2>
-					</div>
-					<div class="card mb-6">
-						<div class="card-body">
-							@kindField(c, rec)
-						</div>
-					</div>
-				</div>
-				<div class="mb-6" id="description">
-					<div class="mb-4">
-						<h2>Description</h2>
-					</div>
-					<div class="card mb-6">
-						<div class="card-body">
-							if rec.Profile.Titles != nil {
-								@titlesField(c, rec)
-							}
-							if rec.Profile.Abstracts != nil {
-								@AbstractsField(c, rec.Attrs.Abstracts)
-							}
-							if rec.Profile.LaySummaries != nil {
-								@LaySummariesField(c, rec.Attrs.LaySummaries)
-							}
-							if rec.Profile.Keywords != nil {
-								@keywordsField(c, rec)
-							}
-						</div>
-					</div>
-				</div>
-				<div class="mb-6" id="contributors_affiliations">
-					<div class="mb-4">
-						<h2>People & affiliations</h2>
-					</div>
-					<div class="card mb-6">
-						<div class="card-body">
-							if rec.Profile.Contributors != nil {
-								@ContributorsField(c, rec.Contributors)
-							}
-						</div>
-					</div>
-				</div>
-				<div class="mb-6" id="bibliographic_information">
-					<div class="mb-4">
-						<h2>Bibliographic information</h2>
-					</div>
-					<div class="card mb-6">
-						<div class="card-body"></div>
-					</div>
-				</div>
-				if rec.Profile.Conference != nil {
-					<div class="mb-6" id="conference_details">
-						<div class="mb-4">
-							<h2>Conference details</h2>
-						</div>
-						<div class="card mb-6">
-							<div class="card-body">
-								@conferenceField(c, rec)
-							</div>
-						</div>
-					</div>
+	</div>
+	<div class="mb-6" id="description">
+		<div class="mb-4">
+			<h2>Description</h2>
+		</div>
+		<div class="card mb-6">
+			<div class="card-body">
+				if rec.Profile.Titles != nil {
+					@titlesField(c, rec)
 				}
-				if rec.Profile.Identifiers != nil {
-					<div class="mb-6" id="identifiers">
-						<div class="mb-4">
-							<h2>Identifiers</h2>
-						</div>
-						<div class="card mb-6">
-							<div class="card-body">
-								@identifiersField(c, rec)
-							</div>
-						</div>
-					</div>
+				if rec.Profile.Abstracts != nil {
+					@AbstractsField(c, rec.Attrs.Abstracts)
+				}
+				if rec.Profile.LaySummaries != nil {
+					@LaySummariesField(c, rec.Attrs.LaySummaries)
+				}
+				if rec.Profile.Keywords != nil {
+					@keywordsField(c, rec)
 				}
 			</div>
 		</div>
 	</div>
+	<div class="mb-6" id="contributors_affiliations">
+		<div class="mb-4">
+			<h2>People & affiliations</h2>
+		</div>
+		<div class="card mb-6">
+			<div class="card-body">
+				if rec.Profile.Contributors != nil {
+					@ContributorsField(c, rec.Contributors)
+				}
+			</div>
+		</div>
+	</div>
+	<div class="mb-6" id="bibliographic_information">
+		<div class="mb-4">
+			<h2>Bibliographic information</h2>
+		</div>
+		<div class="card mb-6">
+			<div class="card-body"></div>
+		</div>
+	</div>
+	if rec.Profile.Conference != nil {
+		<div class="mb-6" id="conference_details">
+			<div class="mb-4">
+				<h2>Conference details</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					@conferenceField(c, rec)
+				</div>
+			</div>
+		</div>
+	}
+	if rec.Profile.Identifiers != nil {
+		<div class="mb-6" id="identifiers">
+			<div class="mb-4">
+				<h2>Identifiers</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					@identifiersField(c, rec)
+				</div>
+			</div>
+		</div>
+	}
 }
 
 templ editButtons(c views.Ctx, rec *bbl.Work) {
@@ -210,6 +210,7 @@ templ kindField(c views.Ctx, rec *bbl.Work) {
 			} else {
 				hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
 			}
+			hx-encoding="multipart/form-data"
 			hx-include="#edit-work"
 			hx-target="#edit-work"
 		>
@@ -227,6 +228,7 @@ templ kindField(c views.Ctx, rec *bbl.Work) {
 				} else {
 					hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
 				}
+				hx-encoding="multipart/form-data"
 				hx-include="#edit-work"
 				hx-target="#edit-work"
 			>
@@ -575,76 +577,86 @@ templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 				</div>
 			</div>
 			<div class="list-group rounded-lg">
-				for idx, con := range contributors {
-					<div id={ fmt.Sprintf("edit-contributor-%d", idx) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
-						<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
-							<div class="modal-content">
-								<div class="modal-header">
-									<h2 class="modal-title">Edit contributor</h2>
+				if len(contributors) == 0 {
+					<div class="card shadow-none mb-6 bg-lightest">
+						<div class="card-body">
+							<div class="c-blank-slate py-4">
+								<p>No contributors.</p>
+							</div>
+						</div>
+					</div>
+				} else {
+					for idx, con := range contributors {
+						<div id={ fmt.Sprintf("edit-contributor-%d", idx) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
+							<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
+								<div class="modal-content">
+									<div class="modal-header">
+										<h2 class="modal-title">Edit contributor</h2>
+									</div>
+									<div class="p-6 border-bottom">
+										<h3>Search contributor</h3>
+										<form class="row">
+											<div class="form-group col">
+												<label class="col-form-label">Name</label>
+												<input
+													class="form-control"
+													type="search"
+													name="q"
+													hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+													hx-get={ c.Route("work_suggest_contributors").String() }
+													hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+													hx-target={ fmt.Sprintf("#contributor-suggestions-%d", idx) }
+													hx-swap="innerHTML"
+												/>
+											</div>
+										</form>
+									</div>
+									<div id={ fmt.Sprintf("contributor-suggestions-%d", idx) } class="modal-body"></div>
+									<div class="modal-footer">
+										<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+									</div>
 								</div>
-								<div class="p-6 border-bottom">
-									<h3>Search contributor</h3>
-									<form class="row">
-										<div class="form-group col">
-											<label class="col-form-label">Name</label>
-											<input
-												class="form-control"
-												type="search"
-												name="q"
-												hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
-												hx-get={ c.Route("work_suggest_contributors").String() }
-												hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
-												hx-target={ fmt.Sprintf("#contributor-suggestions-%d", idx) }
-												hx-swap="innerHTML"
-											/>
+							</div>
+						</div>
+						<div class="list-group-item">
+							<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", idx) } value={ con.PersonID }/>
+							<div class="bc-avatar-and-text align-items-start">
+								<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+									<i class="if if-ghent-university"></i>
+								</div>
+								<div class="bc-avatar-text">
+									<div class="hstack-md-responsive gap-3 gap-lg-4">
+										<div class="vstack gap-3">
+											<h4 class="mb-0">{ con.GetName() }</h4>
 										</div>
-									</form>
-								</div>
-								<div id={ fmt.Sprintf("contributor-suggestions-%d", idx) } class="modal-body"></div>
-								<div class="modal-footer">
-									<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="list-group-item">
-						<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", idx) } value={ con.PersonID }/>
-						<div class="bc-avatar-and-text align-items-start">
-							<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-								<i class="if if-ghent-university"></i>
-							</div>
-							<div class="bc-avatar-text">
-								<div class="hstack-md-responsive gap-3 gap-lg-4">
-									<div class="vstack gap-3">
-										<h4 class="mb-0">{ con.GetName() }</h4>
-									</div>
-									<div class="c-button-toolbar">
-										<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-											<i class="if if-edit"></i>
-											<span
-												class="btn-text"
-												data-bs-toggle="modal"
-												data-bs-target={ fmt.Sprintf("#edit-contributor-%d", idx) }
-											>Edit</span>
-										</button>
-										<button
-											class="btn btn-tertiary btn-lg-only-responsive"
-											type="button"
-											hx-include="#contributors-field"
-											hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
-											hx-post={ c.Route("work_remove_contributor").String() }
-											hx-encoding="multipart/form-data"
-											hx-target="#contributors-field"
-											hx-swap="outerHTML"
-										>
-											<i class="if if-delete"></i>
-											<span class="btn-text">Remove</span>
-										</button>
+										<div class="c-button-toolbar">
+											<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+												<i class="if if-edit"></i>
+												<span
+													class="btn-text"
+													data-bs-toggle="modal"
+													data-bs-target={ fmt.Sprintf("#edit-contributor-%d", idx) }
+												>Edit</span>
+											</button>
+											<button
+												class="btn btn-tertiary btn-lg-only-responsive"
+												type="button"
+												hx-include="#contributors-field"
+												hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+												hx-post={ c.Route("work_remove_contributor").String() }
+												hx-encoding="multipart/form-data"
+												hx-target="#contributors-field"
+												hx-swap="outerHTML"
+											>
+												<i class="if if-delete"></i>
+												<span class="btn-text">Remove</span>
+											</button>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
+					}
 				}
 			</div>
 		</div>
