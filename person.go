@@ -7,6 +7,8 @@ import (
 
 type Person struct {
 	ID        string      `json:"id,omitempty"`
+	Source    string      `json:"source,omitempty"`
+	SourceID  string      `json:"source_id,omitempty"`
 	Attrs     PersonAttrs `json:"attrs"`
 	CreatedAt time.Time   `json:"created_at,omitzero"`
 	UpdatedAt time.Time   `json:"updated_at,omitzero"`

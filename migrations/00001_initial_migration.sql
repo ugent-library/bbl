@@ -3,10 +3,14 @@
 create table bbl_organizations (
   id uuid primary key,
   kind text not null,
+  source text,
+  source_id text,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
+
+create unique index on bbl_organizations (source, source_id)  where source_id is not null;
 
 create table bbl_organizations_rels (
   id uuid primary key,
@@ -21,19 +25,16 @@ create table bbl_organizations_rels (
 create index on bbl_organizations_rels (organization_id);
 create index on bbl_organizations_rels (rel_organization_id);
 
-create table bbl_projects (
+create table bbl_people (
   id uuid primary key,
+  source text,
+  source_id text,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_people (
-  id uuid primary key,
-  attrs jsonb not null default '{}',
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
-);
+create unique index on bbl_people (source, source_id)  where source_id is not null;
 
 create table bbl_people_organizations (
   id uuid primary key,
@@ -44,6 +45,17 @@ create table bbl_people_organizations (
 
 create index on bbl_people_organizations (person_id);
 create index on bbl_people_organizations (organization_id);
+
+create table bbl_projects (
+  id uuid primary key,
+  source text,
+  source_id text,
+  attrs jsonb not null default '{}',
+  created_at timestamptz not null default transaction_timestamp(),
+  updated_at timestamptz not null default transaction_timestamp()
+);
+
+create unique index on bbl_projects (source, source_id)  where source_id is not null;
 
 create table bbl_works (
   id uuid primary key,

@@ -8,6 +8,8 @@ import (
 type Organization struct {
 	ID        string            `json:"id,omitempty"`
 	Kind      string            `json:"kind"`
+	Source    string            `json:"source,omitempty"`
+	SourceID  string            `json:"source_id,omitempty"`
 	Attrs     OrganizationAttrs `json:"attrs"`
 	Rels      []OrganizationRel `json:"rels,omitempty"`
 	CreatedAt time.Time         `json:"created_at,omitzero"`

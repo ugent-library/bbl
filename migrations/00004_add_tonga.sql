@@ -207,7 +207,7 @@ $$ language plpgsql;
 
 drop function tonga_create_channel;
 drop function tonga_delete_channel;
-drop function tonga_send
+drop function tonga_send;
 drop function tonga_read;
 drop function tonga_delete;
 drop function tonga_gc;

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"iter"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -166,21 +167,27 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if a.Organization.ID == "" {
 				a.Organization.ID = r.NewID()
 			}
+
+			if err := lookupOrganizationRels(ctx, tx, a.Organization.Rels); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
 			diff := a.Organization.Diff(&Organization{})
 
 			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
 			batch.Queue(`
-				insert into bbl_organizations (id, kind, attrs)
-				values ($1, $2, $3);`,
-				a.Organization.ID, a.Organization.Kind, jsonAttrs,
+				insert into bbl_organizations (id, kind, source, source_id, attrs)
+				values ($1, $2, nullif($3, ''), nullif($4, ''), $5);`,
+				a.Organization.ID, a.Organization.Kind, a.Organization.Source, a.Organization.SourceID, jsonAttrs,
 			)
 			for i, rel := range a.Organization.Rels {
 				batch.Queue(`
@@ -204,6 +211,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
+			if err := lookupOrganizationRels(ctx, tx, a.Organization.Rels); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
 			diff := a.Organization.Diff(currentRec)
 
 			if len(diff) == 0 {
@@ -214,6 +225,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -222,10 +234,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			batch.Queue(`
 				update bbl_organizations
 				set kind = $2,
-				    attrs = $3,
+					source = nullif($3, ''),
+					source_id = nullif($4, ''),
+				    attrs = $5,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
-				a.Organization.ID, a.Organization.Kind, jsonAttrs,
+				a.Organization.ID, a.Organization.Kind, a.Organization.Source, a.Organization.SourceID, jsonAttrs,
 			)
 
 			if _, ok := diff["rels"]; ok {
@@ -299,9 +313,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_people (id, attrs)
-				values ($1, $2);`,
-				a.Person.ID, jsonAttrs,
+				insert into bbl_people (id, source, source_id, attrs)
+				values ($1, nullif($2, ''), nullif($3, ''), $4);`,
+				a.Person.ID, a.Person.Source, a.Person.SourceID, jsonAttrs,
 			)
 			batch.Queue(`
 				insert into bbl_changes (rev_id, person_id, diff)
@@ -335,10 +349,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			batch.Queue(`
 				update bbl_people
-				set attrs = $2,
+				set source = nullif($2, ''),
+				    source_id = nullif($3, ''),
+				    attrs = $4,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
-				a.Person.ID, jsonAttrs,
+				a.Person.ID, a.Person.Source, a.Person.SourceID, jsonAttrs,
 			)
 
 			batch.Queue(`
@@ -367,9 +383,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_projects (id, attrs)
-				values ($1, $2);`,
-				a.Project.ID, jsonAttrs,
+				insert into bbl_projects (id, source, source_id, attrs)
+				values ($1, nullif($2, ''), nullif($3, ''), $4);`,
+				a.Project.ID, a.Project.Source, a.Project.SourceID, jsonAttrs,
 			)
 			batch.Queue(`
 				insert into bbl_changes (rev_id, project_id, diff)
@@ -402,10 +418,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 
 			batch.Queue(`
 				update bbl_projects
-				set attrs = $2,
+				set source = nullif($2, ''),
+				    source_id = nullif($3, ''),
+				    attrs = $4,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
-				a.Project.ID, jsonAttrs,
+				a.Project.ID, a.Project.Source, a.Project.SourceID, jsonAttrs,
 			)
 
 			batch.Queue(`
@@ -422,12 +440,17 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				a.Work.ID = r.NewID()
 			}
 
+			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
 			diff := a.Work.Diff(&Work{})
 
 			jsonAttrs, err := json.Marshal(a.Work.Attrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -472,6 +495,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
+			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
 			diff := a.Work.Diff(currentRec)
 
 			if len(diff) == 0 {
@@ -482,6 +509,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -626,113 +654,251 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 	return nil
 }
 
+func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []OrganizationRel) error {
+	for i, rel := range rels {
+		if sourceStr, ok := strings.CutPrefix(rel.OrganizationID, "source:"); ok {
+			if source, sourceID, ok := strings.Cut(sourceStr, ":"); ok {
+				id, err := getOrganizationIDBySource(ctx, conn, source, sourceID)
+				if err != nil {
+					return err
+				}
+				rels[i].OrganizationID = id
+			}
+		}
+	}
+	return nil
+}
+
+func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []WorkContributor) error {
+	for i, con := range contributors {
+		if sourceStr, ok := strings.CutPrefix(con.PersonID, "source:"); ok {
+			if source, sourceID, ok := strings.Cut(sourceStr, ":"); ok {
+				id, err := getPersonIDBySource(ctx, conn, source, sourceID)
+				if err != nil {
+					return err
+				}
+				contributors[i].PersonID = id
+			}
+		}
+	}
+	return nil
+}
+
 func (r *Repo) NewID() string {
 	return ulid.Make().UUIDString()
 }
 
-func getOrganization(ctx context.Context, conn pgxConn, id string) (*Organization, error) {
+func getOrganizationIDBySource(ctx context.Context, conn pgxConn, source, sourceID string) (string, error) {
 	q := `
-		select id, kind, attrs, rels, created_at, updated_at
-		from bbl_organizations_view
-		where id = $1;`
+		select id
+		from bbl_organizations
+		where source = $1 and source_id = $2;`
 
+	var id string
+
+	err := conn.QueryRow(ctx, q, source, sourceID).Scan(&id)
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return id, err
+}
+
+func getOrganization(ctx context.Context, conn pgxConn, id string) (*Organization, error) {
+	rec, err := getOrganizationBy(ctx, conn, "id = $1", id)
+	if err != nil {
+		err = fmt.Errorf("GetOrganization %s: %w", id, err)
+	}
+	return rec, err
+}
+
+func getOrganizationBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Organization, error) {
+	q := `
+		select id, kind, coalesce(source, ''), coalesce(source_id, ''), attrs, rels, created_at, updated_at
+		from bbl_organizations_view
+		where ` + where + `;`
+
+	rec, err := scanOrganization(conn.QueryRow(ctx, q, args...))
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return rec, err
+}
+
+func scanOrganization(row pgx.Row) (*Organization, error) {
 	var rec Organization
 	var rawAttrs json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rawAttrs, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("GetOrganization: %w: %s", ErrNotFound, id)
-	} else if err != nil {
+	if err := row.Scan(&rec.ID, &rec.Kind, &rec.Source, &rec.SourceID, &rawAttrs, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 		return nil, err
 	}
 
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
-		return nil, fmt.Errorf("GetOrganization: unmarshal attrs: %s", err)
+		return nil, err
 	}
 
 	if rawRels != nil {
 		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
-			return nil, fmt.Errorf("GetOrganization: unmarshal rels: %s", err)
+			return nil, err
 		}
 	}
 
 	return &rec, nil
 }
 
-func getPerson(ctx context.Context, conn pgxConn, id string) (*Person, error) {
+func getPersonIDBySource(ctx context.Context, conn pgxConn, source, sourceID string) (string, error) {
 	q := `
-		select id, attrs, created_at, updated_at
+		select id
 		from bbl_people
-		where id = $1;`
+		where source = $1 and source_id = $2;`
 
+	var id string
+
+	err := conn.QueryRow(ctx, q, source, sourceID).Scan(&id)
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return id, err
+}
+
+func getPerson(ctx context.Context, conn pgxConn, id string) (*Person, error) {
+	rec, err := getPersonBy(ctx, conn, "id = $1", id)
+	if err != nil {
+		err = fmt.Errorf("GetPerson %s: %w", id, err)
+	}
+	return rec, err
+}
+
+func getPersonBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Person, error) {
+	q := `
+		select id, coalesce(source, ''), coalesce(source_id, ''), attrs, created_at, updated_at
+		from bbl_people
+		where ` + where + `;`
+
+	rec, err := scanPerson(conn.QueryRow(ctx, q, args...))
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return rec, err
+}
+
+func scanPerson(row pgx.Row) (*Person, error) {
 	var rec Person
 	var rawAttrs json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("GetPerson: %w: %s", ErrNotFound, id)
-	} else if err != nil {
+	if err := row.Scan(&rec.ID, &rec.Source, &rec.SourceID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 		return nil, err
 	}
 
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
-		return nil, fmt.Errorf("GetPerson: unmarshal attrs: %s", err)
+		return nil, err
 	}
 
 	return &rec, nil
 }
 
-func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) {
-	q := `
-		select id, attrs, created_at, updated_at
-		from bbl_projects
-		where id = $1;`
+// func getProjectIDBySource(ctx context.Context, conn pgxConn, source, sourceID string) (string, error) {
+// 	q := `
+// 		select id
+// 		from bbl_projects
+// 		where source = $1 and source_id = $2;`
 
+// 	var id string
+
+// 	err := conn.QueryRow(ctx, q, source, sourceID).Scan(&id)
+// 	if err == pgx.ErrNoRows {
+// 		err = ErrNotFound
+// 	}
+
+// 	return id, err
+// }
+
+func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) {
+	rec, err := getProjectBy(ctx, conn, "id = $1", id)
+	if err != nil {
+		err = fmt.Errorf("GetProject %s: %w", id, err)
+	}
+	return rec, err
+}
+
+func getProjectBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Project, error) {
+	q := `
+		select id, coalesce(source, ''), coalesce(source_id, ''), attrs, created_at, updated_at
+		from bbl_projects
+		where ` + where + `;`
+
+	rec, err := scanProject(conn.QueryRow(ctx, q, args...))
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return rec, err
+}
+
+func scanProject(row pgx.Row) (*Project, error) {
 	var rec Project
 	var rawAttrs json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("GetProject: %w: %s", ErrNotFound, id)
-	} else if err != nil {
+	if err := row.Scan(&rec.ID, &rec.Source, &rec.SourceID, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 		return nil, err
 	}
 
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
-		return nil, fmt.Errorf("GetProject: unmarshal attrs: %s", err)
+		return nil, err
 	}
 
 	return &rec, nil
 }
 
 func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
+	rec, err := getWorkBy(ctx, conn, "id = $1", id)
+	if err != nil {
+		err = fmt.Errorf("GetWork %s: %w", id, err)
+	}
+	return rec, err
+}
+
+func getWorkBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Work, error) {
 	q := `
 		select id, kind, coalesce(sub_kind, ''), attrs, contributors, rels, created_at, updated_at
 		from bbl_works_view
-		where id = $1;`
+		where ` + where + `;`
 
+	rec, err := scanWork(conn.QueryRow(ctx, q, args...))
+	if err == pgx.ErrNoRows {
+		err = ErrNotFound
+	}
+
+	return rec, err
+}
+
+func scanWork(row pgx.Row) (*Work, error) {
 	var rec Work
 	var rawAttrs json.RawMessage
 	var rawContributors json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := conn.QueryRow(ctx, q, id).Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawContributors, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("GetWork: %w: %s", ErrNotFound, id)
-	} else if err != nil {
+	if err := row.Scan(&rec.ID, &rec.Kind, &rec.SubKind, &rawAttrs, &rawContributors, &rawRels, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 		return nil, err
 	}
 
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
-		return nil, fmt.Errorf("GetWork: unmarshal attrs: %s", err)
+		return nil, err
 	}
 
 	if rawContributors != nil {
 		if err := json.Unmarshal(rawContributors, &rec.Contributors); err != nil {
-			return nil, fmt.Errorf("GetWork: unmarshal contributors: %s", err)
+			return nil, err
 		}
 	}
 
 	if rawRels != nil {
 		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
-			return nil, fmt.Errorf("GetWork: unmarshal rels: %s", err)
+			return nil, err
 		}
 	}
 
