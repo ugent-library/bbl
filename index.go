@@ -5,6 +5,7 @@ import (
 )
 
 type Index interface {
+	Organizations() RecIndex[*Organization]
 	People() RecIndex[*Person]
 }
 

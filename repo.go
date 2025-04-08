@@ -307,6 +307,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -342,6 +343,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -377,6 +379,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -411,6 +414,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
 			jsonDiff, err := json.Marshal(diff)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)

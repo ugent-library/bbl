@@ -73,6 +73,30 @@ var startCmd = &cobra.Command{
 
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
+		// organization indexer
+		group.Go(func() error {
+			var err error
+			for msg := range repo.Listen(groupCtx, "organization_index", "organization", 10*time.Second) {
+				var id string
+				if err = json.Unmarshal(msg.Body, &id); err != nil {
+					logger.Error("organization_index", "err", err)
+					continue
+				}
+				rec, err := repo.GetOrganization(groupCtx, id)
+				if err != nil {
+					logger.Error("organization_index", "err", err)
+					continue
+				}
+				if err = index.Organizations().Add(groupCtx, rec); err != nil {
+					logger.Error("organization_index", "err", err)
+				}
+				if err = repo.Ack(groupCtx, msg); err != nil {
+					logger.Error("organization_index", "err", err)
+				}
+			}
+			return err
+		})
+
 		// person indexer
 		group.Go(func() error {
 			var err error
