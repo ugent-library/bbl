@@ -110,8 +110,10 @@ func New(config *Config) (http.Handler, error) {
 	// }).AddRoutes(router, appCtx)
 
 	// h.NewWorkHandler(config.Repo).AddRoutes(router, loggedInCtx)
-	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
+	NewOrganizationHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
 	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
+	NewProjectHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
+	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
 
 	return router, nil
 }
