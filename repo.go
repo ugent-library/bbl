@@ -75,6 +75,10 @@ func (r *Repo) MigrateDown(ctx context.Context) error {
 	return goose.ResetContext(ctx, db, "migrations")
 }
 
+func (r *Repo) NewID() string {
+	return ulid.Make().UUIDString()
+}
+
 func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
 	return getOrganization(ctx, r.conn, id)
 }
@@ -648,7 +652,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {
 func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []OrganizationRel) error {
 	for i, rel := range rels {
 		if scheme, val, ok := strings.Cut(rel.OrganizationID, ":"); ok {
-			id, err := getOrganizationIDByIdentifier(ctx, conn, scheme, val)
+			id, err := getIDByIdentifier(ctx, conn, "organization", "organizations", scheme, val)
 			if err != nil {
 				return err
 			}
@@ -661,7 +665,7 @@ func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []Organizati
 func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []WorkContributor) error {
 	for i, con := range contributors {
 		if scheme, val, ok := strings.Cut(con.PersonID, ":"); ok {
-			id, err := getPersonIDByIdentifier(ctx, conn, scheme, val)
+			id, err := getIDByIdentifier(ctx, conn, "person", "people", scheme, val)
 			if err != nil {
 				return err
 			}
@@ -700,14 +704,10 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, pluralName, id string
 	}
 }
 
-func (r *Repo) NewID() string {
-	return ulid.Make().UUIDString()
-}
-
-func getOrganizationIDByIdentifier(ctx context.Context, conn pgxConn, scheme, val string) (string, error) {
+func getIDByIdentifier(ctx context.Context, conn pgxConn, name, pluralName, scheme, val string) (string, error) {
 	q := `
-		select organization_id
-		from bbl_organizations_identifiers
+		select ` + name + `_id
+		from bbl_` + pluralName + `_identifiers
 		where scheme = $1 and val = $2 and uniq = true;`
 
 	var id string
@@ -721,22 +721,29 @@ func getOrganizationIDByIdentifier(ctx context.Context, conn pgxConn, scheme, va
 }
 
 func getOrganization(ctx context.Context, conn pgxConn, id string) (*Organization, error) {
-	rec, err := getOrganizationBy(ctx, conn, "id = $1", id)
-	if err != nil {
-		err = fmt.Errorf("GetOrganization %s: %w", id, err)
+	var row pgx.Row
+	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		row = conn.QueryRow(ctx, `
+			select o.id, o.kind, o.attrs, o.created_at, o.updated_at, o.identifiers, o.rels
+			from bbl_organizations_view o, bbl_organizations_identifiers o_i
+			where o.id = o_i.organizatons_id and o_i.scheme = $1 and o_i.val = $2;`,
+			scheme, val,
+		)
+	} else {
+		row = conn.QueryRow(ctx, `
+			select id, kind, attrs, created_at, updated_at, identifiers, rels
+			from bbl_organizations_view
+			where id = $1;`,
+			id,
+		)
 	}
-	return rec, err
-}
 
-func getOrganizationBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Organization, error) {
-	q := `
-		select id, kind, attrs, created_at, updated_at, identifiers, rels
-		from bbl_organizations_view
-		where ` + where + `;`
-
-	rec, err := scanOrganization(conn.QueryRow(ctx, q, args...))
+	rec, err := scanOrganization(row)
 	if err == pgx.ErrNoRows {
 		err = ErrNotFound
+	}
+	if err != nil {
+		err = fmt.Errorf("GetOrganization %s: %w", id, err)
 	}
 
 	return rec, err
@@ -771,39 +778,30 @@ func scanOrganization(row pgx.Row) (*Organization, error) {
 	return &rec, nil
 }
 
-func getPersonIDByIdentifier(ctx context.Context, conn pgxConn, scheme, val string) (string, error) {
-	q := `
-		select person_id
-		from bbl_people_identifiers
-		where scheme = $1 and val = $2 and uniq = true;`
+func getPerson(ctx context.Context, conn pgxConn, id string) (*Person, error) {
+	var row pgx.Row
+	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		row = conn.QueryRow(ctx, `
+			select p.id, p.attrs, p.created_at, p.updated_at, p.identifiers
+			from bbl_people_view w, bbl_people_identifiers p_i
+			where p.id = p_i.person_id and p_i.scheme = $1 and p_i.val = $2;`,
+			scheme, val,
+		)
+	} else {
+		row = conn.QueryRow(ctx, `
+			select id, attrs, created_at, updated_at, identifiers
+			from bbl_people_view
+			where id = $1;`,
+			id,
+		)
+	}
 
-	var id string
-
-	err := conn.QueryRow(ctx, q, scheme, val).Scan(&id)
+	rec, err := scanPerson(row)
 	if err == pgx.ErrNoRows {
 		err = ErrNotFound
 	}
-
-	return id, err
-}
-
-func getPerson(ctx context.Context, conn pgxConn, id string) (*Person, error) {
-	rec, err := getPersonBy(ctx, conn, "id = $1", id)
 	if err != nil {
 		err = fmt.Errorf("GetPerson %s: %w", id, err)
-	}
-	return rec, err
-}
-
-func getPersonBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Person, error) {
-	q := `
-		select id, attrs, created_at, updated_at, identifiers
-		from bbl_people_view
-		where ` + where + `;`
-
-	rec, err := scanPerson(conn.QueryRow(ctx, q, args...))
-	if err == pgx.ErrNoRows {
-		err = ErrNotFound
 	}
 
 	return rec, err
@@ -832,22 +830,29 @@ func scanPerson(row pgx.Row) (*Person, error) {
 }
 
 func getProject(ctx context.Context, conn pgxConn, id string) (*Project, error) {
-	rec, err := getProjectBy(ctx, conn, "id = $1", id)
-	if err != nil {
-		err = fmt.Errorf("GetProject %s: %w", id, err)
+	var row pgx.Row
+	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		row = conn.QueryRow(ctx, `
+			select p.id, p.attrs, p.created_at, p.updated_at, p.identifiers
+			from bbl_projects_view w, bbl_projects_identifiers p_i
+			where p.id = p_i.project_id and p_i.scheme = $1 and p_i.val = $2;`,
+			scheme, val,
+		)
+	} else {
+		row = conn.QueryRow(ctx, `
+			select id, attrs, created_at, updated_at, identifiers
+			from bbl_projects_view
+			where id = $1;`,
+			id,
+		)
 	}
-	return rec, err
-}
 
-func getProjectBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Project, error) {
-	q := `
-		select id, attrs, created_at, updated_at, identifiers
-		from bbl_projects_view
-		where ` + where + `;`
-
-	rec, err := scanProject(conn.QueryRow(ctx, q, args...))
+	rec, err := scanProject(row)
 	if err == pgx.ErrNoRows {
 		err = ErrNotFound
+	}
+	if err != nil {
+		err = fmt.Errorf("GetProject %s: %w", id, err)
 	}
 
 	return rec, err
@@ -876,22 +881,29 @@ func scanProject(row pgx.Row) (*Project, error) {
 }
 
 func getWork(ctx context.Context, conn pgxConn, id string) (*Work, error) {
-	rec, err := getWorkBy(ctx, conn, "id = $1", id)
-	if err != nil {
-		err = fmt.Errorf("GetWork %s: %w", id, err)
+	var row pgx.Row
+	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		row = conn.QueryRow(ctx, `
+			select w.id, w.kind, coalesce(w.sub_kind, ''), w.attrs, w.created_at, w.updated_at, w.identifiers, w.contributors, w.rels
+			from bbl_works_view w, bbl_works_identifiers w_i
+			where w.id = w_i.work_id and w_i.scheme = $1 and w_i.val = $2;`,
+			scheme, val,
+		)
+	} else {
+		row = conn.QueryRow(ctx, `
+			select id, kind, coalesce(sub_kind, ''), attrs, created_at, updated_at, identifiers, contributors, rels
+			from bbl_works_view
+			where id = $1;`,
+			id,
+		)
 	}
-	return rec, err
-}
 
-func getWorkBy(ctx context.Context, conn pgxConn, where string, args ...any) (*Work, error) {
-	q := `
-		select id, kind, coalesce(sub_kind, ''), attrs, created_at, updated_at, identifiers, contributors, rels
-		from bbl_works_view
-		where ` + where + `;`
-
-	rec, err := scanWork(conn.QueryRow(ctx, q, args...))
+	rec, err := scanWork(row)
 	if err == pgx.ErrNoRows {
 		err = ErrNotFound
+	}
+	if err != nil {
+		err = fmt.Errorf("GetWork %s: %w", id, err)
 	}
 
 	return rec, err
