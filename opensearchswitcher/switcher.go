@@ -17,12 +17,18 @@ import (
 
 const timeFormat = "20060102150405"
 
+type Item struct {
+	Doc     any
+	ID      string
+	Version string
+}
+
 type Switcher[T any] struct {
 	client      *opensearchapi.Client
 	bulkIndexer opensearchutil.BulkIndexer
 	alias       string
 	retention   int
-	ItemFunc    func(T) (opensearchutil.BulkIndexerItem, error)
+	ToItem      func(T) Item
 }
 
 type Config[T any] struct {
@@ -30,7 +36,7 @@ type Config[T any] struct {
 	Alias         string
 	IndexSettings io.ReadSeeker
 	Retention     int
-	ItemFunc      func(T) (opensearchutil.BulkIndexerItem, error)
+	ToItem        func(T) Item
 }
 
 func Init(ctx context.Context, client *opensearchapi.Client, alias string, indexSettings io.ReadSeeker, retention int) error {
@@ -79,24 +85,31 @@ func New[T any](ctx context.Context, c Config[T]) (*Switcher[T], error) {
 		alias:       c.Alias,
 		retention:   c.Retention,
 		bulkIndexer: bulkIndexer,
-		ItemFunc:    c.ItemFunc,
+		ToItem:      c.ToItem,
 	}, nil
 }
 
 // TODO error handling (but don't error on version conflict or already exists error)
+// TODO pass version
 func (switcher Switcher[T]) Add(ctx context.Context, t T) error {
-	item, err := switcher.ItemFunc(t)
+	item := switcher.ToItem(t)
+
+	b, err := json.Marshal(item.Doc)
 	if err != nil {
 		return err
 	}
 
-	item.Action = "index"
-	// TODO make configurable
-	item.OnFailure = func(_ context.Context, bii opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
-		log.Printf("error indexing %s: %s", bii.DocumentID, err)
-	}
-
-	return switcher.bulkIndexer.Add(ctx, item)
+	return switcher.bulkIndexer.Add(ctx, opensearchutil.BulkIndexerItem{
+		Action:     "index",
+		DocumentID: item.ID,
+		// Version:     rec.RecVersion(),
+		// VersionType: &versionType,
+		Body: bytes.NewReader(b),
+		// TODO make configurable
+		OnFailure: func(_ context.Context, biItem opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			log.Printf("error indexing %s: %s", biItem.DocumentID, err)
+		},
+	})
 }
 
 func (switcher Switcher[T]) Switch(ctx context.Context) error {

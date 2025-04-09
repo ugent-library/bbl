@@ -13,6 +13,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/opensearchindex"
+	"github.com/ugent-library/tonga"
 )
 
 func NewLogger(w io.Writer) *slog.Logger {
@@ -28,10 +29,25 @@ func NewRepo(ctx context.Context) (*bbl.Repo, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	repo, err := bbl.NewRepo(ctx, conn)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	if err := repo.Queue().CreateChannel(ctx, "organizations_indexer", "organization", tonga.ChannelOpts{}); err != nil {
+		return nil, nil, err
+	}
+	if err := repo.Queue().CreateChannel(ctx, "people_indexer", "person", tonga.ChannelOpts{}); err != nil {
+		return nil, nil, err
+	}
+	if err := repo.Queue().CreateChannel(ctx, "projects_indexer", "project", tonga.ChannelOpts{}); err != nil {
+		return nil, nil, err
+	}
+	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
+		return nil, nil, err
+	}
+
 	return repo, conn.Close, nil
 }
 

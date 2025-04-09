@@ -12,7 +12,12 @@ type Index interface {
 type RecIndex[T Rec] interface {
 	Add(context.Context, T) error
 	Search(context.Context, SearchArgs) (*RecHits[T], error)
-	// IndexSwitcher(context.Context) (IndexSwitcher[T], error)
+	NewSwitcher(context.Context) (RecIndexSwitcher[T], error)
+}
+
+type RecIndexSwitcher[T Rec] interface {
+	Add(context.Context, T) error
+	Switch(context.Context) error
 }
 
 type SearchArgs struct {
@@ -32,8 +37,3 @@ type RecHits[T Rec] struct {
 type RecHit[T any] struct {
 	Rec T `json:"rec"`
 }
-
-// type IndexSwitcher[T any] interface {
-// 	Add(context.Context, T) error
-// 	Switch(context.Context) error
-// }

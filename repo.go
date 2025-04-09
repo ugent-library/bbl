@@ -35,20 +35,18 @@ type pgxConn interface {
 }
 
 type Repo struct {
-	conn *pgxpool.Pool
-	mq   *tonga.Client
+	conn  *pgxpool.Pool
+	queue *tonga.Client
 }
 
 func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
-	mq := tonga.New(conn)
-
-	r := &Repo{
-		conn: conn,
-		mq:   mq,
-	}
-	return r, nil
+	return &Repo{
+		conn:  conn,
+		queue: tonga.New(conn),
+	}, nil
 }
 
+// TODO split off from repo
 func (r *Repo) MigrateUp(ctx context.Context) error {
 	goose.SetBaseFS(migrationsFS)
 
@@ -62,6 +60,7 @@ func (r *Repo) MigrateUp(ctx context.Context) error {
 	return goose.UpContext(ctx, db, "migrations")
 }
 
+// TODO split off from repo
 func (r *Repo) MigrateDown(ctx context.Context) error {
 	goose.SetBaseFS(migrationsFS)
 
@@ -77,6 +76,10 @@ func (r *Repo) MigrateDown(ctx context.Context) error {
 
 func (r *Repo) NewID() string {
 	return ulid.Make().UUIDString()
+}
+
+func (r *Repo) Queue() *tonga.Client {
+	return r.queue
 }
 
 func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, error) {
@@ -199,36 +202,23 @@ func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*Work] {
 	}
 }
 
-func (r *Repo) Listen(ctx context.Context, queue, topic string, hideFor time.Duration) iter.Seq[Msg] {
-	// TODO make channel opts configurable
-	if err := r.mq.CreateChannel(ctx, queue, topic, tonga.ChannelOpts{}); err != nil {
-		// TODO error handling
-		log.Printf("listen: %s", err)
-		return nil
-	}
-
-	return func(yield func(Msg) bool) {
+// TODO tonga itself should have a higher level method
+func (r *Repo) Listen(ctx context.Context, queue string, hideFor time.Duration) iter.Seq[*tonga.Message] {
+	return func(yield func(*tonga.Message) bool) {
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				// TODO make quantity configurable
-				msgs, err := r.mq.Read(ctx, queue, 10, hideFor)
+				msgs, err := r.queue.Read(ctx, queue, 10, hideFor)
 				if err != nil {
 					// TODO error handling
 					log.Printf("listen: %s", err)
 					return
 				}
 
-				for _, m := range msgs {
-					msg := Msg{
-						queue:     queue,
-						id:        m.ID,
-						Topic:     m.Topic,
-						Body:      m.Body,
-						CreatedAt: m.CreatedAt,
-					}
+				for _, msg := range msgs {
 					if ok := yield(msg); !ok {
 						return
 					}
@@ -241,13 +231,6 @@ func (r *Repo) Listen(ctx context.Context, queue, topic string, hideFor time.Dur
 			}
 		}
 	}
-}
-
-func (r *Repo) Ack(ctx context.Context, msg Msg) error {
-	if _, err := r.mq.Delete(ctx, msg.queue, msg.id); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *Repo) AddRev(ctx context.Context, rev *Rev) error {

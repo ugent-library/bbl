@@ -17,7 +17,7 @@ import (
 	"github.com/ugent-library/bbl/opensearchswitcher"
 )
 
-var versionType = "external"
+// var versionType = "external"
 
 // assert we implement bbl.Index
 var _ bbl.Index = (*Index)(nil)
@@ -90,6 +90,22 @@ func newRecIndex[T bbl.Rec](ctx context.Context, client *opensearchapi.Client, a
 	}, nil
 }
 
+func (idx *recIndex[T]) NewSwitcher(ctx context.Context) (bbl.RecIndexSwitcher[T], error) {
+	return opensearchswitcher.New(ctx, opensearchswitcher.Config[T]{
+		Client:        idx.client,
+		Alias:         idx.alias,
+		IndexSettings: strings.NewReader(personSettings),
+		Retention:     idx.retention,
+		ToItem: func(rec T) opensearchswitcher.Item {
+			// TODO pass version
+			return opensearchswitcher.Item{
+				Doc: idx.toDoc(rec),
+				ID:  rec.RecID(),
+			}
+		},
+	})
+}
+
 func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 	b, err := json.Marshal(idx.toDoc(rec))
 	if err != nil {
@@ -104,8 +120,8 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 		// VersionType: &versionType,
 		Body: bytes.NewReader(b),
 		// TODO make configurable
-		OnFailure: func(_ context.Context, item opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
-			log.Printf("error indexing %s: %s", item.DocumentID, err)
+		OnFailure: func(_ context.Context, biItem opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			log.Printf("error indexing %s: %s", biItem.DocumentID, err)
 		},
 	})
 	if err != nil {

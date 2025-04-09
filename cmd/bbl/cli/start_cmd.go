@@ -73,49 +73,51 @@ var startCmd = &cobra.Command{
 
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
-		// organization indexer
 		group.Go(func() error {
+			channel := "organizations_indexer"
+
 			var err error
-			for msg := range repo.Listen(groupCtx, "organization_index", "organization", 10*time.Second) {
+			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
 				var id string
 				if err = json.Unmarshal(msg.Body, &id); err != nil {
-					logger.Error("organization_index", "err", err)
+					logger.Error(channel, "err", err)
 					continue
 				}
 				rec, err := repo.GetOrganization(groupCtx, id)
 				if err != nil {
-					logger.Error("organization_index", "err", err)
+					logger.Error(channel, "err", err)
 					continue
 				}
 				if err = index.Organizations().Add(groupCtx, rec); err != nil {
-					logger.Error("organization_index", "err", err)
+					logger.Error(channel, "err", err)
 				}
-				if err = repo.Ack(groupCtx, msg); err != nil {
-					logger.Error("organization_index", "err", err)
+				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
+					return err
 				}
 			}
 			return err
 		})
 
-		// person indexer
 		group.Go(func() error {
+			channel := "people_indexer"
+
 			var err error
-			for msg := range repo.Listen(groupCtx, "person_index", "person", 10*time.Second) {
+			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
 				var id string
 				if err = json.Unmarshal(msg.Body, &id); err != nil {
-					logger.Error("person_index", "err", err)
+					logger.Error(channel, "err", err)
 					continue
 				}
 				rec, err := repo.GetPerson(groupCtx, id)
 				if err != nil {
-					logger.Error("person_index", "err", err)
+					logger.Error(channel, "err", err)
 					continue
 				}
 				if err = index.People().Add(groupCtx, rec); err != nil {
-					logger.Error("person_index", "err", err)
+					logger.Error(channel, "err", err)
 				}
-				if err = repo.Ack(groupCtx, msg); err != nil {
-					logger.Error("person_index", "err", err)
+				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
+					return err
 				}
 			}
 			return err
