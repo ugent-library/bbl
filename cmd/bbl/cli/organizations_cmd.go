@@ -17,6 +17,23 @@ func init() {
 var organizationsCmd = &cobra.Command{
 	Use:   "organizations",
 	Short: "Organizations",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, close, err := NewRepo(cmd.Context())
+		if err != nil {
+			return err
+		}
+		defer close()
+
+		enc := json.NewEncoder(cmd.OutOrStdout())
+
+		for rec := range repo.OrganizationsIter(cmd.Context(), &err) {
+			if err = enc.Encode(rec); err != nil {
+				return err
+			}
+		}
+
+		return err
+	},
 }
 
 var searchOrganizationsCmd = &cobra.Command{

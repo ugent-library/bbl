@@ -83,16 +83,120 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*Organization, e
 	return getOrganization(ctx, r.conn, id)
 }
 
+func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*Organization] {
+	q := `
+		select id, kind, attrs, created_at, updated_at, identifiers, rels
+		from bbl_organizations_view;`
+
+	return func(yield func(*Organization) bool) {
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = err
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanOrganization(rows)
+			if err != nil {
+				*errPtr = err
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
+}
+
 func (r *Repo) GetPerson(ctx context.Context, id string) (*Person, error) {
 	return getPerson(ctx, r.conn, id)
+}
+
+func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*Person] {
+	q := `
+		select id, attrs, created_at, updated_at, identifiers
+		from bbl_people_view;`
+
+	return func(yield func(*Person) bool) {
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = err
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanPerson(rows)
+			if err != nil {
+				*errPtr = err
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Repo) GetProject(ctx context.Context, id string) (*Project, error) {
 	return getProject(ctx, r.conn, id)
 }
 
+func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*Project] {
+	q := `
+		select id, attrs, created_at, updated_at, identifiers
+		from bbl_projects_view;`
+
+	return func(yield func(*Project) bool) {
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = err
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanProject(rows)
+			if err != nil {
+				*errPtr = err
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
+}
+
 func (r *Repo) GetWork(ctx context.Context, id string) (*Work, error) {
 	return getWork(ctx, r.conn, id)
+}
+
+func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*Work] {
+	q := `
+		select id, kind, coalesce(sub_kind, ''), attrs, created_at, updated_at, identifiers, contributors, rels
+		from bbl_works_view;`
+
+	return func(yield func(*Work) bool) {
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = err
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanWork(rows)
+			if err != nil {
+				*errPtr = err
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Repo) Listen(ctx context.Context, queue, topic string, hideFor time.Duration) iter.Seq[Msg] {
