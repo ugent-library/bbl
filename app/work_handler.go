@@ -285,7 +285,6 @@ func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *
 		String("person_id", &personID).
 		Each("contributors", func(b *binder.Values) bool {
 			var con bbl.WorkContributor
-			b.String("id", &con.ID)
 			b.String("attrs.name", &con.Attrs.Name)
 			b.String("attrs.given_name", &con.Attrs.GivenName)
 			b.String("attrs.middle_name", &con.Attrs.MiddleName)
@@ -332,7 +331,6 @@ func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c 
 		String("person_id", &personID).
 		Each("contributors", func(b *binder.Values) bool {
 			var con bbl.WorkContributor
-			b.String("id", &con.ID)
 			b.String("attrs.name", &con.Attrs.Name)
 			b.String("attrs.given_name", &con.Attrs.GivenName)
 			b.String("attrs.middle_name", &con.Attrs.MiddleName)
@@ -376,7 +374,6 @@ func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, 
 		Int("idx", &idx).
 		Each("contributors", func(b *binder.Values) bool {
 			var con bbl.WorkContributor
-			b.String("id", &con.ID)
 			b.String("attrs.name", &con.Attrs.Name)
 			b.String("attrs.given_name", &con.Attrs.GivenName)
 			b.String("attrs.middle_name", &con.Attrs.MiddleName)
@@ -463,7 +460,6 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		String("conference.location", &conference.Location).
 		Each("contributors", func(b *binder.Values) bool {
 			var con bbl.WorkContributor
-			b.String("id", &con.ID)
 			b.String("attrs.name", &con.Attrs.Name)
 			b.String("attrs.given_name", &con.Attrs.GivenName)
 			b.String("attrs.middle_name", &con.Attrs.MiddleName)
@@ -483,14 +479,13 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		return err
 	}
 
-	rec.Attrs.Identifiers = identifiers
+	rec.Identifiers = identifiers
+	rec.Contributors = contributors
 	rec.Attrs.Titles = titles
 	rec.Attrs.Abstracts = abstracts
 	rec.Attrs.LaySummaries = laySummaries
 	rec.Attrs.Keywords = keywords
 	rec.Attrs.Conference = conference
-
-	rec.Contributors = contributors
 
 	return nil
 }

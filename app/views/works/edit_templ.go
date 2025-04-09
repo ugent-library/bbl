@@ -1509,7 +1509,7 @@ func identifiersField(c views.Ctx, rec *bbl.Work) templ.Component {
 				Name:     "identifiers",
 				Required: rec.Profile.Identifiers.Required,
 			},
-			Attrs:   rec.Attrs.Identifiers,
+			Attrs:   rec.Identifiers,
 			Schemes: rec.Profile.IdentifierSchemes,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {

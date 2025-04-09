@@ -3,59 +3,91 @@
 create table bbl_organizations (
   id uuid primary key,
   kind text not null,
-  source text,
-  source_id text,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create unique index on bbl_organizations (source, source_id)  where source_id is not null;
+create table bbl_organizations_identifiers (
+  organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  uniq boolean not null,
+  primary key (organization_id, idx)
+);
+
+-- TODO are these all necessary?
+create index on bbl_organizations_identifiers (organization_id);
+create unique index on bbl_organizations_identifiers (scheme, val) where uniq is true;
+create index on bbl_organizations_identifiers (scheme, val);
+create index on bbl_organizations_identifiers (uniq);
 
 create table bbl_organizations_rels (
-  id uuid primary key,
-  kind text not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  rel_organization_id uuid not null references bbl_organizations (id) on delete cascade,
   idx int not null,
-
+  kind text not null,
+  rel_organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  primary key (organization_id, idx),
   check (organization_id <> rel_organization_id)
 );
 
-create index on bbl_organizations_rels (organization_id);
+create index on bbl_organizations_rels (organization_id); -- TODO probably not needed
 create index on bbl_organizations_rels (rel_organization_id);
 
 create table bbl_people (
   id uuid primary key,
-  source text,
-  source_id text,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create unique index on bbl_people (source, source_id)  where source_id is not null;
-
-create table bbl_people_organizations (
-  id uuid primary key,
+create table bbl_people_identifiers (
   person_id uuid not null references bbl_people (id) on delete cascade,
-  organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  idx int not null
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  uniq boolean not null,
+  primary key (person_id, idx)
 );
 
-create index on bbl_people_organizations (person_id);
+-- TODO are these all necessary?
+create index on bbl_people_identifiers (person_id);
+create unique index on bbl_people_identifiers (scheme, val) where uniq is true;
+create index on bbl_people_identifiers (scheme, val);
+create index on bbl_people_identifiers (uniq);
+
+create table bbl_people_organizations (
+  person_id uuid not null references bbl_people (id) on delete cascade,
+  idx int not null,
+  organization_id uuid not null references bbl_organizations (id) on delete cascade,
+  primary key (person_id, idx)
+);
+
+create index on bbl_people_organizations (person_id); -- TODO probably not needed
 create index on bbl_people_organizations (organization_id);
 
 create table bbl_projects (
   id uuid primary key,
-  source text,
-  source_id text,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create unique index on bbl_projects (source, source_id)  where source_id is not null;
+create table bbl_projects_identifiers (
+  project_id uuid not null references bbl_projects (id) on delete cascade,
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  uniq boolean not null,
+  primary key (project_id, idx)
+);
+
+-- TODO are these all necessary?
+create index on bbl_projects_identifiers (project_id);
+create unique index on bbl_projects_identifiers (scheme, val) where uniq is true;
+create index on bbl_projects_identifiers (scheme, val);
+create index on bbl_projects_identifiers (uniq);
 
 create table bbl_works (
   id uuid primary key,
@@ -66,48 +98,62 @@ create table bbl_works (
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_works_rels (
-  id uuid primary key,
-  kind text not null,
+create table bbl_works_identifiers (
   work_id uuid not null references bbl_works (id) on delete cascade,
-  rel_work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  uniq boolean not null,
+  primary key (work_id, idx)
+);
 
+-- TODO are these all necessary?
+create index on bbl_works_identifiers (work_id);
+create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
+create index on bbl_works_identifiers (scheme, val);
+create index on bbl_works_identifiers (uniq);
+
+create table bbl_works_rels (
+  work_id uuid not null references bbl_works (id) on delete cascade,
+  idx int not null,
+  kind text not null,
+  rel_work_id uuid not null references bbl_works (id) on delete cascade,
+  primary key (work_id, idx),
   check (work_id <> rel_work_id)
 );
 
-create index on bbl_works_rels (work_id);
+create index on bbl_works_rels (work_id); -- TODO probably not needed
 create index on bbl_works_rels (rel_work_id);
 
 create table bbl_works_contributors (
-  id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
-  person_id uuid references bbl_people (id) on delete set null,
   idx int not null,
-  attrs jsonb not null default '{}'
+  person_id uuid references bbl_people (id) on delete set null,
+  attrs jsonb not null default '{}',
+  primary key (work_id, idx)
 );
 
-create index on bbl_works_contributors (work_id);
+create index on bbl_works_contributors (work_id); -- TODO probably not needed
 create index on bbl_works_contributors (person_id) where person_id is not null;
 
 create table bbl_works_organizations (
-  id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
+  idx int not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  idx int not null
+  primary key (work_id, idx)
 );
 
-create index on bbl_works_organizations (work_id);
+create index on bbl_works_organizations (work_id); -- TODO probably not needed
 create index on bbl_works_organizations (organization_id);
 
 create table bbl_works_projects (
-  id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
+  idx int not null,
   project_id uuid not null references bbl_projects (id) on delete cascade,
-  idx int not null
+  primary key (work_id, idx)
 );
 
-create index on bbl_works_projects (work_id);
+create index on bbl_works_projects (work_id); -- TODO probably not needed
 create index on bbl_works_projects (project_id);
 
 create table bbl_revs (
@@ -146,9 +192,13 @@ drop table bbl_people_organizations cascade;
 drop table bbl_works_contributors cascade;
 drop table bbl_works_organizations cascade;
 drop table bbl_works_projects cascade;
+drop table bbl_organizations_identifiers cascade;
 drop table bbl_organizations_rels cascade;
 drop table bbl_organizations cascade;
+drop table bbl_people_identifiers cascade;
 drop table bbl_people cascade;
+drop table bbl_projects_identifiers cascade;
 drop table bbl_projects cascade;
+drop table bbl_works_identifiers cascade;
 drop table bbl_works_rels cascade;
 drop table bbl_works cascade;

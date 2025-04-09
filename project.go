@@ -6,18 +6,16 @@ import (
 )
 
 type Project struct {
-	ID        string       `json:"id,omitempty"`
-	Source    string       `json:"source,omitempty"`
-	SourceID  string       `json:"source_id,omitempty"`
-	Attrs     ProjectAttrs `json:"attrs"`
-	CreatedAt time.Time    `json:"created_at,omitzero"`
-	UpdatedAt time.Time    `json:"updated_at,omitzero"`
+	ID          string       `json:"id,omitempty"`
+	Identifiers []Code       `json:"identifiers,omitempty"`
+	Attrs       ProjectAttrs `json:"attrs"`
+	CreatedAt   time.Time    `json:"created_at,omitzero"`
+	UpdatedAt   time.Time    `json:"updated_at,omitzero"`
 }
 
 type ProjectAttrs struct {
-	Identifiers []Code `json:"identifiers,omitempty"`
-	Names       []Text `json:"names,omitempty"`
-	Abstracts   []Text `json:"abstracts,omitempty"`
+	Names     []Text `json:"names,omitempty"`
+	Abstracts []Text `json:"abstracts,omitempty"`
 }
 
 func (rec *Project) RecID() string {
@@ -26,8 +24,8 @@ func (rec *Project) RecID() string {
 
 func (rec *Project) Diff(rec2 *Project) map[string]any {
 	changes := map[string]any{}
-	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {
-		changes["identifiers"] = rec.Attrs.Identifiers
+	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
+		changes["identifiers"] = rec.Identifiers
 	}
 	if !slices.Equal(rec.Attrs.Names, rec2.Attrs.Names) {
 		changes["names"] = rec.Attrs.Names

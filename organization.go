@@ -6,23 +6,20 @@ import (
 )
 
 type Organization struct {
-	ID        string            `json:"id,omitempty"`
-	Kind      string            `json:"kind"`
-	Source    string            `json:"source,omitempty"`
-	SourceID  string            `json:"source_id,omitempty"`
-	Attrs     OrganizationAttrs `json:"attrs"`
-	Rels      []OrganizationRel `json:"rels,omitempty"`
-	CreatedAt time.Time         `json:"created_at,omitzero"`
-	UpdatedAt time.Time         `json:"updated_at,omitzero"`
+	ID          string            `json:"id,omitempty"`
+	Kind        string            `json:"kind"`
+	Identifiers []Code            `json:"identifiers,omitempty"`
+	Rels        []OrganizationRel `json:"rels,omitempty"`
+	Attrs       OrganizationAttrs `json:"attrs"`
+	CreatedAt   time.Time         `json:"created_at,omitzero"`
+	UpdatedAt   time.Time         `json:"updated_at,omitzero"`
 }
 
 type OrganizationAttrs struct {
-	Identifiers []Code `json:"identifiers,omitempty"`
-	Names       []Text `json:"names,omitempty"`
+	Names []Text `json:"names,omitempty"`
 }
 
 type OrganizationRel struct {
-	ID             string        `json:"id,omitempty"`
 	Kind           string        `json:"kind"`
 	OrganizationID string        `json:"organization_id"`
 	Organization   *Organization `json:"organization,omitempty"`
@@ -37,8 +34,8 @@ func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	if rec.Kind != rec2.Kind {
 		changes["kind"] = rec.Kind
 	}
-	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {
-		changes["identifiers"] = rec.Attrs.Identifiers
+	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
+		changes["identifiers"] = rec.Identifiers
 	}
 	if !slices.Equal(rec.Attrs.Names, rec2.Attrs.Names) {
 		changes["names"] = rec.Attrs.Names

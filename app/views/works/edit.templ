@@ -749,7 +749,7 @@ templ identifiersField(c views.Ctx, rec *bbl.Work) {
 			Name:     "identifiers",
 			Required: rec.Profile.Identifiers.Required,
 		},
-		Attrs:   rec.Attrs.Identifiers,
+		Attrs:   rec.Identifiers,
 		Schemes: rec.Profile.IdentifierSchemes,
 	})
 }

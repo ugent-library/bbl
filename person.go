@@ -6,20 +6,18 @@ import (
 )
 
 type Person struct {
-	ID        string      `json:"id,omitempty"`
-	Source    string      `json:"source,omitempty"`
-	SourceID  string      `json:"source_id,omitempty"`
-	Attrs     PersonAttrs `json:"attrs"`
-	CreatedAt time.Time   `json:"created_at,omitzero"`
-	UpdatedAt time.Time   `json:"updated_at,omitzero"`
+	ID          string      `json:"id,omitempty"`
+	Identifiers []Code      `json:"identifiers,omitempty"`
+	Attrs       PersonAttrs `json:"attrs"`
+	CreatedAt   time.Time   `json:"created_at,omitzero"`
+	UpdatedAt   time.Time   `json:"updated_at,omitzero"`
 }
 
 type PersonAttrs struct {
-	Identifiers []Code `json:"identifiers,omitempty"`
-	Name        string `json:"name"`
-	GivenName   string `json:"given_name,omitempty"`
-	MiddleName  string `json:"middle_name,omitempty"`
-	FamilyName  string `json:"family_name,omitempty"`
+	Name       string `json:"name"`
+	GivenName  string `json:"given_name,omitempty"`
+	MiddleName string `json:"middle_name,omitempty"`
+	FamilyName string `json:"family_name,omitempty"`
 }
 
 func (rec *Person) RecID() string {
@@ -28,8 +26,8 @@ func (rec *Person) RecID() string {
 
 func (rec *Person) Diff(rec2 *Person) map[string]any {
 	changes := map[string]any{}
-	if !slices.Equal(rec.Attrs.Identifiers, rec2.Attrs.Identifiers) {
-		changes["identifiers"] = rec.Attrs.Identifiers
+	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
+		changes["identifiers"] = rec.Identifiers
 	}
 	if rec.Attrs.Name != rec2.Attrs.Name {
 		changes["name"] = rec.Attrs.Name
