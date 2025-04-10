@@ -7,20 +7,24 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"github.com/ugent-library/tonga"
 )
 
 func NewLogger(w io.Writer) *slog.Logger {
 	if config.Env == "development" {
-		return slog.New(tint.NewHandler(w, &tint.Options{Level: slog.LevelDebug}))
+		return slog.New(tint.NewHandler(w, &tint.Options{Level: slog.LevelInfo}))
 	} else {
-		return slog.New(slog.NewJSONHandler(w, nil))
+		return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 }
 
@@ -62,4 +66,22 @@ func NewIndex(ctx context.Context) (bbl.Index, error) {
 	}
 
 	return opensearchindex.New(ctx, client)
+}
+
+func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *bbl.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
+	workers := river.NewWorkers()
+	river.AddWorker(workers, jobs.NewReindexPeopleWorker(repo, index))
+
+	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
+		Logger: logger,
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {MaxWorkers: 100},
+		},
+		Workers: workers,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return riverClient, nil
 }

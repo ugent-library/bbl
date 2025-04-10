@@ -18,6 +18,7 @@ func init() {
 var organizationsCmd = &cobra.Command{
 	Use:   "organizations",
 	Short: "Organizations",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {

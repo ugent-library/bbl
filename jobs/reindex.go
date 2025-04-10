@@ -6,17 +6,30 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/tonga"
 	"golang.org/x/sync/errgroup"
 )
 
-type ReindexPeopleArgs struct {
-	// Strings is a slice of strings to sort.
-	Strings []string `json:"strings"`
-}
+type ReindexPeopleArgs struct{}
 
 func (ReindexPeopleArgs) Kind() string { return "reindex_people" }
+
+// only allow a new job when previous one completes
+func (ReindexPeopleArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{
+		UniqueOpts: river.UniqueOpts{
+			ByState: []rivertype.JobState{
+				rivertype.JobStateAvailable,
+				rivertype.JobStatePending,
+				rivertype.JobStateRunning,
+				rivertype.JobStateRetryable,
+				rivertype.JobStateScheduled,
+			},
+		},
+	}
+}
 
 type ReindexPeopleWorker struct {
 	river.WorkerDefaults[ReindexPeopleArgs]

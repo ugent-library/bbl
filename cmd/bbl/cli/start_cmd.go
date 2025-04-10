@@ -12,11 +12,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
-	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/jobs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -29,6 +26,8 @@ var startCmd = &cobra.Command{
 	Short: "Start the server",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		logger := NewLogger(cmd.OutOrStdout())
+
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
@@ -45,19 +44,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		logger := NewLogger(cmd.OutOrStdout())
-
-		workers := river.NewWorkers()
-		if err := river.AddWorkerSafely(workers, jobs.NewReindexPeopleWorker(repo, index)); err != nil {
-			return err
-		}
-
-		riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
-			Queues: map[string]river.QueueConfig{
-				river.QueueDefault: {MaxWorkers: 100},
-			},
-			Workers: workers,
-		})
+		riverClient, err := NewRiverClient(logger, conn, repo, index)
 		if err != nil {
 			return err
 		}
@@ -157,6 +144,7 @@ var startCmd = &cobra.Command{
 
 		group.Go(func() error {
 			logger.Info("server listening", "host", config.Host, "port", config.Port)
+
 			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 				return err
 			}
@@ -164,9 +152,12 @@ var startCmd = &cobra.Command{
 		})
 		group.Go(func() error {
 			<-groupCtx.Done()
+
 			logger.Info("gracefully stopping server")
+
 			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer timeoutRelease()
+
 			err := server.Shutdown(timeoutCtx)
 			if err == nil {
 				logger.Info("gracefully stopped server")
@@ -178,7 +169,9 @@ var startCmd = &cobra.Command{
 			if err := riverClient.Start(groupCtx); err != nil {
 				return err
 			}
+
 			logger.Info("workers started")
+
 			<-riverClient.Stopped()
 			return nil
 		})
@@ -187,8 +180,10 @@ var startCmd = &cobra.Command{
 			<-groupCtx.Done()
 
 			logger.Info("gracefully stopping workers")
+
 			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer timeoutRelease()
+
 			err := riverClient.Stop(timeoutCtx)
 			if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
 				return err
@@ -199,6 +194,7 @@ var startCmd = &cobra.Command{
 			}
 
 			logger.Info("hard stopping workers")
+
 			hardTimeoutCtx, hardTimeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer hardTimeoutRelease()
 

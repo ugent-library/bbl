@@ -35,7 +35,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/riverqueue/river/riverdriver v0.19.0 // indirect
 	github.com/riverqueue/river/rivershared v0.19.0 // indirect
-	github.com/riverqueue/river/rivertype v0.19.0 // indirect
+	github.com/riverqueue/river/rivertype v0.19.0
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.14.0 // indirect

@@ -14,6 +14,7 @@ func init() {
 var worksCmd = &cobra.Command{
 	Use:   "works",
 	Short: "Works",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
