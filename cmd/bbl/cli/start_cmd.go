@@ -11,8 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/jobs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,11 +29,16 @@ var startCmd = &cobra.Command{
 	Short: "Start the server",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := NewRepo(cmd.Context())
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
 		}
-		defer close()
+		defer conn.Close()
+
+		repo, err := NewRepo(cmd.Context(), conn)
+		if err != nil {
+			return err
+		}
 
 		index, err := NewIndex(cmd.Context())
 		if err != nil {
@@ -37,6 +46,21 @@ var startCmd = &cobra.Command{
 		}
 
 		logger := NewLogger(cmd.OutOrStdout())
+
+		workers := river.NewWorkers()
+		if err := river.AddWorkerSafely(workers, jobs.NewReindexPeopleWorker(repo, index)); err != nil {
+			return err
+		}
+
+		riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
+			Queues: map[string]river.QueueConfig{
+				river.QueueDefault: {MaxWorkers: 100},
+			},
+			Workers: workers,
+		})
+		if err != nil {
+			return err
+		}
 
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
@@ -74,6 +98,8 @@ var startCmd = &cobra.Command{
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
 		group.Go(func() error {
+			logger.Info("starting organizations indexer")
+
 			channel := "organizations_indexer"
 
 			var err error
@@ -99,6 +125,8 @@ var startCmd = &cobra.Command{
 		})
 
 		group.Go(func() error {
+			logger.Info("starting people indexer")
+
 			channel := "people_indexer"
 
 			var err error
@@ -134,13 +162,52 @@ var startCmd = &cobra.Command{
 			}
 			return nil
 		})
+		group.Go(func() error {
+			<-groupCtx.Done()
+			logger.Info("gracefully stopping server")
+			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
+			defer timeoutRelease()
+			err := server.Shutdown(timeoutCtx)
+			if err == nil {
+				logger.Info("gracefully stopped server")
+			}
+			return err
+		})
+
+		group.Go(func() error {
+			if err := riverClient.Start(groupCtx); err != nil {
+				return err
+			}
+			logger.Info("workers started")
+			<-riverClient.Stopped()
+			return nil
+		})
 
 		group.Go(func() error {
 			<-groupCtx.Done()
-			logger.Info("gracefully stopping")
+
+			logger.Info("gracefully stopping workers")
 			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer timeoutRelease()
-			return server.Shutdown(timeoutCtx)
+			err := riverClient.Stop(timeoutCtx)
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+				return err
+			}
+			if err == nil {
+				logger.Info("gracefully stopped workers")
+				return nil
+			}
+
+			logger.Info("hard stopping workers")
+			hardTimeoutCtx, hardTimeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
+			defer hardTimeoutRelease()
+
+			err = riverClient.StopAndCancel(hardTimeoutCtx)
+			if err != nil && errors.Is(err, context.DeadlineExceeded) {
+				logger.Info("hard stopped workers")
+				return nil
+			}
+			return err
 		})
 
 		if err := group.Wait(); err != nil {

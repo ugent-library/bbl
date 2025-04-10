@@ -24,31 +24,26 @@ func NewLogger(w io.Writer) *slog.Logger {
 	}
 }
 
-func NewRepo(ctx context.Context) (*bbl.Repo, func(), error) {
-	conn, err := pgxpool.New(ctx, config.PgConn)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*bbl.Repo, error) {
 	repo, err := bbl.NewRepo(ctx, conn)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := repo.Queue().CreateChannel(ctx, "organizations_indexer", "organization", tonga.ChannelOpts{}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := repo.Queue().CreateChannel(ctx, "people_indexer", "person", tonga.ChannelOpts{}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := repo.Queue().CreateChannel(ctx, "projects_indexer", "project", tonga.ChannelOpts{}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return repo, conn.Close, nil
+	return repo, nil
 }
 
 func NewIndex(ctx context.Context) (bbl.Index, error) {

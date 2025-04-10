@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/pressly/goose/v3 v3.24.2
 	github.com/riverqueue/river v0.19.0
+	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.19.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 )
 

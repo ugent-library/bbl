@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
 )
@@ -23,11 +24,16 @@ var addRevCmd = &cobra.Command{
 	Short: "Add revision",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := NewRepo(cmd.Context())
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
 		}
-		defer close()
+		defer conn.Close()
+
+		repo, err := NewRepo(cmd.Context(), conn)
+		if err != nil {
+			return err
+		}
 
 		dec := json.NewDecoder(cmd.InOrStdin())
 		for {

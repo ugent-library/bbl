@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 )
 
@@ -14,11 +15,16 @@ var migrateCmd = &cobra.Command{
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: []string{"up", "down"},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, close, err := NewRepo(cmd.Context())
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
 		}
-		defer close()
+		defer conn.Close()
+
+		repo, err := NewRepo(cmd.Context(), conn)
+		if err != nil {
+			return err
+		}
 
 		if args[0] == "up" {
 			return repo.MigrateUp(cmd.Context())
