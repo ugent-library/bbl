@@ -70,7 +70,12 @@ func NewIndex(ctx context.Context) (bbl.Index, error) {
 
 func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *bbl.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
 	workers := river.NewWorkers()
-	river.AddWorker(workers, jobs.NewReindexPeopleWorker(repo, index))
+	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
+		return nil, err
+	}
+	if err := river.AddWorkerSafely(workers, jobs.NewReindexPeopleWorker(repo, index)); err != nil {
+		return nil, err
+	}
 
 	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
 		Logger: logger,
