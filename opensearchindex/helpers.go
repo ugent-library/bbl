@@ -8,9 +8,9 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
-func encodeCursor(res *opensearchapi.SearchResp, args bbl.SearchArgs) (string, error) {
+func encodeCursor(res *opensearchapi.SearchResp, opts bbl.SearchOpts) (string, error) {
 	n := len(res.Hits.Hits)
-	if n == 0 || n < args.Limit {
+	if n == 0 || n < opts.Limit {
 		return "", nil
 	}
 	c, err := json.Marshal(res.Hits.Hits[n-1].Sort)

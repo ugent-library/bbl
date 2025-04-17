@@ -11,9 +11,9 @@ import (
 func init() {
 	rootCmd.AddCommand(peopleCmd)
 	peopleCmd.AddCommand(searchPeopleCmd)
-	searchPeopleCmd.Flags().IntVar(&searchArgs.Limit, "limit", 20, "")
-	searchPeopleCmd.Flags().StringVarP(&searchArgs.Query, "query", "q", "", "")
-	searchPeopleCmd.Flags().StringVar(&searchArgs.Cursor, "cursor", "", "")
+	searchPeopleCmd.Flags().IntVar(&searchOpts.Limit, "limit", 20, "")
+	searchPeopleCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
+	searchPeopleCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
 	peopleCmd.AddCommand(reindexPeopleCmd)
 }
 
@@ -96,7 +96,7 @@ var searchPeopleCmd = &cobra.Command{
 			return err
 		}
 
-		hits, err := index.People().Search(cmd.Context(), searchArgs)
+		hits, err := index.People().Search(cmd.Context(), searchOpts)
 		if err != nil {
 			return err
 		}

@@ -8,6 +8,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/rivertype"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/tonga"
 	"golang.org/x/sync/errgroup"
 )
@@ -33,11 +34,11 @@ func (ReindexOrganizationsArgs) InsertOpts() river.InsertOpts {
 
 type ReindexOrganizationsWorker struct {
 	river.WorkerDefaults[ReindexOrganizationsArgs]
-	repo  *bbl.Repo
+	repo  *pgxrepo.Repo
 	index bbl.Index
 }
 
-func NewReindexOrganizationsWorker(repo *bbl.Repo, index bbl.Index) *ReindexOrganizationsWorker {
+func NewReindexOrganizationsWorker(repo *pgxrepo.Repo, index bbl.Index) *ReindexOrganizationsWorker {
 	return &ReindexOrganizationsWorker{
 		repo:  repo,
 		index: index,
@@ -90,9 +91,7 @@ func (w *ReindexOrganizationsWorker) Work(ctx context.Context, job *river.Job[Re
 
 		var err error
 
-		iter := w.repo.OrganizationsIter(groupCtx, &err)
-
-		for rec := range iter {
+		for rec := range w.repo.OrganizationsIter(groupCtx, &err) {
 			if err = switcher.Add(groupCtx, rec); err != nil {
 				return err
 			}

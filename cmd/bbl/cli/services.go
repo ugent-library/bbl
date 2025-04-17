@@ -16,7 +16,9 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/jobs"
+	"github.com/ugent-library/bbl/oaidcscheme"
 	"github.com/ugent-library/bbl/opensearchindex"
+	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/tonga"
 )
 
@@ -28,8 +30,8 @@ func NewLogger(w io.Writer) *slog.Logger {
 	}
 }
 
-func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*bbl.Repo, error) {
-	repo, err := bbl.NewRepo(ctx, conn)
+func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*pgxrepo.Repo, error) {
+	repo, err := pgxrepo.New(ctx, conn)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +46,12 @@ func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*bbl.Repo, error) {
 		return nil, err
 	}
 	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
+		return nil, err
+	}
+	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
+		return nil, err
+	}
+	if err := repo.Queue().CreateChannel(ctx, "works_representations_adder", "work", tonga.ChannelOpts{}); err != nil {
 		return nil, err
 	}
 
@@ -68,7 +76,7 @@ func NewIndex(ctx context.Context) (bbl.Index, error) {
 	return opensearchindex.New(ctx, client)
 }
 
-func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *bbl.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
+func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
 	workers := river.NewWorkers()
 	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
 		return nil, err
@@ -89,4 +97,10 @@ func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *bbl.Repo, ind
 	}
 
 	return riverClient, nil
+}
+
+func WorkEncoders() map[string]bbl.WorkEncoder {
+	return map[string]bbl.WorkEncoder{
+		"oai_dc": oaidcscheme.EncodeWork,
+	}
 }

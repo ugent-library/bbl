@@ -6,7 +6,7 @@ import (
 )
 
 type Rev struct {
-	actions []Action
+	Actions []Action
 }
 
 func NewRev() *Rev {
@@ -14,7 +14,7 @@ func NewRev() *Rev {
 }
 
 func (r *Rev) Add(action Action) {
-	r.actions = append(r.actions, action)
+	r.Actions = append(r.Actions, action)
 }
 
 func (r *Rev) UnmarshalJSON(b []byte) error {
@@ -55,7 +55,7 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 		if err := json.Unmarshal(rawAction.Data, action); err != nil {
 			return err
 		}
-		rev.actions = append(rev.actions, action)
+		rev.Actions = append(rev.Actions, action)
 	}
 
 	*r = rev

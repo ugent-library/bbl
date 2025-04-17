@@ -11,9 +11,9 @@ import (
 func init() {
 	rootCmd.AddCommand(organizationsCmd)
 	organizationsCmd.AddCommand(searchOrganizationsCmd)
-	searchOrganizationsCmd.Flags().IntVar(&searchArgs.Limit, "limit", 20, "")
-	searchOrganizationsCmd.Flags().StringVarP(&searchArgs.Query, "query", "q", "", "")
-	searchOrganizationsCmd.Flags().StringVar(&searchArgs.Cursor, "cursor", "", "")
+	searchOrganizationsCmd.Flags().IntVar(&searchOpts.Limit, "limit", 20, "")
+	searchOrganizationsCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
+	searchOrganizationsCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
 	organizationCmd.AddCommand(reindexOrganizationsCmd)
 }
 
@@ -96,7 +96,7 @@ var searchOrganizationsCmd = &cobra.Command{
 			return err
 		}
 
-		hits, err := index.Organizations().Search(cmd.Context(), searchArgs)
+		hits, err := index.Organizations().Search(cmd.Context(), searchOpts)
 		if err != nil {
 			return err
 		}

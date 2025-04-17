@@ -131,13 +131,13 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 	return nil
 }
 
-func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.RecHits[T], error) {
+func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.RecHits[T], error) {
 	query := `{"match_all": {}}`
 	sort := `{"_id": "asc"}`
 	searchAfter := ``
 
-	if args.Query != "" {
-		q, err := idx.generateQuery(args.Query)
+	if opts.Query != "" {
+		q, err := idx.generateQuery(opts.Query)
 		if err != nil {
 			return nil, err
 		}
@@ -146,8 +146,8 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
 	}
 
-	if args.Cursor != "" {
-		cursor, err := base64.StdEncoding.DecodeString(args.Cursor)
+	if opts.Cursor != "" {
+		cursor, err := base64.StdEncoding.DecodeString(opts.Cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 	body := `{
 		"query": ` + query + `,
 		"sort": ` + sort + `,
-		"size": ` + fmt.Sprint(args.Limit) + `,` +
+		"size": ` + fmt.Sprint(opts.Limit) + `,` +
 		searchAfter + `
 		"_source": {
 			"includes": ["rec"]
@@ -172,7 +172,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 		return nil, err
 	}
 
-	cursor, err := encodeCursor(res, args)
+	cursor, err := encodeCursor(res, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -180,8 +180,8 @@ func (idx *recIndex[T]) Search(ctx context.Context, args bbl.SearchArgs) (*bbl.R
 	hits := &bbl.RecHits[T]{
 		Hits:   make([]bbl.RecHit[T], len(res.Hits.Hits)),
 		Total:  res.Hits.Total.Value,
-		Limit:  args.Limit,
-		Query:  args.Query,
+		Limit:  opts.Limit,
+		Query:  opts.Query,
 		Cursor: cursor,
 	}
 	for i, hit := range res.Hits.Hits {

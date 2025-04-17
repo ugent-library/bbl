@@ -11,7 +11,7 @@ type Index interface {
 
 type RecIndex[T Rec] interface {
 	Add(context.Context, T) error
-	Search(context.Context, SearchArgs) (*RecHits[T], error)
+	Search(context.Context, SearchOpts) (*RecHits[T], error)
 	NewSwitcher(context.Context) (RecIndexSwitcher[T], error)
 }
 
@@ -20,7 +20,7 @@ type RecIndexSwitcher[T Rec] interface {
 	Switch(context.Context) error
 }
 
-type SearchArgs struct {
+type SearchOpts struct {
 	Cursor string `json:"cursor,omitempty"`
 	Query  string `json:"query,omitempty"`
 	Limit  int    `json:"limit"`

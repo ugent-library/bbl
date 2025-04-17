@@ -13,6 +13,9 @@ import (
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/oaipmh"
+	"github.com/ugent-library/bbl/oaiservice"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 //go:embed static
@@ -22,7 +25,7 @@ type Config struct {
 	Env     string
 	BaseURL string
 	Logger  *slog.Logger
-	Repo    *bbl.Repo
+	Repo    *pgxrepo.Repo
 	Index   bbl.Index
 	// UserSource       biblio.UserSource
 	CookieSecret     []byte
@@ -59,23 +62,23 @@ func New(config *Config) (http.Handler, error) {
 	// router.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", apiServer))
 
 	// oai provider
-	// oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
-	// 	RepositoryName: "Ghent University Institutional Archive",
-	// 	BaseURL:        "http://localhost:3000/oai",
-	// 	AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
-	// 	DeletedRecord:  "persistent",
-	// 	Granularity:    "YYYY-MM-DDThh:mm:ssZ",
-	// 	// StyleSheet:     "/oai.xsl",
-	// 	Backend: oai.NewService(config.Repo.WorkRepresentations()),
-	// 	ErrorHandler: func(err error) { // TODO
-	// 		config.Logger.Error("oai error", "error", err)
-	// 	},
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
+		RepositoryName: "Ghent University Institutional Archive",
+		BaseURL:        "http://localhost:3000/oai",
+		AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
+		DeletedRecord:  "persistent",
+		Granularity:    "YYYY-MM-DDThh:mm:ssZ",
+		// StyleSheet:     "/oai.xsl",
+		Backend: oaiservice.New(config.Repo),
+		ErrorHandler: func(err error) { // TODO
+			config.Logger.Error("oai error", "error", err)
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	// router.Handle("/oai", oaiProvider).Methods("GET")
+	router.Handle("/oai", oaiProvider).Methods("GET")
 
 	// ui
 	assets, err := parseManifest()

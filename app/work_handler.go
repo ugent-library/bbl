@@ -8,14 +8,15 @@ import (
 	workviews "github.com/ugent-library/bbl/app/views/works"
 	"github.com/ugent-library/bbl/binder"
 	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 type WorkHandler struct {
-	repo  *bbl.Repo
+	repo  *pgxrepo.Repo
 	index bbl.Index
 }
 
-func NewWorkHandler(repo *bbl.Repo, index bbl.Index) *WorkHandler {
+func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 	return &WorkHandler{
 		repo:  repo,
 		index: index,
@@ -68,7 +69,7 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 		return err
 	}
 
-	rec.ID = h.repo.NewID()
+	rec.ID = bbl.NewID()
 
 	rev := bbl.NewRev()
 	rev.Add(&bbl.CreateWork{Work: rec})
@@ -271,7 +272,7 @@ func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request
 	if err := binder.New(r).Query().String("q", &query).Int("idx", &idx).Err(); err != nil {
 		return err
 	}
-	hits, err := h.index.People().Search(r.Context(), bbl.SearchArgs{Query: query, Limit: 10})
+	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Limit: 10})
 	if err != nil {
 		return err
 	}

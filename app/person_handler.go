@@ -4,14 +4,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 type PersonHandler struct {
-	repo  *bbl.Repo
+	repo  *pgxrepo.Repo
 	index bbl.Index
 }
 
-func NewPersonHandler(repo *bbl.Repo, index bbl.Index) *PersonHandler {
+func NewPersonHandler(repo *pgxrepo.Repo, index bbl.Index) *PersonHandler {
 	return &PersonHandler{
 		repo:  repo,
 		index: index,

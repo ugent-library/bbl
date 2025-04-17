@@ -44,6 +44,8 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
+		workEncoders := WorkEncoders()
+
 		riverClient, err := NewRiverClient(logger, conn, repo, index)
 		if err != nil {
 			return err
@@ -89,10 +91,9 @@ var startCmd = &cobra.Command{
 
 			channel := "organizations_indexer"
 
-			var err error
 			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
 				var id string
-				if err = json.Unmarshal(msg.Body, &id); err != nil {
+				if err := json.Unmarshal(msg.Body, &id); err != nil {
 					logger.Error(channel, "err", err)
 					continue
 				}
@@ -103,12 +104,14 @@ var startCmd = &cobra.Command{
 				}
 				if err = index.Organizations().Add(groupCtx, rec); err != nil {
 					logger.Error(channel, "err", err)
+					continue
 				}
 				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
-					return err
+					logger.Error(channel, "err", err)
+					continue
 				}
 			}
-			return err
+			return nil
 		})
 
 		group.Go(func() error {
@@ -116,10 +119,9 @@ var startCmd = &cobra.Command{
 
 			channel := "people_indexer"
 
-			var err error
 			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
 				var id string
-				if err = json.Unmarshal(msg.Body, &id); err != nil {
+				if err := json.Unmarshal(msg.Body, &id); err != nil {
 					logger.Error(channel, "err", err)
 					continue
 				}
@@ -130,17 +132,50 @@ var startCmd = &cobra.Command{
 				}
 				if err = index.People().Add(groupCtx, rec); err != nil {
 					logger.Error(channel, "err", err)
+					continue
 				}
 				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
-					return err
+					logger.Error(channel, "err", err)
+					continue
+				}
+			}
+			return nil
+		})
+
+		group.Go(func() error {
+			logger.Info("starting works representations adder")
+
+			channel := "works_representations_adder"
+
+			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
+				var id string
+				if err := json.Unmarshal(msg.Body, &id); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				rec, err := repo.GetWork(groupCtx, id)
+				if err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				for scheme, enc := range workEncoders {
+					b, err := enc(groupCtx, rec)
+					if err != nil {
+						logger.Error(channel, "err", err)
+						continue
+					}
+					if err = repo.AddWorkRepresentation(groupCtx, rec.ID, scheme, b); err != nil {
+						logger.Error(channel, "err", err)
+						continue
+					}
+				}
+				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
+					logger.Error(channel, "err", err)
+					continue
 				}
 			}
 			return err
 		})
-
-		// group.Go(func() error {
-		// 	return jobs.WorkRepresentations(groupCtx, pgAdapter.Queue(), pgAdapter.WorkRepresentations(), pgAdapter.Works(), services.WorkEncoders())
-		// })
 
 		group.Go(func() error {
 			logger.Info("server listening", "host", config.Host, "port", config.Port)
@@ -150,6 +185,7 @@ var startCmd = &cobra.Command{
 			}
 			return nil
 		})
+
 		group.Go(func() error {
 			<-groupCtx.Done()
 
