@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -78,10 +79,13 @@ func NewIndex(ctx context.Context) (bbl.Index, error) {
 
 func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
 	workers := river.NewWorkers()
-	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
+	if err := river.AddWorkerSafely(workers, jobs.NewQueueGcWorker(repo.Queue())); err != nil {
 		return nil, err
 	}
 	if err := river.AddWorkerSafely(workers, jobs.NewReindexPeopleWorker(repo, index)); err != nil {
+		return nil, err
+	}
+	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
 		return nil, err
 	}
 
@@ -89,6 +93,15 @@ func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 		Logger: logger,
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: 100},
+		},
+		PeriodicJobs: []*river.PeriodicJob{
+			river.NewPeriodicJob(
+				river.PeriodicInterval(10*time.Minute),
+				func() (river.JobArgs, *river.InsertOpts) {
+					return jobs.QueueGcArgs{}, nil
+				},
+				&river.PeriodicJobOpts{RunOnStart: true},
+			),
 		},
 		Workers: workers,
 	})

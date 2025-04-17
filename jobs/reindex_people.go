@@ -60,8 +60,11 @@ func (w *ReindexPeopleWorker) Work(ctx context.Context, job *river.Job[ReindexPe
 	group.Go(func() error {
 		queue := w.repo.Queue()
 
-		// TODO channel with ttl is more robust
-		if err := queue.CreateChannel(cancelCtx, channel, topic, tonga.ChannelOpts{}); err != nil {
+		channelOpts := tonga.ChannelOpts{
+			DeleteAt: time.Now().Add(30 * time.Minute),
+			Unlogged: true,
+		}
+		if err := queue.CreateChannel(cancelCtx, channel, topic, channelOpts); err != nil {
 			return err
 		}
 		defer queue.DeleteChannel(cancelCtx, channel)
