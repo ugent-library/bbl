@@ -7,6 +7,8 @@ import (
 type Index interface {
 	Organizations() RecIndex[*Organization]
 	People() RecIndex[*Person]
+	Projects() RecIndex[*Project]
+	Works() RecIndex[*Work]
 }
 
 type RecIndex[T Rec] interface {

@@ -143,6 +143,62 @@ var startCmd = &cobra.Command{
 		})
 
 		group.Go(func() error {
+			logger.Info("starting projects indexer")
+
+			channel := "projects_indexer"
+
+			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
+				var id string
+				if err := json.Unmarshal(msg.Body, &id); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				rec, err := repo.GetProject(groupCtx, id)
+				if err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				if err = index.Projects().Add(groupCtx, rec); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+			}
+			return nil
+		})
+
+		group.Go(func() error {
+			logger.Info("starting works indexer")
+
+			channel := "works_indexer"
+
+			for msg := range repo.Listen(groupCtx, channel, 10*time.Second) {
+				var id string
+				if err := json.Unmarshal(msg.Body, &id); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				rec, err := repo.GetWork(groupCtx, id)
+				if err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				if err = index.Works().Add(groupCtx, rec); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+				if _, err := repo.Queue().Delete(groupCtx, channel, msg.ID); err != nil {
+					logger.Error(channel, "err", err)
+					continue
+				}
+			}
+			return nil
+		})
+
+		group.Go(func() error {
 			logger.Info("starting works representations adder")
 
 			channel := "works_representations_adder"

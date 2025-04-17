@@ -49,9 +49,6 @@ func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*pgxrepo.Repo, error) {
 	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
 		return nil, err
 	}
-	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
 	if err := repo.Queue().CreateChannel(ctx, "works_representations_adder", "work", tonga.ChannelOpts{}); err != nil {
 		return nil, err
 	}
@@ -86,6 +83,12 @@ func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 		return nil, err
 	}
 	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
+		return nil, err
+	}
+	if err := river.AddWorkerSafely(workers, jobs.NewReindexProjectsWorker(repo, index)); err != nil {
+		return nil, err
+	}
+	if err := river.AddWorkerSafely(workers, jobs.NewReindexWorksWorker(repo, index)); err != nil {
 		return nil, err
 	}
 
