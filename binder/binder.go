@@ -11,20 +11,29 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+const MaxMemory int64 = 32 << 20
+
 func New(r *http.Request) *Binder {
-	return &Binder{r: r}
+	return &Binder{r: r, maxMemory: MaxMemory}
 }
 
 type Binder struct {
 	r           *http.Request
+	multipart   bool
+	maxMemory   int64
 	err         error
 	queryBinder *Values
 	formBinder  *Values
 }
 
-type Values struct {
-	binder *Binder
-	values url.Values
+func (b *Binder) Multipart() *Binder {
+	b.multipart = true
+	return b
+}
+
+func (b *Binder) MaxMemory(maxMemory int64) *Binder {
+	b.maxMemory = maxMemory
+	return b
 }
 
 func (b *Binder) Query() *Values {
@@ -37,7 +46,11 @@ func (b *Binder) Query() *Values {
 func (b *Binder) Form() *Values {
 	if b.formBinder == nil {
 		if b.r.Form == nil {
-			b.err = b.r.ParseMultipartForm(32 << 20)
+			if b.multipart {
+				b.err = b.r.ParseMultipartForm(b.maxMemory)
+			} else {
+				b.err = b.r.ParseForm()
+			}
 		}
 		b.formBinder = &Values{binder: b, values: b.r.Form}
 	}
@@ -46,6 +59,11 @@ func (b *Binder) Form() *Values {
 
 func (b *Binder) Err() error {
 	return b.err
+}
+
+type Values struct {
+	binder *Binder
+	values url.Values
 }
 
 func (b *Values) Query() *Values {
