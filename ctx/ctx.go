@@ -2,6 +2,7 @@ package ctx
 
 import (
 	"context"
+	"log"
 	"net/http"
 )
 
@@ -86,6 +87,7 @@ func (c *Ctx[T]) Bind(h Handler[T]) http.Handler {
 			req, err = chained.applyWrappers(w, req)
 			if err != nil {
 				// TODO error handler
+				log.Printf("error: %s", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -97,6 +99,7 @@ func (c *Ctx[T]) Bind(h Handler[T]) http.Handler {
 		t := req.Context().Value(ctxKey).(T)
 		if err := h(w, r, t); err != nil {
 			// TODO error handler
+			log.Printf("error: %s", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
