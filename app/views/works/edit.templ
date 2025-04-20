@@ -57,13 +57,13 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 								<a class="nav-link" href="#description">
 									<span class="c-sidebar__label">Description</span>
 								</a>
-								<a class="nav-link" href="#contributors_affiliations">
+								<a class="nav-link" href="#contributors-affiliations">
 									<span class="c-sidebar__label">People & affiliations</span>
 								</a>
-								<a class="nav-link" href="#bibliographic_information">
+								<a class="nav-link" href="#bibliographic-information">
 									<span class="c-sidebar__label">Bibliographic information</span>
 								</a>
-								<a class="nav-link" href="#conference_details">
+								<a class="nav-link" href="#conference-details">
 									<span class="c-sidebar__label">Conference details</span>
 								</a>
 								<a class="nav-link" href="#identifiers">
@@ -117,7 +117,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			</div>
 		</div>
 	</div>
-	<div class="mb-6" id="contributors_affiliations">
+	<div class="mb-6" id="contributors-affiliations">
 		<div class="mb-4">
 			<h2>People & affiliations</h2>
 		</div>
@@ -129,7 +129,7 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 			</div>
 		</div>
 	</div>
-	<div class="mb-6" id="bibliographic_information">
+	<div class="mb-6" id="bibliographic-information">
 		<div class="mb-4">
 			<h2>Bibliographic information</h2>
 		</div>
@@ -138,13 +138,33 @@ templ editForm(c views.Ctx, rec *bbl.Work) {
 		</div>
 	</div>
 	if rec.Profile.Conference != nil {
-		<div class="mb-6" id="conference_details">
+		<div class="mb-6" id="conference-details">
 			<div class="mb-4">
 				<h2>Conference details</h2>
 			</div>
 			<div class="card mb-6">
 				<div class="card-body">
-					@conferenceField(c, rec)
+					@forms.TextInputField(forms.TextInputArgs{
+						FieldArgs: forms.FieldArgs{
+							Label: "Conference",
+							Name:  "conference.name",
+						},
+						Value: rec.Attrs.Conference.Name,
+					})
+					@forms.TextInputField(forms.TextInputArgs{
+						FieldArgs: forms.FieldArgs{
+							Label: "Conference location",
+							Name:  "conference.location",
+						},
+						Value: rec.Attrs.Conference.Location,
+					})
+					@forms.TextInputField(forms.TextInputArgs{
+						FieldArgs: forms.FieldArgs{
+							Label: "Conference organizer",
+							Name:  "conference.organizer",
+						},
+						Value: rec.Attrs.Conference.Organizer,
+					})
 				</div>
 			</div>
 		</div>
@@ -167,7 +187,6 @@ templ editButtons(c views.Ctx, rec *bbl.Work) {
 	<div class="c-button-toolbar">
 		<button
 			class="btn btn-outline-secondary"
-			hx-encoding="multipart/form-data"
 			hx-include="#edit-work"
 			if rec.ID == "" {
 				hx-post={ c.Route("create_work").String() }
@@ -212,7 +231,6 @@ templ kindField(c views.Ctx, rec *bbl.Work) {
 					} else {
 						hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
 					}
-					hx-encoding="multipart/form-data"
 					hx-include="#edit-work"
 					hx-target="#edit-work"
 				>
@@ -234,7 +252,6 @@ templ kindField(c views.Ctx, rec *bbl.Work) {
 						} else {
 							hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
 						}
-						hx-encoding="multipart/form-data"
 						hx-include="#edit-work"
 						hx-target="#edit-work"
 					>
@@ -283,7 +300,6 @@ templ AbstractsField(c views.Ctx, texts []bbl.Text) {
 							hx-include="#abstracts-field"
 							hx-include="#abstracts-field [name^='abstracts'], #add-abstract"
 							hx-post={ c.Route("work_add_abstract").String() }
-							hx-encoding="multipart/form-data"
 							hx-target="#abstracts-field"
 							hx-swap="outerHTML"
 						>
@@ -343,7 +359,6 @@ templ AbstractsField(c views.Ctx, texts []bbl.Text) {
 										hx-include={ fmt.Sprintf(`#abstracts-field [name^='abstracts'], #edit-abstract-%d`, idx) }
 										hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
 										hx-post={ c.Route("work_edit_abstract").String() }
-										hx-encoding="multipart/form-data"
 										hx-target="#abstracts-field"
 										hx-swap="outerHTML"
 									>
@@ -374,7 +389,6 @@ templ AbstractsField(c views.Ctx, texts []bbl.Text) {
 									hx-include="#abstracts-field"
 									hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
 									hx-post={ c.Route("work_remove_abstract").String() }
-									hx-encoding="multipart/form-data"
 									hx-target="#abstracts-field"
 									hx-swap="innerHTML"
 								>
@@ -415,7 +429,6 @@ templ LaySummariesField(c views.Ctx, texts []bbl.Text) {
 							hx-include="#lay-summaries-field"
 							hx-include="#lay-summaries-field [name^='lay_summaries'], #add-lay-summary"
 							hx-post={ c.Route("work_add_lay_summary").String() }
-							hx-encoding="multipart/form-data"
 							hx-target="#lay-summaries-field"
 							hx-swap="outerHTML"
 						>
@@ -475,7 +488,6 @@ templ LaySummariesField(c views.Ctx, texts []bbl.Text) {
 										hx-include={ fmt.Sprintf(`#lay-summaries-field [name^='lay_summaries'], #edit-lay-summary-%d`, idx) }
 										hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
 										hx-post={ c.Route("work_edit_lay_summary").String() }
-										hx-encoding="multipart/form-data"
 										hx-target="#lay-summaries-field"
 										hx-swap="outerHTML"
 									>
@@ -506,7 +518,6 @@ templ LaySummariesField(c views.Ctx, texts []bbl.Text) {
 									hx-include="#lay-summaries-field"
 									hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
 									hx-post={ c.Route("work_remove_lay_summary").String() }
-									hx-encoding="multipart/form-data"
 									hx-target="#lay-summaries-field"
 									hx-swap="innerHTML"
 								>
@@ -652,7 +663,6 @@ templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 												hx-include="#contributors-field"
 												hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
 												hx-post={ c.Route("work_remove_contributor").String() }
-												hx-encoding="multipart/form-data"
 												hx-target="#contributors-field"
 												hx-swap="outerHTML"
 											>
@@ -699,7 +709,6 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx in
 								hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
 								hx-post={ c.Route("work_add_contributor").String() }
 							}
-							hx-encoding="multipart/form-data"
 							hx-target="#contributors-field"
 							hx-swap="outerHTML"
 						>
@@ -717,30 +726,6 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx in
 			</li>
 		}
 	</ul>
-}
-
-templ conferenceField(c views.Ctx, rec *bbl.Work) {
-	@forms.TextInputField(forms.TextInputArgs{
-		FieldArgs: forms.FieldArgs{
-			Label: "Conference",
-			Name:  "conference.name",
-		},
-		Value: rec.Attrs.Conference.Name,
-	})
-	@forms.TextInputField(forms.TextInputArgs{
-		FieldArgs: forms.FieldArgs{
-			Label: "Conference location",
-			Name:  "conference.location",
-		},
-		Value: rec.Attrs.Conference.Location,
-	})
-	@forms.TextInputField(forms.TextInputArgs{
-		FieldArgs: forms.FieldArgs{
-			Label: "Conference organizer",
-			Name:  "conference.organizer",
-		},
-		Value: rec.Attrs.Conference.Organizer,
-	})
 }
 
 templ identifiersField(c views.Ctx, rec *bbl.Work) {

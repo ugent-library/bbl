@@ -2,7 +2,7 @@ package binder
 
 import (
 	"net/http"
-	"net/url"
+	"net/textproto"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,12 +18,13 @@ func New(r *http.Request) *Binder {
 }
 
 type Binder struct {
-	r           *http.Request
-	multipart   bool
-	maxMemory   int64
-	err         error
-	queryBinder *Values
-	formBinder  *Values
+	r            *http.Request
+	multipart    bool
+	maxMemory    int64
+	err          error
+	queryBinder  *Values
+	formBinder   *Values
+	headerBinder *Values
 }
 
 func (b *Binder) Multipart() *Binder {
@@ -57,13 +58,51 @@ func (b *Binder) Form() *Values {
 	return b.formBinder
 }
 
+func (b *Binder) Header() *Values {
+	if b.headerBinder == nil {
+		b.headerBinder = &Values{
+			binder:       b,
+			normalizeKey: textproto.CanonicalMIMEHeaderKey,
+			values:       b.r.Header,
+		}
+	}
+	return b.headerBinder
+}
+
 func (b *Binder) Err() error {
 	return b.err
 }
 
 type Values struct {
-	binder *Binder
-	values url.Values
+	binder       *Binder
+	values       map[string][]string
+	normalizeKey func(string) string
+}
+
+func (b Values) has(key string) bool {
+	if b.normalizeKey != nil {
+		key = b.normalizeKey(key)
+	}
+	_, ok := b.values[key]
+	return ok
+}
+
+func (b Values) get(key string) string {
+	if b.normalizeKey != nil {
+		key = b.normalizeKey(key)
+	}
+	s := b.values[key]
+	if len(s) == 0 {
+		return ""
+	}
+	return s[0]
+}
+
+func (b Values) getAll(key string) []string {
+	if b.normalizeKey != nil {
+		key = b.normalizeKey(key)
+	}
+	return b.values[key]
 }
 
 func (b *Values) Query() *Values {
@@ -74,13 +113,17 @@ func (b *Values) Form() *Values {
 	return b.binder.Form()
 }
 
+func (b *Values) Header() *Values {
+	return b.binder.Header()
+}
+
 func (b *Values) Err() error {
 	return b.binder.err
 }
 
 func (b *Values) Vacuum() *Values {
 	if b.binder.err == nil {
-		newValues := make(url.Values)
+		newValues := make(map[string][]string)
 		for key, vals := range b.values {
 			var newVals []string
 			for _, val := range vals {
@@ -104,7 +147,7 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 		return b
 	}
 
-	s := []url.Values{}
+	s := []map[string][]string{}
 
 	prefix := key + "["
 	for key, vals := range b.values {
@@ -122,21 +165,21 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 					s = s[:i+1]
 				} else if i >= cap(s) {
 					ss := s
-					s = make([]url.Values, i+1)
+					s = make([]map[string][]string, i+1)
 					copy(s, ss)
 				}
 
 				if v := s[i]; v != nil {
 					v[newKey] = vals
 				} else {
-					s[i] = url.Values{newKey: vals}
+					s[i] = map[string][]string{newKey: vals}
 				}
 			}
 		}
 	}
 
 	for _, v := range s {
-		if !yield(&Values{binder: b.binder, values: v}) {
+		if !yield(&Values{binder: b.binder, normalizeKey: b.normalizeKey, values: v}) {
 			break
 		}
 	}
@@ -145,10 +188,10 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 }
 
 func (b *Values) String(key string, ptr *string) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	*ptr = b.values.Get(key)
+	*ptr = b.get(key)
 	return b
 }
 
@@ -163,10 +206,10 @@ func (b *Values) StringSlice(key string, ptr *[]string) *Values {
 }
 
 func (b *Values) Bool(key string, ptr *bool) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	if val, err := strconv.ParseBool(b.values.Get(key)); err == nil {
+	if val, err := strconv.ParseBool(b.get(key)); err == nil {
 		*ptr = val
 	} else {
 		b.binder.err = err
@@ -290,10 +333,10 @@ func (b *Values) Float64Slice(key string, ptr *[]float64) *Values {
 }
 
 func (b *Values) Time(key string, layout string, ptr *time.Time) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	if val, err := time.Parse(layout, b.values.Get(key)); err == nil {
+	if val, err := time.Parse(layout, b.get(key)); err == nil {
 		*ptr = val
 	} else {
 		b.binder.err = err
@@ -321,10 +364,10 @@ func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values 
 }
 
 func bindInt[T constraints.Signed](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	if val, err := strconv.ParseInt(b.values.Get(key), 10, bitSize); err == nil {
+	if val, err := strconv.ParseInt(b.get(key), 10, bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -352,10 +395,10 @@ func bindIntSlice[T constraints.Signed](b *Values, key string, ptr *[]T, bitSize
 }
 
 func bindUint[T constraints.Unsigned](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	if val, err := strconv.ParseUint(b.values.Get(key), 10, bitSize); err == nil {
+	if val, err := strconv.ParseUint(b.get(key), 10, bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -383,10 +426,10 @@ func bindUintSlice[T constraints.Unsigned](b *Values, key string, ptr *[]T, bitS
 }
 
 func bindFloat[T constraints.Float](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.values.Has(key) {
+	if b.binder.err != nil || !b.has(key) {
 		return b
 	}
-	if val, err := strconv.ParseFloat(b.values.Get(key), bitSize); err == nil {
+	if val, err := strconv.ParseFloat(b.get(key), bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -417,7 +460,7 @@ func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSiz
 func (b *Values) getSlice(key string) []string {
 	var s []string
 
-	if vals := b.values[key]; len(vals) > 0 {
+	if vals := b.getAll(key); len(vals) > 0 {
 		s = slices.Clone(vals)
 	}
 
@@ -445,7 +488,7 @@ func (b *Values) getSlice(key string) []string {
 				copy(s, ss)
 			}
 
-			s[i] = b.values.Get(key)
+			s[i] = b.get(key)
 		}
 	}
 
