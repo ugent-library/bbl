@@ -178,15 +178,23 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 					}
 					if rec.Profile.Abstracts != nil {
 						@abstractsField(c, abstractsFieldArgs{
-							Texts:  rec.Attrs.Abstracts,
-							Name:   "abstracts",
-							HxPost: route.String(),
+							Texts:       rec.Attrs.Abstracts,
+							Name:        "abstracts",
+							Label:       c.Loc.Get("abstract"),
+							PluralLabel: c.Loc.Get("abstracts"),
+							Title:       c.Loc.Get("Abstract"),
+							PluralTitle: c.Loc.Get("Abatracts"),
+							HxPost:      route.String(),
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
 						@abstractsField(c, abstractsFieldArgs{
 							Texts:  rec.Attrs.LaySummaries,
 							Name:   "lay_summaries",
+							Label:       c.Loc.Get("lay summary"),
+							PluralLabel: c.Loc.Get("lay summaries"),
+							Title:       c.Loc.Get("Lay summary"),
+							PluralTitle: c.Loc.Get("Lay summaries"),
 							HxPost: route.String(),
 						})
 					}
@@ -286,9 +294,13 @@ templ RefreshForm(c views.Ctx, rec *bbl.Work) {
 }
 
 type abstractsFieldArgs struct {
-	Texts  []bbl.Text
-	Name   string
-	HxPost string
+	Texts       []bbl.Text
+	Name        string
+	Label       string
+	PluralLabel string
+	Title       string
+	PluralTitle string
+	HxPost      string
 }
 
 templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
@@ -296,19 +308,19 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h2 class="modal-title">{ c.Loc.Get(fmt.Sprintf("work.%s.add_lbl", args.Name)) }</h2>
+					<h2 class="modal-title">{ c.Loc.Get("Add %s", args.Label) }</h2>
 				</div>
 				<div class="modal-body">
 					@forms.Text(forms.TextArgs{
 						FieldArgs: forms.FieldArgs{
 							Name: fmt.Sprintf("%s.add", args.Name),
 						},
-						ValLabel: c.Loc.Get(fmt.Sprintf("work.%s.val_lbl", args.Name)),
+						ValLabel: args.Title,
 						Rows:     8,
 					})
 				</div>
 				<div class="modal-footer">
-					<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("cancel_lbl") }</button>
+					<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("Cancel") }</button>
 					<button
 						class="btn btn-primary"
 						type="button"
@@ -316,7 +328,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 						hx-post={ args.HxPost }
 						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, len(args.Texts)) }
 					>
-						<span class="btn-text">{ c.Loc.Get(fmt.Sprintf("work.%s.add_lbl", args.Name)) }</span>
+						<span class="btn-text">{ c.Loc.Get("Add %s", args.Label) }</span>
 						<i class="if if-arrow-right"></i>
 					</button>
 				</div>
@@ -326,7 +338,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 	<div class="form-group">
 		<div class="bc-toolbar h-auto">
 			<div class="bc-toolbar-left">
-				<label class="form-label form-label-top">{ c.Loc.Get(fmt.Sprintf("work.%s.lbl", args.Name)) }</label>
+				<label class="form-label form-label-top">{ args.PluralTitle }</label>
 			</div>
 			<div class="bc-toolbar-right">
 				<button
@@ -336,7 +348,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 					data-bs-target={ fmt.Sprintf("#work-%s-add", args.Name) }
 				>
 					<i class="if if-add"></i>
-					<div class="btn-text">{ c.Loc.Get(fmt.Sprintf("work.%s.add_lbl", args.Name)) }</div>
+					<div class="btn-text">{ c.Loc.Get("Add %s", args.Label) }</div>
 				</button>
 			</div>
 		</div>
@@ -344,7 +356,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 			<div class="card shadow-none mb-6 bg-lightest">
 				<div class="card-body">
 					<div class="c-blank-slate py-4">
-						<p>{ c.Loc.Get(fmt.Sprintf("work.%s.blank_slate", args.Name)) }</p>
+						<p>{ c.Loc.Get("No %s.", args.Label) }</p>
 					</div>
 				</div>
 			</div>
@@ -354,20 +366,20 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 					<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
 						<div class="modal-content">
 							<div class="modal-header">
-								<h2 class="modal-title">{ c.Loc.Get(fmt.Sprintf("work.%s.edit_lbl", args.Name)) }</h2>
+								<h2 class="modal-title">{ c.Loc.Get("Edit %s", args.Label) }</h2>
 							</div>
 							<div class="modal-body">
 								@forms.Text(forms.TextArgs{
 									FieldArgs: forms.FieldArgs{
 										Name: fmt.Sprintf("%s[%d].edit", args.Name, i),
 									},
-									ValLabel: c.Loc.Get(fmt.Sprintf("work.%s.val_lbl", args.Name)),
+									ValLabel: args.Title,
 									Attr:     text,
 									Rows:     8,
 								})
 							</div>
 							<div class="modal-footer">
-								<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("cancel_lbl") }</button>
+								<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("Cancel") }</button>
 								<button
 									class="btn btn-primary"
 									type="button"
@@ -375,7 +387,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 									hx-post={ args.HxPost }
 									hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.edit_at": %d}`, args.Name, args.Name, i) }
 								>
-									<span class="btn-text">{ c.Loc.Get(fmt.Sprintf("work.%s.edit_lbl", args.Name)) }</span>
+									<span class="btn-text">{ c.Loc.Get("Edit %s", args.Label) }</span>
 									<i class="if if-arrow-right"></i>
 								</button>
 							</div>
@@ -394,7 +406,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 								data-bs-target={ fmt.Sprintf("#work-%s-edit-%d", args.Name, i) }
 							>
 								<i class="if if-edit"></i>
-								<span class="btn-text">{ c.Loc.Get("edit_lbl") }</span>
+								<span class="btn-text">{ c.Loc.Get("Edit") }</span>
 							</button>
 							<button
 								class="btn btn-tertiary btn-lg-only-responsive"
@@ -403,7 +415,7 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 								hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
 							>
 								<i class="if if-delete"></i>
-								<span class="btn-text">{ c.Loc.Get("remove_lbl") }</span>
+								<span class="btn-text">{ c.Loc.Get("Remove") }</span>
 							</button>
 						</div>
 						<p class="c-body-small text-muted mb-1">{ text.Lang }</p>

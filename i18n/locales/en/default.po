@@ -1,41 +1,44 @@
 msgid ""
 msgstr ""
 
-msgid "cancel_lbl"
+msgid "Cancel"
 msgstr "Cancel"
 
-msgid "edit_lbl"
+msgid "Edit"
 msgstr "Edit"
 
-msgid "remove_lbl"
-msgstr "Edit"
+msgid "Remove"
+msgstr "Remove"
 
-msgid "work.abstracts.lbl"
+msgid "Add %s"
+msgstr "Add %s"
+
+msgid "Edit %s"
+msgstr "Edit %s"
+
+msgid "No %s."
+msgstr "No %s."
+
+msgid "abstracts"
+msgstr "abstracts"
+
+msgid "Abstracts"
 msgstr "Abstracts"
 
-msgid "work.abstracts.add_lbl"
-msgstr "Add abstract"
+msgid "abstract"
+msgstr "abstract"
 
-msgid "work.abstracts.edit_lbl"
-msgstr "Edit abstract"
-
-msgid "work.abstracts.val_lbl"
+msgid "Abstract"
 msgstr "Abstract"
 
-msgid "work.abstracts.blank_slate"
-msgstr "No abstracts."
+msgid "lay summaries"
+msgstr "lay summaries"
 
-msgid "work.lay_summaries.lbl"
+msgid "Lay summaries"
 msgstr "Lay summaries"
 
-msgid "work.lay_summaries.add_lbl"
-msgstr "Add lay summary"
+msgid "lay summary"
+msgstr "lay summary"
 
-msgid "work.lay_summaries.edit_lbl"
-msgstr "Edit lay summary"
-
-msgid "work.lay_summaries.val_lbl"
+msgid "Lay summary"
 msgstr "Lay summary"
-
-msgid "work.lay_summaries.blank_slate"
-msgstr "No lay summaries."
