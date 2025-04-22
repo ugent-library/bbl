@@ -9,6 +9,7 @@ type CodeRepeatArgs struct {
 	FieldArgs
 	Attrs   []bbl.Code
 	Schemes []string
+	HxPost  string
 }
 
 // TODO fix label for
@@ -18,10 +19,9 @@ templ CodeRepeat(args CodeRepeatArgs) {
 			args.Attrs = []bbl.Code{{}}
 		}
 	}}
-
 	@Field(args.FieldArgs, "") {
 		for i, attr := range args.Attrs {
-			<div class="form-group" data-bbl-repeated-field={ args.Name }>
+			<div class="form-group">
 				<div class="d-flex">
 					<div class="input-group">
 						<select
@@ -37,15 +37,24 @@ templ CodeRepeat(args CodeRepeatArgs) {
 							name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
 							type="text"
 							value={ attr.Val }
-							data-bbl-clear-value
 							{ fieldAria(args.FieldArgs)... }
 						/>
 					</div>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-remove>
+					<button
+						class="btn btn-tertiary btn-icon-only ms-3"
+						type="button"
+						hx-post={ args.HxPost }
+						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
+					>
 						<i class="if if-delete"></i>
 						<span class="visually-hidden">Delete</span>
 					</button>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-add>
+					<button
+						class="btn btn-tertiary btn-icon-only ms-3"
+						type="button"
+						hx-post={ args.HxPost }
+						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, i+1) }
+					>
 						<i class="if if-add"></i>
 						<span class="visually-hidden">Add</span>
 					</button>

@@ -79,7 +79,7 @@ type Values struct {
 	normalizeKey func(string) string
 }
 
-func (b Values) has(key string) bool {
+func (b Values) Has(key string) bool {
 	if b.normalizeKey != nil {
 		key = b.normalizeKey(key)
 	}
@@ -188,7 +188,7 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 }
 
 func (b *Values) String(key string, ptr *string) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	*ptr = b.get(key)
@@ -206,7 +206,7 @@ func (b *Values) StringSlice(key string, ptr *[]string) *Values {
 }
 
 func (b *Values) Bool(key string, ptr *bool) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	if val, err := strconv.ParseBool(b.get(key)); err == nil {
@@ -333,7 +333,7 @@ func (b *Values) Float64Slice(key string, ptr *[]float64) *Values {
 }
 
 func (b *Values) Time(key string, layout string, ptr *time.Time) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	if val, err := time.Parse(layout, b.get(key)); err == nil {
@@ -364,7 +364,7 @@ func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values 
 }
 
 func bindInt[T constraints.Signed](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	if val, err := strconv.ParseInt(b.get(key), 10, bitSize); err == nil {
@@ -395,7 +395,7 @@ func bindIntSlice[T constraints.Signed](b *Values, key string, ptr *[]T, bitSize
 }
 
 func bindUint[T constraints.Unsigned](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	if val, err := strconv.ParseUint(b.get(key), 10, bitSize); err == nil {
@@ -426,7 +426,7 @@ func bindUintSlice[T constraints.Unsigned](b *Values, key string, ptr *[]T, bitS
 }
 
 func bindFloat[T constraints.Float](b *Values, key string, ptr *T, bitSize int) *Values {
-	if b.binder.err != nil || !b.has(key) {
+	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
 	if val, err := strconv.ParseFloat(b.get(key), bitSize); err == nil {

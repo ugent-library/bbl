@@ -5,9 +5,10 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
+	"net/url"
 )
 
-templ Edit(c views.Ctx, rec *bbl.Work) {
+templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	@views.Page(c, "Edit") {
 		<div class="w-100 h-100 d-flex flex-column overflow-hidden">
 			<div class="bc-navbar bc-navbar--white bc-navbar--auto bc-navbar--bordered-bottom flex-column align-items-start">
@@ -23,8 +24,8 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 						</div>
 					</div>
 					<div class="bc-toolbar-right mb-3 mb-lg-0">
-						<div class="bc-toolbar-item ps-0 ps-lg-4" id="edit-work-buttons">
-							@editButtons(c, rec)
+						<div class="bc-toolbar-item ps-0 ps-lg-4" id="work-form-buttons">
+							@FormButtons(c, rec, route)
 						</div>
 					</div>
 				</div>
@@ -50,7 +51,7 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 					</div>
 					<div class="c-sub-sidebar__content pt-5">
 						<div class="ps-6">
-							<nav class="nav nav-pills flex-column" id="edit-work-nav">
+							<nav class="nav nav-pills flex-column" id="work-form-nav">
 								<a class="nav-link" href="#type">
 									<span class="c-sidebar__label">Type</span>
 								</a>
@@ -74,10 +75,8 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 					</div>
 				</div>
 				<div class="w-100 u-scroll-wrapper">
-					<div class="u-scroll-wrapper__body u-smooth-scroll p-6" data-bs-spy="scroll" data-bs-target="#edit-work-nav" data-bs-offset="160" data-scroll-area>
-						<div id="edit-work">
-							@editForm(c, rec)
-						</div>
+					<div class="u-scroll-wrapper__body u-smooth-scroll p-6" data-bs-spy="scroll" data-bs-target="#work-form-nav" data-bs-offset="160" data-scroll-area>
+						@Form(c, rec, route)
 					</div>
 				</div>
 			</div>
@@ -85,115 +84,13 @@ templ Edit(c views.Ctx, rec *bbl.Work) {
 	}
 }
 
-templ editForm(c views.Ctx, rec *bbl.Work) {
-	<div class="mb-6" id="type">
-		<div class="mb-4">
-			<h2>Type</h2>
-		</div>
-		<div class="card mb-6">
-			<div class="card-body">
-				@kindField(c, rec)
-			</div>
-		</div>
-	</div>
-	<div class="mb-6" id="description">
-		<div class="mb-4">
-			<h2>Description</h2>
-		</div>
-		<div class="card mb-6">
-			<div class="card-body">
-				if rec.Profile.Titles != nil {
-					@titlesField(c, rec)
-				}
-				if rec.Profile.Abstracts != nil {
-					@AbstractsField(c, rec.Attrs.Abstracts)
-				}
-				if rec.Profile.LaySummaries != nil {
-					@LaySummariesField(c, rec.Attrs.LaySummaries)
-				}
-				if rec.Profile.Keywords != nil {
-					@keywordsField(c, rec)
-				}
-			</div>
-		</div>
-	</div>
-	<div class="mb-6" id="contributors-affiliations">
-		<div class="mb-4">
-			<h2>People & affiliations</h2>
-		</div>
-		<div class="card mb-6">
-			<div class="card-body">
-				if rec.Profile.Contributors != nil {
-					@ContributorsField(c, rec.Contributors)
-				}
-			</div>
-		</div>
-	</div>
-	<div class="mb-6" id="bibliographic-information">
-		<div class="mb-4">
-			<h2>Bibliographic information</h2>
-		</div>
-		<div class="card mb-6">
-			<div class="card-body"></div>
-		</div>
-	</div>
-	if rec.Profile.Conference != nil {
-		<div class="mb-6" id="conference-details">
-			<div class="mb-4">
-				<h2>Conference details</h2>
-			</div>
-			<div class="card mb-6">
-				<div class="card-body">
-					@forms.TextInputField(forms.TextInputArgs{
-						FieldArgs: forms.FieldArgs{
-							Label: "Conference",
-							Name:  "conference.name",
-						},
-						Value: rec.Attrs.Conference.Name,
-					})
-					@forms.TextInputField(forms.TextInputArgs{
-						FieldArgs: forms.FieldArgs{
-							Label: "Conference location",
-							Name:  "conference.location",
-						},
-						Value: rec.Attrs.Conference.Location,
-					})
-					@forms.TextInputField(forms.TextInputArgs{
-						FieldArgs: forms.FieldArgs{
-							Label: "Conference organizer",
-							Name:  "conference.organizer",
-						},
-						Value: rec.Attrs.Conference.Organizer,
-					})
-				</div>
-			</div>
-		</div>
-	}
-	if rec.Profile.Identifiers != nil {
-		<div class="mb-6" id="identifiers">
-			<div class="mb-4">
-				<h2>Identifiers</h2>
-			</div>
-			<div class="card mb-6">
-				<div class="card-body">
-					@identifiersField(c, rec)
-				</div>
-			</div>
-		</div>
-	}
-}
-
-templ editButtons(c views.Ctx, rec *bbl.Work) {
+templ FormButtons(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	<div class="c-button-toolbar">
 		<button
 			class="btn btn-outline-secondary"
-			hx-include="#edit-work"
-			if rec.ID == "" {
-				hx-post={ c.Route("create_work").String() }
-			} else {
-				hx-post={ c.Route("update_work", "id", rec.ID).String() }
-			}
-			hx-target="#edit-work"
+			hx-post={ route.String() }
+			hx-include="#work-form"
+			hx-target="#work-form"
 		>Save</button>
 		<a class="btn btn-success" href="#">Publish to Biblio</a>
 		<div class="dropdown">
@@ -211,70 +108,259 @@ templ editButtons(c views.Ctx, rec *bbl.Work) {
 	</div>
 }
 
-templ RefreshEditForm(c views.Ctx, rec *bbl.Work) {
-	@editForm(c, rec)
-	<div hx-swap-oob="innerHTML:#edit-work-buttons">
-		@editButtons(c, rec)
-	</div>
-}
-
-templ kindField(c views.Ctx, rec *bbl.Work) {
-	<div class="row">
-		<div class="col-lg-6">
-			<div class="form-group mb-6 mb-lg-0">
-				<label class="form-label form-label-top">Publication type</label>
-				<select
-					class="form-select w-100"
-					name="kind"
-					if rec.ID == "" {
-						hx-post={ c.Route("refresh_new_work").String() }
-					} else {
-						hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
-					}
-					hx-include="#edit-work"
-					hx-target="#edit-work"
-				>
-					for _, kind := range bbl.WorkKinds {
-						<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
-					}
-				</select>
+templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
+	<form
+		id="work-form"
+		hx-include="#work-form"
+		hx-target="#work-form"
+		hx-swap="outerHTML"
+	>
+		<div class="mb-6" id="type">
+			<div class="mb-4">
+				<h2>Type</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					<div class="row">
+						<div class="col-lg-6">
+							<div class="form-group mb-6 mb-lg-0">
+								<label class="form-label form-label-top">Publication type</label>
+								<select
+									class="form-select w-100"
+									name="kind"
+									hx-post={ route.String() }
+									hx-vals='{"refresh": "kind"}'
+								>
+									for _, kind := range bbl.WorkKinds {
+										<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
+									}
+								</select>
+							</div>
+						</div>
+						if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
+							<div class="col-lg-6">
+								<div class="form-group">
+									<label class="form-label form-label-top">{ rec.Kind } type</label>
+									<select
+										class="form-select w-100"
+										name="sub_kind"
+										hx-post={ route.String() }
+										hx-vals='{"refresh": "kind"}'
+									>
+										<option></option>
+										for _, kind := range subKinds {
+											<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
+										}
+									</select>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
 			</div>
 		</div>
-		if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
-			<div class="col-lg-6">
-				<div class="form-group">
-					<label class="form-label form-label-top">{ rec.Kind } type</label>
-					<select
-						class="form-select w-100"
-						name="sub_kind"
-						if rec.ID == "" {
-							hx-post={ c.Route("refresh_new_work").String() }
-						} else {
-							hx-post={ c.Route("refresh_edit_work", "id", rec.ID).String() }
-						}
-						hx-include="#edit-work"
-						hx-target="#edit-work"
-					>
-						<option></option>
-						for _, kind := range subKinds {
-							<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
-						}
-					</select>
+		<div class="mb-6" id="description">
+			<div class="mb-4">
+				<h2>Description</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					if rec.Profile.Titles != nil {
+						@forms.TextRepeat(forms.TextRepeatArgs{
+							FieldArgs: forms.FieldArgs{
+								Name:     "titles",
+								Label:    "Title",
+								Required: rec.Profile.Titles.Required,
+							},
+							Attrs:  rec.Attrs.Titles,
+							HxPost: route.String(),
+						})
+					}
+					if rec.Profile.Abstracts != nil {
+						<div id="work-add-abstract" class="modal fade" tabindex="-1">
+							<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+								<div class="modal-content">
+									<div class="modal-header">
+										<h2 class="modal-title">Add abstract</h2>
+									</div>
+									<div class="modal-body">
+										@forms.Text(forms.TextArgs{
+											FieldArgs: forms.FieldArgs{
+												Name: "abstracts.add",
+											},
+											ValLabel: "Abstract",
+											Rows:     8,
+										})
+									</div>
+									<div class="modal-footer">
+										<button class="btn btn-link" type="button" data-bs-dismiss="modal">Cancel</button>
+										<button
+											class="btn btn-primary"
+											type="button"
+											data-bs-dismiss="modal"
+											hx-post={ route.String() }
+											hx-vals={ fmt.Sprintf(`{"refresh": "abstracts", "abstracts.add_at": %d}`, len(rec.Attrs.Abstracts)) }
+										>
+											<span class="btn-text">Add abstract</span>
+											<i class="if if-arrow-right"></i>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="bc-toolbar h-auto">
+								<div class="bc-toolbar-left">
+									<label class="form-label form-label-top">Abstracts</label>
+								</div>
+								<div class="bc-toolbar-right">
+									<button
+										class="btn btn-tertiary"
+										type="button"
+										data-bs-toggle="modal"
+										data-bs-target="#work-add-abstract"
+									>
+										<i class="if if-add"></i>
+										<div class="btn-text">Add abstract</div>
+									</button>
+								</div>
+							</div>
+							if len(rec.Attrs.Abstracts) == 0 {
+								<div class="card shadow-none mb-6 bg-lightest">
+									<div class="card-body">
+										<div class="c-blank-slate py-4">
+											<p>No abstracts.</p>
+										</div>
+									</div>
+								</div>
+							} else {
+								for i, text := range rec.Attrs.Abstracts {
+									<div class="card shadow-none mb-6 bg-lightest">
+										<input type="hidden" name={ fmt.Sprintf("abstracts[%d].lang", i) } value={ text.Lang }/>
+										<input type="hidden" name={ fmt.Sprintf("abstracts[%d].val", i) } value={ text.Val }/>
+										<div class="card-body">
+											<div class="c-button-toolbar">
+												<button
+													class="btn btn-tertiary btn-lg-only-responsive"
+													type="button"
+												>
+													<i class="if if-edit"></i>
+													<span class="btn-text">Edit</span>
+												</button>
+												<button
+													class="btn btn-tertiary btn-lg-only-responsive"
+													type="button"
+													hx-post={ route.String() }
+													hx-vals={ fmt.Sprintf(`{"refresh": "abstracts", "abstracts.remove_at": %d}`, i) }
+												>
+													<i class="if if-delete"></i>
+													<span class="btn-text">Remove</span>
+												</button>
+											</div>
+											<p class="c-body-small text-muted mb-1">{ text.Lang }</p>
+											<p>{ text.Val }</p>
+										</div>
+									</div>
+								}
+							}
+						</div>
+					}
+					// if rec.Profile.LaySummaries != nil {
+					// 	@LaySummariesField(c, rec.Attrs.LaySummaries)
+					// }
+					// if rec.Profile.Keywords != nil {
+					// 	@forms.Tags(forms.TagsArgs{
+					// 		FieldArgs: forms.FieldArgs{
+					// 			Label:    "Keywords",
+					// 			Name:     "keywords",
+					// 			Required: rec.Profile.Keywords.Required,
+					// 		},
+					// 		Values: rec.Attrs.Keywords,
+					// 	})
+					// }
+				</div>
+			</div>
+		</div>
+		<div class="mb-6" id="contributors-affiliations">
+			<div class="mb-4">
+				<h2>People & affiliations</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					// if rec.Profile.Contributors != nil {
+					// 	@ContributorsField(c, rec.Contributors)
+					// }
+				</div>
+			</div>
+		</div>
+		<div class="mb-6" id="bibliographic-information">
+			<div class="mb-4">
+				<h2>Bibliographic information</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body"></div>
+			</div>
+		</div>
+		if rec.Profile.Conference != nil {
+			<div class="mb-6" id="conference-details">
+				<div class="mb-4">
+					<h2>Conference details</h2>
+				</div>
+				<div class="card mb-6">
+					<div class="card-body">
+						@forms.TextInputField(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label: "Conference",
+								Name:  "conference.name",
+							},
+							Value: rec.Attrs.Conference.Name,
+						})
+						@forms.TextInputField(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label: "Conference location",
+								Name:  "conference.location",
+							},
+							Value: rec.Attrs.Conference.Location,
+						})
+						@forms.TextInputField(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label: "Conference organizer",
+								Name:  "conference.organizer",
+							},
+							Value: rec.Attrs.Conference.Organizer,
+						})
+					</div>
 				</div>
 			</div>
 		}
-	</div>
+		if rec.Profile.Identifiers != nil {
+			<div class="mb-6" id="identifiers">
+				<div class="mb-4">
+					<h2>Identifiers</h2>
+				</div>
+				<div class="card mb-6">
+					<div class="card-body">
+						@forms.CodeRepeat(forms.CodeRepeatArgs{
+							FieldArgs: forms.FieldArgs{
+								Name:     "identifiers",
+								Required: rec.Profile.Identifiers.Required,
+							},
+							Attrs:   rec.Identifiers,
+							Schemes: rec.Profile.IdentifierSchemes,
+							HxPost:  route.String(),
+						})
+					</div>
+				</div>
+			</div>
+		}
+	</form>
 }
 
-templ titlesField(c views.Ctx, rec *bbl.Work) {
-	@forms.TextRepeat(forms.TextRepeatArgs{
-		FieldArgs: forms.FieldArgs{
-			Name:     "titles",
-			Label:    "Title",
-			Required: rec.Profile.Titles.Required,
-		},
-		Attrs: rec.Attrs.Titles,
-	})
+templ RefreshForm(c views.Ctx, rec *bbl.Work) {
+	@Form(c, rec, c.Route("create_work"))
+	<div hx-swap-oob="innerHTML:#work-form-buttons">
+		@FormButtons(c, rec, c.Route("create_work"))
+	</div>
 }
 
 templ AbstractsField(c views.Ctx, texts []bbl.Text) {
@@ -535,17 +621,6 @@ templ LaySummariesField(c views.Ctx, texts []bbl.Text) {
 	</div>
 }
 
-templ keywordsField(c views.Ctx, rec *bbl.Work) {
-	@forms.Tags(forms.TagsArgs{
-		FieldArgs: forms.FieldArgs{
-			Label:    "Keywords",
-			Name:     "keywords",
-			Required: rec.Profile.Keywords.Required,
-		},
-		Values: rec.Attrs.Keywords,
-	})
-}
-
 templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
 	<div id="contributors-field">
 		<div id="add-contributor" class="modal" tabindex="-1" role="dialog" aria-modal="true">
@@ -726,15 +801,4 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx in
 			</li>
 		}
 	</ul>
-}
-
-templ identifiersField(c views.Ctx, rec *bbl.Work) {
-	@forms.CodeRepeat(forms.CodeRepeatArgs{
-		FieldArgs: forms.FieldArgs{
-			Name:     "identifiers",
-			Required: rec.Profile.Identifiers.Required,
-		},
-		Attrs:   rec.Identifiers,
-		Schemes: rec.Profile.IdentifierSchemes,
-	})
 }

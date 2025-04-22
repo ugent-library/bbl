@@ -7,9 +7,9 @@ import (
 
 type TextArgs struct {
 	FieldArgs
-	Attr      bbl.Text
-	Rows      int
-	ValLabel  string
+	Attr     bbl.Text
+	Rows     int
+	ValLabel string
 }
 
 templ Text(args TextArgs) {
@@ -46,6 +46,7 @@ templ Text(args TextArgs) {
 type TextRepeatArgs struct {
 	FieldArgs
 	Attrs []bbl.Text
+	HxPost string
 }
 
 // TODO fix label for
@@ -57,7 +58,7 @@ templ TextRepeat(args TextRepeatArgs) {
 	}}
 	@Field(args.FieldArgs, "") {
 		for i, attr := range args.Attrs {
-			<div class="form-group" data-bbl-repeated-field={ args.Name }>
+			<div class="form-group">
 				<div class="d-flex">
 					<div class="input-group">
 						<input
@@ -65,7 +66,6 @@ templ TextRepeat(args TextRepeatArgs) {
 							name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
 							type="text"
 							value={ attr.Val }
-							data-bbl-clear-value
 							{ fieldAria(args.FieldArgs)... }
 						/>
 						<select
@@ -77,11 +77,21 @@ templ TextRepeat(args TextRepeatArgs) {
 							}
 						</select>
 					</div>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-remove>
+					<button
+						class="btn btn-tertiary btn-icon-only ms-3"
+						type="button"
+						hx-post={ args.HxPost }
+						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
+					>
 						<i class="if if-delete"></i>
 						<span class="visually-hidden">Remove</span>
 					</button>
-					<button class="btn btn-tertiary btn-icon-only ms-3" type="button" data-bbl-add>
+					<button
+						class="btn btn-tertiary btn-icon-only ms-3"
+						type="button"
+						hx-post={ args.HxPost }
+						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, i+1) }
+					>
 						<i class="if if-add"></i>
 						<span class="visually-hidden">Add</span>
 					</button>

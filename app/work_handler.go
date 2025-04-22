@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
@@ -50,23 +51,33 @@ func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) err
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return err
 	}
-	return workviews.Edit(c.ViewCtx(), rec).Render(r.Context(), w)
+
+	route := c.Route("create_work")
+
+	return workviews.Edit(c.ViewCtx(), rec, route).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) RefreshNew(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	rec := &bbl.Work{}
-	if err := bindWorkForm(r, rec); err != nil {
+	if _, err := bindWorkForm(r, rec); err != nil {
 		return err
 	}
 
-	return workviews.RefreshEditForm(c.ViewCtx(), rec).Render(r.Context(), w)
+	return workviews.RefreshForm(c.ViewCtx(), rec).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	rec := &bbl.Work{}
 
-	if err := bindWorkForm(r, rec); err != nil {
+	refresh, err := bindWorkForm(r, rec)
+	if err != nil {
 		return err
+	}
+
+	route := c.Route("create_work")
+
+	if refresh != "" {
+		return workviews.Form(c.ViewCtx(), rec, route).Render(r.Context(), w)
 	}
 
 	rec.ID = bbl.NewID()
@@ -74,32 +85,34 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 	rev := bbl.NewRev()
 	rev.Add(&bbl.CreateWork{Work: rec})
 
-	if err := h.repo.AddRev(r.Context(), rev); err != nil {
+	if err = h.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
 
-	rec, err := h.repo.GetWork(r.Context(), rec.ID)
+	rec, err = h.repo.GetWork(r.Context(), rec.ID)
 	if err != nil {
 		return err
 	}
 
-	return workviews.RefreshEditForm(c.ViewCtx(), rec).Render(r.Context(), w)
+	return workviews.RefreshForm(c.ViewCtx(), rec).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	return workviews.Edit(c.ViewCtx(), c.Work).Render(r.Context(), w)
+	route := c.Route("create_work", "id", c.Work.ID)
+
+	return workviews.Edit(c.ViewCtx(), c.Work, route).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) RefreshEdit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	if err := bindWorkForm(r, c.Work); err != nil {
+	if _, err := bindWorkForm(r, c.Work); err != nil {
 		return err
 	}
 
-	return workviews.RefreshEditForm(c.ViewCtx(), c.Work).Render(r.Context(), w)
+	return workviews.RefreshForm(c.ViewCtx(), c.Work).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	if err := bindWorkForm(r, c.Work); err != nil {
+	if _, err := bindWorkForm(r, c.Work); err != nil {
 		return err
 	}
 
@@ -115,7 +128,7 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 		return err
 	}
 
-	return workviews.RefreshEditForm(c.ViewCtx(), work).Render(r.Context(), w)
+	return workviews.RefreshForm(c.ViewCtx(), work).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -405,7 +418,7 @@ func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, 
 	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
 }
 
-func bindWorkForm(r *http.Request, rec *bbl.Work) error {
+func bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
 	var kind string
 	var subKind string
 	var identifiers []bbl.Code
@@ -416,42 +429,51 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	var conference bbl.Conference
 	var contributors []bbl.WorkContributor
 
-	err := binder.New(r).Form().Vacuum().
-		String("kind", &kind).
+	var refresh string
+
+	b := binder.New(r)
+
+	b.Form().String("refresh", &refresh)
+
+	if refresh == "" {
+		b.Form().Vacuum()
+	}
+
+	b.Form().String("kind", &kind).
 		String("sub_kind", &subKind).
 		Each("identifiers", func(b *binder.Values) bool {
-			var attr bbl.Code
-			b.String("scheme", &attr.Scheme)
-			b.String("val", &attr.Val)
-			if attr.Val != "" {
-				identifiers = append(identifiers, attr)
+			var code bbl.Code
+			b.String("scheme", &code.Scheme)
+			b.String("val", &code.Val)
+			if refresh != "" || code.Val != "" {
+				identifiers = append(identifiers, code)
 			}
 			return true
 		}).
 		Each("titles", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			if attr.Val != "" {
-				titles = append(titles, attr)
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			if refresh != "" || text.Val != "" {
+				titles = append(titles, text)
 			}
 			return true
 		}).
 		Each("abstracts", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			if attr.Val != "" {
-				abstracts = append(abstracts, attr)
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			if refresh != "" || text.Val != "" {
+				abstracts = append(abstracts, text)
 			}
 			return true
 		}).
 		Each("lay_summaries", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			if attr.Val != "" {
-				laySummaries = append(laySummaries, attr)
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			if refresh != "" || text.Val != "" {
+				laySummaries = append(laySummaries, text)
 			}
 			return true
 		}).
@@ -468,16 +490,58 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 			b.String("person_id", &con.PersonID)
 			contributors = append(contributors, con)
 			return true
-		}).
-		Err()
-	if err != nil {
-		return err
+		})
+
+	// manipulate and validate form
+	if refresh != "" {
+		switch {
+		case b.Form().Has("identifiers.add_at"):
+			at := -1
+			if b.Form().Int("identifiers.add_at", &at); at >= 0 {
+				identifiers = slices.Grow(identifiers, 1)
+				identifiers = slices.Insert(identifiers, at, bbl.Code{})
+			}
+		case b.Form().Has("identifiers.remove_at"):
+			at := -1
+			if b.Form().Int("identifiers.remove_at", &at); at >= 0 {
+				identifiers = slices.Delete(identifiers, at, at+1)
+			}
+		case b.Form().Has("titles.add_at"):
+			at := -1
+			if b.Form().Int("titles.add_at", &at); at >= 0 {
+				titles = slices.Grow(titles, 1)
+				titles = slices.Insert(titles, at, bbl.Text{})
+			}
+		case b.Form().Has("titles.remove_at"):
+			at := -1
+			if b.Form().Int("titles.remove_at", &at); at >= 0 {
+				titles = slices.Delete(titles, at, at+1)
+			}
+		case b.Form().Has("abstracts.add_at"):
+			at := -1
+			if b.Form().Int("abstracts.add_at", &at); at >= 0 {
+				var text bbl.Text
+				b.Form().String("abstracts.add.lang", &text.Lang)
+				b.Form().String("abstracts.add.val", &text.Val)
+				abstracts = slices.Grow(abstracts, 1)
+				abstracts = slices.Insert(abstracts, at, text)
+			}
+		case b.Form().Has("abstracts.remove_at"):
+			at := -1
+			if b.Form().Int("abstracts.remove_at", &at); at >= 0 {
+				abstracts = slices.Delete(abstracts, at, at+1)
+			}
+		}
+	}
+
+	if err := b.Err(); err != nil {
+		return "", err
 	}
 
 	rec.Kind = kind
 	rec.SubKind = subKind
 	if err := bbl.LoadWorkProfile(rec); err != nil {
-		return err
+		return "", err
 	}
 
 	rec.Identifiers = identifiers
@@ -488,5 +552,5 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	rec.Attrs.Keywords = keywords
 	rec.Attrs.Conference = conference
 
-	return nil
+	return refresh, nil
 }
