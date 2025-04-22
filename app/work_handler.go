@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 
@@ -496,41 +497,43 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
 	if refresh != "" {
 		switch {
 		case b.Form().Has("identifiers.add_at"):
-			at := -1
-			if b.Form().Int("identifiers.add_at", &at); at >= 0 {
-				identifiers = slices.Grow(identifiers, 1)
-				identifiers = slices.Insert(identifiers, at, bbl.Code{})
-			}
+			var at int
+			b.Form().Int("identifiers.add_at", &at)
+			identifiers = slices.Grow(identifiers, 1)
+			identifiers = slices.Insert(identifiers, at, bbl.Code{})
 		case b.Form().Has("identifiers.remove_at"):
-			at := -1
-			if b.Form().Int("identifiers.remove_at", &at); at >= 0 {
-				identifiers = slices.Delete(identifiers, at, at+1)
-			}
+			var at int
+			b.Form().Int("identifiers.remove_at", &at)
+			identifiers = slices.Delete(identifiers, at, at+1)
 		case b.Form().Has("titles.add_at"):
-			at := -1
-			if b.Form().Int("titles.add_at", &at); at >= 0 {
-				titles = slices.Grow(titles, 1)
-				titles = slices.Insert(titles, at, bbl.Text{})
-			}
+			var at int
+			b.Form().Int("titles.add_at", &at)
+			titles = slices.Grow(titles, 1)
+			titles = slices.Insert(titles, at, bbl.Text{})
 		case b.Form().Has("titles.remove_at"):
-			at := -1
-			if b.Form().Int("titles.remove_at", &at); at >= 0 {
-				titles = slices.Delete(titles, at, at+1)
-			}
+			var at int
+			b.Form().Int("titles.remove_at", &at)
+			titles = slices.Delete(titles, at, at+1)
 		case b.Form().Has("abstracts.add_at"):
-			at := -1
-			if b.Form().Int("abstracts.add_at", &at); at >= 0 {
-				var text bbl.Text
-				b.Form().String("abstracts.add.lang", &text.Lang)
-				b.Form().String("abstracts.add.val", &text.Val)
-				abstracts = slices.Grow(abstracts, 1)
-				abstracts = slices.Insert(abstracts, at, text)
-			}
+			var at int
+			var text bbl.Text
+			b.Form().Int("abstracts.add_at", &at).
+				String("abstracts.add.lang", &text.Lang).
+				String("abstracts.add.val", &text.Val)
+			abstracts = slices.Grow(abstracts, 1)
+			abstracts = slices.Insert(abstracts, at, text)
+		case b.Form().Has("abstracts.edit_at"):
+			var at int
+			var text bbl.Text
+			b.Form().Int("abstracts.edit_at", &at)
+			b.Form().
+				String(fmt.Sprintf("abstracts[%d].edit.lang", at), &text.Lang).
+				String(fmt.Sprintf("abstracts[%d].edit.val", at), &text.Val)
+			abstracts[at] = text
 		case b.Form().Has("abstracts.remove_at"):
-			at := -1
-			if b.Form().Int("abstracts.remove_at", &at); at >= 0 {
-				abstracts = slices.Delete(abstracts, at, at+1)
-			}
+			var at int
+			b.Form().Int("abstracts.remove_at", &at)
+			abstracts = slices.Delete(abstracts, at, at+1)
 		}
 	}
 

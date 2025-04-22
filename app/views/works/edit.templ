@@ -235,6 +235,38 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 								</div>
 							} else {
 								for i, text := range rec.Attrs.Abstracts {
+									<div id={ fmt.Sprintf("work-edit-abstract-%d", i) } class="modal fade" tabindex="-1">
+										<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+											<div class="modal-content">
+												<div class="modal-header">
+													<h2 class="modal-title">Edit abstract</h2>
+												</div>
+												<div class="modal-body">
+													@forms.Text(forms.TextArgs{
+														FieldArgs: forms.FieldArgs{
+															Name: fmt.Sprintf("abstracts[%d].edit", i),
+														},
+														ValLabel: "Abstract",
+														Attr:     text,
+														Rows:     8,
+													})
+												</div>
+												<div class="modal-footer">
+													<button class="btn btn-link" type="button" data-bs-dismiss="modal">Cancel</button>
+													<button
+														class="btn btn-primary"
+														type="button"
+														data-bs-dismiss="modal"
+														hx-post={ route.String() }
+														hx-vals={ fmt.Sprintf(`{"refresh": "abstracts", "abstracts.edit_at": %d}`, i) }
+													>
+														<span class="btn-text">Edit abstract</span>
+														<i class="if if-arrow-right"></i>
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
 									<div class="card shadow-none mb-6 bg-lightest">
 										<input type="hidden" name={ fmt.Sprintf("abstracts[%d].lang", i) } value={ text.Lang }/>
 										<input type="hidden" name={ fmt.Sprintf("abstracts[%d].val", i) } value={ text.Val }/>
@@ -243,6 +275,8 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 												<button
 													class="btn btn-tertiary btn-lg-only-responsive"
 													type="button"
+													data-bs-toggle="modal"
+													data-bs-target={ fmt.Sprintf("#work-edit-abstract-%d", i) }
 												>
 													<i class="if if-edit"></i>
 													<span class="btn-text">Edit</span>
