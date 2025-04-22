@@ -1,0 +1,41 @@
+msgid ""
+msgstr ""
+
+msgid "cancel_lbl"
+msgstr "Cancel"
+
+msgid "edit_lbl"
+msgstr "Edit"
+
+msgid "remove_lbl"
+msgstr "Edit"
+
+msgid "work.abstracts.lbl"
+msgstr "Abstracts"
+
+msgid "work.abstracts.add_lbl"
+msgstr "Add abstract"
+
+msgid "work.abstracts.edit_lbl"
+msgstr "Edit abstract"
+
+msgid "work.abstracts.val_lbl"
+msgstr "Abstract"
+
+msgid "work.abstracts.blank_slate"
+msgstr "No abstracts."
+
+msgid "work.lay_summaries.lbl"
+msgstr "Lay summaries"
+
+msgid "work.lay_summaries.add_lbl"
+msgstr "Add lay summary"
+
+msgid "work.lay_summaries.edit_lbl"
+msgstr "Edit lay summary"
+
+msgid "work.lay_summaries.val_lbl"
+msgstr "Lay summary"
+
+msgid "work.lay_summaries.blank_slate"
+msgstr "No lay summaries."

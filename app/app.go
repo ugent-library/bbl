@@ -19,7 +19,7 @@ import (
 )
 
 //go:embed static
-var staticFiles embed.FS
+var staticFS embed.FS
 
 type Config struct {
 	Env     string
@@ -46,7 +46,7 @@ func New(config *Config) (http.Handler, error) {
 	}))
 
 	// static files
-	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFiles))).Methods("GET")
+	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFS))).Methods("GET")
 
 	// openapi
 	// apiServer, err := openapi.NewServer(openapi.NewService(
@@ -122,7 +122,7 @@ func New(config *Config) (http.Handler, error) {
 }
 
 func parseManifest() (map[string]string, error) {
-	manifest, err := staticFiles.ReadFile("static/manifest.json")
+	manifest, err := staticFS.ReadFile("static/manifest.json")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read asset manifest: %w", err)
 	}

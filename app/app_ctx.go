@@ -10,8 +10,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
+	"github.com/leonelquinteros/gotext"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/i18n"
 )
 
 const (
@@ -27,17 +29,21 @@ type AppCtx struct {
 	secureCookie *securecookie.SecureCookie
 	assets       map[string]string
 	insecure     bool
+	Loc          *gotext.Locale
 	// user         *biblio.User
 }
 
 func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool) ctx.Binder[*AppCtx] {
 	// func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool, usersRepo biblio.Users) ctx.Binder[*AppCtx] {
+	loc := i18n.Locales["en"] // TODO hardcoded for now
+
 	return func(r *http.Request) (*AppCtx, error) {
 		c := &AppCtx{
 			router:       router,
 			secureCookie: cookies,
 			assets:       assets,
 			insecure:     insecure,
+			Loc:          loc,
 		}
 
 		// get user from session if present
@@ -62,6 +68,7 @@ func (c *AppCtx) ViewCtx() views.Ctx {
 	return views.Ctx{
 		Route:     c.Route,
 		AssetPath: c.AssetPath,
+		Loc:       c.Loc,
 		// User:      c.user,
 	}
 }

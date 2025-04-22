@@ -31,12 +31,6 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
 
-	router.Handle("/works/_add_abstract", appCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
-	router.Handle("/works/_edit_abstract", appCtx.Bind(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
-	router.Handle("/works/_remove_abstract", appCtx.Bind(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
-	router.Handle("/works/_add_lay_summary", appCtx.Bind(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
-	router.Handle("/works/_edit_lay_summary", appCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
-	router.Handle("/works/_remove_lay_summary", appCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
 	router.Handle("/works/_suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
 	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
 	router.Handle("/works/_edit_contributor", appCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
@@ -130,154 +124,6 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 	}
 
 	return workviews.RefreshForm(c.ViewCtx(), work).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var text bbl.Text
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		String("lang", &text.Lang).
-		String("val", &text.Val).
-		Each("abstracts", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	texts = append(texts, text)
-
-	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var text bbl.Text
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		String("lang", &text.Lang).
-		String("val", &text.Val).
-		Each("abstracts", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(texts) {
-		texts[idx] = text
-	}
-
-	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		Each("abstracts", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(texts) {
-		texts = append(texts[:idx], texts[idx+1:]...)
-	}
-
-	return workviews.AbstractsField(c.ViewCtx(), texts).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var text bbl.Text
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		String("lang", &text.Lang).
-		String("val", &text.Val).
-		Each("lay_summaries", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	texts = append(texts, text)
-
-	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var text bbl.Text
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		String("lang", &text.Lang).
-		String("val", &text.Val).
-		Each("lay_summaries", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(texts) {
-		texts[idx] = text
-	}
-
-	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var texts []bbl.Text
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		Each("lay_summaries", func(b *binder.Values) bool {
-			var attr bbl.Text
-			b.String("lang", &attr.Lang)
-			b.String("val", &attr.Val)
-			texts = append(texts, attr)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(texts) {
-		texts = append(texts[:idx], texts[idx+1:]...)
-	}
-
-	return workviews.LaySummariesField(c.ViewCtx(), texts).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -534,6 +380,26 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
 			var at int
 			b.Form().Int("abstracts.remove_at", &at)
 			abstracts = slices.Delete(abstracts, at, at+1)
+		case b.Form().Has("lay_summaries.add_at"):
+			var at int
+			var text bbl.Text
+			b.Form().Int("lay_summaries.add_at", &at).
+				String("lay_summaries.add.lang", &text.Lang).
+				String("lay_summaries.add.val", &text.Val)
+			laySummaries = slices.Grow(laySummaries, 1)
+			laySummaries = slices.Insert(laySummaries, at, text)
+		case b.Form().Has("lay_summaries.edit_at"):
+			var at int
+			var text bbl.Text
+			b.Form().Int("lay_summaries.edit_at", &at)
+			b.Form().
+				String(fmt.Sprintf("lay_summaries[%d].edit.lang", at), &text.Lang).
+				String(fmt.Sprintf("lay_summaries[%d].edit.val", at), &text.Val)
+			laySummaries[at] = text
+		case b.Form().Has("lay_summaries.remove_at"):
+			var at int
+			b.Form().Int("lay_summaries.remove_at", &at)
+			laySummaries = slices.Delete(laySummaries, at, at+1)
 		}
 	}
 
