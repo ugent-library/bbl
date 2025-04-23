@@ -415,6 +415,19 @@ func Form(c views.Ctx, rec *bbl.Work, route *url.URL) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
+		if rec.Profile.Keywords != nil {
+			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
+				FieldArgs: forms.FieldArgs{
+					Label:    "Keywords",
+					Name:     "keywords",
+					Required: rec.Profile.Keywords.Required,
+				},
+				Values: rec.Attrs.Keywords,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</div></div></div><div class=\"mb-6\" id=\"contributors-affiliations\"><div class=\"mb-4\"><h2>People & affiliations</h2></div><div class=\"card mb-6\"><div class=\"card-body\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

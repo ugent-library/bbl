@@ -212,16 +212,16 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 							HxPost:      route.String(),
 						})
 					}
-					// if rec.Profile.Keywords != nil {
-					// 	@forms.Tags(forms.TagsArgs{
-					// 		FieldArgs: forms.FieldArgs{
-					// 			Label:    "Keywords",
-					// 			Name:     "keywords",
-					// 			Required: rec.Profile.Keywords.Required,
-					// 		},
-					// 		Values: rec.Attrs.Keywords,
-					// 	})
-					// }
+					if rec.Profile.Keywords != nil {
+						@forms.Tags(forms.TagsArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Keywords",
+								Name:     "keywords",
+								Required: rec.Profile.Keywords.Required,
+							},
+							Values: rec.Attrs.Keywords,
+						})
+					}
 				</div>
 			</div>
 		</div>
