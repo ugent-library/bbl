@@ -82,7 +82,7 @@ left join lateral (
 
 -- +goose down
 
-drop view bbl_organizations_view;
-drop view bbl_people_view;
-drop view bbl_projects_view;
 drop view bbl_works_view;
+drop view bbl_people_view;
+drop view bbl_organizations_view;
+drop view bbl_projects_view;

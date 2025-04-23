@@ -11,6 +11,7 @@ import (
 	"github.com/ugent-library/bbl/binder"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/htmx"
 )
 
 type WorkHandler struct {
@@ -28,16 +29,9 @@ func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	workCtx := ctx.Derive(appCtx, BindWorkCtx(h.repo))
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
-	router.Handle("/works/new/_refresh", appCtx.Bind(h.RefreshNew)).Methods("POST").Name("refresh_new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-
-	router.Handle("/works/_suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
-	router.Handle("/works/_add_contributor", appCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
-	router.Handle("/works/_edit_contributor", appCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
-	router.Handle("/works/_remove_contributor", appCtx.Bind(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
-
+	router.Handle("/works/suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
-	router.Handle("/works/{id}/edit/_refresh", workCtx.Bind(h.RefreshEdit)).Methods("POST").Name("refresh_edit_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
 }
 
@@ -52,19 +46,10 @@ func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) err
 	return workviews.Edit(c.ViewCtx(), rec, route).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) RefreshNew(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	rec := &bbl.Work{}
-	if _, err := bindWorkForm(r, rec); err != nil {
-		return err
-	}
-
-	return workviews.RefreshForm(c.ViewCtx(), rec).Render(r.Context(), w)
-}
-
 func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	rec := &bbl.Work{}
 
-	refresh, err := bindWorkForm(r, rec)
+	refresh, err := h.bindWorkForm(r, rec)
 	if err != nil {
 		return err
 	}
@@ -72,7 +57,7 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 	route := c.Route("create_work")
 
 	if refresh != "" {
-		return workviews.Form(c.ViewCtx(), rec, route).Render(r.Context(), w)
+		return workviews.RefreshForm(c.ViewCtx(), rec, route).Render(r.Context(), w)
 	}
 
 	rec.ID = bbl.NewID()
@@ -89,26 +74,29 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 		return err
 	}
 
-	return workviews.RefreshForm(c.ViewCtx(), rec).Render(r.Context(), w)
+	route = c.Route("update_work", "id", rec.ID)
+
+	htmx.PushURL(w, c.Route("edit_work", "id", rec.ID).String())
+
+	return workviews.RefreshForm(c.ViewCtx(), rec, route).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	route := c.Route("create_work", "id", c.Work.ID)
+	route := c.Route("update_work", "id", c.Work.ID)
 
 	return workviews.Edit(c.ViewCtx(), c.Work, route).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) RefreshEdit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	if _, err := bindWorkForm(r, c.Work); err != nil {
+func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	refresh, err := h.bindWorkForm(r, c.Work)
+	if err != nil {
 		return err
 	}
 
-	return workviews.RefreshForm(c.ViewCtx(), c.Work).Render(r.Context(), w)
-}
+	route := c.Route("update_work", "id", c.Work.ID)
 
-func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	if _, err := bindWorkForm(r, c.Work); err != nil {
-		return err
+	if refresh != "" {
+		return workviews.RefreshForm(c.ViewCtx(), c.Work, route).Render(r.Context(), w)
 	}
 
 	rev := bbl.NewRev()
@@ -123,149 +111,30 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 		return err
 	}
 
-	return workviews.RefreshForm(c.ViewCtx(), work).Render(r.Context(), w)
+	return workviews.RefreshForm(c.ViewCtx(), work, route).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	var query string
-	var idx int = -1
-	if err := binder.New(r).Query().String("q", &query).Int("idx", &idx).Err(); err != nil {
+	var id string
+	var addAt int = -1
+	var editAt int = -1
+	if err := binder.New(r).Query().
+		String("q", &query).
+		String("id", &id).
+		Int("add_at", &addAt).
+		Int("edit_at", &editAt).
+		Err(); err != nil {
 		return err
 	}
 	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Limit: 10})
 	if err != nil {
 		return err
 	}
-	return workviews.ContributorSuggestions(c.ViewCtx(), hits, idx).Render(r.Context(), w)
+	return workviews.ContributorSuggestions(c.ViewCtx(), hits, id, addAt, editAt).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var personID string
-	var contributors []bbl.WorkContributor
-	err := binder.New(r).Form().Vacuum().
-		String("person_id", &personID).
-		Each("contributors", func(b *binder.Values) bool {
-			var con bbl.WorkContributor
-			b.String("attrs.name", &con.Attrs.Name)
-			b.String("attrs.given_name", &con.Attrs.GivenName)
-			b.String("attrs.middle_name", &con.Attrs.MiddleName)
-			b.String("attrs.family_name", &con.Attrs.FamilyName)
-			b.String("person_id", &con.PersonID)
-			contributors = append(contributors, con)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	for i, con := range contributors {
-		if con.PersonID != "" {
-			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
-			if err != nil {
-				return err
-			}
-			contributors[i].Person = p
-		}
-	}
-
-	if personID != "" {
-		p, err := h.repo.GetPerson(r.Context(), personID)
-		if err != nil {
-			return err
-		}
-		contributors = append(contributors, bbl.WorkContributor{
-			PersonID: p.ID,
-			Person:   p,
-		})
-	}
-
-	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var personID string
-	var contributors []bbl.WorkContributor
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		String("person_id", &personID).
-		Each("contributors", func(b *binder.Values) bool {
-			var con bbl.WorkContributor
-			b.String("attrs.name", &con.Attrs.Name)
-			b.String("attrs.given_name", &con.Attrs.GivenName)
-			b.String("attrs.middle_name", &con.Attrs.MiddleName)
-			b.String("attrs.family_name", &con.Attrs.FamilyName)
-			b.String("person_id", &con.PersonID)
-			contributors = append(contributors, con)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(contributors) {
-		if personID != "" {
-			p, err := h.repo.GetPerson(r.Context(), personID)
-			if err != nil {
-				return err
-			}
-			contributors[idx].Person = p
-		}
-	}
-
-	for i, con := range contributors {
-		if i != idx && con.PersonID != "" {
-			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
-			if err != nil {
-				return err
-			}
-			contributors[i].Person = p
-		}
-	}
-
-	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var idx int
-	var contributors []bbl.WorkContributor
-	err := binder.New(r).Form().Vacuum().
-		Int("idx", &idx).
-		Each("contributors", func(b *binder.Values) bool {
-			var con bbl.WorkContributor
-			b.String("attrs.name", &con.Attrs.Name)
-			b.String("attrs.given_name", &con.Attrs.GivenName)
-			b.String("attrs.middle_name", &con.Attrs.MiddleName)
-			b.String("attrs.family_name", &con.Attrs.FamilyName)
-			b.String("person_id", &con.PersonID)
-			contributors = append(contributors, con)
-			return true
-		}).
-		Err()
-	if err != nil {
-		return err
-	}
-
-	if idx >= 0 && idx < len(contributors) {
-		contributors = append(contributors[:idx], contributors[idx+1:]...)
-	}
-
-	for i, con := range contributors {
-		if con.PersonID != "" {
-			p, err := h.repo.GetPerson(r.Context(), con.PersonID)
-			if err != nil {
-				return err
-			}
-			contributors[i].Person = p
-		}
-	}
-
-	return workviews.ContributorsField(c.ViewCtx(), contributors).Render(r.Context(), w)
-}
-
-func bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
+func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
 	var kind string
 	var subKind string
 	var identifiers []bbl.Code
@@ -400,11 +269,38 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
 			var at int
 			b.Form().Int("lay_summaries.remove_at", &at)
 			laySummaries = slices.Delete(laySummaries, at, at+1)
+		case b.Form().Has("contributors.add_at"):
+			var at int
+			var personID string
+			b.Form().Int("contributors.add_at", &at).
+				String("person_id", &personID)
+			contributors = slices.Grow(contributors, 1)
+			contributors = slices.Insert(contributors, at, bbl.WorkContributor{PersonID: personID})
+		case b.Form().Has("contributors.edit_at"):
+			var at int
+			var personID string
+			b.Form().Int("contributors.edit_at", &at).
+				String("person_id", &personID)
+			contributors[at] = bbl.WorkContributor{PersonID: personID}
+		case b.Form().Has("contributors.remove_at"):
+			var at int
+			b.Form().Int("contributors.remove_at", &at)
+			contributors = slices.Delete(contributors, at, at+1)
 		}
 	}
 
 	if err := b.Err(); err != nil {
 		return "", err
+	}
+
+	for i, con := range contributors {
+		if con.PersonID != "" {
+			person, err := h.repo.GetPerson(r.Context(), con.PersonID)
+			if err != nil {
+				return "", err
+			}
+			contributors[i].Person = person
+		}
 	}
 
 	rec.Kind = kind

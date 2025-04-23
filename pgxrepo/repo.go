@@ -2,7 +2,6 @@ package pgxrepo
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,16 +13,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/tonga"
 
-	_ "github.com/ugent-library/bbl/pgxrepo/migrations"
+	"github.com/ugent-library/bbl/jobs"
 )
-
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
 
 type pgxConn interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
@@ -33,41 +29,23 @@ type pgxConn interface {
 }
 
 type Repo struct {
-	conn  *pgxpool.Pool
-	queue *tonga.Client
+	conn        *pgxpool.Pool
+	queue       *tonga.Client
+	riverClient *river.Client[pgx.Tx]
 }
 
 func New(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
+	// insert only client
+	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repo{
-		conn:  conn,
-		queue: tonga.New(conn),
+		conn:        conn,
+		queue:       tonga.New(conn),
+		riverClient: riverClient,
 	}, nil
-}
-
-func (r *Repo) MigrateUp(ctx context.Context) error {
-	goose.SetBaseFS(migrationsFS)
-
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-
-	db := stdlib.OpenDBFromPool(r.conn)
-	defer db.Close()
-
-	return goose.UpContext(ctx, db, "migrations")
-}
-
-func (r *Repo) MigrateDown(ctx context.Context) error {
-	goose.SetBaseFS(migrationsFS)
-
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-
-	db := stdlib.OpenDBFromPool(r.conn)
-	defer db.Close()
-
-	return goose.ResetContext(ctx, db, "migrations")
 }
 
 func (r *Repo) Queue() *tonga.Client {
@@ -115,6 +93,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	defer tx.Rollback(ctx)
 
 	mq := tonga.New(tx)
+
+	riverJobs := []river.InsertManyParams{}
 
 	batch := &pgx.Batch{}
 
@@ -171,6 +151,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
 			)
+
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexOrganization{ID: a.Organization.ID}})
 
 			if err := mq.Send(ctx, "organization.create", a.Organization.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -248,6 +230,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexOrganization{ID: a.Organization.ID}})
+
 			if err := mq.Send(ctx, "organization.update", a.Organization.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -285,6 +269,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Person.ID, jsonDiff,
 			)
+
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexPerson{ID: a.Person.ID}})
 
 			if err := mq.Send(ctx, "person.create", a.Person.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -329,6 +315,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Person.ID, jsonDiff,
 			)
 
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexPerson{ID: a.Person.ID}})
+
 			if err := mq.Send(ctx, "person.update", a.Person.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -366,6 +354,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				values ($1, $2, $3);`,
 				revID, a.Project.ID, jsonDiff,
 			)
+
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
+
 			if err := mq.Send(ctx, "project.create", a.Project.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -398,6 +389,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				where id = $1;`,
 				a.Project.ID, jsonAttrs,
 			)
+
+			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
 
 			if _, ok := diff["identifiers"]; ok {
 				queueUpdateIdentifiersQueries(batch, "project", "projects", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
@@ -468,6 +461,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				insert into bbl_changes (rev_id, work_id, diff)
 				values ($1, $2, $3);`,
 				revID, a.Work.ID, jsonDiff,
+			)
+
+			riverJobs = append(riverJobs,
+				river.InsertManyParams{Args: jobs.IndexWork{ID: a.Work.ID}},
+				river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: a.Work.ID}},
 			)
 
 			if err := mq.Send(ctx, "work.create", a.Work.ID, tonga.SendOpts{}); err != nil {
@@ -580,6 +578,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Work.ID, jsonDiff,
 			)
 
+			riverJobs = append(riverJobs,
+				river.InsertManyParams{Args: jobs.IndexWork{ID: a.Work.ID}},
+				river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: a.Work.ID}},
+			)
+
 			if err := mq.Send(ctx, "work.update", a.Work.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -599,6 +602,13 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 	if err := res.Close(); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	if len(riverJobs) > 0 {
+		_, err := r.riverClient.InsertManyTx(ctx, tx, riverJobs)
+		if err != nil {
+			return fmt.Errorf("AddRev: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

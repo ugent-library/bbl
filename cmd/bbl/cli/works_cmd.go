@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/jobs"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 func init() {
@@ -28,7 +29,7 @@ var worksCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := NewRepo(cmd.Context(), conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
@@ -49,7 +50,7 @@ var reindexWorksCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex works job",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := NewLogger(cmd.OutOrStdout())
+		logger := newLogger(cmd.OutOrStdout())
 
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -57,22 +58,22 @@ var reindexWorksCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := NewRepo(cmd.Context(), conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		index, err := NewIndex(cmd.Context())
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}
 
-		riverClient, err := NewRiverClient(logger, conn, repo, index)
+		riverClient, err := newRiverClient(logger, conn, repo, index)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexWorksArgs{}, nil)
+		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexWorks{}, nil)
 		if err != nil {
 			return err
 		}
@@ -91,7 +92,7 @@ var searchWorksCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search works",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		index, err := NewIndex(cmd.Context())
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}

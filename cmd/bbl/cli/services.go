@@ -20,10 +20,10 @@ import (
 	"github.com/ugent-library/bbl/oaidcscheme"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"github.com/ugent-library/bbl/pgxrepo"
-	"github.com/ugent-library/tonga"
+	"github.com/ugent-library/bbl/workers"
 )
 
-func NewLogger(w io.Writer) *slog.Logger {
+func newLogger(w io.Writer) *slog.Logger {
 	if config.Env == "development" {
 		return slog.New(tint.NewHandler(w, &tint.Options{Level: slog.LevelInfo}))
 	} else {
@@ -31,32 +31,7 @@ func NewLogger(w io.Writer) *slog.Logger {
 	}
 }
 
-func NewRepo(ctx context.Context, conn *pgxpool.Pool) (*pgxrepo.Repo, error) {
-	repo, err := pgxrepo.New(ctx, conn)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := repo.Queue().CreateChannel(ctx, "organizations_indexer", "organization", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
-	if err := repo.Queue().CreateChannel(ctx, "people_indexer", "person", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
-	if err := repo.Queue().CreateChannel(ctx, "projects_indexer", "project", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
-	if err := repo.Queue().CreateChannel(ctx, "works_indexer", "work", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
-	if err := repo.Queue().CreateChannel(ctx, "works_representations_adder", "work", tonga.ChannelOpts{}); err != nil {
-		return nil, err
-	}
-
-	return repo, nil
-}
-
-func NewIndex(ctx context.Context) (bbl.Index, error) {
+func newIndex(ctx context.Context) (bbl.Index, error) {
 	client, err := opensearchapi.NewClient(opensearchapi.Config{
 		Client: opensearch.Config{
 			Transport: &http.Transport{
@@ -74,23 +49,18 @@ func NewIndex(ctx context.Context) (bbl.Index, error) {
 	return opensearchindex.New(ctx, client)
 }
 
-func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
-	workers := river.NewWorkers()
-	if err := river.AddWorkerSafely(workers, jobs.NewQueueGcWorker(repo.Queue())); err != nil {
-		return nil, err
-	}
-	if err := river.AddWorkerSafely(workers, jobs.NewReindexPeopleWorker(repo, index)); err != nil {
-		return nil, err
-	}
-	if err := river.AddWorkerSafely(workers, jobs.NewReindexOrganizationsWorker(repo, index)); err != nil {
-		return nil, err
-	}
-	if err := river.AddWorkerSafely(workers, jobs.NewReindexProjectsWorker(repo, index)); err != nil {
-		return nil, err
-	}
-	if err := river.AddWorkerSafely(workers, jobs.NewReindexWorksWorker(repo, index)); err != nil {
-		return nil, err
-	}
+func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
+	w := river.NewWorkers()
+	river.AddWorker(w, workers.NewQueueGc(repo.Queue()))
+	river.AddWorker(w, workers.NewIndexPerson(repo, index))
+	river.AddWorker(w, workers.NewReindexPeople(repo, index))
+	river.AddWorker(w, workers.NewIndexOrganization(repo, index))
+	river.AddWorker(w, workers.NewReindexOrganizations(repo, index))
+	river.AddWorker(w, workers.NewIndexProject(repo, index))
+	river.AddWorker(w, workers.NewReindexProjects(repo, index))
+	river.AddWorker(w, workers.NewAddWorkRepresentations(repo, index, workEncoders()))
+	river.AddWorker(w, workers.NewIndexWork(repo, index))
+	river.AddWorker(w, workers.NewReindexWorks(repo, index))
 
 	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
 		Logger: logger,
@@ -101,12 +71,12 @@ func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 			river.NewPeriodicJob(
 				river.PeriodicInterval(10*time.Minute),
 				func() (river.JobArgs, *river.InsertOpts) {
-					return jobs.QueueGcArgs{}, nil
+					return jobs.QueueGc{}, nil
 				},
 				&river.PeriodicJobOpts{RunOnStart: true},
 			),
 		},
-		Workers: workers,
+		Workers: w,
 	})
 	if err != nil {
 		return nil, err
@@ -115,7 +85,7 @@ func NewRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	return riverClient, nil
 }
 
-func WorkEncoders() map[string]bbl.WorkEncoder {
+func workEncoders() map[string]bbl.WorkEncoder {
 	return map[string]bbl.WorkEncoder{
 		"oai_dc": oaidcscheme.EncodeWork,
 	}

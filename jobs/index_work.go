@@ -5,14 +5,17 @@ import (
 	"github.com/riverqueue/river/rivertype"
 )
 
-type ReindexOrganizations struct{}
+type IndexWork struct {
+	ID string `json:"id"`
+}
 
-func (ReindexOrganizations) Kind() string { return "reindex_organizations" }
+func (IndexWork) Kind() string { return "index_work" }
 
 // only allow a new job when previous one completes
-func (ReindexOrganizations) InsertOpts() river.InsertOpts {
+func (IndexWork) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		UniqueOpts: river.UniqueOpts{
+			ByArgs: true,
 			ByState: []rivertype.JobState{
 				rivertype.JobStateAvailable,
 				rivertype.JobStatePending,

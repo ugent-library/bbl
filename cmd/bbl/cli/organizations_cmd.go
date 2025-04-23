@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/jobs"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 func init() {
@@ -14,7 +15,7 @@ func init() {
 	searchOrganizationsCmd.Flags().IntVar(&searchOpts.Limit, "limit", 20, "")
 	searchOrganizationsCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
 	searchOrganizationsCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
-	organizationCmd.AddCommand(reindexOrganizationsCmd)
+	organizationsCmd.AddCommand(reindexOrganizationsCmd)
 }
 
 var organizationsCmd = &cobra.Command{
@@ -28,7 +29,7 @@ var organizationsCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := NewRepo(cmd.Context(), conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
@@ -49,7 +50,7 @@ var reindexOrganizationsCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex organizations job",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := NewLogger(cmd.OutOrStdout())
+		logger := newLogger(cmd.OutOrStdout())
 
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -57,22 +58,22 @@ var reindexOrganizationsCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := NewRepo(cmd.Context(), conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		index, err := NewIndex(cmd.Context())
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}
 
-		riverClient, err := NewRiverClient(logger, conn, repo, index)
+		riverClient, err := newRiverClient(logger, conn, repo, index)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexOrganizationsArgs{}, nil)
+		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexOrganizations{}, nil)
 		if err != nil {
 			return err
 		}
@@ -91,7 +92,7 @@ var searchOrganizationsCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search organizations",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		index, err := NewIndex(cmd.Context())
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}

@@ -73,6 +73,7 @@ require (
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
+	github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690
 	go.breu.io/ulid v0.0.2
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect

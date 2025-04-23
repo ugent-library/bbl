@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/pgxrepo"
 )
 
 func init() {
@@ -30,7 +31,7 @@ var addRevCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := NewRepo(cmd.Context(), conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}

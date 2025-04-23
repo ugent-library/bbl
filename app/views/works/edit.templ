@@ -24,7 +24,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 						</div>
 					</div>
 					<div class="bc-toolbar-right mb-3 mb-lg-0">
-						<div class="bc-toolbar-item ps-0 ps-lg-4" id="work-form-buttons">
+						<div class="bc-toolbar-item ps-0 ps-lg-4">
 							@FormButtons(c, rec, route)
 						</div>
 					</div>
@@ -51,26 +51,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 					</div>
 					<div class="c-sub-sidebar__content pt-5">
 						<div class="ps-6">
-							<nav class="nav nav-pills flex-column" id="work-form-nav">
-								<a class="nav-link" href="#type">
-									<span class="c-sidebar__label">Type</span>
-								</a>
-								<a class="nav-link" href="#description">
-									<span class="c-sidebar__label">Description</span>
-								</a>
-								<a class="nav-link" href="#contributors-affiliations">
-									<span class="c-sidebar__label">People & affiliations</span>
-								</a>
-								<a class="nav-link" href="#bibliographic-information">
-									<span class="c-sidebar__label">Bibliographic information</span>
-								</a>
-								<a class="nav-link" href="#conference-details">
-									<span class="c-sidebar__label">Conference details</span>
-								</a>
-								<a class="nav-link" href="#identifiers">
-									<span class="c-sidebar__label">Identifiers</span>
-								</a>
-							</nav>
+							@FormNav(c, rec)
 						</div>
 					</div>
 				</div>
@@ -84,8 +65,18 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	}
 }
 
+templ RefreshForm(c views.Ctx, rec *bbl.Work, route *url.URL) {
+	<div hx-swap-oob="outerHTML:#work-form-buttons">
+		@FormButtons(c, rec, route)
+	</div>
+	<div hx-swap-oob="outerHTML:#work-form-nav">
+		@FormNav(c, rec)
+	</div>
+	@Form(c, rec, route)
+}
+
 templ FormButtons(c views.Ctx, rec *bbl.Work, route *url.URL) {
-	<div class="c-button-toolbar">
+	<div class="c-button-toolbar" id="work-form-buttons">
 		<button
 			class="btn btn-outline-secondary"
 			hx-post={ route.String() }
@@ -106,6 +97,29 @@ templ FormButtons(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 		</div>
 	</div>
+}
+
+templ FormNav(c views.Ctx, rec *bbl.Work) {
+	<nav class="nav nav-pills flex-column" id="work-form-nav">
+		<a class="nav-link" href="#type">
+			<span class="c-sidebar__label">Type</span>
+		</a>
+		<a class="nav-link" href="#description">
+			<span class="c-sidebar__label">Description</span>
+		</a>
+		<a class="nav-link" href="#contributors-affiliations">
+			<span class="c-sidebar__label">People & affiliations</span>
+		</a>
+		<a class="nav-link" href="#bibliographic-information">
+			<span class="c-sidebar__label">Bibliographic information</span>
+		</a>
+		<a class="nav-link" href="#conference-details">
+			<span class="c-sidebar__label">Conference details</span>
+		</a>
+		<a class="nav-link" href="#identifiers">
+			<span class="c-sidebar__label">Identifiers</span>
+		</a>
+	</nav>
 }
 
 templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
@@ -177,7 +191,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 						})
 					}
 					if rec.Profile.Abstracts != nil {
-						@abstractsField(c, abstractsFieldArgs{
+						@textsField(c, textsFieldArgs{
 							Texts:       rec.Attrs.Abstracts,
 							Name:        "abstracts",
 							Label:       c.Loc.Get("abstract"),
@@ -188,14 +202,14 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
-						@abstractsField(c, abstractsFieldArgs{
-							Texts:  rec.Attrs.LaySummaries,
-							Name:   "lay_summaries",
+						@textsField(c, textsFieldArgs{
+							Texts:       rec.Attrs.LaySummaries,
+							Name:        "lay_summaries",
 							Label:       c.Loc.Get("lay summary"),
 							PluralLabel: c.Loc.Get("lay summaries"),
 							Title:       c.Loc.Get("Lay summary"),
 							PluralTitle: c.Loc.Get("Lay summaries"),
-							HxPost: route.String(),
+							HxPost:      route.String(),
 						})
 					}
 					// if rec.Profile.Keywords != nil {
@@ -217,9 +231,9 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 			<div class="card mb-6">
 				<div class="card-body">
-					// if rec.Profile.Contributors != nil {
-					// 	@ContributorsField(c, rec.Contributors)
-					// }
+					if rec.Profile.Contributors != nil {
+						@contributorsField(c, rec, route.String())
+					}
 				</div>
 			</div>
 		</div>
@@ -286,14 +300,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	</form>
 }
 
-templ RefreshForm(c views.Ctx, rec *bbl.Work) {
-	@Form(c, rec, c.Route("create_work"))
-	<div hx-swap-oob="innerHTML:#work-form-buttons">
-		@FormButtons(c, rec, c.Route("create_work"))
-	</div>
-}
-
-type abstractsFieldArgs struct {
+type textsFieldArgs struct {
 	Texts       []bbl.Text
 	Name        string
 	Label       string
@@ -303,7 +310,7 @@ type abstractsFieldArgs struct {
 	HxPost      string
 }
 
-templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
+templ textsField(c views.Ctx, args textsFieldArgs) {
 	<div id={ fmt.Sprintf("work-%s-add", args.Name) } class="modal fade" tabindex="-1">
 		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
 			<div class="modal-content">
@@ -427,142 +434,146 @@ templ abstractsField(c views.Ctx, args abstractsFieldArgs) {
 	</div>
 }
 
-templ ContributorsField(c views.Ctx, contributors []bbl.WorkContributor) {
-	<div id="contributors-field">
-		<div id="add-contributor" class="modal" tabindex="-1" role="dialog" aria-modal="true">
-			<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h2 class="modal-title">Add contributor</h2>
+templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
+	<div id="work-contributors-add" class="modal" tabindex="-1" role="dialog" aria-modal="true">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 class="modal-title">Add contributor</h2>
+				</div>
+				<div class="p-6 border-bottom">
+					<h3>Search contributor</h3>
+					<div class="row">
+						<div class="form-group col">
+							<label class="col-form-label">Name</label>
+							<input
+								class="form-control"
+								type="search"
+								name="q"
+								hx-get={ c.Route("work_suggest_contributors").String() }
+								if rec.ID != "" {
+									hx-vals={ fmt.Sprintf(`{"id": "%s", "add_at": %d}`, rec.ID, len(rec.Contributors)) }
+								}
+								hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+								hx-target="#work-contributors-suggestions"
+								hx-swap="innerHTML"
+							/>
+						</div>
 					</div>
-					<div class="p-6 border-bottom">
-						<h3>Search contributor</h3>
-						<form class="row">
-							<div class="form-group col">
-								<label class="col-form-label">Name</label>
-								<input
-									class="form-control"
-									type="search"
-									name="q"
-									hx-get={ c.Route("work_suggest_contributors").String() }
-									hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
-									hx-target="#contributor-suggestions"
-									hx-swap="innerHTML"
-								/>
-							</div>
-						</form>
-					</div>
-					<div id="contributor-suggestions" class="modal-body"></div>
-					<div class="modal-footer">
-						<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
-					</div>
+				</div>
+				<div id="work-contributors-suggestions" class="modal-body"></div>
+				<div class="modal-footer">
+					<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
 				</div>
 			</div>
 		</div>
-		<div class="form-group">
-			<div class="bc-toolbar h-auto">
-				<div class="bc-toolbar-left">
-					<label class="form-label form-label-top">Contributors</label>
-				</div>
-				<div class="bc-toolbar-right">
-					<button
-						class="btn btn-tertiary"
-						type="button"
-						data-bs-toggle="modal"
-						data-bs-target="#add-contributor"
-					>
-						<i class="if if-add"></i>
-						<div class="btn-text">Add contributor</div>
-					</button>
-				</div>
+	</div>
+	<div class="form-group">
+		<div class="bc-toolbar h-auto">
+			<div class="bc-toolbar-left">
+				<label class="form-label form-label-top">Contributors</label>
 			</div>
-			<div class="list-group rounded-lg">
-				if len(contributors) == 0 {
-					<div class="card shadow-none mb-6 bg-lightest">
-						<div class="card-body">
-							<div class="c-blank-slate py-4">
-								<p>No contributors.</p>
+			<div class="bc-toolbar-right">
+				<button
+					class="btn btn-tertiary"
+					type="button"
+					data-bs-toggle="modal"
+					data-bs-target="#work-contributors-add"
+				>
+					<i class="if if-add"></i>
+					<div class="btn-text">Add contributor</div>
+				</button>
+			</div>
+		</div>
+		<div class="list-group rounded-lg">
+			if len(rec.Contributors) == 0 {
+				<div class="card shadow-none mb-6 bg-lightest">
+					<div class="card-body">
+						<div class="c-blank-slate py-4">
+							<p>No contributors.</p>
+						</div>
+					</div>
+				</div>
+			} else {
+				for i, con := range rec.Contributors {
+					<div id={ fmt.Sprintf("work-contributors-edit-%d", i) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
+						<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h2 class="modal-title">Edit contributor</h2>
+								</div>
+								<div class="p-6 border-bottom">
+									<h3>Search contributor</h3>
+									<div class="row">
+										<div class="form-group col">
+											<label class="col-form-label">Name</label>
+											<input
+												class="form-control"
+												type="search"
+												name="q"
+												hx-get={ c.Route("work_suggest_contributors").String() }
+												if rec.ID != "" {
+													hx-vals={ fmt.Sprintf(`{"id": "%s", "edit_at": %d}`, rec.ID, i) }
+												}
+												hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+												hx-target={ fmt.Sprintf("#work-contributors-suggestions-%d", i) }
+												hx-swap="innerHTML"
+											/>
+										</div>
+									</div>
+								</div>
+								<div id={ fmt.Sprintf("work-contributors-suggestions-%d", i) } class="modal-body"></div>
+								<div class="modal-footer">
+									<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+								</div>
 							</div>
 						</div>
 					</div>
-				} else {
-					for idx, con := range contributors {
-						<div id={ fmt.Sprintf("edit-contributor-%d", idx) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
-							<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
-								<div class="modal-content">
-									<div class="modal-header">
-										<h2 class="modal-title">Edit contributor</h2>
+					<div class="list-group-item">
+						<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", i) } value={ con.PersonID }/>
+						<div class="bc-avatar-and-text align-items-start">
+							<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+								<i class="if if-ghent-university"></i>
+							</div>
+							<div class="bc-avatar-text">
+								<div class="hstack-md-responsive gap-3 gap-lg-4">
+									<div class="vstack gap-3">
+										<h4 class="mb-0">{ con.GetName() }</h4>
 									</div>
-									<div class="p-6 border-bottom">
-										<h3>Search contributor</h3>
-										<form class="row">
-											<div class="form-group col">
-												<label class="col-form-label">Name</label>
-												<input
-													class="form-control"
-													type="search"
-													name="q"
-													hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
-													hx-get={ c.Route("work_suggest_contributors").String() }
-													hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
-													hx-target={ fmt.Sprintf("#contributor-suggestions-%d", idx) }
-													hx-swap="innerHTML"
-												/>
-											</div>
-										</form>
-									</div>
-									<div id={ fmt.Sprintf("contributor-suggestions-%d", idx) } class="modal-body"></div>
-									<div class="modal-footer">
-										<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+									<div class="c-button-toolbar">
+										<button
+											class="btn btn-tertiary btn-lg-only-responsive"
+											type="button"
+											data-bs-toggle="modal"
+													data-bs-target={ fmt.Sprintf("#work-contributors-edit-%d", i) }
+
+										>
+											<i class="if if-edit"></i>
+											<span
+												class="btn-text"
+											>Edit</span>
+										</button>
+										<button
+											class="btn btn-tertiary btn-lg-only-responsive"
+											type="button"
+											hx-post={ hxPost }
+											hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.remove_at": %d}`, i) }
+										>
+											<i class="if if-delete"></i>
+											<span class="btn-text">Remove</span>
+										</button>
 									</div>
 								</div>
 							</div>
 						</div>
-						<div class="list-group-item">
-							<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", idx) } value={ con.PersonID }/>
-							<div class="bc-avatar-and-text align-items-start">
-								<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-									<i class="if if-ghent-university"></i>
-								</div>
-								<div class="bc-avatar-text">
-									<div class="hstack-md-responsive gap-3 gap-lg-4">
-										<div class="vstack gap-3">
-											<h4 class="mb-0">{ con.GetName() }</h4>
-										</div>
-										<div class="c-button-toolbar">
-											<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-												<i class="if if-edit"></i>
-												<span
-													class="btn-text"
-													data-bs-toggle="modal"
-													data-bs-target={ fmt.Sprintf("#edit-contributor-%d", idx) }
-												>Edit</span>
-											</button>
-											<button
-												class="btn btn-tertiary btn-lg-only-responsive"
-												type="button"
-												hx-include="#contributors-field"
-												hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
-												hx-post={ c.Route("work_remove_contributor").String() }
-												hx-target="#contributors-field"
-												hx-swap="outerHTML"
-											>
-												<i class="if if-delete"></i>
-												<span class="btn-text">Remove</span>
-											</button>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					}
+					</div>
 				}
-			</div>
+			}
 		</div>
 	</div>
 }
 
-templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx int) {
+templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], id string, addAt, editAt int) {
 	<ul class="list-group">
 		for _, hit := range hits.Hits {
 			<li class="list-group-item">
@@ -582,22 +593,22 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx in
 							class="btn btn-primary"
 							type="button"
 							data-bs-dismiss="modal"
-							hx-include="#contributors-field [name^='contributors']"
-							if idx >= 0 {
-								hx-vals={ fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID) }
-								hx-post={ c.Route("work_edit_contributor").String() }
+							if id == "" {
+								hx-post={ c.Route("create_work").String() }
 							} else {
-								hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
-								hx-post={ c.Route("work_add_contributor").String() }
+								hx-post={ c.Route("update_work", "id", id).String() }
 							}
-							hx-target="#contributors-field"
-							hx-swap="outerHTML"
+							if addAt >= 0 {
+								hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.add_at": %d, "person_id": "%s"}`, addAt, hit.Rec.ID) }
+							} else {
+								hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.edit_at": %d, "person_id": "%s"}`, editAt, hit.Rec.ID) }
+							}
 						>
 							<span class="btn-text">
-								if idx >= 0 {
-									Edit contributor
-								} else {
+								if addAt >= 0 {
 									Add contributor
+								} else {
+									Edit contributor
 								}
 							</span>
 							<i class="if if-arrow-right"></i>
