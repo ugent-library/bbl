@@ -14,7 +14,7 @@ import (
 	"net/url"
 )
 
-func Pagination(u *url.URL, pager *pagination.Pager) templ.Component {
+func Pagination(c Ctx, pager *pagination.Pager, u *url.URL) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -131,6 +131,14 @@ func Pagination(u *url.URL, pager *pagination.Pager) templ.Component {
 		}
 		return nil
 	})
+}
+
+func PaginationCount(c Ctx, pager *pagination.Pager) string {
+	if pager.TotalPages > 1 {
+		return fmt.Sprintf("Showing %d-%d of %d", pager.FirstOnPage, pager.LastOnPage, pager.Total)
+	} else {
+		return fmt.Sprintf("Showing %d", pager.Total)
+	}
 }
 
 func withFrom(u *url.URL, from int) *url.URL {

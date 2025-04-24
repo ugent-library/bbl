@@ -1,7 +1,6 @@
 package workviews
 
 import (
-	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/pagination"
@@ -9,7 +8,6 @@ import (
 
 templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 	{{ pager := pagination.New(hits.Size, hits.From, hits.Total) }}
-
 	@views.Page(c, "Overview works") {
 		<div class="w-100 u-scroll-wrapper">
 			<div class="bg-white">
@@ -71,11 +69,11 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c.CurrentURL, pager)
+										@views.Pagination(c, pager, c.CurrentURL)
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">
-									<span class="text-muted c-body-small">Showing { fmt.Sprint(pager.FirstOnPage) }-{ fmt.Sprint(pager.LastOnPage) } of { fmt.Sprint(pager.Total) } works</span>
+									<span class="text-muted c-body-small">{ views.PaginationCount(c, pager) }</span>
 								</div>
 							</div>
 						</div>
@@ -185,8 +183,8 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 											</div>
 											<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
 												<ul class="c-meta-list c-meta-list-inline c-body-small">
-													<li class="c-meta-item">Created 13/07/2023 16:10 by Valerie Van Den Bussche.</li>
-													<li class="c-meta-item">Edited 13/07/2023 16:10 by Valerie Van Den Bussche.</li>
+													<li class="c-meta-item">Created { c.FormatTime(hit.Rec.CreatedAt) } by Valerie Van Den Bussche.</li>
+													<li class="c-meta-item">Edited { c.FormatTime(hit.Rec.UpdatedAt) } by Valerie Van Den Bussche.</li>
 												</ul>
 												<div class="btn btn-sm btn-outline-secondary me-3">
 													<i class="if if-copy"></i>
@@ -232,11 +230,11 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c.CurrentURL, pager)
+										@views.Pagination(c, pager, c.CurrentURL)
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">
-									<span class="text-muted c-body-small">Showing { fmt.Sprint(pager.FirstOnPage) }-{ fmt.Sprint(pager.LastOnPage) } of { fmt.Sprint(pager.Total) } works</span>
+									<span class="text-muted c-body-small">{ views.PaginationCount(c, pager) }</span>
 								</div>
 							</div>
 						</div>
