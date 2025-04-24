@@ -30,6 +30,7 @@ type AppCtx struct {
 	assets       map[string]string
 	insecure     bool
 	Loc          *gotext.Locale
+	CurrentURL   *url.URL
 	// user         *biblio.User
 }
 
@@ -39,6 +40,7 @@ func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets m
 
 	return func(r *http.Request) (*AppCtx, error) {
 		c := &AppCtx{
+			CurrentURL:   r.URL,
 			router:       router,
 			secureCookie: cookies,
 			assets:       assets,
@@ -66,9 +68,10 @@ func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets m
 
 func (c *AppCtx) ViewCtx() views.Ctx {
 	return views.Ctx{
-		Route:     c.Route,
-		AssetPath: c.AssetPath,
-		Loc:       c.Loc,
+		CurrentURL: c.CurrentURL,
+		Route:      c.Route,
+		AssetPath:  c.AssetPath,
+		Loc:        c.Loc,
 		// User:      c.user,
 	}
 }

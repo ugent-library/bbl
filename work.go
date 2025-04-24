@@ -1,6 +1,7 @@
 package bbl
 
 import (
+	"context"
 	"slices"
 	"time"
 )
@@ -102,4 +103,20 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 		changes["conference"] = rec.Attrs.Conference
 	}
 	return changes
+}
+
+func (rec *Work) Title() string {
+	if len(rec.Attrs.Titles) > 0 {
+		return rec.Attrs.Titles[0].Val
+	}
+	return ""
+}
+
+type WorkEncoder = func(context.Context, *Work) ([]byte, error)
+
+type WorkRepresentation struct {
+	WorkID    string    `json:"work_id"`
+	Scheme    string    `json:"scheme"`
+	Record    []byte    `json:"record"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

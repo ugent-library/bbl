@@ -28,11 +28,27 @@ func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 
 func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	workCtx := ctx.Derive(appCtx, BindWorkCtx(h.repo))
+	searchCtx := ctx.Derive(appCtx, BindSearchCtx)
+	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
 	router.Handle("/works/suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
+	router.Handle("/works/{id}", workCtx.Bind(h.Show)).Methods("GET").Name("work")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
+}
+
+func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
+	if err != nil {
+		return err
+	}
+
+	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	return workviews.Show(c.ViewCtx(), c.Work).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
@@ -127,7 +143,7 @@ func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request
 		Err(); err != nil {
 		return err
 	}
-	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Limit: 10})
+	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Size: 10})
 	if err != nil {
 		return err
 	}

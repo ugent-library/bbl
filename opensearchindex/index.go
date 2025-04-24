@@ -154,7 +154,7 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.RecHits[T], error) {
 	query := `{"match_all": {}}`
 	sort := `{"_id": "asc"}`
-	searchAfter := ``
+	paging := ``
 
 	if opts.Query != "" {
 		q, err := idx.generateQuery(opts.Query)
@@ -166,19 +166,21 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
 	}
 
-	if opts.Cursor != "" {
+	if opts.From != 0 {
+		paging = `"from": ` + fmt.Sprint(opts.Size) + `,`
+	} else if opts.Cursor != "" {
 		cursor, err := base64.StdEncoding.DecodeString(opts.Cursor)
 		if err != nil {
 			return nil, err
 		}
-		searchAfter = `"search_after": ` + string(cursor) + `,`
+		paging = `"search_after": ` + string(cursor) + `,`
 	}
 
 	body := `{
 		"query": ` + query + `,
 		"sort": ` + sort + `,
-		"size": ` + fmt.Sprint(opts.Limit) + `,` +
-		searchAfter + `
+		"size": ` + fmt.Sprint(opts.Size) + `,` +
+		paging + `
 		"_source": {
 			"includes": ["rec"]
 		}
@@ -200,8 +202,9 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 	hits := &bbl.RecHits[T]{
 		Hits:   make([]bbl.RecHit[T], len(res.Hits.Hits)),
 		Total:  res.Hits.Total.Value,
-		Limit:  opts.Limit,
 		Query:  opts.Query,
+		Size:   opts.Size,
+		From:   opts.From,
 		Cursor: cursor,
 	}
 	for i, hit := range res.Hits.Hits {

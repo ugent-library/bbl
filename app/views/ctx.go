@@ -8,9 +8,10 @@ import (
 )
 
 type Ctx struct {
-	Route     func(name string, pairs ...string) *url.URL
-	AssetPath func(string) string
-	Loc       *gotext.Locale
+	CurrentURL *url.URL
+	Route      func(name string, pairs ...string) *url.URL
+	AssetPath  func(string) string
+	Loc        *gotext.Locale
 	// User      *biblio.User
 }
 

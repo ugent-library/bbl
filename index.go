@@ -23,17 +23,19 @@ type RecIndexSwitcher[T Rec] interface {
 }
 
 type SearchOpts struct {
-	Cursor string `json:"cursor,omitempty"`
 	Query  string `json:"query,omitempty"`
-	Limit  int    `json:"limit"`
+	Size   int    `json:"size"`
+	From   int    `json:"from,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RecHits[T Rec] struct {
 	Hits   []RecHit[T] `json:"hits"`
 	Total  int         `json:"total"`
-	Cursor string      `json:"cursor,omitempty"`
 	Query  string      `json:"query,omitempty"`
-	Limit  int         `json:"limit"`
+	Size   int         `json:"size"`
+	From   int         `json:"from,omitempty"`
+	Cursor string      `json:"cursor,omitempty"`
 }
 
 type RecHit[T any] struct {

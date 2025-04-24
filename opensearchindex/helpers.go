@@ -10,7 +10,7 @@ import (
 
 func encodeCursor(res *opensearchapi.SearchResp, opts bbl.SearchOpts) (string, error) {
 	n := len(res.Hits.Hits)
-	if n == 0 || n < opts.Limit {
+	if n == 0 || n < opts.Size {
 		return "", nil
 	}
 	c, err := json.Marshal(res.Hits.Hits[n-1].Sort)

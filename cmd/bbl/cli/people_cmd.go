@@ -12,8 +12,9 @@ import (
 func init() {
 	rootCmd.AddCommand(peopleCmd)
 	peopleCmd.AddCommand(searchPeopleCmd)
-	searchPeopleCmd.Flags().IntVar(&searchOpts.Limit, "limit", 20, "")
 	searchPeopleCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
+	searchPeopleCmd.Flags().IntVar(&searchOpts.Size, "size", 20, "")
+	searchPeopleCmd.Flags().IntVar(&searchOpts.From, "from", 0, "")
 	searchPeopleCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
 	peopleCmd.AddCommand(reindexPeopleCmd)
 }
