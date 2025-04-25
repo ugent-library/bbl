@@ -30,19 +30,19 @@ type Index struct {
 }
 
 func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
-	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", strings.NewReader(organizationSettings), organizationToDoc, generateOrganizationQuery)
+	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", strings.NewReader(organizationSettings), organizationToDoc, generateOrganizationQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", strings.NewReader(personSettings), personToDoc, generatePersonQuery)
+	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", strings.NewReader(personSettings), personToDoc, generatePersonQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", strings.NewReader(projectSettings), projectToDoc, generateProjectQuery)
+	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", strings.NewReader(projectSettings), projectToDoc, generateProjectQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	worksIndex, err := newRecIndex(ctx, client, "bbl_works", strings.NewReader(workSettings), workToDoc, generateWorkQuery)
+	worksIndex, err := newRecIndex(ctx, client, "bbl_works", strings.NewReader(workSettings), workToDoc, generateWorkQuery, generateWorkAggs)
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +77,19 @@ type recIndex[T bbl.Rec] struct {
 	retention     int
 	toDoc         func(T) any
 	generateQuery func(string) (string, error)
+	generateAggs  func([]string) (string, error)
 	bulkIndexer   opensearchutil.BulkIndexer
 }
 
-func newRecIndex[T bbl.Rec](ctx context.Context, client *opensearchapi.Client, alias string, settings io.ReadSeeker, toDoc func(T) any, generateQuery func(string) (string, error)) (*recIndex[T], error) {
+func newRecIndex[T bbl.Rec](
+	ctx context.Context,
+	client *opensearchapi.Client,
+	alias string,
+	settings io.ReadSeeker,
+	toDoc func(T) any,
+	generateQuery func(string) (string, error),
+	generateAggs func([]string) (string, error),
+) (*recIndex[T], error) {
 	retention := 1
 
 	bulkIndexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
@@ -107,6 +116,7 @@ func newRecIndex[T bbl.Rec](ctx context.Context, client *opensearchapi.Client, a
 		bulkIndexer:   bulkIndexer,
 		toDoc:         toDoc,
 		generateQuery: generateQuery,
+		generateAggs:  generateAggs,
 	}, nil
 }
 
@@ -154,6 +164,7 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.RecHits[T], error) {
 	query := `{"match_all": {}}`
 	sort := `{"_id": "asc"}`
+	aggs := ``
 	paging := ``
 
 	if opts.Query != "" {
@@ -164,6 +175,15 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		query = q
 
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
+	}
+
+	// TODO remove nil check
+	if idx.generateAggs != nil && len(opts.Facets) > 0 {
+		a, err := idx.generateAggs(opts.Facets)
+		if err != nil {
+			return nil, err
+		}
+		aggs = a
 	}
 
 	if opts.From != 0 {
@@ -180,6 +200,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		"query": ` + query + `,
 		"sort": ` + sort + `,
 		"size": ` + fmt.Sprint(opts.Size) + `,` +
+		aggs +
 		paging + `
 		"_source": {
 			"includes": ["rec"]

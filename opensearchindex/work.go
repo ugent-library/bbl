@@ -2,7 +2,9 @@ package opensearchindex
 
 import (
 	_ "embed"
+	"fmt"
 
+	"github.com/tidwall/sjson"
 	"github.com/ugent-library/bbl"
 )
 
@@ -63,4 +65,31 @@ func generateWorkQuery(str string) (string, error) {
 		}
 	}`
 	return q, nil
+}
+
+func generateWorkAggs(facets []string) (string, error) {
+	aggs := `{}`
+	var err error
+	for _, facet := range facets {
+		switch facet {
+		case "kind":
+			aggs, err = sjson.SetRaw(aggs, "kind", `{
+				"terms": {
+					"field": "kind",
+					"size": `+fmt.Sprint(len(bbl.WorkKinds))+`
+				}
+			}`)
+		case "status":
+			aggs, err = sjson.SetRaw(aggs, "status", `{
+				"terms": {
+					"field": "status",
+					"size": `+fmt.Sprint(len(bbl.WorkStatuses))+`
+				}
+			}`)
+		}
+	}
+	if err != nil {
+		return "", err
+	}
+	return aggs, nil
 }

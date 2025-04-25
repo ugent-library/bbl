@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var WorkStatuses = []string{"suggestion", "draft", "public", "deleted"}
+
 type Work struct {
 	Profile      *WorkProfile      `json:"-"`
 	ID           string            `json:"id,omitempty"`

@@ -23,10 +23,11 @@ type RecIndexSwitcher[T Rec] interface {
 }
 
 type SearchOpts struct {
-	Query  string `json:"query,omitempty"`
-	Size   int    `json:"size"`
-	From   int    `json:"from,omitempty"`
-	Cursor string `json:"cursor,omitempty"`
+	Query  string   `json:"query,omitempty"`
+	Size   int      `json:"size"`
+	From   int      `json:"from,omitempty"`
+	Cursor string   `json:"cursor,omitempty"`
+	Facets []string `json:"facets,omitempty"`
 }
 
 type RecHits[T Rec] struct {
@@ -36,6 +37,17 @@ type RecHits[T Rec] struct {
 	Size   int         `json:"size"`
 	From   int         `json:"from,omitempty"`
 	Cursor string      `json:"cursor,omitempty"`
+	Facets []Facet     `json:"facets,omitempty"`
+}
+
+type Facet struct {
+	Name string       `json:"name,omitempty"`
+	Vals []FacetValue `json:"vals,omitempty"`
+}
+
+type FacetValue struct {
+	Val   string `json:"val"`
+	Count int    `json:"count"`
 }
 
 type RecHit[T any] struct {
