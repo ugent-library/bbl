@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 	"time"
@@ -30,19 +29,19 @@ type Index struct {
 }
 
 func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
-	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", strings.NewReader(organizationSettings), organizationToDoc, generateOrganizationQuery, nil)
+	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", organizationSettings, organizationToDoc, generateOrganizationQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", strings.NewReader(personSettings), personToDoc, generatePersonQuery, nil)
+	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", personSettings, personToDoc, generatePersonQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", strings.NewReader(projectSettings), projectToDoc, generateProjectQuery, nil)
+	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", projectSettings, projectToDoc, generateProjectQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	worksIndex, err := newRecIndex(ctx, client, "bbl_works", strings.NewReader(workSettings), workToDoc, generateWorkQuery, generateWorkAggs)
+	worksIndex, err := newRecIndex(ctx, client, "bbl_works", workSettings, workToDoc, generateWorkQuery, generateWorkAggs)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +73,7 @@ func (idx *Index) Works() bbl.RecIndex[*bbl.Work] {
 type recIndex[T bbl.Rec] struct {
 	client        *opensearchapi.Client
 	alias         string
+	settings      string
 	retention     int
 	toDoc         func(T) any
 	generateQuery func(string) (string, error)
@@ -85,7 +85,7 @@ func newRecIndex[T bbl.Rec](
 	ctx context.Context,
 	client *opensearchapi.Client,
 	alias string,
-	settings io.ReadSeeker,
+	settings string,
 	toDoc func(T) any,
 	generateQuery func(string) (string, error),
 	generateAggs func([]string) (string, error),
@@ -105,13 +105,14 @@ func newRecIndex[T bbl.Rec](
 		return nil, err
 	}
 
-	if err := opensearchswitcher.Init(ctx, client, alias, settings, retention); err != nil {
+	if err := opensearchswitcher.Init(ctx, client, alias, strings.NewReader(settings), retention); err != nil {
 		return nil, err
 	}
 
 	return &recIndex[T]{
 		client:        client,
 		alias:         alias,
+		settings:      settings,
 		retention:     retention,
 		bulkIndexer:   bulkIndexer,
 		toDoc:         toDoc,
@@ -124,7 +125,7 @@ func (idx *recIndex[T]) NewSwitcher(ctx context.Context) (bbl.RecIndexSwitcher[T
 	return opensearchswitcher.New(ctx, opensearchswitcher.Config[T]{
 		Client:        idx.client,
 		Alias:         idx.alias,
-		IndexSettings: strings.NewReader(personSettings),
+		IndexSettings: strings.NewReader(idx.settings),
 		Retention:     idx.retention,
 		ToItem: func(rec T) opensearchswitcher.Item {
 			// TODO pass version
@@ -183,7 +184,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		if err != nil {
 			return nil, err
 		}
-		aggs = a
+		aggs = `"aggs": ` + a + `,`
 	}
 
 	if opts.From != 0 {

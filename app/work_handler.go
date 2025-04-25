@@ -39,6 +39,8 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 }
 
 func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	c.SearchOpts.Facets = []string{"kind", "status"}
+
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
 		return err
@@ -142,7 +144,7 @@ func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request
 		Err(); err != nil {
 		return err
 	}
-	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Size: 10})
+	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Size: 20})
 	if err != nil {
 		return err
 	}

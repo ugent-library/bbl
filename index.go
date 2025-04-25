@@ -41,8 +41,8 @@ type RecHits[T Rec] struct {
 }
 
 type Facet struct {
-	Name string       `json:"name,omitempty"`
-	Vals []FacetValue `json:"vals,omitempty"`
+	Name string       `json:"name"`
+	Vals []FacetValue `json:"vals"`
 }
 
 type FacetValue struct {
