@@ -6,14 +6,15 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/leonelquinteros/gotext"
+	"github.com/ugent-library/bbl"
 )
 
 type Ctx struct {
-	CurrentURL *url.URL
-	Route      func(name string, pairs ...string) *url.URL
-	AssetPath  func(string) string
-	Loc        *gotext.Locale
-	// User      *biblio.User
+	URL       *url.URL
+	Route     func(name string, pairs ...string) *url.URL
+	AssetPath func(string) string
+	Loc       *gotext.Locale
+	User      *bbl.User
 }
 
 func (c Ctx) SafeRoute(name string, pairs ...string) templ.SafeURL {

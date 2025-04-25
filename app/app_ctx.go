@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/leonelquinteros/gotext"
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/i18n"
@@ -19,6 +21,14 @@ import (
 const (
 	sessionCookieName = "bbl.session"
 )
+
+func RequireUser(w http.ResponseWriter, r *http.Request, c *AppCtx) (*http.Request, error) {
+	if c.User == nil {
+		http.Redirect(w, r, c.Route("login").String(), http.StatusFound)
+		return nil, nil
+	}
+	return r, nil
+}
 
 type SessionCookie struct {
 	UserID string `json:"u"`
@@ -30,17 +40,16 @@ type AppCtx struct {
 	assets       map[string]string
 	insecure     bool
 	Loc          *gotext.Locale
-	CurrentURL   *url.URL
-	// user         *biblio.User
+	URL          *url.URL
+	User         *bbl.User
 }
 
-func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool) ctx.Binder[*AppCtx] {
-	// func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool, usersRepo biblio.Users) ctx.Binder[*AppCtx] {
+func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool, userFunc func(context.Context, string) (*bbl.User, error)) ctx.Binder[*AppCtx] {
 	loc := i18n.Locales["en"] // TODO hardcoded for now
 
 	return func(r *http.Request) (*AppCtx, error) {
 		c := &AppCtx{
-			CurrentURL:   r.URL,
+			URL:          r.URL,
 			router:       router,
 			secureCookie: cookies,
 			assets:       assets,
@@ -54,13 +63,13 @@ func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets m
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			return nil, err
 		}
-		// if err == nil {
-		// 	user, err := usersRepo.Get(r.Context(), session.UserID)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// 	c.user = user
-		// }
+		if err == nil {
+			user, err := userFunc(r.Context(), session.UserID)
+			if err != nil {
+				return nil, err
+			}
+			c.User = user
+		}
 
 		return c, nil
 	}
@@ -68,11 +77,11 @@ func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets m
 
 func (c *AppCtx) ViewCtx() views.Ctx {
 	return views.Ctx{
-		CurrentURL: c.CurrentURL,
-		Route:      c.Route,
-		AssetPath:  c.AssetPath,
-		Loc:        c.Loc,
-		// User:      c.user,
+		URL:       c.URL,
+		Route:     c.Route,
+		AssetPath: c.AssetPath,
+		Loc:       c.Loc,
+		User:      c.User,
 	}
 }
 
@@ -124,28 +133,24 @@ func (c *AppCtx) Route(name string, pairs ...string) *url.URL {
 	return u
 }
 
-// func (c *AppCtx) User() *biblio.User {
-// 	return c.user
-// }
+func (c *AppCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {
+	val := &SessionCookie{
+		UserID: user.ID,
+	}
+	err := c.SetCookie(w, sessionCookieName, val, 30*24*time.Hour)
+	if err != nil {
+		return err
+	}
 
-// func (c *AppCtx) SetUser(w http.ResponseWriter, user *biblio.User) error {
-// 	val := &SessionCookie{
-// 		UserID: user.ID,
-// 	}
-// 	err := c.SetCookie(w, sessionCookieName, val, 30*24*time.Hour)
-// 	if err != nil {
-// 		return err
-// 	}
+	c.User = user
 
-// 	c.user = user
+	return nil
+}
 
-// 	return nil
-// }
-
-// func (c *AppCtx) ClearUser(w http.ResponseWriter) {
-// 	c.user = nil
-// 	c.ClearCookie(w, sessionCookieName)
-// }
+func (c *AppCtx) ClearUser(w http.ResponseWriter) {
+	c.User = nil
+	c.ClearCookie(w, sessionCookieName)
+}
 
 func (c *AppCtx) GetCookie(r *http.Request, name string, val any) error {
 	cookie, err := r.Cookie(name)

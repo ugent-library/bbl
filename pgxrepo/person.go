@@ -40,12 +40,13 @@ func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Pers
 		}
 	}
 }
+
 func getPerson(ctx context.Context, conn pgxConn, id string) (*bbl.Person, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
 			select p.id, p.attrs, p.created_at, p.updated_at, p.identifiers
-			from bbl_people_view w, bbl_people_identifiers p_i
+			from bbl_people_view p, bbl_people_identifiers p_i
 			where p.id = p_i.person_id and p_i.scheme = $1 and p_i.val = $2;`,
 			scheme, val,
 		)

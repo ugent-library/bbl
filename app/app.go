@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -16,18 +17,18 @@ import (
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/oidc"
 )
 
 //go:embed static
 var staticFS embed.FS
 
 type Config struct {
-	Env     string
-	BaseURL string
-	Logger  *slog.Logger
-	Repo    *pgxrepo.Repo
-	Index   bbl.Index
-	// UserSource       biblio.UserSource
+	Env              string
+	BaseURL          string
+	Logger           *slog.Logger
+	Repo             *pgxrepo.Repo
+	Index            bbl.Index
 	CookieSecret     []byte
 	CookieHashSecret []byte
 	AuthIssuerURL    string
@@ -86,37 +87,30 @@ func New(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	// appCtx := ctx.New(h.BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.Users()))
-	appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development"))
-	// loggedInCtx := appCtx.With(h.RequireUser)
+	appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.GetUser))
+	loggedInCtx := appCtx.With(RequireUser)
 
 	router.Handle("/", appCtx.Bind(HomeHandler)).Methods("GET").Name("home")
 
-	// authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
-	// 	IssuerURL:        config.AuthIssuerURL,
-	// 	ClientID:         config.AuthClientID,
-	// 	ClientSecret:     config.AuthClientSecret,
-	// 	RedirectURL:      config.BaseURL + "/auth/callback",
-	// 	CookieInsecure:   config.Env == "development",
-	// 	CookiePrefix:     "biblio.oidc.",
-	// 	CookieHashSecret: config.CookieHashSecret,
-	// 	CookieSecret:     config.CookieSecret,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
+		IssuerURL:        config.AuthIssuerURL,
+		ClientID:         config.AuthClientID,
+		ClientSecret:     config.AuthClientSecret,
+		RedirectURL:      config.BaseURL + "/auth/callback",
+		CookieInsecure:   config.Env == "development",
+		CookiePrefix:     "biblio.oidc.",
+		CookieHashSecret: config.CookieHashSecret,
+		CookieSecret:     config.CookieSecret,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	// h.NewAuthHandler(h.AuthConfig{
-	// 	Provider:   authProvider,
-	// 	UserSource: config.UserSource,
-	// 	UsersRepo:  config.Repo.Users(),
-	// }).AddRoutes(router, appCtx)
-
-	// h.NewWorkHandler(config.Repo).AddRoutes(router, loggedInCtx)
-	NewOrganizationHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
-	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
-	NewProjectHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
-	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, appCtx)
+	NewAuthHandler(config.Repo, authProvider).AddRoutes(router, appCtx)
+	NewOrganizationHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
+	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
+	NewProjectHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
+	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
 
 	return router, nil
 }

@@ -1,5 +1,7 @@
 -- +goose up
 
+create extension if not exists citext;
+
 create table bbl_organizations (
   id uuid primary key,
   kind text not null,
@@ -107,6 +109,16 @@ create table bbl_works_identifiers (
   primary key (work_id, idx)
 );
 
+create table bbl_work_representations (
+    work_id uuid not null references bbl_works (id) on delete cascade,
+    scheme text not null,
+    record bytea not null,
+    updated_at timestamptz not null default transaction_timestamp(),
+    primary key (work_id, scheme)
+);
+
+create index on bbl_work_representations (updated_at);
+
 -- TODO are these all necessary?
 create index on bbl_works_identifiers (work_id);
 create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
@@ -156,9 +168,31 @@ create table bbl_works_projects (
 create index on bbl_works_projects (work_id); -- TODO probably not needed
 create index on bbl_works_projects (project_id);
 
+create table bbl_users (
+  id uuid primary key,
+  username text not null unique,
+  email citext not null unique,
+  name text not null,
+  created_at timestamptz not null default transaction_timestamp(),
+  updated_at timestamptz not null default transaction_timestamp()
+);
+
+create table bbl_user_identifiers (
+  user_id uuid not null references bbl_users (id) on delete cascade,
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  primary key (user_id, idx),
+  unique (scheme, val)
+);
+
+-- TODO is this necessary?
+create index on bbl_user_identifiers (user_id);
+
 create table bbl_revs (
   id uuid primary key,
-  created_at timestamptz default transaction_timestamp()
+  user_id uuid references bbl_users (id) on delete set null,
+  created_at timestamptz not null default transaction_timestamp()
 );
 
 create table bbl_changes (
@@ -188,6 +222,8 @@ create index on bbl_changes (work_id) where work_id is not null;
 
 drop table bbl_changes cascade;
 drop table bbl_revs cascade;
+drop table bbl_user_identifiers cascade;
+drop table bbl_users cascade;
 drop table bbl_people_organizations cascade;
 drop table bbl_works_contributors cascade;
 drop table bbl_works_organizations cascade;
@@ -199,6 +235,7 @@ drop table bbl_people_identifiers cascade;
 drop table bbl_people cascade;
 drop table bbl_projects_identifiers cascade;
 drop table bbl_projects cascade;
+drop table bbl_work_representations cascade;
 drop table bbl_works_identifiers cascade;
 drop table bbl_works_rels cascade;
 drop table bbl_works cascade;

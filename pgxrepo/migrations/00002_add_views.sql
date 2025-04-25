@@ -80,9 +80,23 @@ left join lateral (
   group by work_id
 ) w_r on w_r.work_id=w.id;
 
+create view bbl_users_view as
+select u.*,
+       u_i.identifiers as identifiers
+from bbl_users u
+left join lateral (
+  select
+   	user_id,
+    json_agg(json_build_object('scheme', u_i.scheme, 'val', u_i.val) order by u_i.idx) filter (where u_i.idx is not null) as identifiers
+  from bbl_user_identifiers u_i
+  where u_i.user_id=u.id
+  group by user_id
+) u_i on u_i.user_id=u.id;
+
 -- +goose down
 
 drop view bbl_works_view;
 drop view bbl_people_view;
 drop view bbl_organizations_view;
 drop view bbl_projects_view;
+drop view bbl_users_view;

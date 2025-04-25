@@ -24,6 +24,10 @@ type Code struct {
 	Val    string `json:"val"`
 }
 
+func (c Code) String() string {
+	return c.Scheme + ":" + c.Val
+}
+
 type Conference struct {
 	Name      string    `json:"name,omitempty"`
 	Organizer string    `json:"organizer,omitempty"`

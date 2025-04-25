@@ -12,12 +12,19 @@ require (
 )
 
 require (
+	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/huandu/go-sqlbuilder v1.35.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/oauth2 v0.18.0 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
 
 require (
@@ -74,6 +81,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690
+	github.com/ugent-library/oidc v0.1.0
 	go.breu.io/ulid v0.0.2
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect

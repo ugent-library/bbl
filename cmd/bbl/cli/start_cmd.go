@@ -52,23 +52,17 @@ var startCmd = &cobra.Command{
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
 
-		// ldapAdapter, err := services.NewLDAPAdapter(ctx, config)
-		// if err != nil {
-		// 	return err
-		// }
-
 		handler, err := app.New(&app.Config{
-			Env:     config.Env,
-			BaseURL: config.BaseURL,
-			Logger:  logger,
-			Repo:    repo,
-			Index:   index,
-			// UserSource:       ldapAdapter,
-			// CookieSecret:     []byte(config.CookieSecret),
-			// CookieHashSecret: []byte(config.CookieHashSecret),
-			// AuthIssuerURL:    config.OIDC.IssuerURL,
-			// AuthClientID:     config.OIDC.ClientID,
-			// AuthClientSecret: config.OIDC.ClientSecret,
+			Env:              config.Env,
+			BaseURL:          config.BaseURL,
+			Logger:           logger,
+			Repo:             repo,
+			Index:            index,
+			CookieSecret:     []byte(config.CookieSecret),
+			CookieHashSecret: []byte(config.CookieHashSecret),
+			AuthIssuerURL:    config.OIDC.IssuerURL,
+			AuthClientID:     config.OIDC.ClientID,
+			AuthClientSecret: config.OIDC.ClientSecret,
 		})
 		if err != nil {
 			return err

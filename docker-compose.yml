@@ -1,4 +1,14 @@
 services:  
+  oidc:
+    image: ugentlib/oidc-mock:latest
+    ports:
+      - 3350:3350
+    environment:
+      PORT: 3350
+      CLIENT_ID: bbl
+      CLIENT_SECRET: bbl
+      REDIRECT_URI: http://localhost:3000/auth/callback
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped

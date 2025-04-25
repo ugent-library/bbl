@@ -11,4 +11,11 @@ type Config struct {
 		Username string   `mapstructure:"username"`
 		Password string   `mapstructure:"password"`
 	} `mapstructure:"opensearch"`
+	OIDC struct {
+		IssuerURL    string `mapstructure:"issuer_url"`
+		ClientID     string `mapstructure:"client_id"`
+		ClientSecret string `mapstructure:"client_secret"`
+	} `mapstructure:"oidc"`
+	CookieSecret     string `mapstructure:"cookie_secret"`
+	CookieHashSecret string `mapstructure:"cookie_hash_secret"`
 }

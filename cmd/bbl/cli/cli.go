@@ -24,6 +24,11 @@ func RunWithContext(ctx context.Context) error {
 	v.BindEnv("opensearch.url")
 	v.BindEnv("opensearch.username")
 	v.BindEnv("opensearch.password")
+	v.BindEnv("oidc.issuer_url")
+	v.BindEnv("oidc.client_id")
+	v.BindEnv("oidc.client_secret")
+	v.BindEnv("cookie_secret")
+	v.BindEnv("cookie_hash_secret")
 
 	if err := v.Unmarshal(&config); err != nil {
 		return err
