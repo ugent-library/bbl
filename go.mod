@@ -4,6 +4,7 @@ go 1.24.1
 
 require (
 	github.com/a-h/templ v0.3.857
+	github.com/huandu/go-sqlbuilder v1.35.0
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/pressly/goose/v3 v3.24.2
 	github.com/riverqueue/river v0.19.0
@@ -14,9 +15,8 @@ require (
 require (
 	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/huandu/go-sqlbuilder v1.35.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
