@@ -11,16 +11,16 @@ var workProfilesFile []byte
 
 var WorkProfiles = map[string]map[string]*WorkProfile{}
 var WorkKinds []string
-var WorkSubKinds = map[string][]string{}
+var WorkSubkinds = map[string][]string{}
 
 func LoadWorkProfile(rec *Work) error {
 	if subKinds, ok := WorkProfiles[rec.Kind]; ok {
 		if !ok {
 			return fmt.Errorf("invalid work kind %s", rec.Kind)
 		}
-		p, ok := subKinds[rec.SubKind]
+		p, ok := subKinds[rec.Subkind]
 		if !ok {
-			return fmt.Errorf("%s: invalid work sub kind %s", rec.Kind, rec.SubKind)
+			return fmt.Errorf("%s: invalid work sub kind %s", rec.Kind, rec.Subkind)
 		}
 		rec.Profile = p
 	}
@@ -31,10 +31,10 @@ func init() {
 	var profiles []struct {
 		Kind       string          `json:"kind"`
 		RawProfile json.RawMessage `json:"profile"`
-		SubKinds   []struct {
-			SubKind    string          `json:"sub_kind"`
+		Subkinds   []struct {
+			Subkind    string          `json:"subkind"`
 			RawProfile json.RawMessage `json:"profile"`
-		} `json:"sub_kinds"`
+		} `json:"subkinds"`
 	}
 	if err := json.Unmarshal(workProfilesFile, &profiles); err != nil {
 		panic(err)
@@ -52,7 +52,7 @@ func init() {
 		}
 		WorkKinds = append(WorkKinds, p.Kind)
 		WorkProfiles[p.Kind] = map[string]*WorkProfile{"": &kp}
-		for _, pp := range p.SubKinds {
+		for _, pp := range p.Subkinds {
 			var skp WorkProfile
 			if err := json.Unmarshal(p.RawProfile, &skp); err != nil {
 				panic(err)
@@ -67,8 +67,8 @@ func init() {
 					skp.IdentifierSchemes = append(skp.IdentifierSchemes, scheme.Scheme)
 				}
 			}
-			WorkSubKinds[p.Kind] = append(WorkSubKinds[p.Kind], pp.SubKind)
-			WorkProfiles[p.Kind][pp.SubKind] = &skp
+			WorkSubkinds[p.Kind] = append(WorkSubkinds[p.Kind], pp.Subkind)
+			WorkProfiles[p.Kind][pp.Subkind] = &skp
 		}
 	}
 }

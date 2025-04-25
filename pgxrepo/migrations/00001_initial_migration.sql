@@ -94,7 +94,8 @@ create index on bbl_projects_identifiers (uniq);
 create table bbl_works (
   id uuid primary key,
   kind text not null,
-  sub_kind text,
+  subkind text,
+  status text not null,
   attrs jsonb not null default '{}',
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()

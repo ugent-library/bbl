@@ -88,7 +88,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 												<div class="d-inline-flex align-items-center flex-wrap">
 													<span class="badge rounded-pill badge-success-light me-3 my-2">
 														<span class="badge-circle"></span>
-														<span class="badge-text">Biblio public</span>
+														<span class="badge-text">{ hit.Rec.Status }</span>
 													</span>
 													<span class="c-subline text-nowrap me-2 pe-3 my-2 border-end">{ hit.Rec.Kind }</span>
 													<span class="c-subline ps-2 my-2 me-3 pe-3 border-end">

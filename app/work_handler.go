@@ -77,7 +77,6 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) 
 	}
 
 	rec.ID = bbl.NewID()
-
 	rev := bbl.NewRev()
 	rev.Add(&bbl.CreateWork{Work: rec})
 
@@ -172,7 +171,7 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 	}
 
 	b.Form().String("kind", &kind).
-		String("sub_kind", &subKind).
+		String("subkind", &subKind).
 		Each("identifiers", func(b *binder.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
@@ -320,7 +319,7 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 	}
 
 	rec.Kind = kind
-	rec.SubKind = subKind
+	rec.Subkind = subKind
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return "", err
 	}

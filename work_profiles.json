@@ -45,18 +45,18 @@
             "lay_summaries": {},
             "keywords": {}
         },
-        "sub_kinds": [
+        "subkinds": [
             {
-                "sub_kind": "original"
+                "subkind": "original"
             },
             {
-                "sub_kind": "review"
+                "subkind": "review"
             },
             {
-                "sub_kind": "letter_note"
+                "subkind": "letter_note"
             },
             {
-                "sub_kind": "proceedings_paper",
+                "subkind": "proceedings_paper",
                 "profile": {
                     "conference": {}
                 }

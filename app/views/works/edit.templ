@@ -151,19 +151,19 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 								</select>
 							</div>
 						</div>
-						if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
+						if subKinds, ok := bbl.WorkSubkinds[rec.Kind]; ok {
 							<div class="col-lg-6">
 								<div class="form-group">
 									<label class="form-label form-label-top">{ rec.Kind } type</label>
 									<select
 										class="form-select w-100"
-										name="sub_kind"
+										name="subkind"
 										hx-post={ route.String() }
 										hx-vals='{"refresh": "kind"}'
 									>
 										<option></option>
 										for _, kind := range subKinds {
-											<option value={ kind } selected?={ kind == rec.SubKind }>{ kind }</option>
+											<option value={ kind } selected?={ kind == rec.Subkind }>{ kind }</option>
 										}
 									</select>
 								</div>

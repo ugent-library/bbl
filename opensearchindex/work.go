@@ -11,12 +11,16 @@ var workSettings string
 
 type workDoc struct {
 	Completion []string  `json:"completion"`
+	Kind       string    `json:"kind"`
+	Status     string    `json:"status"`
 	Rec        *bbl.Work `json:"rec"`
 }
 
 func workToDoc(rec *bbl.Work) any {
 	doc := workDoc{
 		Completion: make([]string, len(rec.Attrs.Titles)),
+		Kind:       rec.Kind,
+		Status:     rec.Status,
 		Rec:        rec,
 	}
 	for i, text := range rec.Attrs.Titles {

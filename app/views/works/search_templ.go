@@ -92,90 +92,94 @@ func Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			for _, hit := range hits.Hits {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<li class=\"list-group-item\"><div class=\"w-100\"><div class=\"hstack-md-responsive align-items-start gap-3 w-100\"><div class=\"vstack gap-5\"><div class=\"vstack gap-2\"><div class=\"d-inline-flex align-items-center flex-wrap\"><span class=\"badge rounded-pill badge-success-light me-3 my-2\"><span class=\"badge-circle\"></span> <span class=\"badge-text\">Biblio public</span></span> <span class=\"c-subline text-nowrap me-2 pe-3 my-2 border-end\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<li class=\"list-group-item\"><div class=\"w-100\"><div class=\"hstack-md-responsive align-items-start gap-3 w-100\"><div class=\"vstack gap-5\"><div class=\"vstack gap-2\"><div class=\"d-inline-flex align-items-center flex-wrap\"><span class=\"badge rounded-pill badge-success-light me-3 my-2\"><span class=\"badge-circle\"></span> <span class=\"badge-text\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Kind)
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Status)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 93, Col: 89}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 91, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span> <span class=\"c-subline ps-2 my-2 me-3 pe-3 border-end\"><i class=\"if if-ghent-university if--small if--primary me-2\"></i>UGent Access</span> <span class=\"c-subline ps-2 my-2\"><i class=\"if if-calendar if--small if--muted\"></i> Open Access from 23-05-2022</span></div><h4 class=\"mb-0\"><a href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></span> <span class=\"c-subline text-nowrap me-2 pe-3 my-2 border-end\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var7 templ.SafeURL = c.SafeRoute("work", "id", hit.Rec.ID)
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var7)))
+				var templ_7745c5c3_Var7 string
+				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Kind)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 93, Col: 89}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><span class=\"list-group-item-title\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span> <span class=\"c-subline ps-2 my-2 me-3 pe-3 border-end\"><i class=\"if if-ghent-university if--small if--primary me-2\"></i>UGent Access</span> <span class=\"c-subline ps-2 my-2\"><i class=\"if if-calendar if--small if--muted\"></i> Open Access from 23-05-2022</span></div><h4 class=\"mb-0\"><a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var8 string
-				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Title())
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 103, Col: 67}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+				var templ_7745c5c3_Var8 templ.SafeURL = c.SafeRoute("work", "id", hit.Rec.ID)
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var8)))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span></a></h4><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\">2020</li><li class=\"c-meta-item\">International Journal of Environmental Research and Public Health</li><li class=\"c-meta-item\"><span>Volume: 192</span></li><li class=\"c-meta-item\"><span>Issue: 7</span></li><li class=\"c-meta-item\"><span>Pages: 12-32</span></li></ul><div class=\"c-author-list\"><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Jane Cooper</span></div><div class=\"c-author fst-italic\">supervised by</div><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Brooklyn Simmons</span></div><div class=\"c-author fst-italic\">supervised by</div><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Esther Howard</span></div><div class=\"c-author fst-italic\">supervised by</div><span class=\"badge badge-light badge-sm\">Your role: Author</span></div></div><div class=\"collapse\" id=\"collapse-undefined\"><div class=\"vstack gap-3\"><div class=\"d-flex align-items-center\"><i class=\"if if-building if--small if--muted me-2\"></i><div class=\"badge-list\"><span class=\"badge badge-light badge-sm\">DI10</span> <span class=\"badge badge-light badge-sm\">DI05*</span></div></div><div class=\"d-flex align-items-start\"><i class=\"if if-briefcase if--muted if--small me-2 mt-2\"></i><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\">Valorisation of cytokine traps: IL33 as lead case <span>-</span> <span class=\"c-body-small text-muted\">F2016/IOF-ADV/307</span></li><li class=\"c-meta-item\">The archaeological material of ed-Dur (Umm al-Qaiwain, United Arab Emirates). A typological, chronological and comparative study in international context <span>-</span> <span class=\"c-body-small text-muted\">F2016/IOF-ADV/307</span></li></ul></div><div class=\"d-flex align-items-start\"><i class=\"if if-database if--muted if--small me-2 mt-2\"></i><ul class=\"c-meta-list c-meta-list-vertical c-meta-list-narrow-spacing\"><li class=\"c-meta-item\">Data and model for \"Urban development and its exposure to river flood risk in Southeast Asia <span>-</span> <span class=\"c-body-small\">20393</span></li><li class=\"c-meta-item\">Curabitur ut velit vitae posuere. <span>-</span> <span class=\"c-body-small\">20394</span></li></ul></div><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\"><i class=\"if if-bar-chart\"></i>VABB: c:vabb:339050, VABB-3, not approved, 2013</li></ul></div></div><div class=\"d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap\"><ul class=\"c-meta-list c-meta-list-inline c-body-small\"><li class=\"c-meta-item\">Created ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"><span class=\"list-group-item-title\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
-				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.CreatedAt))
+				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Title())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 186, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 103, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " by Valerie Van Den Bussche.</li><li class=\"c-meta-item\">Edited ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span></a></h4><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\">2020</li><li class=\"c-meta-item\">International Journal of Environmental Research and Public Health</li><li class=\"c-meta-item\"><span>Volume: 192</span></li><li class=\"c-meta-item\"><span>Issue: 7</span></li><li class=\"c-meta-item\"><span>Pages: 12-32</span></li></ul><div class=\"c-author-list\"><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Jane Cooper</span></div><div class=\"c-author fst-italic\">supervised by</div><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Brooklyn Simmons</span></div><div class=\"c-author fst-italic\">supervised by</div><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>Esther Howard</span></div><div class=\"c-author fst-italic\">supervised by</div><span class=\"badge badge-light badge-sm\">Your role: Author</span></div></div><div class=\"collapse\" id=\"collapse-undefined\"><div class=\"vstack gap-3\"><div class=\"d-flex align-items-center\"><i class=\"if if-building if--small if--muted me-2\"></i><div class=\"badge-list\"><span class=\"badge badge-light badge-sm\">DI10</span> <span class=\"badge badge-light badge-sm\">DI05*</span></div></div><div class=\"d-flex align-items-start\"><i class=\"if if-briefcase if--muted if--small me-2 mt-2\"></i><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\">Valorisation of cytokine traps: IL33 as lead case <span>-</span> <span class=\"c-body-small text-muted\">F2016/IOF-ADV/307</span></li><li class=\"c-meta-item\">The archaeological material of ed-Dur (Umm al-Qaiwain, United Arab Emirates). A typological, chronological and comparative study in international context <span>-</span> <span class=\"c-body-small text-muted\">F2016/IOF-ADV/307</span></li></ul></div><div class=\"d-flex align-items-start\"><i class=\"if if-database if--muted if--small me-2 mt-2\"></i><ul class=\"c-meta-list c-meta-list-vertical c-meta-list-narrow-spacing\"><li class=\"c-meta-item\">Data and model for \"Urban development and its exposure to river flood risk in Southeast Asia <span>-</span> <span class=\"c-body-small\">20393</span></li><li class=\"c-meta-item\">Curabitur ut velit vitae posuere. <span>-</span> <span class=\"c-body-small\">20394</span></li></ul></div><ul class=\"c-meta-list c-meta-list-inline\"><li class=\"c-meta-item\"><i class=\"if if-bar-chart\"></i>VABB: c:vabb:339050, VABB-3, not approved, 2013</li></ul></div></div><div class=\"d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap\"><ul class=\"c-meta-list c-meta-list-inline c-body-small\"><li class=\"c-meta-item\">Created ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
-				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.UpdatedAt))
+				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.CreatedAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 187, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 186, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " by Valerie Van Den Bussche.</li></ul><div class=\"btn btn-sm btn-outline-secondary me-3\"><i class=\"if if-copy\"></i><div class=\"btn-text\">Biblio ID</div><div class=\"btn-text border-start ps-3 ms-3\"><div class=\"fw-normal text-muted\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " by Valerie Van Den Bussche.</li><li class=\"c-meta-item\">Edited ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
-				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.ID)
+				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.UpdatedAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 193, Col: 60}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 187, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div></div></div></div><div class=\"c-button-toolbar\"><button class=\"btn btn-tertiary btn-lg-only-responsive\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#collapse-undefined\" aria-expanded=\"false\" aria-controls=\"collapse-undefined\"><i class=\"if if-info-circle\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">More info</span> <span class=\"visually-hidden\">Get more info about this record.</span></button><div class=\"dropdown\"><button class=\"btn btn-tertiary btn-lg-only-responsive\" type=\"button\" data-bs-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\"><i class=\"if if-more\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">Actions</span> <span class=\"visually-hidden\">Show more actions for this record</span></button><div class=\"dropdown-menu\"><a class=\"dropdown-item\" href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " by Valerie Van Den Bussche.</li></ul><div class=\"btn btn-sm btn-outline-secondary me-3\"><i class=\"if if-copy\"></i><div class=\"btn-text\">Biblio ID</div><div class=\"btn-text border-start ps-3 ms-3\"><div class=\"fw-normal text-muted\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var12 templ.SafeURL = c.SafeRoute("work", "id", hit.Rec.ID)
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var12)))
+				var templ_7745c5c3_Var12 string
+				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.ID)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 193, Col: 60}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"><i class=\"if if-file-text\"></i> <span>View details</span></a></div></div><a class=\"btn btn-tertiary btn-lg-only-responsive\" href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div></div></div></div><div class=\"c-button-toolbar\"><button class=\"btn btn-tertiary btn-lg-only-responsive\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#collapse-undefined\" aria-expanded=\"false\" aria-controls=\"collapse-undefined\"><i class=\"if if-info-circle\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">More info</span> <span class=\"visually-hidden\">Get more info about this record.</span></button><div class=\"dropdown\"><button class=\"btn btn-tertiary btn-lg-only-responsive\" type=\"button\" data-bs-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\"><i class=\"if if-more\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">Actions</span> <span class=\"visually-hidden\">Show more actions for this record</span></button><div class=\"dropdown-menu\"><a class=\"dropdown-item\" href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -184,12 +188,21 @@ func Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><i class=\"if if-eye\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">View</span> <span class=\"visually-hidden\">View record</span></a></div></div></div></li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><i class=\"if if-file-text\"></i> <span>View details</span></a></div></div><a class=\"btn btn-tertiary btn-lg-only-responsive\" href=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var14 templ.SafeURL = c.SafeRoute("work", "id", hit.Rec.ID)
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var14)))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\"><i class=\"if if-eye\"></i> <span class=\"btn-text d-md-none d-xl-inline-block\">View</span> <span class=\"visually-hidden\">View record</span></a></div></div></div></li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</ul><div class=\"card-footer\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><nav>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</ul><div class=\"card-footer\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><nav>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -197,20 +210,20 @@ func Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</nav></div><div class=\"bc-toolbar-item\"><span class=\"text-muted c-body-small\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</nav></div><div class=\"bc-toolbar-item\"><span class=\"text-muted c-body-small\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(views.PaginationCount(c, pager))
+			var templ_7745c5c3_Var15 string
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(views.PaginationCount(c, pager))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 237, Col: 80}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</span></div></div></div></div></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span></div></div></div></div></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

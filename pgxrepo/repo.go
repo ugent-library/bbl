@@ -409,6 +409,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if a.Work.ID == "" {
 				a.Work.ID = bbl.NewID()
 			}
+			if a.Work.Status == "" {
+				a.Work.Status = "draft"
+			}
 
 			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
@@ -427,9 +430,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_works (id, kind, sub_kind, attrs)
-				values ($1, $2, nullif($3, ''), $4);`,
-				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
+				insert into bbl_works (id, kind, subkind, status, attrs)
+				values ($1, $2, nullif($3, ''), $4, $5);`,
+				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,
 			)
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
@@ -500,11 +503,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			batch.Queue(`
 				update bbl_works
 				set kind = $2,
-				    sub_kind = nullif($3, ''),
-				    attrs = $4,
+				    subkind = nullif($3, ''),
+					status = $4,
+				    attrs = $5,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
-				a.Work.ID, a.Work.Kind, a.Work.SubKind, jsonAttrs,
+				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,
 			)
 
 			if _, ok := diff["identifiers"]; ok {

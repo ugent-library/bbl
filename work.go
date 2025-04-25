@@ -10,7 +10,8 @@ type Work struct {
 	Profile      *WorkProfile      `json:"-"`
 	ID           string            `json:"id,omitempty"`
 	Kind         string            `json:"kind"`
-	SubKind      string            `json:"sub_kind,omitempty"`
+	Subkind      string            `json:"subkind,omitempty"`
+	Status       string            `json:"status"`
 	Identifiers  []Code            `json:"identifiers,omitempty"`
 	Contributors []WorkContributor `json:"contributors,omitempty"`
 	Rels         []WorkRel         `json:"rels,omitempty"`
@@ -66,8 +67,11 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 	if rec.Kind != rec2.Kind {
 		changes["kind"] = rec.Kind
 	}
-	if rec.SubKind != rec2.SubKind {
-		changes["sub_kind"] = rec.SubKind
+	if rec.Subkind != rec2.Subkind {
+		changes["subkind"] = rec.Subkind
+	}
+	if rec.Status != rec2.Status {
+		changes["status"] = rec.Status
 	}
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
 		changes["identifiers"] = rec.Identifiers

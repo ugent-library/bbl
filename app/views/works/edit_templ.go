@@ -291,7 +291,7 @@ func Form(c views.Ctx, rec *bbl.Work, route *url.URL) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if subKinds, ok := bbl.WorkSubKinds[rec.Kind]; ok {
+		if subKinds, ok := bbl.WorkSubkinds[rec.Kind]; ok {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"col-lg-6\"><div class=\"form-group\"><label class=\"form-label form-label-top\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -305,7 +305,7 @@ func Form(c views.Ctx, rec *bbl.Work, route *url.URL) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, " type</label> <select class=\"form-select w-100\" name=\"sub_kind\" hx-post=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, " type</label> <select class=\"form-select w-100\" name=\"subkind\" hx-post=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -340,7 +340,7 @@ func Form(c views.Ctx, rec *bbl.Work, route *url.URL) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if kind == rec.SubKind {
+				if kind == rec.Subkind {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, " selected")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

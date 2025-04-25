@@ -1,18 +1,18 @@
 {
-    "settings": {
-      "index": {
-        "refresh_interval": "1s"
-      }
-    },
-    "mappings": {
-      "dynamic": "false",
-      "properties": {
-        "completion": {
-            "type": "search_as_you_type"
-        },
-        "rec": {
-            "enabled": false
-        }
+  "settings": {
+    "index": {
+      "refresh_interval": "1s"
+    }
+  },
+  "mappings": {
+    "dynamic": "false",
+    "properties": {
+      "completion": {
+        "type": "search_as_you_type"
+      },
+      "rec": {
+        "enabled": false
       }
     }
   }
+}
