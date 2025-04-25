@@ -228,6 +228,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		From:   opts.From,
 		Cursor: cursor,
 	}
+
 	for i, hit := range res.Hits.Hits {
 		var src struct {
 			Rec T `json:"rec"`
@@ -236,6 +237,36 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 			return nil, err
 		}
 		hits.Hits[i].Rec = src.Rec
+	}
+
+	// TODO remove nil check
+	if len(opts.Facets) > 0 && res.Aggregations != nil {
+		hits.Facets = make([]bbl.Facet, 0, len(opts.Facets))
+
+		var aggs map[string]struct {
+			Buckets []struct {
+				Key      string `json:"key"`
+				DocCount int    `json:"doc_count"`
+			} `json:"buckets"`
+		}
+		if err := json.Unmarshal(res.Aggregations, &aggs); err != nil {
+			return nil, err
+		}
+
+		for _, name := range opts.Facets {
+			agg, ok := aggs[name]
+			if !ok {
+				continue
+			}
+			facet := bbl.Facet{
+				Name: name,
+				Vals: make([]bbl.FacetValue, len(agg.Buckets)),
+			}
+			for i, bucket := range agg.Buckets {
+				facet.Vals[i] = bbl.FacetValue{Val: bucket.Key, Count: bucket.DocCount}
+			}
+			hits.Facets = append(hits.Facets, facet)
+		}
 	}
 
 	return hits, nil
