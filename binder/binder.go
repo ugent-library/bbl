@@ -87,7 +87,7 @@ func (b Values) Has(key string) bool {
 	return ok
 }
 
-func (b Values) get(key string) string {
+func (b Values) Get(key string) string {
 	if b.normalizeKey != nil {
 		key = b.normalizeKey(key)
 	}
@@ -98,11 +98,27 @@ func (b Values) get(key string) string {
 	return s[0]
 }
 
-func (b Values) getAll(key string) []string {
+func (b Values) GetAll(key string) []string {
 	if b.normalizeKey != nil {
 		key = b.normalizeKey(key)
 	}
 	return b.values[key]
+}
+
+func (b Values) Select(keys ...string) map[string][]string {
+	var m map[string][]string
+	for _, k := range keys {
+		if b.normalizeKey != nil {
+			k = b.normalizeKey(k)
+		}
+		if vals, ok := b.values[k]; ok {
+			if m == nil {
+				m = map[string][]string{}
+			}
+			m[k] = vals
+		}
+	}
+	return m
 }
 
 func (b *Values) Query() *Values {
@@ -191,7 +207,7 @@ func (b *Values) String(key string, ptr *string) *Values {
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	*ptr = b.get(key)
+	*ptr = b.Get(key)
 	return b
 }
 
@@ -209,7 +225,7 @@ func (b *Values) Bool(key string, ptr *bool) *Values {
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	if val, err := strconv.ParseBool(b.get(key)); err == nil {
+	if val, err := strconv.ParseBool(b.Get(key)); err == nil {
 		*ptr = val
 	} else {
 		b.binder.err = err
@@ -336,7 +352,7 @@ func (b *Values) Time(key string, layout string, ptr *time.Time) *Values {
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	if val, err := time.Parse(layout, b.get(key)); err == nil {
+	if val, err := time.Parse(layout, b.Get(key)); err == nil {
 		*ptr = val
 	} else {
 		b.binder.err = err
@@ -367,7 +383,7 @@ func bindInt[T constraints.Signed](b *Values, key string, ptr *T, bitSize int) *
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	if val, err := strconv.ParseInt(b.get(key), 10, bitSize); err == nil {
+	if val, err := strconv.ParseInt(b.Get(key), 10, bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -398,7 +414,7 @@ func bindUint[T constraints.Unsigned](b *Values, key string, ptr *T, bitSize int
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	if val, err := strconv.ParseUint(b.get(key), 10, bitSize); err == nil {
+	if val, err := strconv.ParseUint(b.Get(key), 10, bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -429,7 +445,7 @@ func bindFloat[T constraints.Float](b *Values, key string, ptr *T, bitSize int) 
 	if b.binder.err != nil || !b.Has(key) {
 		return b
 	}
-	if val, err := strconv.ParseFloat(b.get(key), bitSize); err == nil {
+	if val, err := strconv.ParseFloat(b.Get(key), bitSize); err == nil {
 		*ptr = T(val)
 	} else {
 		b.binder.err = err
@@ -460,7 +476,7 @@ func bindFloatSlice[T constraints.Float](b *Values, key string, ptr *[]T, bitSiz
 func (b *Values) getSlice(key string) []string {
 	var s []string
 
-	if vals := b.getAll(key); len(vals) > 0 {
+	if vals := b.GetAll(key); len(vals) > 0 {
 		s = slices.Clone(vals)
 	}
 
@@ -488,7 +504,7 @@ func (b *Values) getSlice(key string) []string {
 				copy(s, ss)
 			}
 
-			s[i] = b.get(key)
+			s[i] = b.Get(key)
 		}
 	}
 

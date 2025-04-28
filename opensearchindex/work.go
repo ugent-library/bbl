@@ -31,17 +31,18 @@ func workToDoc(rec *bbl.Work) any {
 	return &doc
 }
 
-func generateWorkQuery(str string) (string, error) {
-	jsonStr, err := jsonString(str)
+func generateWorkQuery(q string) (string, error) {
+	jQ, err := jsonString(q)
 	if err != nil {
 		return "", err
 	}
-	q := `{
+
+	j := `{
 		"bool": {
 			"should": [
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"type": "bool_prefix",
 						"fields": [
 							"completion",
@@ -52,7 +53,7 @@ func generateWorkQuery(str string) (string, error) {
 				},
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"fuzziness": "AUTO",
 						"fields": [
 							"completion",
@@ -64,32 +65,56 @@ func generateWorkQuery(str string) (string, error) {
 			]
 		}
 	}`
-	return q, nil
+	return j, nil
 }
 
-func generateWorkAggs(facets []string) (string, error) {
-	aggs := `{}`
-	var err error
+func generateWorkFilters(filters map[string][]string) (map[string]string, error) {
+	m := map[string]string{}
+	for filter, vals := range filters {
+		switch filter {
+		case "kind":
+			f, err := sjson.Set(``, "terms.kind", vals)
+			if err != nil {
+				return nil, err
+			}
+			m[filter] = f
+		case "status":
+			f, err := sjson.Set(``, "terms.kind", vals)
+			if err != nil {
+				return nil, err
+			}
+			m[filter] = f
+		default:
+			return nil, fmt.Errorf("unknown filter %s", filter)
+		}
+
+	}
+	return m, nil
+}
+
+func generateWorkAggs(facets []string) (map[string]string, error) {
+	m := map[string]string{}
 	for _, facet := range facets {
 		switch facet {
 		case "kind":
-			aggs, err = sjson.SetRaw(aggs, "kind", `{
+			m["kind"] = `{
 				"terms": {
 					"field": "kind",
-					"size": `+fmt.Sprint(len(bbl.WorkKinds))+`
+					"size": ` + fmt.Sprint(len(bbl.WorkKinds)) + `,
+					"min_doc_count": 0
 				}
-			}`)
+			}`
 		case "status":
-			aggs, err = sjson.SetRaw(aggs, "status", `{
+			m["status"] = `{
 				"terms": {
 					"field": "status",
-					"size": `+fmt.Sprint(len(bbl.WorkStatuses))+`
+					"size": ` + fmt.Sprint(len(bbl.WorkStatuses)) + `,
+					"min_doc_count": 0
 				}
-			}`)
+			}`
+		default:
+			return nil, fmt.Errorf("unknown facet %s", facet)
 		}
 	}
-	if err != nil {
-		return "", err
-	}
-	return aggs, nil
+	return m, nil
 }

@@ -14,12 +14,18 @@ type SearchCtx struct {
 
 func BindSearchCtx(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 	c := &SearchCtx{AppCtx: appCtx}
+
 	c.SearchOpts.Size = 20
-	return c, binder.New(r).
+
+	b := binder.New(r).
 		Query().
+		Vacuum().
 		String("q", &c.SearchOpts.Query).
 		Int("size", &c.SearchOpts.Size).
 		Int("from", &c.SearchOpts.From).
-		String("cursor", &c.SearchOpts.Cursor).
-		Err()
+		String("cursor", &c.SearchOpts.Cursor)
+
+	c.SearchOpts.Filters = b.Select("kind", "status")
+
+	return c, b.Err()
 }

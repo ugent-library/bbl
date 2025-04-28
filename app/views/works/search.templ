@@ -50,7 +50,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form class="mb-4" action={ templ.SafeURL("works") } method="GET">
+				<form id="work-search-form" class="mb-4" action={ templ.SafeURL("works") } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">
@@ -86,15 +86,22 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 									<div class="d-flex flex-column gap-4">
 										for _, v := range f.Vals {
 											<div class="form-check">
-												<input class="form-check-input" id="customCheck1" type="checkbox"/>
-												<label class="form-check-label" for="customCheck1">{ v.Val } ({ fmt.Sprint(v.Count) })</label>
+												<input
+													class="form-check-input"
+													type="checkbox"
+													name={ f.Name }
+													value={ v.Val }
+													checked?={ hits.Filters.HasVal(f.Name, v.Val) }
+													form="work-search-form"
+												/>
+												<label class="form-check-label">{ v.Val } ({ fmt.Sprint(v.Count) })</label>
 											</div>
 										}
 									</div>
 								</div>
 								<div class="bc-navbar bc-navbar--large">
 									<div class="d-grid w-100">
-										<button class="btn btn-primary" type="button">Apply filter</button>
+										<button class="btn btn-primary" type="submit" form="work-search-form">Apply filter</button>
 									</div>
 								</div>
 							</div>

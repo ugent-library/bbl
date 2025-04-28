@@ -22,17 +22,17 @@ func personToDoc(rec *bbl.Person) any {
 	return &doc
 }
 
-func generatePersonQuery(str string) (string, error) {
-	jsonStr, err := jsonString(str)
+func generatePersonQuery(q string) (string, error) {
+	jQ, err := jsonString(q)
 	if err != nil {
 		return "", err
 	}
-	q := `{
+	j := `{
 		"bool": {
 			"should": [
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"type": "bool_prefix",
 						"fields": [
 							"completion",
@@ -43,7 +43,7 @@ func generatePersonQuery(str string) (string, error) {
 				},
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"fuzziness": "AUTO",
 						"fields": [
 							"completion",
@@ -55,5 +55,5 @@ func generatePersonQuery(str string) (string, error) {
 			]
 		}
 	}`
-	return q, nil
+	return j, nil
 }

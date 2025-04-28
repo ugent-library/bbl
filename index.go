@@ -2,6 +2,7 @@ package bbl
 
 import (
 	"context"
+	"slices"
 )
 
 type Index interface {
@@ -23,21 +24,32 @@ type RecIndexSwitcher[T Rec] interface {
 }
 
 type SearchOpts struct {
-	Query  string   `json:"query,omitempty"`
-	Size   int      `json:"size"`
-	From   int      `json:"from,omitempty"`
-	Cursor string   `json:"cursor,omitempty"`
-	Facets []string `json:"facets,omitempty"`
+	Query   string   `json:"query,omitempty"`
+	Filters Filters  `json:"filters,omitempty"`
+	Size    int      `json:"size"`
+	From    int      `json:"from,omitempty"`
+	Cursor  string   `json:"cursor,omitempty"`
+	Facets  []string `json:"facets,omitempty"`
 }
 
 type RecHits[T Rec] struct {
-	Hits   []RecHit[T] `json:"hits"`
-	Total  int         `json:"total"`
-	Query  string      `json:"query,omitempty"`
-	Size   int         `json:"size"`
-	From   int         `json:"from,omitempty"`
-	Cursor string      `json:"cursor,omitempty"`
-	Facets []Facet     `json:"facets,omitempty"`
+	Hits    []RecHit[T] `json:"hits"`
+	Total   int         `json:"total"`
+	Query   string      `json:"query,omitempty"`
+	Filters Filters     `json:"filters,omitempty"`
+	Size    int         `json:"size"`
+	From    int         `json:"from,omitempty"`
+	Cursor  string      `json:"cursor,omitempty"`
+	Facets  []Facet     `json:"facets,omitempty"`
+}
+
+type Filters map[string][]string
+
+func (f Filters) HasVal(k, v string) bool {
+	if vals, ok := f[k]; ok {
+		return slices.Contains(vals, v)
+	}
+	return false
 }
 
 type Facet struct {

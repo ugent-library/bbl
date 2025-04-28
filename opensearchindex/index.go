@@ -12,6 +12,8 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/opensearchswitcher"
 )
@@ -29,19 +31,19 @@ type Index struct {
 }
 
 func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
-	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", organizationSettings, organizationToDoc, generateOrganizationQuery, nil)
+	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", organizationSettings, organizationToDoc, generateOrganizationQuery, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", personSettings, personToDoc, generatePersonQuery, nil)
+	peopleIndex, err := newRecIndex(ctx, client, "bbl_people", personSettings, personToDoc, generatePersonQuery, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", projectSettings, projectToDoc, generateProjectQuery, nil)
+	projectsIndex, err := newRecIndex(ctx, client, "bbl_projects", projectSettings, projectToDoc, generateProjectQuery, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	worksIndex, err := newRecIndex(ctx, client, "bbl_works", workSettings, workToDoc, generateWorkQuery, generateWorkAggs)
+	worksIndex, err := newRecIndex(ctx, client, "bbl_works", workSettings, workToDoc, generateWorkQuery, generateWorkFilters, generateWorkAggs)
 	if err != nil {
 		return nil, err
 	}
@@ -71,14 +73,15 @@ func (idx *Index) Works() bbl.RecIndex[*bbl.Work] {
 }
 
 type recIndex[T bbl.Rec] struct {
-	client        *opensearchapi.Client
-	alias         string
-	settings      string
-	retention     int
-	toDoc         func(T) any
-	generateQuery func(string) (string, error)
-	generateAggs  func([]string) (string, error)
-	bulkIndexer   opensearchutil.BulkIndexer
+	client          *opensearchapi.Client
+	alias           string
+	settings        string
+	retention       int
+	toDoc           func(T) any
+	generateQuery   func(string) (string, error)
+	generateFilters func(map[string][]string) (map[string]string, error)
+	generateAggs    func([]string) (map[string]string, error)
+	bulkIndexer     opensearchutil.BulkIndexer
 }
 
 func newRecIndex[T bbl.Rec](
@@ -88,7 +91,8 @@ func newRecIndex[T bbl.Rec](
 	settings string,
 	toDoc func(T) any,
 	generateQuery func(string) (string, error),
-	generateAggs func([]string) (string, error),
+	generateFilters func(map[string][]string) (map[string]string, error),
+	generateAggs func([]string) (map[string]string, error),
 ) (*recIndex[T], error) {
 	retention := 1
 
@@ -110,14 +114,15 @@ func newRecIndex[T bbl.Rec](
 	}
 
 	return &recIndex[T]{
-		client:        client,
-		alias:         alias,
-		settings:      settings,
-		retention:     retention,
-		bulkIndexer:   bulkIndexer,
-		toDoc:         toDoc,
-		generateQuery: generateQuery,
-		generateAggs:  generateAggs,
+		client:          client,
+		alias:           alias,
+		settings:        settings,
+		retention:       retention,
+		bulkIndexer:     bulkIndexer,
+		toDoc:           toDoc,
+		generateQuery:   generateQuery,
+		generateFilters: generateFilters,
+		generateAggs:    generateAggs,
 	}, nil
 }
 
@@ -163,11 +168,16 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 }
 
 func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.RecHits[T], error) {
-	query := `{"match_all": {}}`
+	query := `{
+		"bool": {
+			"must": [{"match_all": {}}]
+		}
+	}`
 	sort := `{"_id": "asc"}`
 	aggs := ``
 	paging := ``
 
+	// TODO we assume generateQuery builds a bool query
 	if opts.Query != "" {
 		q, err := idx.generateQuery(opts.Query)
 		if err != nil {
@@ -178,13 +188,66 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
 	}
 
+	var filtersMap map[string]string
+
 	// TODO remove nil check
-	if idx.generateAggs != nil && len(opts.Facets) > 0 {
-		a, err := idx.generateAggs(opts.Facets)
+	if idx.generateFilters != nil && len(opts.Filters) > 0 {
+		m, err := idx.generateFilters(opts.Filters)
 		if err != nil {
 			return nil, err
 		}
-		aggs = `"aggs": ` + a + `,`
+		filtersMap = m
+
+		for _, filter := range filtersMap {
+			var err error
+			query, err = sjson.SetRaw(query, "bool.filter.-1", filter)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// TODO remove nil check
+	if idx.generateAggs != nil && len(opts.Facets) > 0 {
+		m, err := idx.generateAggs(opts.Facets)
+		if err != nil {
+			return nil, err
+		}
+
+		facets := `{}`
+
+		for key, facet := range m {
+			f := `{"aggs": {"facet": ` + facet + `}}`
+
+			facetFilter, err := sjson.Delete(query, "bool.filter")
+			if err != nil {
+				return nil, err
+			}
+			for filterKey, filter := range filtersMap {
+				if filterKey == key {
+					continue
+				}
+				facetFilter, err = sjson.SetRaw(facetFilter, "bool.filter.-1", filter)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			f, err = sjson.SetRaw(f, "filter", facetFilter)
+			if err != nil {
+				return nil, err
+			}
+
+			facets, err = sjson.SetRaw(facets, key, f)
+		}
+
+		aggs = `
+		"aggs": {
+			"facets": {
+				"global": {},
+				"aggs": ` + facets + `
+			}
+		},`
 	}
 
 	if opts.From != 0 {
@@ -222,12 +285,13 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 	}
 
 	hits := &bbl.RecHits[T]{
-		Hits:   make([]bbl.RecHit[T], len(res.Hits.Hits)),
-		Total:  res.Hits.Total.Value,
-		Query:  opts.Query,
-		Size:   opts.Size,
-		From:   opts.From,
-		Cursor: cursor,
+		Hits:    make([]bbl.RecHit[T], len(res.Hits.Hits)),
+		Total:   res.Hits.Total.Value,
+		Query:   opts.Query,
+		Filters: opts.Filters,
+		Size:    opts.Size,
+		From:    opts.From,
+		Cursor:  cursor,
 	}
 
 	for i, hit := range res.Hits.Hits {
@@ -242,31 +306,18 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 
 	// TODO remove nil check
 	if len(opts.Facets) > 0 && res.Aggregations != nil {
-		hits.Facets = make([]bbl.Facet, 0, len(opts.Facets))
-
-		var aggs map[string]struct {
-			Buckets []struct {
-				Key      string `json:"key"`
-				DocCount int    `json:"doc_count"`
-			} `json:"buckets"`
-		}
-		if err := json.Unmarshal(res.Aggregations, &aggs); err != nil {
-			return nil, err
-		}
-
 		for _, name := range opts.Facets {
-			agg, ok := aggs[name]
-			if !ok {
-				continue
+			facet := bbl.Facet{Name: name}
+			gjson.GetBytes(res.Aggregations, "facets."+name+".facet.buckets").ForEach(func(k, v gjson.Result) bool {
+				facet.Vals = append(facet.Vals, bbl.FacetValue{
+					Val:   v.Get("key").String(),
+					Count: int(v.Get("doc_count").Int()),
+				})
+				return true
+			})
+			if len(facet.Vals) > 0 {
+				hits.Facets = append(hits.Facets, facet)
 			}
-			facet := bbl.Facet{
-				Name: name,
-				Vals: make([]bbl.FacetValue, len(agg.Buckets)),
-			}
-			for i, bucket := range agg.Buckets {
-				facet.Vals[i] = bbl.FacetValue{Val: bucket.Key, Count: bucket.DocCount}
-			}
-			hits.Facets = append(hits.Facets, facet)
 		}
 	}
 

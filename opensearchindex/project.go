@@ -25,17 +25,17 @@ func projectToDoc(rec *bbl.Project) any {
 	return &doc
 }
 
-func generateProjectQuery(str string) (string, error) {
-	jsonStr, err := jsonString(str)
+func generateProjectQuery(q string) (string, error) {
+	jQ, err := jsonString(q)
 	if err != nil {
 		return "", err
 	}
-	q := `{
+	j := `{
 		"bool": {
 			"should": [
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"type": "bool_prefix",
 						"fields": [
 							"completion",
@@ -46,7 +46,7 @@ func generateProjectQuery(str string) (string, error) {
 				},
 				{
 					"multi_match": {
-						"query": "` + jsonStr + `",
+						"query": "` + jQ + `",
 						"fuzziness": "AUTO",
 						"fields": [
 							"completion",
@@ -58,5 +58,5 @@ func generateProjectQuery(str string) (string, error) {
 			]
 		}
 	}`
-	return q, nil
+	return j, nil
 }
