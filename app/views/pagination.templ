@@ -3,40 +3,41 @@ package views
 import (
 	"fmt"
 	"github.com/ugent-library/bbl/pagination"
-	"net/url"
 )
 
-templ Pagination(c Ctx, pager *pagination.Pager, u *url.URL) {
+templ Pagination(c Ctx, pager *pagination.Pager, formID string) {
 	<ul class="pagination">
 		if pager.HasPrevPage {
 			<li class="page-item">
-				<a class="page-link" href={ templ.SafeURL(withFrom(u, pager.PrevPage.Offset).String()) } aria-label="Previous">
+				<button class="page-link" type="submit" name="from" value={ fmt.Sprint(pager.PrevPage.Offset) } form={ formID } aria-label="Previous">
 					<i class="if if-chevron-left" aria-hidden="true"></i>
-				</a>
+				</button>
 			</li>
 		} else {
 			<li class="page-item disabled">
-				<a class="page-link" href="#" aria-label="Previous">
+				<button class="page-link" aria-label="Previous">
 					<i class="if if-chevron-left" aria-hidden="true"></i>
-				</a>
+				</button>
 			</li>
 		}
 		for _, p := range pager.Pages {
 			<li class={ "page-item", templ.KV("active", p.Current) }>
-				<a class="page-link" href={ templ.SafeURL(withFrom(u, p.Offset).String()) }>{ fmt.Sprint(p.Number) }</a>
+				<button class="page-link" name="from" type="submit" value={ fmt.Sprint(p.Offset) } form={ formID }>
+					{ fmt.Sprint(p.Number) }
+				</button>
 			</li>
 		}
 		if pager.HasNextPage {
 			<li class="page-item">
-				<a class="page-link" href={ templ.SafeURL(withFrom(u, pager.NextPage.Offset).String()) } aria-label="Next">
+				<button class="page-link" name="from" type="submit" value={ fmt.Sprint(pager.NextPage.Offset) } form={ formID } aria-label="Next">
 					<i class="if if-chevron-right" aria-hidden="true"></i>
-				</a>
+				</button>
 			</li>
 		} else {
 			<li class="page-item disabled">
-				<a class="page-link" href="#" aria-label="Next">
+				<button class="page-link" aria-label="Next">
 					<i class="if if-chevron-right" aria-hidden="true"></i>
-				</a>
+				</button>
 			</li>
 		}
 	</ul>
@@ -48,12 +49,4 @@ func PaginationCount(c Ctx, pager *pagination.Pager) string {
 	} else {
 		return fmt.Sprintf("Showing %d", pager.Total)
 	}
-}
-
-func withFrom(u *url.URL, from int) *url.URL {
-    q := u.Query()
-    q.Set("from", fmt.Sprint(from))
-    newU := *u
-    newU.RawQuery = q.Encode()
-    return &newU
 }

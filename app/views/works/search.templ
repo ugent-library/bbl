@@ -114,7 +114,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c, pager, c.URL)
+										@views.Pagination(c, pager, "work-search-form")
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">
@@ -275,7 +275,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c, pager, c.URL)
+										@views.Pagination(c, pager, "work-search-form")
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">
