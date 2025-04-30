@@ -101,22 +101,25 @@ templ FormButtons(c views.Ctx, rec *bbl.Work, route *url.URL) {
 
 templ FormNav(c views.Ctx, rec *bbl.Work) {
 	<nav class="nav nav-pills flex-column" id="work-form-nav">
-		<a class="nav-link" href="#type">
+		<a class="nav-link" href="#work-type">
 			<span class="c-sidebar__label">Type</span>
 		</a>
-		<a class="nav-link" href="#description">
+		<a class="nav-link" href="#work-files-info">
+			<span class="c-sidebar__label">Full text &amp; info</span>
+		</a>
+		<a class="nav-link" href="#work-description">
 			<span class="c-sidebar__label">Description</span>
 		</a>
-		<a class="nav-link" href="#contributors-affiliations">
+		<a class="nav-link" href="#work-contributors-affiliations">
 			<span class="c-sidebar__label">People & affiliations</span>
 		</a>
-		<a class="nav-link" href="#bibliographic-information">
+		<a class="nav-link" href="#work-bibliographic-information">
 			<span class="c-sidebar__label">Bibliographic information</span>
 		</a>
-		<a class="nav-link" href="#conference-details">
+		<a class="nav-link" href="#work-conference-details">
 			<span class="c-sidebar__label">Conference details</span>
 		</a>
-		<a class="nav-link" href="#identifiers">
+		<a class="nav-link" href="#work-identifiers">
 			<span class="c-sidebar__label">Identifiers</span>
 		</a>
 	</nav>
@@ -129,7 +132,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 		hx-target="#work-form"
 		hx-swap="outerHTML"
 	>
-		<div class="mb-6" id="type">
+		<div class="mb-6" id="work-type">
 			<div class="mb-4">
 				<h2>Type</h2>
 			</div>
@@ -173,7 +176,17 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 				</div>
 			</div>
 		</div>
-		<div class="mb-6" id="description">
+		<div class="mb-6" id="work-files-info">
+			<div class="mb-4">
+				<h2>Full text &amp; info</h2>
+			</div>
+			<div class="card mb-6">
+				<div class="card-body">
+					<div data-uppy-drag-drop></div>
+				</div>
+			</div>
+		</div>
+		<div class="mb-6" id="work-description">
 			<div class="mb-4">
 				<h2>Description</h2>
 			</div>
@@ -225,7 +238,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 				</div>
 			</div>
 		</div>
-		<div class="mb-6" id="contributors-affiliations">
+		<div class="mb-6" id="work-contributors-affiliations">
 			<div class="mb-4">
 				<h2>People & affiliations</h2>
 			</div>
@@ -237,7 +250,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 				</div>
 			</div>
 		</div>
-		<div class="mb-6" id="bibliographic-information">
+		<div class="mb-6" id="work-bibliographic-information">
 			<div class="mb-4">
 				<h2>Bibliographic information</h2>
 			</div>
@@ -246,7 +259,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 		</div>
 		if rec.Profile.Conference != nil {
-			<div class="mb-6" id="conference-details">
+			<div class="mb-6" id="work-conference-details">
 				<div class="mb-4">
 					<h2>Conference details</h2>
 				</div>
@@ -278,7 +291,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 		}
 		if rec.Profile.Identifiers != nil {
-			<div class="mb-6" id="identifiers">
+			<div class="mb-6" id="work-identifiers">
 				<div class="mb-4">
 					<h2>Identifiers</h2>
 				</div>
@@ -545,8 +558,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 											class="btn btn-tertiary btn-lg-only-responsive"
 											type="button"
 											data-bs-toggle="modal"
-													data-bs-target={ fmt.Sprintf("#work-contributors-edit-%d", i) }
-
+											data-bs-target={ fmt.Sprintf("#work-contributors-edit-%d", i) }
 										>
 											<i class="if if-edit"></i>
 											<span

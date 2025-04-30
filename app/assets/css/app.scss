@@ -1,1 +1,5 @@
-@import "ugent/main.scss";
+@import 'ugent/main.scss';
+
+@import '@uppy/core/dist/style.min.css';
+@import '@uppy/drag-drop/dist/style.min.css';
+@import '@uppy/status-bar/dist/style.min.css';

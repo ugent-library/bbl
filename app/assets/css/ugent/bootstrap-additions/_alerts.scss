@@ -2,6 +2,8 @@
   Additions to bootstrap/cards
    ========================================================================== */
 
+@use "sass:color";
+
 /* Always clear alerts
    ========================================================================== */
 
@@ -56,7 +58,7 @@
 
 .alert-success {
   background: $green-50;
-  color: mix($success, $text, 30%);
+  color: color.mix($success, $text, 30%);
 
   .alert-title {
     color: $green-900;
@@ -72,7 +74,7 @@
 
 .alert-danger {
   background: $red-50;
-  color: mix($danger, $text, 30%);
+  color: color.mix($danger, $text, 30%);
 
   .alert-title {
     color: $red-900;
@@ -88,7 +90,7 @@
 
 .alert-info {
   background: $blue-50;
-  color: mix($primary, $text, 30%);
+  color: color.mix($primary, $text, 30%);
   position: relative;
 
   .alert-title {
@@ -100,7 +102,7 @@
   }
 
   .btn-tertiary {
-    color: mix($primary, $text, 30%);
+    color: color.mix($primary, $text, 30%);
   }
 
   > .if:first-child {
@@ -113,18 +115,18 @@
 
 .alert-warning {
   background: $orange-50;
-  color: mix($warning, $text, 30%);
+  color: color.mix($warning, $text, 30%);
 
   .alert-title {
     color: $orange-900;
   }
 
   .text-muted {
-    color: mix($warning, $text-muted, 20%) !important;
+    color: color.mix($warning, $text-muted, 20%) !important;
   }
 
   .btn-tertiary {
-    color: mix($warning, $text, 30%);
+    color: color.mix($warning, $text, 30%);
   }
 
   > .if:first-child {

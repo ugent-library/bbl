@@ -110,6 +110,22 @@ create table bbl_works_identifiers (
   primary key (work_id, idx)
 );
 
+-- TODO are these all necessary?
+create index on bbl_works_identifiers (work_id);
+create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
+create index on bbl_works_identifiers (scheme, val);
+create index on bbl_works_identifiers (uniq);
+
+-- create table bbl_files (
+--   id uuid primary key,
+--   name text not null,
+--   content_type text not null,
+--   size int not null,
+--   sha256_checksum bytea not null,
+--   created_at timestamptz not null default transaction_timestamp(),
+--   updated_at timestamptz not null default transaction_timestamp()
+-- );
+
 create table bbl_work_representations (
     work_id uuid not null references bbl_works (id) on delete cascade,
     scheme text not null,

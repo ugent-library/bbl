@@ -1,0 +1,20 @@
+Bundled license information:
+
+bootstrap/dist/js/bootstrap.esm.js:
+  /*!
+    * Bootstrap v5.3.5 (https://getbootstrap.com/)
+    * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
+    */
+
+@uppy/utils/lib/Translator.js:
+  /**
+   * Takes a string with placeholder variables like `%{smart_count} file selected`
+   * and replaces it with values from options `{smart_count: 5}`
+   *
+   * @license https://github.com/airbnb/polyglot.js/blob/master/LICENSE
+   * taken from https://github.com/airbnb/polyglot.js/blob/master/lib/polyglot.js#L299
+   *
+   * @param phrase that needs interpolation, with placeholders
+   * @param options with values that will be used to replace placeholders
+   */
