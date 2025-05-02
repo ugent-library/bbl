@@ -27,6 +27,7 @@ func (h *FileHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 
 func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	w.Header().Set("Content-Type", "application/json")
+
 	req := struct {
 		Name        string `json:"name"`
 		ContentType string `json:"content_type"`
@@ -39,6 +40,7 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c 
 	if err != nil {
 		return err
 	}
+
 	res := struct {
 		URL string `json:"url"`
 	}{
@@ -47,5 +49,6 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c 
 	if err := json.NewEncoder(w).Encode(&res); err != nil {
 		return err
 	}
+
 	return nil
 }
