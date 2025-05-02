@@ -182,7 +182,13 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 			<div class="card mb-6">
 				<div class="card-body">
-					<div data-uppy-drag-drop></div>
+					<div
+						data-uppy
+						data-uppy-presign-url={ c.Route("create_file_upload_url").String() }
+					>
+						<div data-uppy-drag-drop></div>
+						<div data-uppy-status></div>
+					</div>
 				</div>
 			</div>
 		</div>

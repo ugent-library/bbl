@@ -13,6 +13,7 @@ import (
 	sloghttp "github.com/samber/slog-http"
 
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
@@ -29,6 +30,7 @@ type Config struct {
 	Logger           *slog.Logger
 	Repo             *pgxrepo.Repo
 	Index            bbl.Index
+	Store            *s3store.Store
 	CookieSecret     []byte
 	CookieHashSecret []byte
 	AuthIssuerURL    string
@@ -111,6 +113,7 @@ func New(config *Config) (http.Handler, error) {
 	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
 	NewProjectHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
 	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
+	NewFileHandler(config.Store).AddRoutes(router, loggedInCtx)
 
 	return router, nil
 }

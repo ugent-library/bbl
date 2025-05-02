@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@uppy/status-bar": "^4.1.3"
+  }
+}

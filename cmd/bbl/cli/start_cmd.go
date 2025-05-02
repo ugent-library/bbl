@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"golang.org/x/sync/errgroup"
 )
@@ -39,6 +40,17 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
+		store, err := s3store.New(s3store.Config{
+			URL:    config.S3.URL,
+			Region: config.S3.Region,
+			ID:     config.S3.ID,
+			Secret: config.S3.Secret,
+			Bucket: config.S3.Bucket,
+		})
+		if err != nil {
+			return err
+		}
+
 		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
@@ -58,6 +70,7 @@ var startCmd = &cobra.Command{
 			Logger:           logger,
 			Repo:             repo,
 			Index:            index,
+			Store:            store,
 			CookieSecret:     []byte(config.CookieSecret),
 			CookieHashSecret: []byte(config.CookieHashSecret),
 			AuthIssuerURL:    config.OIDC.IssuerURL,

@@ -3,6 +3,7 @@
     "private": true,
     "precommit": "precommit",
     "dependencies": {
+        "@uppy/aws-s3": "^4.2.3",
         "@uppy/core": "^4.4.4",
         "@uppy/drag-drop": "^4.1.2",
         "@uppy/status-bar": "^4.1.3",

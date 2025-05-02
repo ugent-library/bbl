@@ -40,7 +40,7 @@ services:
       - 3371:3371
       - 3372:3372
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:3371/minio/health/live"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -49,12 +49,14 @@ services:
     image: minio/mc
     depends_on:
       - minio
+    restart: on-failure
     entrypoint:
       - sh
       - -c
       - |
-        mc alias set docker http://minio:3371 minioadmin minioadmin
-        mc mb docker/bbl --ignore-existing
+        sleep 2;
+        mc alias set docker http://minio:3371 minioadmin minioadmin;
+        mc mb docker/bbl --ignore-existing;
 
   opensearch-node1:
     image: opensearchproject/opensearch:2.19.1

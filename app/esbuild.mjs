@@ -38,17 +38,24 @@ const config = {
   ],
 };
 
-console.log(
-  "---------------------------------- Building assets ----------------------------------",
-);
+if (process.argv.includes("--watch")) {
+  const ctx = await esbuild.context(config);
+  await ctx.watch();
 
-const result = await esbuild.build(config);
+  console.log("ESBuild running. Watching for changes...");
+} else {
+  console.log(
+    "---------------------------------- Building assets ----------------------------------",
+  );
 
-fs.writeFileSync("meta.json", JSON.stringify(result.metafile));
+  const result = await esbuild.build(config);
 
-console.log(
-  "-------------------------------------------------------------------------------------",
-);
+  fs.writeFileSync("meta.json", JSON.stringify(result.metafile));
+
+  console.log(
+    "-------------------------------------------------------------------------------------",
+  );
+}
 
 function generateManifest(input) {
   return Object.entries(input).reduce((out, [k, v]) => {
