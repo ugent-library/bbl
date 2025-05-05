@@ -11,6 +11,7 @@ export default function (rootEl) {
             debug: true,
             autoProceed: true,
         });
+
         uppy.use(DragDrop, {
             target: el.querySelector('[data-uppy-drag-drop]'),
         });
@@ -32,15 +33,43 @@ export default function (rootEl) {
                 }).then((res) => {
                     return res.json()
                 }).then((data) => {
+                    uppy.setFileMeta(file.id, {
+                        id: data.id,
+                    });
                     return {
                         method: 'PUT',
                         url: data.url,
-                        // headers: {
-                        //     'Content-Type': 'multipart/form-data',
-                        // },
+                        headers: {
+                            'Content-Type': file.type,
+                        },
                     }
                 })
             },
+        });
+
+        // TODO handle res.failed
+        uppy.on('complete', (res) => {
+            let inputEl = document.createElement('input');
+            inputEl.type = 'hidden';
+            inputEl.name = 'refresh';
+            inputEl.value = 'files';
+            el.appendChild(inputEl);
+
+            res.successful.forEach(f => {
+                let inputEl = document.createElement('input');
+                inputEl.type = 'hidden';
+                inputEl.name = 'files.add'; // TODO make reusable
+                inputEl.value = JSON.stringify({
+                    id: f.meta.id,
+                    name: f.name,
+                    content_type: f.type,
+                    size: f.size,
+                });
+                el.appendChild(inputEl);
+            });
+
+            // TODO make reusable
+            document.body.dispatchEvent(new Event('refresh-work-form'));
         });
     });
 }

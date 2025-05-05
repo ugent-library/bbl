@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -161,6 +162,7 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 	var keywords []string
 	var conference bbl.Conference
 	var contributors []bbl.WorkContributor
+	var files []bbl.WorkFile
 
 	var refresh string
 
@@ -224,6 +226,13 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 			contributors = append(contributors, con)
 			return true
 		})
+	for _, str := range b.Form().GetAll("files") {
+		var f bbl.WorkFile
+		if err := json.Unmarshal([]byte(str), &f); err != nil {
+			return "", err
+		}
+		files = append(files, f)
+	}
 
 	// manipulate and validate form
 	if refresh != "" {
@@ -303,6 +312,14 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 			var at int
 			b.Form().Int("contributors.remove_at", &at)
 			contributors = slices.Delete(contributors, at, at+1)
+		case b.Form().Has("files.add"):
+			for _, str := range b.Form().GetAll("files.add") {
+				var f bbl.WorkFile
+				if err := json.Unmarshal([]byte(str), &f); err != nil {
+					return "", err
+				}
+				files = append(files, f)
+			}
 		}
 	}
 
@@ -328,6 +345,7 @@ func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, erro
 
 	rec.Identifiers = identifiers
 	rec.Contributors = contributors
+	rec.Files = files
 	rec.Attrs.Titles = titles
 	rec.Attrs.Abstracts = abstracts
 	rec.Attrs.LaySummaries = laySummaries

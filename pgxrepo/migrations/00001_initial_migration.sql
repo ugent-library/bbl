@@ -116,15 +116,17 @@ create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
 create index on bbl_works_identifiers (scheme, val);
 create index on bbl_works_identifiers (uniq);
 
--- create table bbl_files (
---   id uuid primary key,
---   name text not null,
---   content_type text not null,
---   size int not null,
---   sha256_checksum bytea not null,
---   created_at timestamptz not null default transaction_timestamp(),
---   updated_at timestamptz not null default transaction_timestamp()
--- );
+create table bbl_work_files (
+  id uuid primary key,
+  work_id uuid not null references bbl_works (id) on delete cascade,
+  idx int not null,
+  name text not null,
+  content_type text not null,
+  size int not null,
+  unique (work_id, idx)
+);
+
+create index on bbl_work_files (work_id);
 
 create table bbl_work_representations (
     work_id uuid not null references bbl_works (id) on delete cascade,
@@ -135,12 +137,6 @@ create table bbl_work_representations (
 );
 
 create index on bbl_work_representations (updated_at);
-
--- TODO are these all necessary?
-create index on bbl_works_identifiers (work_id);
-create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
-create index on bbl_works_identifiers (scheme, val);
-create index on bbl_works_identifiers (uniq);
 
 create table bbl_works_rels (
   work_id uuid not null references bbl_works (id) on delete cascade,
@@ -242,6 +238,7 @@ drop table bbl_revs cascade;
 drop table bbl_user_identifiers cascade;
 drop table bbl_users cascade;
 drop table bbl_people_organizations cascade;
+drop table bbl_work_files cascade;
 drop table bbl_works_contributors cascade;
 drop table bbl_works_organizations cascade;
 drop table bbl_works_projects cascade;

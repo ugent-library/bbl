@@ -17,7 +17,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
 	q := `
-		select id, kind, coalesce(subkind, ''), status, attrs, created_at, updated_at, identifiers, contributors, rels
+		select id, kind, coalesce(subkind, ''), status, attrs, created_at, updated_at, identifiers, contributors, files, rels
 		from bbl_works_view;`
 
 	return func(yield func(*bbl.Work) bool) {
@@ -45,14 +45,14 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select w.id, w.kind, coalesce(w.subkind, ''), w.status, w.attrs, w.created_at, w.updated_at, w.identifiers, w.contributors, w.rels
+			select w.id, w.kind, coalesce(w.subkind, ''), w.status, w.attrs, w.created_at, w.updated_at, w.identifiers, w.contributors, w.files, w.rels
 			from bbl_works_view w, bbl_works_identifiers w_i
 			where w.id = w_i.work_id and w_i.scheme = $1 and w_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
 		row = conn.QueryRow(ctx, `
-			select id, kind, coalesce(subkind, ''), status, attrs, created_at, updated_at, identifiers, contributors, rels
+			select id, kind, coalesce(subkind, ''), status, attrs, created_at, updated_at, identifiers, contributors, files, rels
 			from bbl_works_view
 			where id = $1;`,
 			id,
@@ -75,9 +75,10 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 	var rawAttrs json.RawMessage
 	var rawIdentifiers json.RawMessage
 	var rawContributors json.RawMessage
+	var rawFiles json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Kind, &rec.Subkind, &rec.Status, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawContributors, &rawRels); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Kind, &rec.Subkind, &rec.Status, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawContributors, &rawFiles, &rawRels); err != nil {
 		return nil, err
 	}
 
@@ -93,6 +94,12 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 
 	if rawContributors != nil {
 		if err := json.Unmarshal(rawContributors, &rec.Contributors); err != nil {
+			return nil, err
+		}
+	}
+
+	if rawFiles != nil {
+		if err := json.Unmarshal(rawFiles, &rec.Files); err != nil {
 			return nil, err
 		}
 	}

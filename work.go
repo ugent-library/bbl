@@ -16,6 +16,7 @@ type Work struct {
 	Status       string            `json:"status"`
 	Identifiers  []Code            `json:"identifiers,omitempty"`
 	Contributors []WorkContributor `json:"contributors,omitempty"`
+	Files        []WorkFile        `json:"files,omitempty"`
 	Rels         []WorkRel         `json:"rels,omitempty"`
 	Attrs        WorkAttrs         `json:"attrs"`
 	CreatedAt    time.Time         `json:"created_at,omitzero"`
@@ -28,12 +29,6 @@ type WorkAttrs struct {
 	LaySummaries []Text     `json:"lay_summaries,omitempty"`
 	Keywords     []string   `json:"keywords,omitempty"`
 	Conference   Conference `json:"conference,omitzero"`
-}
-
-type WorkRel struct {
-	Kind   string `json:"kind"`
-	WorkID string `json:"work_id"`
-	Work   *Work  `json:"work,omitempty"`
 }
 
 type WorkContributor struct {
@@ -58,6 +53,19 @@ func (c *WorkContributor) GetName() string {
 		return c.Person.Attrs.Name
 	}
 	return ""
+}
+
+type WorkRel struct {
+	Kind   string `json:"kind"`
+	WorkID string `json:"work_id"`
+	Work   *Work  `json:"work,omitempty"`
+}
+
+type WorkFile struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	ContentType string `json:"content_type"`
+	Size        int    `json:"size"`
 }
 
 func (rec *Work) RecID() string {
@@ -87,6 +95,9 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 			c1.Attrs.FamilyName == c2.Attrs.FamilyName
 	}) {
 		changes["contributors"] = rec.Contributors
+	}
+	if !slices.Equal(rec.Files, rec2.Files) {
+		changes["files"] = rec.Files
 	}
 	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 WorkRel) bool {
 		return r1.Kind == r2.Kind && r1.WorkID == r2.WorkID

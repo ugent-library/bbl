@@ -128,9 +128,11 @@ templ FormNav(c views.Ctx, rec *bbl.Work) {
 templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	<form
 		id="work-form"
+		hx-post={ route.String() }
 		hx-include="#work-form"
 		hx-target="#work-form"
 		hx-swap="outerHTML"
+		hx-trigger="refresh-work-form from:body"
 	>
 		<div class="mb-6" id="work-type">
 			<div class="mb-4">
@@ -182,6 +184,60 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 			<div class="card mb-6">
 				<div class="card-body">
+					<ul class="list-group">
+						for _, f := range rec.Files {
+							<input type="hidden" name="files" value={ templ.JSONString(f) }/>
+							<li class="list-group-item">
+								<div class="bc-avatar-and-text align-items-start w-100">
+									<div class="bc-avatar bc-avatar--square mt-3 bc-avatar--muted">
+										<i class="if if-file"></i>
+									</div>
+									<div class="bc-avatar-text">
+										<div class="hstack-md-responsive gap-3 gap-lg-4">
+											<div class="vstack gap-3">
+												<div class="d-flex align-items-stretch">
+													<div class="d-flex align-items-center overflow-hidden">
+														<i class="if if-download if--small if--success"></i>
+														<span class="c-subline text-truncate ps-2">Open access</span>
+													</div>
+													<span class="border-end mx-3"></span>
+													<span class="c-subline">No license (in copyright)</span>
+												</div>
+												<h4 class="mb-0">{ f.Name }</h4>
+												<ul class="c-meta-list c-meta-list-horizontal">
+													<li class="c-meta-item">Supplementary Material</li>
+													<li class="c-meta-item">{ f.ContentType }</li>
+													<li class="c-meta-item">{ fmt.Sprint(f.Size) }</li>
+												</ul>
+											</div>
+											<div class="c-button-toolbar">
+												<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+													<i class="if if-eye"></i>
+													<span class="btn-text">View</span>
+												</button>
+												<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+													<i class="if if-edit"></i>
+													<span class="btn-text">Edit</span>
+												</button>
+												<div class="dropdown">
+													<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+														<i class="if if-more"></i>
+														<span class="btn-text">Actions</span>
+													</button>
+													<div class="dropdown-menu">
+														<button class="dropdown-item" type="button">
+															<i class="if if-delete"></i>
+															<span>Remove</span>
+														</button>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</li>
+						}
+					</ul>
 					<div
 						data-uppy
 						data-uppy-presign-url={ c.Route("create_file_upload_url").String() }
@@ -472,8 +528,10 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 								hx-get={ c.Route("work_suggest_contributors").String() }
 								if rec.ID != "" {
 									hx-vals={ fmt.Sprintf(`{"id": "%s", "add_at": %d}`, rec.ID, len(rec.Contributors)) }
+								} else {
+									hx-vals={ fmt.Sprintf(`{"add_at": %d}`, len(rec.Contributors)) }
 								}
-								hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+								hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
 								hx-target="#work-contributors-suggestions"
 								hx-swap="innerHTML"
 							/>
@@ -533,8 +591,10 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 												hx-get={ c.Route("work_suggest_contributors").String() }
 												if rec.ID != "" {
 													hx-vals={ fmt.Sprintf(`{"id": "%s", "edit_at": %d}`, rec.ID, i) }
+												} else {
+													hx-vals={ fmt.Sprintf(`{"edit_at": %d}`, i) }
 												}
-												hx-trigger="input changed delay:500ms, keyup[key=='Enter'], load"
+												hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
 												hx-target={ fmt.Sprintf("#work-contributors-suggestions-%d", i) }
 												hx-swap="innerHTML"
 											/>

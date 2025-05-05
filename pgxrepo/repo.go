@@ -453,6 +453,13 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					bbl.NewID(), a.Work.ID, jsonAttrs, con.PersonID, i,
 				)
 			}
+			for i, f := range a.Work.Files {
+				batch.Queue(`
+					insert into bbl_work_files (work_id, idx, id, name, content_type, size)
+					values ($1, $2, $3, $4, $5, $6);`,
+					a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+				)
+			}
 			for i, rel := range a.Work.Rels {
 				batch.Queue(`
 					insert into bbl_works_rels (work_id, idx, kind, rel_work_id)

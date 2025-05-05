@@ -52,6 +52,7 @@ create view bbl_works_view as
 select w.*,
        w_i.identifiers as identifiers,
        w_c.contributors as contributors,
+       w_f.files as files,
        w_r.rels as rels
 from bbl_works w
 left join lateral (
@@ -71,6 +72,14 @@ left join lateral (
   where w_c.work_id=w.id
   group by work_id
 ) w_c on w_c.work_id=w.id
+left join lateral (
+  select
+   	work_id,
+    json_agg(json_build_object('id', w_f.id, 'name', w_f.name, 'content_type', w_f.content_type, 'size', w_f.size) order by w_f.idx) filter (where w_f.idx is not null) as files
+  from bbl_work_files w_f
+  where w_f.work_id=w.id
+  group by work_id
+) w_f on w_f.work_id=w.id
 left join lateral (
   select
    	work_id,
