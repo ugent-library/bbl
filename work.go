@@ -73,6 +73,10 @@ func (rec *Work) RecID() string {
 	return rec.ID
 }
 
+func (rec *Work) RecVersion() int {
+	return rec.Version
+}
+
 func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
 	if rec.Kind != rec2.Kind {

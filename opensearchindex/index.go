@@ -18,7 +18,7 @@ import (
 	"github.com/ugent-library/bbl/opensearchswitcher"
 )
 
-// var versionType = "external"
+var versionType = "external"
 
 // assert we implement bbl.Index
 var _ bbl.Index = (*Index)(nil)
@@ -133,10 +133,10 @@ func (idx *recIndex[T]) NewSwitcher(ctx context.Context) (bbl.RecIndexSwitcher[T
 		IndexSettings: strings.NewReader(idx.settings),
 		Retention:     idx.retention,
 		ToItem: func(rec T) opensearchswitcher.Item {
-			// TODO pass version
 			return opensearchswitcher.Item{
-				Doc: idx.toDoc(rec),
-				ID:  rec.RecID(),
+				Doc:     idx.toDoc(rec),
+				ID:      rec.RecID(),
+				Version: int64(rec.RecVersion()),
 			}
 		},
 	})
@@ -148,13 +148,15 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 		return err
 	}
 
+	version := int64(rec.RecVersion())
+
 	err = idx.bulkIndexer.Add(ctx, opensearchutil.BulkIndexerItem{
 		Action:     "index",
 		DocumentID: rec.RecID(),
 		// TODO
-		// Version:     rec.RecVersion(),
-		// VersionType: &versionType,
-		Body: bytes.NewReader(b),
+		Version:     &version,
+		VersionType: &versionType,
+		Body:        bytes.NewReader(b),
 		// TODO make configurable
 		OnFailure: func(_ context.Context, biItem opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
 			log.Printf("error indexing %s: %s", biItem.DocumentID, err)

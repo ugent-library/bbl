@@ -25,6 +25,7 @@ type GetWorkRepresentationsOpts struct {
 
 type Rec interface {
 	RecID() string
+	RecVersion() int
 }
 
 type Rev struct {

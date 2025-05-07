@@ -17,10 +17,12 @@ import (
 
 const timeFormat = "20060102150405"
 
+var versionType = "external"
+
 type Item struct {
 	Doc     any
 	ID      string
-	Version string
+	Version int64
 }
 
 type Switcher[T any] struct {
@@ -100,11 +102,11 @@ func (switcher Switcher[T]) Add(ctx context.Context, t T) error {
 	}
 
 	return switcher.bulkIndexer.Add(ctx, opensearchutil.BulkIndexerItem{
-		Action:     "index",
-		DocumentID: item.ID,
-		// Version:     rec.RecVersion(),
-		// VersionType: &versionType,
-		Body: bytes.NewReader(b),
+		Action:      "index",
+		DocumentID:  item.ID,
+		Version:     &item.Version,
+		VersionType: &versionType,
+		Body:        bytes.NewReader(b),
 		// TODO make configurable
 		OnFailure: func(_ context.Context, biItem opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
 			log.Printf("error indexing %s: %s", biItem.DocumentID, err)

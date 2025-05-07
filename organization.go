@@ -30,6 +30,10 @@ func (rec *Organization) RecID() string {
 	return rec.ID
 }
 
+func (rec *Organization) RecVersion() int {
+	return rec.Version
+}
+
 func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	changes := map[string]any{}
 	if rec.Kind != rec2.Kind {
