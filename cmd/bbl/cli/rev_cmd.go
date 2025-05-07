@@ -38,7 +38,7 @@ var addRevCmd = &cobra.Command{
 
 		dec := json.NewDecoder(cmd.InOrStdin())
 		for {
-			rev := bbl.NewRev()
+			rev := &bbl.Rev{}
 			if err := dec.Decode(rev); err == io.EOF {
 				break
 			} else if err != nil {

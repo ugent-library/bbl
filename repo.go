@@ -29,10 +29,7 @@ type Rec interface {
 
 type Rev struct {
 	Actions []Action
-}
-
-func NewRev() *Rev {
-	return &Rev{}
+	UserID  string
 }
 
 func (r *Rev) Add(action Action) {
@@ -45,12 +42,13 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 			Action string          `json:"action"`
 			Data   json.RawMessage `json:"data"`
 		} `json:"actions"`
+		UserID string `json:"user_id"`
 	}{}
 	if err := json.Unmarshal(b, &rawRev); err != nil {
 		return err
 	}
 
-	rev := Rev{}
+	rev := Rev{UserID: rawRev.UserID}
 
 	for _, rawAction := range rawRev.Actions {
 		var action Action

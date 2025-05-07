@@ -128,7 +128,7 @@ func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 
 	c.Work.ID = bbl.NewID()
 
-	rev := bbl.NewRev()
+	rev := &bbl.Rev{UserID: c.User.ID}
 	rev.Add(&bbl.CreateWork{Work: c.Work})
 	if err := h.repo.AddRev(r.Context(), rev); err != nil {
 		return err
@@ -158,7 +158,7 @@ func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) e
 func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	vacuumWork(c.Work)
 
-	rev := bbl.NewRev()
+	rev := &bbl.Rev{UserID: c.User.ID}
 	rev.Add(&bbl.UpdateWork{Work: c.Work})
 	if err := h.repo.AddRev(r.Context(), rev); err != nil {
 		return err

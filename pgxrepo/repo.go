@@ -99,9 +99,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	batch := &pgx.Batch{}
 
 	batch.Queue(`
-		insert into bbl_revs (id)
-		values ($1);`,
-		revID,
+		insert into bbl_revs (id, user_id)
+		values ($1, nullif($2, '')::uuid);`,
+		revID, rev.UserID,
 	)
 
 	for _, action := range rev.Actions {
