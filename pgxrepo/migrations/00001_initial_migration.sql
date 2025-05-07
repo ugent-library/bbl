@@ -6,6 +6,7 @@ create table bbl_organizations (
   id uuid primary key,
   kind text not null,
   attrs jsonb not null default '{}',
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
@@ -40,6 +41,7 @@ create index on bbl_organizations_rels (rel_organization_id);
 create table bbl_people (
   id uuid primary key,
   attrs jsonb not null default '{}',
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
@@ -72,6 +74,7 @@ create index on bbl_people_organizations (organization_id);
 create table bbl_projects (
   id uuid primary key,
   attrs jsonb not null default '{}',
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );
@@ -97,6 +100,7 @@ create table bbl_works (
   subkind text,
   status text not null,
   attrs jsonb not null default '{}',
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
 );

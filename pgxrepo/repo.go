@@ -128,8 +128,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_organizations (id, kind, attrs)
-				values ($1, $2, $3);`,
+				insert into bbl_organizations (id, kind, attrs, version)
+				values ($1, $2, $3, 1);`,
 				a.Organization.ID, a.Organization.Kind, jsonAttrs,
 			)
 			for i, iden := range a.Organization.Identifiers {
@@ -187,6 +187,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				update bbl_organizations
 				set kind = $2,
 				    attrs = $3,
+					version = version + 1,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
 				a.Organization.ID, a.Organization.Kind, jsonAttrs,
@@ -253,8 +254,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_people (id, attrs)
-				values ($1, $2);`,
+				insert into bbl_people (id, attrs, version)
+				values ($1, $2, 1);`,
 				a.Person.ID, jsonAttrs,
 			)
 			for i, iden := range a.Person.Identifiers {
@@ -300,6 +301,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			batch.Queue(`
 				update bbl_people
 				set attrs = $2,
+					version = version + 1,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
 				a.Person.ID, jsonAttrs,
@@ -338,8 +340,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_projects (id, attrs)
-				values ($1, $2);`,
+				insert into bbl_projects (id, attrs, version)
+				values ($1, $2, 1);`,
 				a.Project.ID, jsonAttrs,
 			)
 			for i, iden := range a.Project.Identifiers {
@@ -385,6 +387,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			batch.Queue(`
 				update bbl_projects
 				set attrs = $2,
+					version = version + 1,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
 				a.Project.ID, jsonAttrs,
@@ -430,8 +433,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_works (id, kind, subkind, status, attrs)
-				values ($1, $2, nullif($3, ''), $4, $5);`,
+				insert into bbl_works (id, kind, subkind, status, attrs, version)
+				values ($1, $2, nullif($3, ''), $4, $5, 1);`,
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,
 			)
 			for i, iden := range a.Work.Identifiers {
@@ -513,6 +516,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				    subkind = nullif($3, ''),
 					status = $4,
 				    attrs = $5,
+					version = version + 1,
 				    updated_at = transaction_timestamp()
 				where id = $1;`,
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,

@@ -9,6 +9,7 @@ type Person struct {
 	ID          string      `json:"id,omitempty"`
 	Identifiers []Code      `json:"identifiers,omitempty"`
 	Attrs       PersonAttrs `json:"attrs"`
+	Version     int         `json:"version,omitzero"`
 	CreatedAt   time.Time   `json:"created_at,omitzero"`
 	UpdatedAt   time.Time   `json:"updated_at,omitzero"`
 }

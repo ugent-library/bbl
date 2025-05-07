@@ -17,7 +17,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*bbl.Organizatio
 
 func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Organization] {
 	q := `
-		select id, kind, attrs, created_at, updated_at, identifiers, rels
+		select id, kind, attrs, version, created_at, updated_at, identifiers, rels
 		from bbl_organizations_view;`
 
 	return func(yield func(*bbl.Organization) bool) {
@@ -45,14 +45,14 @@ func getOrganization(ctx context.Context, conn pgxConn, id string) (*bbl.Organiz
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select o.id, o.kind, o.attrs, o.created_at, o.updated_at, o.identifiers, o.rels
+			select o.id, o.kind, o.attrs, o.version, o.created_at, o.updated_at, o.identifiers, o.rels
 			from bbl_organizations_view o, bbl_organizations_identifiers o_i
 			where o.id = o_i.organizatons_id and o_i.scheme = $1 and o_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
 		row = conn.QueryRow(ctx, `
-			select id, kind, attrs, created_at, updated_at, identifiers, rels
+			select id, kind, attrs, version, created_at, updated_at, identifiers, rels
 			from bbl_organizations_view
 			where id = $1;`,
 			id,
@@ -76,7 +76,7 @@ func scanOrganization(row pgx.Row) (*bbl.Organization, error) {
 	var rawIdentifiers json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Kind, &rawAttrs, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawRels); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Kind, &rawAttrs, &rec.Version, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawRels); err != nil {
 		return nil, err
 	}
 

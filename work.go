@@ -19,6 +19,7 @@ type Work struct {
 	Files        []WorkFile        `json:"files,omitempty"`
 	Rels         []WorkRel         `json:"rels,omitempty"`
 	Attrs        WorkAttrs         `json:"attrs"`
+	Version      int               `json:"version,omitzero"`
 	CreatedAt    time.Time         `json:"created_at,omitzero"`
 	UpdatedAt    time.Time         `json:"updated_at,omitzero"`
 }

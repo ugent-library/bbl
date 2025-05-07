@@ -11,6 +11,7 @@ type Organization struct {
 	Identifiers []Code            `json:"identifiers,omitempty"`
 	Rels        []OrganizationRel `json:"rels,omitempty"`
 	Attrs       OrganizationAttrs `json:"attrs"`
+	Version     int               `json:"version,omitzero"`
 	CreatedAt   time.Time         `json:"created_at,omitzero"`
 	UpdatedAt   time.Time         `json:"updated_at,omitzero"`
 }
