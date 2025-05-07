@@ -5,74 +5,33 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
-type TextArgs struct {
-	FieldArgs
-	Attr     bbl.Text
-	Rows     int
-	ValLabel string
-}
-
-templ Text(args TextArgs) {
-	{{
-		if args.Rows == 0 {
-			args.Rows = 1
-		}
-	}}
-	@Field(args.FieldArgs, args.NameFor("val")) {
-		<div class="card-body">
-			<div class="form-group">
-				if args.ValLabel != "" {
-					<label class="form-label form-label-top">{ args.ValLabel }</label>
-				}
-				@TextAreaControl(TextAreaArgs{
-					FieldArgs: args.WithNameFor("val"),
-					Rows:      args.Rows,
-					Value:     args.Attr.Val,
-				})
-			</div>
-			<div class="form-group">
-				<label class="form-label form-label-top">
-					Language
-				</label>
-				@SelectControl(SelectArgs{
-					FieldArgs: args.WithNameFor("lang"),
-					Options:   languageOptions,
-				})
-			</div>
-		</div>
-	}
-}
-
 type TextRepeatArgs struct {
 	FieldArgs
-	Attrs []bbl.Text
-	HxPost string
+	Attrs     []bbl.Text
+	AddURL    string
+	RemoveURL string
 }
 
-// TODO fix label for
 templ TextRepeat(args TextRepeatArgs) {
-	{{
-		if len(args.Attrs) == 0 {
-			args.Attrs = []bbl.Text{{}}
-		}
-	}}
-	@Field(args.FieldArgs, "") {
+	@Field(args.FieldArgs, args.IDFor(0, "val")) {
 		for i, attr := range args.Attrs {
 			<div class="form-group">
 				<div class="d-flex">
 					<div class="input-group">
 						<input
 							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
+							name={ args.NameFor(i, "val") }
+							id={ args.IDFor(i, "val") }
 							type="text"
 							value={ attr.Val }
 							{ fieldAria(args.FieldArgs)... }
 						/>
 						<select
 							class="form-control form-select"
-							name={ fmt.Sprintf("%s[%d].lang", args.Name, i) }
+							name={ args.NameFor(i, "lang") }
+							id={ args.IDFor(i, "lang") }
 						>
-							for _, opt := range languageOptions {
+							for _, opt := range LanguageOptions {
 								<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
 							}
 						</select>
@@ -80,8 +39,8 @@ templ TextRepeat(args TextRepeatArgs) {
 					<button
 						class="btn btn-tertiary btn-icon-only ms-3"
 						type="button"
-						hx-post={ args.HxPost }
-						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
+						hx-post={ args.RemoveURL }
+						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 					>
 						<i class="if if-delete"></i>
 						<span class="visually-hidden">Remove</span>
@@ -89,8 +48,8 @@ templ TextRepeat(args TextRepeatArgs) {
 					<button
 						class="btn btn-tertiary btn-icon-only ms-3"
 						type="button"
-						hx-post={ args.HxPost }
-						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, i+1) }
+						hx-post={ args.AddURL }
+						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i+1) }
 					>
 						<i class="if if-add"></i>
 						<span class="visually-hidden">Add</span>

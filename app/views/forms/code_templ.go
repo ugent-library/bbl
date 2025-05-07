@@ -15,12 +15,12 @@ import (
 
 type CodeRepeatArgs struct {
 	FieldArgs
-	Attrs   []bbl.Code
-	Schemes []string
-	HxPost  string
+	Attrs     []bbl.Code
+	Schemes   []string
+	AddURL    string
+	RemoveURL string
 }
 
-// TODO fix label for
 func CodeRepeat(args CodeRepeatArgs) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -42,10 +42,6 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-
-		if len(args.Attrs) == 0 {
-			args.Attrs = []bbl.Code{{}}
-		}
 		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -66,7 +62,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s[%d].scheme", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 29, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 24, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -84,7 +80,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(scheme)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 32, Col: 30}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 27, Col: 30}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
@@ -107,7 +103,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(scheme)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 32, Col: 77}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 27, Col: 77}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -147,7 +143,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s[%d].val", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 37, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 32, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -160,7 +156,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(attr.Val)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 39, Col: 23}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 34, Col: 23}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -179,9 +175,9 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
-				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(args.HxPost)
+				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(args.RemoveURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 46, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 41, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -192,9 +188,9 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
-				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i))
+				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 47, Col: 93}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 42, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -205,9 +201,9 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var12 string
-				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(args.HxPost)
+				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(args.AddURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 55, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 50, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -218,9 +214,9 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var13 string
-				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, i+1))
+				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i+1))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 56, Col: 92}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `forms/code.templ`, Line: 51, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -233,7 +229,7 @@ func CodeRepeat(args CodeRepeatArgs) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = Field(args.FieldArgs, "").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Field(args.FieldArgs, fmt.Sprintf("%s[0].val", args.Name)).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

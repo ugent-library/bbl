@@ -23,6 +23,6 @@ type Config struct {
 		ClientID     string `mapstructure:"client_id"`
 		ClientSecret string `mapstructure:"client_secret"`
 	} `mapstructure:"oidc"`
-	CookieSecret     string `mapstructure:"cookie_secret"`
-	CookieHashSecret string `mapstructure:"cookie_hash_secret"`
+	Secret     string `mapstructure:"secret"`
+	HashSecret string `mapstructure:"hash_secret"`
 }

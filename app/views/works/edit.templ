@@ -5,10 +5,9 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/forms"
-	"net/url"
 )
 
-templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
+templ Edit(c views.Ctx, rec *bbl.Work, state string) {
 	@views.Page(c, "Edit") {
 		<div class="w-100 h-100 d-flex flex-column overflow-hidden">
 			<div class="bc-navbar bc-navbar--white bc-navbar--auto bc-navbar--bordered-bottom flex-column align-items-start">
@@ -25,7 +24,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 					</div>
 					<div class="bc-toolbar-right mb-3 mb-lg-0">
 						<div class="bc-toolbar-item ps-0 ps-lg-4">
-							@FormButtons(c, rec, route)
+							@FormButtons(c, rec)
 						</div>
 					</div>
 				</div>
@@ -57,7 +56,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 				</div>
 				<div class="w-100 u-scroll-wrapper">
 					<div class="u-scroll-wrapper__body u-smooth-scroll p-6" data-bs-spy="scroll" data-bs-target="#work-form-nav" data-bs-offset="160" data-scroll-area>
-						@Form(c, rec, route)
+						@Form(c, rec, state)
 					</div>
 				</div>
 			</div>
@@ -65,22 +64,26 @@ templ Edit(c views.Ctx, rec *bbl.Work, route *url.URL) {
 	}
 }
 
-templ RefreshForm(c views.Ctx, rec *bbl.Work, route *url.URL) {
+templ RefreshForm(c views.Ctx, rec *bbl.Work, state string) {
 	<div hx-swap-oob="outerHTML:#work-form-buttons">
-		@FormButtons(c, rec, route)
+		@FormButtons(c, rec)
 	</div>
 	<div hx-swap-oob="outerHTML:#work-form-nav">
 		@FormNav(c, rec)
 	</div>
-	@Form(c, rec, route)
+	@Form(c, rec, state)
 }
 
-templ FormButtons(c views.Ctx, rec *bbl.Work, route *url.URL) {
+templ FormButtons(c views.Ctx, rec *bbl.Work) {
 	<div class="c-button-toolbar" id="work-form-buttons">
 		<button
 			class="btn btn-outline-secondary"
-			hx-post={ route.String() }
-			hx-include="#work-form"
+			if rec.ID == "" {
+				hx-post={ c.Route("create_work").String() }
+			} else {
+				hx-post={ c.Route("update_work", "id", rec.ID).String() }
+			}
+			hx-include="#work-form [name*='work.']"
 			hx-target="#work-form"
 		>Save</button>
 		<a class="btn btn-success" href="#">Publish to Biblio</a>
@@ -125,15 +128,15 @@ templ FormNav(c views.Ctx, rec *bbl.Work) {
 	</nav>
 }
 
-templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
-	<form
+templ Form(c views.Ctx, rec *bbl.Work, state string) {
+	<div
 		id="work-form"
-		hx-post={ route.String() }
-		hx-include="#work-form"
+		hx-include="#work-form [name*='work.']"
 		hx-target="#work-form"
 		hx-swap="outerHTML"
-		hx-trigger="refresh-work-form from:body"
 	>
+		// hx-trigger="refresh-work-form from:body"
+		<input type="hidden" name="work.state" value={ state }/>
 		<div class="mb-6" id="work-type">
 			<div class="mb-4">
 				<h2>Type</h2>
@@ -147,8 +150,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 								<select
 									class="form-select w-100"
 									name="kind"
-									hx-post={ route.String() }
-									hx-vals='{"refresh": "kind"}'
+									hx-post={ c.Route("work_change_kind").String() }
 								>
 									for _, kind := range bbl.WorkKinds {
 										<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
@@ -163,8 +165,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 									<select
 										class="form-select w-100"
 										name="subkind"
-										hx-post={ route.String() }
-										hx-vals='{"refresh": "kind"}'
+										hx-post={ c.Route("work_change_kind").String() }
 									>
 										<option></option>
 										for _, kind := range subKinds {
@@ -184,67 +185,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			</div>
 			<div class="card mb-6">
 				<div class="card-body">
-					<ul class="list-group">
-						for _, f := range rec.Files {
-							<input type="hidden" name="files" value={ templ.JSONString(f) }/>
-							<li class="list-group-item">
-								<div class="bc-avatar-and-text align-items-start w-100">
-									<div class="bc-avatar bc-avatar--square mt-3 bc-avatar--muted">
-										<i class="if if-file"></i>
-									</div>
-									<div class="bc-avatar-text">
-										<div class="hstack-md-responsive gap-3 gap-lg-4">
-											<div class="vstack gap-3">
-												<div class="d-flex align-items-stretch">
-													<div class="d-flex align-items-center overflow-hidden">
-														<i class="if if-download if--small if--success"></i>
-														<span class="c-subline text-truncate ps-2">Open access</span>
-													</div>
-													<span class="border-end mx-3"></span>
-													<span class="c-subline">No license (in copyright)</span>
-												</div>
-												<h4 class="mb-0">{ f.Name }</h4>
-												<ul class="c-meta-list c-meta-list-horizontal">
-													<li class="c-meta-item">Supplementary Material</li>
-													<li class="c-meta-item">{ f.ContentType }</li>
-													<li class="c-meta-item">{ fmt.Sprint(f.Size) }</li>
-												</ul>
-											</div>
-											<div class="c-button-toolbar">
-												<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-													<i class="if if-eye"></i>
-													<span class="btn-text">View</span>
-												</button>
-												<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
-													<i class="if if-edit"></i>
-													<span class="btn-text">Edit</span>
-												</button>
-												<div class="dropdown">
-													<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-														<i class="if if-more"></i>
-														<span class="btn-text">Actions</span>
-													</button>
-													<div class="dropdown-menu">
-														<button class="dropdown-item" type="button">
-															<i class="if if-delete"></i>
-															<span>Remove</span>
-														</button>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-							</li>
-						}
-					</ul>
-					<div
-						data-uppy
-						data-uppy-presign-url={ c.Route("create_file_upload_url").String() }
-					>
-						<div data-uppy-drag-drop></div>
-						<div data-uppy-status></div>
-					</div>
+					@filesField(c, rec)
 				</div>
 			</div>
 		</div>
@@ -257,12 +198,13 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 					if rec.Profile.Titles != nil {
 						@forms.TextRepeat(forms.TextRepeatArgs{
 							FieldArgs: forms.FieldArgs{
-								Name:     "titles",
+								Name:     "work.titles",
 								Label:    "Title",
 								Required: rec.Profile.Titles.Required,
 							},
-							Attrs:  rec.Attrs.Titles,
-							HxPost: route.String(),
+							Attrs:     rec.Attrs.Titles,
+							AddURL:    c.Route("work_add_title").String(),
+							RemoveURL: c.Route("work_remove_title").String(),
 						})
 					}
 					if rec.Profile.Abstracts != nil {
@@ -273,7 +215,9 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 							PluralLabel: c.Loc.Get("abstracts"),
 							Title:       c.Loc.Get("Abstract"),
 							PluralTitle: c.Loc.Get("Abatracts"),
-							HxPost:      route.String(),
+							AddURL:      c.Route("work_add_abstract").String(),
+							EditURL:     c.Route("work_edit_abstract").String(),
+							RemoveURL:   c.Route("work_remove_abstract").String(),
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
@@ -284,17 +228,9 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 							PluralLabel: c.Loc.Get("lay summaries"),
 							Title:       c.Loc.Get("Lay summary"),
 							PluralTitle: c.Loc.Get("Lay summaries"),
-							HxPost:      route.String(),
-						})
-					}
-					if rec.Profile.Keywords != nil {
-						@forms.Tags(forms.TagsArgs{
-							FieldArgs: forms.FieldArgs{
-								Label:    "Keywords",
-								Name:     "keywords",
-								Required: rec.Profile.Keywords.Required,
-							},
-							Values: rec.Attrs.Keywords,
+							AddURL:      c.Route("work_add_lay_summary").String(),
+							EditURL:     c.Route("work_edit_lay_summary").String(),
+							RemoveURL:   c.Route("work_remove_lay_summary").String(),
 						})
 					}
 				</div>
@@ -307,7 +243,7 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 			<div class="card mb-6">
 				<div class="card-body">
 					if rec.Profile.Contributors != nil {
-						@contributorsField(c, rec, route.String())
+						@contributorsField(c, rec)
 					}
 				</div>
 			</div>
@@ -327,24 +263,24 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 				</div>
 				<div class="card mb-6">
 					<div class="card-body">
-						@forms.TextInputField(forms.TextInputArgs{
+						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
 								Label: "Conference",
-								Name:  "conference.name",
+								Name:  "work.conference.name",
 							},
 							Value: rec.Attrs.Conference.Name,
 						})
-						@forms.TextInputField(forms.TextInputArgs{
+						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
 								Label: "Conference location",
-								Name:  "conference.location",
+								Name:  "work.conference.location",
 							},
 							Value: rec.Attrs.Conference.Location,
 						})
-						@forms.TextInputField(forms.TextInputArgs{
+						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
 								Label: "Conference organizer",
-								Name:  "conference.organizer",
+								Name:  "work.conference.organizer",
 							},
 							Value: rec.Attrs.Conference.Organizer,
 						})
@@ -361,18 +297,19 @@ templ Form(c views.Ctx, rec *bbl.Work, route *url.URL) {
 					<div class="card-body">
 						@forms.CodeRepeat(forms.CodeRepeatArgs{
 							FieldArgs: forms.FieldArgs{
-								Name:     "identifiers",
+								Name:     "work.identifiers",
 								Required: rec.Profile.Identifiers.Required,
 							},
-							Attrs:   rec.Identifiers,
-							Schemes: rec.Profile.IdentifierSchemes,
-							HxPost:  route.String(),
+							Attrs:     rec.Identifiers,
+							Schemes:   rec.Profile.IdentifierSchemes,
+							AddURL:    c.Route("work_add_identifier").String(),
+							RemoveURL: c.Route("work_remove_identifier").String(),
 						})
 					</div>
 				</div>
 			</div>
 		}
-	</form>
+	</div>
 }
 
 type textsFieldArgs struct {
@@ -382,7 +319,9 @@ type textsFieldArgs struct {
 	PluralLabel string
 	Title       string
 	PluralTitle string
-	HxPost      string
+	AddURL      string
+	EditURL     string
+	RemoveURL   string
 }
 
 templ textsField(c views.Ctx, args textsFieldArgs) {
@@ -393,12 +332,19 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 					<h2 class="modal-title">{ c.Loc.Get("Add %s", args.Label) }</h2>
 				</div>
 				<div class="modal-body">
-					@forms.Text(forms.TextArgs{
+					@forms.TextArea(forms.TextAreaArgs{
 						FieldArgs: forms.FieldArgs{
-							Name: fmt.Sprintf("%s.add", args.Name),
+							Name:  "val",
+							Label: args.Title,
 						},
-						ValLabel: args.Title,
-						Rows:     8,
+						Rows: 8,
+					})
+					@forms.Select(forms.SelectArgs{
+						FieldArgs: forms.FieldArgs{
+							Name:  "lang",
+							Label: "Language",
+						},
+						Options: forms.LanguageOptions,
 					})
 				</div>
 				<div class="modal-footer">
@@ -407,8 +353,9 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 						class="btn btn-primary"
 						type="button"
 						data-bs-dismiss="modal"
-						hx-post={ args.HxPost }
-						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, len(args.Texts)) }
+						hx-include="#work-form [name*='work.'], closest .modal"
+						hx-post={ args.AddURL }
+						hx-vals={ fmt.Sprintf(`{"idx": %d}`, len(args.Texts)) }
 					>
 						<span class="btn-text">{ c.Loc.Get("Add %s", args.Label) }</span>
 						<i class="if if-arrow-right"></i>
@@ -451,13 +398,21 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 								<h2 class="modal-title">{ c.Loc.Get("Edit %s", args.Label) }</h2>
 							</div>
 							<div class="modal-body">
-								@forms.Text(forms.TextArgs{
+								@forms.TextArea(forms.TextAreaArgs{
 									FieldArgs: forms.FieldArgs{
-										Name: fmt.Sprintf("%s[%d].edit", args.Name, i),
+										Name:  "val",
+										Label: args.Title,
 									},
-									ValLabel: args.Title,
-									Attr:     text,
-									Rows:     8,
+									Value: text.Val,
+									Rows: 8,
+								})
+								@forms.Select(forms.SelectArgs{
+									FieldArgs: forms.FieldArgs{
+										Name:  "lang",
+										Label: "Language",
+									},
+									Value: text.Lang,
+									Options: forms.LanguageOptions,
 								})
 							</div>
 							<div class="modal-footer">
@@ -466,8 +421,9 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 									class="btn btn-primary"
 									type="button"
 									data-bs-dismiss="modal"
-									hx-post={ args.HxPost }
-									hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.edit_at": %d}`, args.Name, args.Name, i) }
+									hx-include="#work-form [name*='work.'], closest .modal"
+									hx-post={ args.EditURL }
+									hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 								>
 									<span class="btn-text">{ c.Loc.Get("Edit %s", args.Label) }</span>
 									<i class="if if-arrow-right"></i>
@@ -477,8 +433,6 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 					</div>
 				</div>
 				<div class="card shadow-none mb-6 bg-lightest">
-					<input type="hidden" name={ fmt.Sprintf("%s[%d].lang", args.Name, i) } value={ text.Lang }/>
-					<input type="hidden" name={ fmt.Sprintf("%s[%d].val", args.Name, i) } value={ text.Val }/>
 					<div class="card-body">
 						<div class="c-button-toolbar">
 							<button
@@ -493,8 +447,8 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 							<button
 								class="btn btn-tertiary btn-lg-only-responsive"
 								type="button"
-								hx-post={ args.HxPost }
-								hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
+								hx-post={ args.RemoveURL }
+								hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 							>
 								<i class="if if-delete"></i>
 								<span class="btn-text">{ c.Loc.Get("Remove") }</span>
@@ -509,7 +463,7 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 	</div>
 }
 
-templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
+templ contributorsField(c views.Ctx, rec *bbl.Work) {
 	<div id="work-contributors-add" class="modal" tabindex="-1" role="dialog" aria-modal="true">
 		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
 			<div class="modal-content">
@@ -519,26 +473,25 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 				<div class="p-6 border-bottom">
 					<h3>Search contributor</h3>
 					<div class="row">
-						<div class="form-group col">
+						<div
+							class="form-group col"
+							hx-disinherit="*"
+						>
 							<label class="col-form-label">Name</label>
 							<input
 								class="form-control"
 								type="search"
 								name="q"
-								hx-get={ c.Route("work_suggest_contributors").String() }
-								if rec.ID != "" {
-									hx-vals={ fmt.Sprintf(`{"id": "%s", "add_at": %d}`, rec.ID, len(rec.Contributors)) }
-								} else {
-									hx-vals={ fmt.Sprintf(`{"add_at": %d}`, len(rec.Contributors)) }
-								}
+								hx-get={ c.Route("work_suggest_contributor").String() }
+								hx-vals={ fmt.Sprintf(`{"action": "add", "idx": %d}`, len(rec.Contributors)) }
 								hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-								hx-target="#work-contributors-suggestions"
+								hx-target="#work-contributor-suggestions"
 								hx-swap="innerHTML"
 							/>
 						</div>
 					</div>
 				</div>
-				<div id="work-contributors-suggestions" class="modal-body"></div>
+				<div id="work-contributor-suggestions" class="modal-body"></div>
 				<div class="modal-footer">
 					<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
 				</div>
@@ -582,26 +535,25 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 								<div class="p-6 border-bottom">
 									<h3>Search contributor</h3>
 									<div class="row">
-										<div class="form-group col">
+										<div
+											class="form-group col"
+											hx-disinherit="*"
+										>
 											<label class="col-form-label">Name</label>
 											<input
 												class="form-control"
 												type="search"
 												name="q"
-												hx-get={ c.Route("work_suggest_contributors").String() }
-												if rec.ID != "" {
-													hx-vals={ fmt.Sprintf(`{"id": "%s", "edit_at": %d}`, rec.ID, i) }
-												} else {
-													hx-vals={ fmt.Sprintf(`{"edit_at": %d}`, i) }
-												}
+												hx-get={ c.Route("work_suggest_contributor").String() }
+												hx-vals={ fmt.Sprintf(`{"action": "edit", "idx": %d}`, i) }
 												hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-												hx-target={ fmt.Sprintf("#work-contributors-suggestions-%d", i) }
+												hx-target={ fmt.Sprintf("#work-contributor-suggestions-%d", i) }
 												hx-swap="innerHTML"
 											/>
 										</div>
 									</div>
 								</div>
-								<div id={ fmt.Sprintf("work-contributors-suggestions-%d", i) } class="modal-body"></div>
+								<div id={ fmt.Sprintf("work-contributor-suggestions-%d", i) } class="modal-body"></div>
 								<div class="modal-footer">
 									<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
 								</div>
@@ -634,8 +586,8 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 										<button
 											class="btn btn-tertiary btn-lg-only-responsive"
 											type="button"
-											hx-post={ hxPost }
-											hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.remove_at": %d}`, i) }
+											hx-post={ c.Route("work_remove_contributor").String() }
+											hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 										>
 											<i class="if if-delete"></i>
 											<span class="btn-text">Remove</span>
@@ -651,7 +603,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work, hxPost string) {
 	</div>
 }
 
-templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], id string, addAt, editAt int) {
+templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action string, idx int) {
 	<ul class="list-group">
 		for _, hit := range hits.Hits {
 			<li class="list-group-item">
@@ -671,19 +623,15 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], id str
 							class="btn btn-primary"
 							type="button"
 							data-bs-dismiss="modal"
-							if id == "" {
-								hx-post={ c.Route("create_work").String() }
+							if action == "add" {
+								hx-post={ c.Route("work_add_contributor").String() }
 							} else {
-								hx-post={ c.Route("update_work", "id", id).String() }
+								hx-post={ c.Route("work_edit_contributor").String() }
 							}
-							if addAt >= 0 {
-								hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.add_at": %d, "person_id": "%s"}`, addAt, hit.Rec.ID) }
-							} else {
-								hx-vals={ fmt.Sprintf(`{"refresh": "contributors", "contributors.edit_at": %d, "person_id": "%s"}`, editAt, hit.Rec.ID) }
-							}
+							hx-vals={ fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID) }
 						>
 							<span class="btn-text">
-								if addAt >= 0 {
+								if action == "add" {
 									Add contributor
 								} else {
 									Edit contributor
@@ -696,4 +644,70 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], id str
 			</li>
 		}
 	</ul>
+}
+
+templ filesField(c views.Ctx, rec *bbl.Work) {
+	<ul class="list-group mb-6">
+		for _, f := range rec.Files {
+			<li class="list-group-item">
+				<div class="bc-avatar-and-text align-items-start w-100">
+					<div class="bc-avatar bc-avatar--square mt-3 bc-avatar--muted">
+						<i class="if if-file"></i>
+					</div>
+					<div class="bc-avatar-text">
+						<div class="hstack-md-responsive gap-3 gap-lg-4">
+							<div class="vstack gap-3">
+								<div class="d-flex align-items-stretch">
+									<div class="d-flex align-items-center overflow-hidden">
+										<i class="if if-download if--small if--success"></i>
+										<span class="c-subline text-truncate ps-2">Open access</span>
+									</div>
+									<span class="border-end mx-3"></span>
+									<span class="c-subline">No license (in copyright)</span>
+								</div>
+								<h4 class="mb-0">{ f.Name }</h4>
+								<ul class="c-meta-list c-meta-list-horizontal">
+									<li class="c-meta-item">Supplementary Material</li>
+									<li class="c-meta-item">{ f.ContentType }</li>
+									<li class="c-meta-item">{ fmt.Sprint(f.Size) }</li>
+								</ul>
+							</div>
+							<div class="c-button-toolbar">
+								<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+									<i class="if if-eye"></i>
+									<span class="btn-text">View</span>
+								</button>
+								<button class="btn btn-tertiary btn-lg-only-responsive" type="button">
+									<i class="if if-edit"></i>
+									<span class="btn-text">Edit</span>
+								</button>
+								<div class="dropdown">
+									<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+										<i class="if if-more"></i>
+										<span class="btn-text">Actions</span>
+									</button>
+									<div class="dropdown-menu">
+										<button class="dropdown-item" type="button">
+											<i class="if if-delete"></i>
+											<span>Remove</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</li>
+		}
+	</ul>
+	<div
+		data-uppy
+		data-uppy-presign-url={ c.Route("create_file_upload_url").String() }
+		hx-post={ c.Route("work_add_files").String() }
+		hx-include="#work-form [name*='work.'], [data-uppy] [name='files']"
+		hx-trigger="files-added"
+	>
+		<div data-uppy-drag-drop></div>
+		<div data-uppy-status></div>
+	</div>
 }

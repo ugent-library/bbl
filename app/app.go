@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	sloghttp "github.com/samber/slog-http"
 
 	"github.com/ugent-library/bbl"
@@ -31,17 +30,14 @@ type Config struct {
 	Repo             *pgxrepo.Repo
 	Index            bbl.Index
 	Store            *s3store.Store
-	CookieSecret     []byte
-	CookieHashSecret []byte
+	Secret           []byte
+	HashSecret       []byte
 	AuthIssuerURL    string
 	AuthClientID     string
 	AuthClientSecret string
 }
 
 func New(config *Config) (http.Handler, error) {
-	cookies := securecookie.New(config.CookieHashSecret, config.CookieSecret)
-	cookies.SetSerializer(securecookie.JSONEncoder{})
-
 	router := mux.NewRouter()
 	router.Use(sloghttp.Recovery)
 	router.Use(sloghttp.NewWithConfig(config.Logger.WithGroup("http"), sloghttp.Config{
@@ -89,7 +85,8 @@ func New(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.GetUser))
+	// appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.GetUser))
+	appCtx := ctx.New(BindAppCtx(config, router, assets))
 	loggedInCtx := appCtx.With(RequireUser)
 
 	router.Handle("/", appCtx.Bind(HomeHandler)).Methods("GET").Name("home")
@@ -101,8 +98,8 @@ func New(config *Config) (http.Handler, error) {
 		RedirectURL:      config.BaseURL + "/auth/callback",
 		CookieInsecure:   config.Env == "development",
 		CookiePrefix:     "biblio.oidc.",
-		CookieHashSecret: config.CookieHashSecret,
-		CookieSecret:     config.CookieSecret,
+		CookieHashSecret: config.HashSecret,
+		CookieSecret:     config.Secret,
 	})
 	if err != nil {
 		return nil, err

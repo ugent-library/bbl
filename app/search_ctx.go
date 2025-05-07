@@ -12,7 +12,7 @@ type SearchCtx struct {
 	SearchOpts bbl.SearchOpts
 }
 
-func BindSearchCtx(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
+func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 	c := &SearchCtx{AppCtx: appCtx}
 
 	c.SearchOpts.Size = 20

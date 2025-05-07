@@ -38,6 +38,15 @@ type FieldArgs struct {
 	AutoFocus bool
 }
 
+func (args FieldArgs) ID() string {
+	return strings.Map(func(r rune) rune {
+		if r == '.' || r == '[' || r == ']' {
+			return '-'
+		}
+		return r
+	}, args.Name)
+}
+
 func (args FieldArgs) NameFor(parts ...any) string {
 	name := args.Name
 	for _, p := range parts {
@@ -54,18 +63,20 @@ func (args FieldArgs) NameFor(parts ...any) string {
 	return name
 }
 
-func (args FieldArgs) WithNameFor(parts ...any) FieldArgs {
-	args.Name = args.NameFor(parts...)
-	return args
-}
-
-func (args FieldArgs) ID() string {
-	return strings.Map(func(r rune) rune {
-		if r == '.' || r == '[' || r == ']' {
-			return '-'
+func (args FieldArgs) IDFor(parts ...any) string {
+	id := args.ID()
+	for _, p := range parts {
+		if id != "" {
+			id += "-"
 		}
-		return r
-	}, args.Name)
+		switch pt := p.(type) {
+		case int:
+			id += fmt.Sprint(pt)
+		case string:
+			id += pt
+		}
+	}
+	return id
 }
 
 templ Field(args FieldArgs, labelFor string) {
@@ -82,13 +93,8 @@ type TextInputArgs struct {
 	Value string
 }
 
-templ TextInputField(args TextInputArgs) {
-	@Field(args.FieldArgs, args.Name) {
-		@TextInput(args)
-	}
-}
-
 templ TextInput(args TextInputArgs) {
+	@Field(args.FieldArgs, args.Name) {
 	<input
 		class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 		name={ args.Name }
@@ -102,6 +108,7 @@ templ TextInput(args TextInputArgs) {
 		autofocus?={ args.AutoFocus }
 		{ fieldAria(args.FieldArgs)... }
 	/>
+	}
 }
 
 type TextAreaArgs struct {
@@ -110,18 +117,8 @@ type TextAreaArgs struct {
 	Rows  int
 }
 
-func (args TextAreaArgs) WithNameFor(parts ...any) TextAreaArgs {
-	args.Name = args.NameFor(parts...)
-	return args
-}
-
 templ TextArea(args TextAreaArgs) {
 	@Field(args.FieldArgs, args.Name) {
-		@TextAreaControl(args)
-	}
-}
-
-templ TextAreaControl(args TextAreaArgs) {
 	<textarea
 		class={ "form-control", templ.KV("is-invalid", args.Error != "") }
 		id={ args.ID() }
@@ -134,6 +131,7 @@ templ TextAreaControl(args TextAreaArgs) {
 		autofocus?={ args.AutoFocus }
 		{ fieldAria(args.FieldArgs)... }
 	>{ args.Value }</textarea>
+	}
 }
 
 type SelectArgs struct {
@@ -150,28 +148,29 @@ func (args SelectArgs) WithNameFor(parts ...any) SelectArgs {
 
 templ Select(args SelectArgs) {
 	@Field(args.FieldArgs, args.Name) {
-		@SelectControl(args)
+		<select
+			class={ "form-control", "form-select", templ.KV("is-invalid", args.Error != "") }
+			id={ args.ID() }
+			name={ args.Name }
+			if args.Form != "" {
+				form={ args.Form }
+			}
+			autofocus?={ args.AutoFocus }
+			{ fieldAria(args.FieldArgs)... }
+		>
+			if args.EmptyOption {
+				<option></option>
+			}
+			for _, o := range args.Options {
+				<option value={ o.Value } selected?={ o.Value == args.Value }>{ o.Label }</option>
+			}
+		</select>
 	}
 }
 
-templ SelectControl(args SelectArgs) {
-	<select
-		class={ "form-control", "form-select", templ.KV("is-invalid", args.Error != "") }
-		id={ args.ID() }
-		name={ args.Name }
-		if args.Form != "" {
-			form={ args.Form }
-		}
-		autofocus?={ args.AutoFocus }
-		{ fieldAria(args.FieldArgs)... }
-	>
-		if args.EmptyOption {
-			<option></option>
-		}
-		for _, o := range args.Options {
-			<option value={ o.Value } selected?={ o.Value == args.Value }>{ o.Label }</option>
-		}
-	</select>
+type Option struct {
+	Label string
+	Value string
 }
 
 type CheckboxArgs struct {
@@ -251,192 +250,6 @@ templ RadioGroup(args RadioGroupArgs) {
 	</div>
 }
 
-type TextInputRepeatArgs struct {
-	FieldArgs
-	Values          []string
-	AutocompleteURL string
-}
-
-templ TextInputRepeat(args TextInputRepeatArgs) {
-	if args.AutocompleteURL != "" {
-		@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
-			<div data-bb-repeated-fields>
-				for i, v := range args.Values {
-					<div class="d-flex mb-3" data-bb-repeated-field>
-						<div class="w-100 autocomplete" data-target={ fmt.Sprintf(`#%s-%d`, args.Name, i) } data-bb-tmpl-data-target={ fmt.Sprintf(`#%s-{i}`, args.Name) }>
-							<input
-								class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-								name={ args.Name }
-								if args.Form != "" {
-									form={ args.Form }
-								}
-								id={ fmt.Sprintf("%s-%d", args.Name, i) }
-								data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-								type="text"
-								value={ v }
-								autocomplete="off"
-								{ fieldAria(args.FieldArgs)... }
-								hx-get={ args.AutocompleteURL }
-								hx-trigger="keyup changed delay:100ms"
-								hx-target={ fmt.Sprintf("#%s-%d-autocomplete", args.Name, i) }
-								data-bb-tmpl-hx-target={ fmt.Sprintf(`#%s-{i}-autocomplete`, args.Name) }
-								hx-vals={ fmt.Sprintf(`{"input": "%s"}`, args.Name) }
-							/>
-							<div class="autocomplete-hits" id={ fmt.Sprintf("%s-%d-autocomplete", args.Name, i) } data-bb-tmpl-id={ fmt.Sprintf(`%s-{i}-autocomplete`, args.Name) }></div>
-						</div>
-						<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-							<i class="if if-delete"></i>
-							<span class="visually-hidden">Delete</span>
-						</button>
-					</div>
-				}
-				<div class="d-flex mb-3" data-bb-repeated-field>
-					<div class="w-100 autocomplete" data-target={ fmt.Sprintf(`#%s-%d`, args.Name, len(args.Values)) } data-bb-tmpl-data-target={ fmt.Sprintf(`#%s-{i}`, args.Name) }>
-						<input
-							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-							name={ args.Name }
-							if args.Form != "" {
-								form={ args.Form }
-							}
-							id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-							type="text"
-							value=""
-							autocomplete="off"
-							{ fieldAria(args.FieldArgs)... }
-							hx-get={ args.AutocompleteURL }
-							hx-trigger="keyup changed delay:100ms"
-							hx-target={ fmt.Sprintf(`#%s-%d-autocomplete`, args.Name, len(args.Values)) }
-							data-bb-tmpl-hx-target={ fmt.Sprintf(`#%s-{i}-autocomplete`, args.Name) }
-							hx-vals={ fmt.Sprintf(`{"input": "%s"}`, args.Name) }
-						/>
-						<div
-							class="autocomplete-hits"
-							id={ fmt.Sprintf(`%s-%d-autocomplete`, args.Name, len(args.Values)) }
-							data-bb-tmpl-id={ fmt.Sprintf(`%s-{i}-autocomplete`, args.Name) }
-						></div>
-					</div>
-					<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
-						<i class="if if-add"></i>
-						<span class="visually-hidden">Add</span>
-					</button>
-				</div>
-			</div>
-		}
-	} else {
-		@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
-			<div data-bb-repeated-fields>
-				for i, v := range args.Values {
-					<div class="d-flex mb-3" data-bb-repeated-field>
-						<input
-							class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-							name={ args.Name }
-							if args.Form != "" {
-								form={ args.Form }
-							}
-							id={ fmt.Sprintf("%s-%d", args.Name, i) }
-							data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-							type="text"
-							value={ v }
-							{ fieldAria(args.FieldArgs)... }
-						/>
-						<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-							<i class="if if-delete"></i>
-							<span class="visually-hidden">Delete</span>
-						</button>
-					</div>
-				}
-				<div class="d-flex mb-3" data-bb-repeated-field>
-					<input
-						class={ "form-control", templ.KV("is-invalid", args.Error != "") }
-						name={ args.Name }
-						if args.Form != "" {
-							form={ args.Form }
-						}
-						id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
-						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-						type="text"
-						value=""
-						{ fieldAria(args.FieldArgs)... }
-					/>
-					<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
-						<i class="if if-add"></i>
-						<span class="visually-hidden">Add</span>
-					</button>
-				</div>
-			</div>
-		}
-	}
-}
-
-type Option struct {
-	Label string
-	Value string
-}
-
-type SelectRepeatArgs struct {
-	FieldArgs
-	Values      []string
-	EmptyOption bool
-	Options     []Option
-}
-
-templ SelectRepeat(args SelectRepeatArgs) {
-	@Field(args.FieldArgs, fmt.Sprintf("%s-0", args.Name)) {
-		<div data-bb-repeated-fields>
-			for i, v := range args.Values {
-				<div class="d-flex mb-3" data-bb-repeated-field>
-					<select
-						class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
-						name={ args.Name }
-						if args.Form != "" {
-							form={ args.Form }
-						}
-						id={ fmt.Sprintf("%s-%d", args.Name, i) }
-						data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-						{ fieldAria(args.FieldArgs)... }
-					>
-						if args.EmptyOption {
-							<option></option>
-						}
-						for _, o := range args.Options {
-							<option value={ o.Value } selected?={ o.Value == v }>{ o.Label }</option>
-						}
-					</select>
-					<button class="btn btn-link-muted btn-icon-only ms-3" type="button" data-bb-repeated-field-delete>
-						<i class="if if-delete"></i>
-						<span class="visually-hidden">Delete</span>
-					</button>
-				</div>
-			}
-			<div class="d-flex mb-3" data-bb-repeated-field>
-				<select
-					class={ "form-select", "form-control", templ.KV("is-invalid", args.Error != "") }
-					name={ args.Name }
-					if args.Form != "" {
-						form={ args.Form }
-					}
-					id={ fmt.Sprintf("%s-%d", args.Name, len(args.Values)) }
-					autofocus?={ args.AutoFocus }
-					data-bb-tmpl-id={ fmt.Sprintf("%s-{i}", args.Name) }
-					{ fieldAria(args.FieldArgs)... }
-				>
-					if args.EmptyOption {
-						<option></option>
-					}
-					for _, o := range args.Options {
-						<option value={ o.Value }>{ o.Label }</option>
-					}
-				</select>
-				<button class="btn btn-outline-primary btn-icon-only ms-3" type="button" data-bb-repeated-field-add>
-					<i class="if if-add"></i>
-					<span class="visually-hidden">Add</span>
-				</button>
-			</div>
-		</div>
-	}
-}
-
 type DateInputArgs struct {
 	FieldArgs
 	Value string
@@ -466,34 +279,6 @@ templ DateInput(args DateInputArgs) {
 	}
 }
 
-type TagsArgs struct {
-	FieldArgs
-	Values []string
-}
-
-templ Tags(args TagsArgs) {
-	@Field(args.FieldArgs, args.Name) {
-		<div data-bb-tags>
-			<span data-bb-tags-values class="d-none"></span>
-			<textarea
-				id={ args.ID() }
-				data-bb-tags-widget-values
-				class="form-control tagify-custom"
-				autofocus?={ args.AutoFocus }
-				data-input-name={ args.Name }
-				aria-label={ args.Label }
-				{ fieldAria(args.FieldArgs)... }
-			>
-				if len(args.Values) > 0 {
-					{ templ.JSONString(args.Values) }
-				} else {
-					{ "[]" }
-				}
-			</textarea>
-		</div>
-	}
-}
-
 func helpID(args FieldArgs) string {
 	return fmt.Sprintf("%s-help", args.ID())
 }
@@ -512,6 +297,7 @@ templ fieldTooltip(args FieldArgs) {
 // 		<span class="required" aria-hidden="true" title="required">*</span>
 // 	}
 // }
+
 templ fieldRequiredBadge(args FieldArgs) {
 	if args.Required {
 		<span class="badge badge-outline-primary badge-sm">Required</span>

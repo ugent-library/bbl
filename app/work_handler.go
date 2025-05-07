@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
 
@@ -14,6 +13,11 @@ import (
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/htmx"
 )
+
+type WorkCtx struct {
+	*AppCtx
+	Work *bbl.Work
+}
 
 type WorkHandler struct {
 	repo  *pgxrepo.Repo
@@ -27,16 +31,59 @@ func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 	}
 }
 
+func (h *WorkHandler) BindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+	work, err := h.repo.GetWork(r.Context(), mux.Vars(r)["id"])
+	if err != nil {
+		return nil, err
+	}
+	return &WorkCtx{AppCtx: c, Work: work}, nil
+}
+
+func (h *WorkHandler) BindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+	var recState string
+	var rec bbl.Work
+	if err := binder.New(r).Form().String("work.state", &recState).Err(); err != nil {
+		return nil, err
+	}
+	if err := c.DecryptValue(recState, &rec); err != nil {
+		return nil, err
+	}
+	if err := bbl.LoadWorkProfile(&rec); err != nil {
+		return nil, err
+	}
+	if err := bindWorkForm(r, &rec); err != nil {
+		return nil, err
+	}
+	return &WorkCtx{AppCtx: c, Work: &rec}, nil
+}
+
 func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
-	workCtx := ctx.Derive(appCtx, BindWorkCtx(h.repo))
-	searchCtx := ctx.Derive(appCtx, BindSearchCtx)
+	searchCtx := ctx.Derive(appCtx, BindSearch)
+	workCtx := ctx.Derive(appCtx, h.BindWork)
+	workStateCtx := ctx.Derive(appCtx, h.BindWorkState)
+
 	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
-	router.Handle("/works", appCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/suggest_contributors", appCtx.Bind(h.SuggestContributors)).Methods("GET").Name("work_suggest_contributors")
+	router.Handle("/works/_change_kind", workStateCtx.Bind(h.ChangeKind)).Methods("POST").Name("work_change_kind")
+	router.Handle("/works/_add_identifier", workStateCtx.Bind(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
+	router.Handle("/works/_remove_identifier", workStateCtx.Bind(h.RemoveIdentifier)).Methods("POST").Name("work_remove_identifier")
+	router.Handle("/works/_suggest_contributor", appCtx.Bind(h.SuggestContributor)).Methods("GET").Name("work_suggest_contributor")
+	router.Handle("/works/_add_contributor", workStateCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
+	router.Handle("/works/_edit_contributor", workStateCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
+	router.Handle("/works/_remove_contributor", workStateCtx.Bind(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
+	router.Handle("/works/_add_files", workStateCtx.Bind(h.AddFiles)).Methods("POST").Name("work_add_files")
+	router.Handle("/works/_add_title", workStateCtx.Bind(h.AddTitle)).Methods("POST").Name("work_add_title")
+	router.Handle("/works/_remove_title", workStateCtx.Bind(h.RemoveTitle)).Methods("POST").Name("work_remove_title")
+	router.Handle("/works/_add_abstract", workStateCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
+	router.Handle("/works/_edit_abstract", workStateCtx.Bind(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
+	router.Handle("/works/_remove_abstract", workStateCtx.Bind(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
+	router.Handle("/works/_add_lay_summary", workStateCtx.Bind(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
+	router.Handle("/works/_edit_lay_summary", workStateCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
+	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
+	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
 	router.Handle("/works/{id}", workCtx.Bind(h.Show)).Methods("GET").Name("work")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
-	router.Handle("/works/{id}", workCtx.Bind(h.Update)).Methods("POST").Name("update_work")
+	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
 }
 
 func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
@@ -60,297 +107,349 @@ func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) err
 		return err
 	}
 
-	route := c.Route("create_work")
+	// TODO this is repeated in refreshForm
+	if rec.Profile.Identifiers != nil {
+		rec.Identifiers = []bbl.Code{{}}
+	}
+	if rec.Profile.Titles != nil {
+		rec.Attrs.Titles = []bbl.Text{{}}
+	}
 
-	return workviews.Edit(c.ViewCtx(), rec, route).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	rec := &bbl.Work{}
-
-	refresh, err := h.bindWorkForm(r, rec)
+	state, err := c.EncryptValue(rec)
 	if err != nil {
 		return err
 	}
 
-	route := c.Route("create_work")
-
-	if refresh != "" {
-		return workviews.RefreshForm(c.ViewCtx(), rec, route).Render(r.Context(), w)
-	}
-
-	rec.ID = bbl.NewID()
-	rev := bbl.NewRev()
-	rev.Add(&bbl.CreateWork{Work: rec})
-
-	if err = h.repo.AddRev(r.Context(), rev); err != nil {
-		return err
-	}
-
-	rec, err = h.repo.GetWork(r.Context(), rec.ID)
-	if err != nil {
-		return err
-	}
-
-	route = c.Route("update_work", "id", rec.ID)
-
-	htmx.PushURL(w, c.Route("edit_work", "id", rec.ID).String())
-
-	return workviews.RefreshForm(c.ViewCtx(), rec, route).Render(r.Context(), w)
+	return workviews.Edit(c.ViewCtx(), rec, state).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	route := c.Route("update_work", "id", c.Work.ID)
+func (h *WorkHandler) Create(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	vacuumWork(c.Work)
 
-	return workviews.Edit(c.ViewCtx(), c.Work, route).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	refresh, err := h.bindWorkForm(r, c.Work)
-	if err != nil {
-		return err
-	}
-
-	route := c.Route("update_work", "id", c.Work.ID)
-
-	if refresh != "" {
-		return workviews.RefreshForm(c.ViewCtx(), c.Work, route).Render(r.Context(), w)
-	}
+	c.Work.ID = bbl.NewID()
 
 	rev := bbl.NewRev()
-	rev.Add(&bbl.UpdateWork{Work: c.Work})
-
+	rev.Add(&bbl.CreateWork{Work: c.Work})
 	if err := h.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
 
-	work, err := h.repo.GetWork(r.Context(), c.Work.ID)
+	// TODO this is clunky
+	rec, err := h.repo.GetWork(r.Context(), c.Work.ID)
+	if err != nil {
+		return err
+	}
+	c.Work = rec
+
+	htmx.PushURL(w, c.Route("edit_work", "id", rec.ID).String())
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) Edit(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	state, err := c.EncryptValue(c.Work)
 	if err != nil {
 		return err
 	}
 
-	return workviews.RefreshForm(c.ViewCtx(), work, route).Render(r.Context(), w)
+	return workviews.Edit(c.ViewCtx(), c.Work, state).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) SuggestContributors(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	var query string
-	var id string
-	var addAt int = -1
-	var editAt int = -1
-	if err := binder.New(r).Query().
-		String("q", &query).
-		String("id", &id).
-		Int("add_at", &addAt).
-		Int("edit_at", &editAt).
-		Err(); err != nil {
+func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	vacuumWork(c.Work)
+
+	rev := bbl.NewRev()
+	rev.Add(&bbl.UpdateWork{Work: c.Work})
+	if err := h.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
+
+	// TODO this is clunky
+	rec, err := h.repo.GetWork(r.Context(), c.Work.ID)
+	if err != nil {
+		return err
+	}
+	c.Work = rec
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) ChangeKind(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	err := binder.New(r).Form().
+		String("kind", &c.Work.Kind).
+		String("subkind", &c.Work.Subkind).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	if err := bbl.LoadWorkProfile(c.Work); err != nil {
+		return err
+	}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) AddIdentifier(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+	c.Work.Identifiers = slices.Insert(slices.Grow(c.Work.Identifiers, 1), idx, bbl.Code{})
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveIdentifier(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Identifiers = slices.Delete(c.Work.Identifiers, idx, idx+1)
+	if len(c.Work.Identifiers) == 0 {
+		c.Work.Identifiers = []bbl.Code{{}}
+	}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	var query string
+	var action string
+	var idx int
+	err := binder.New(r).Query().
+		String("q", &query).
+		String("action", &action).
+		Int("idx", &idx).
+		Err()
+	if err != nil {
+		return err
+	}
+
 	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Size: 20})
 	if err != nil {
 		return err
 	}
-	return workviews.ContributorSuggestions(c.ViewCtx(), hits, id, addAt, editAt).Render(r.Context(), w)
+
+	return workviews.ContributorSuggestions(c.ViewCtx(), hits, action, idx).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) bindWorkForm(r *http.Request, rec *bbl.Work) (string, error) {
-	var kind string
-	var subKind string
-	var identifiers []bbl.Code
-	var titles []bbl.Text
-	var abstracts []bbl.Text
-	var laySummaries []bbl.Text
-	var keywords []string
-	var conference bbl.Conference
-	var contributors []bbl.WorkContributor
-	var files []bbl.WorkFile
-
-	var refresh string
-
-	b := binder.New(r)
-
-	b.Form().String("refresh", &refresh)
-
-	if refresh == "" {
-		b.Form().Vacuum()
+func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var personID string
+	err := binder.New(r).Form().
+		Int("idx", &idx).
+		String("person_id", &personID).
+		Err()
+	if err != nil {
+		return err
 	}
 
-	b.Form().String("kind", &kind).
-		String("subkind", &subKind).
-		Each("identifiers", func(b *binder.Values) bool {
+	person, err := h.repo.GetPerson(r.Context(), personID)
+	if err != nil {
+		return err
+	}
+
+	c.Work.Contributors = slices.Grow(c.Work.Contributors, 1)
+	c.Work.Contributors = slices.Insert(c.Work.Contributors, idx, bbl.WorkContributor{PersonID: personID, Person: person})
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var personID string
+	err := binder.New(r).Form().
+		Int("idx", &idx).
+		String("person_id", &personID).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	person, err := h.repo.GetPerson(r.Context(), personID)
+	if err != nil {
+		return err
+	}
+
+	c.Work.Contributors[idx] = bbl.WorkContributor{PersonID: personID, Person: person}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Contributors = slices.Delete(c.Work.Contributors, idx, idx+1)
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) AddFiles(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	for _, str := range binder.New(r).Form().GetAll("files") {
+		var f bbl.WorkFile
+		if err := json.Unmarshal([]byte(str), &f); err != nil {
+			return err
+		}
+		c.Work.Files = append(c.Work.Files, f)
+	}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) AddTitle(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.Titles = slices.Insert(slices.Grow(c.Work.Attrs.Titles, 1), idx, bbl.Text{})
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveTitle(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.Titles = slices.Delete(c.Work.Attrs.Titles, idx, idx+1)
+	if len(c.Work.Attrs.Titles) == 0 {
+		c.Work.Attrs.Titles = []bbl.Text{{}}
+	}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var text bbl.Text
+	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.Abstracts = slices.Insert(slices.Grow(c.Work.Attrs.Abstracts, 1), idx, text)
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var text bbl.Text
+	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.Abstracts[idx] = text
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.Abstracts = slices.Delete(c.Work.Attrs.Abstracts, idx, idx+1)
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var text bbl.Text
+	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.LaySummaries = slices.Insert(slices.Grow(c.Work.Attrs.LaySummaries, 1), idx, text)
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	var text bbl.Text
+	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.LaySummaries[idx] = text
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Attrs.LaySummaries = slices.Delete(c.Work.Attrs.LaySummaries, idx, idx+1)
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) refreshForm(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	// TODO this is repeated in New
+	if c.Work.Profile.Identifiers != nil && len(c.Work.Identifiers) == 0 {
+		c.Work.Identifiers = []bbl.Code{{}}
+	}
+	if c.Work.Profile.Titles != nil && len(c.Work.Attrs.Titles) == 0 {
+		c.Work.Attrs.Titles = []bbl.Text{{}}
+	}
+
+	state, err := c.EncryptValue(c.Work)
+	if err != nil {
+		return err
+	}
+
+	return workviews.RefreshForm(c.ViewCtx(), c.Work, state).Render(r.Context(), w)
+}
+
+func bindWorkForm(r *http.Request, rec *bbl.Work) error {
+	// we only need to bind inline editable fields
+	err := binder.New(r).Form().
+		Each("work.identifiers", func(i int, b *binder.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
-			if refresh != "" || code.Val != "" {
-				identifiers = append(identifiers, code)
-			}
+			rec.Identifiers[i] = code
 			return true
 		}).
-		Each("titles", func(b *binder.Values) bool {
+		Each("work.titles", func(i int, b *binder.Values) bool {
 			var text bbl.Text
 			b.String("lang", &text.Lang)
 			b.String("val", &text.Val)
-			if refresh != "" || text.Val != "" {
-				titles = append(titles, text)
-			}
+			rec.Attrs.Titles[i] = text
 			return true
 		}).
-		Each("abstracts", func(b *binder.Values) bool {
-			var text bbl.Text
-			b.String("lang", &text.Lang)
-			b.String("val", &text.Val)
-			if refresh != "" || text.Val != "" {
-				abstracts = append(abstracts, text)
-			}
-			return true
-		}).
-		Each("lay_summaries", func(b *binder.Values) bool {
-			var text bbl.Text
-			b.String("lang", &text.Lang)
-			b.String("val", &text.Val)
-			if refresh != "" || text.Val != "" {
-				laySummaries = append(laySummaries, text)
-			}
-			return true
-		}).
-		StringSlice("keywords", &keywords).
-		String("conference.name", &conference.Name).
-		String("conference.organizer", &conference.Organizer).
-		String("conference.location", &conference.Location).
-		Each("contributors", func(b *binder.Values) bool {
-			var con bbl.WorkContributor
-			b.String("attrs.name", &con.Attrs.Name)
-			b.String("attrs.given_name", &con.Attrs.GivenName)
-			b.String("attrs.middle_name", &con.Attrs.MiddleName)
-			b.String("attrs.family_name", &con.Attrs.FamilyName)
-			b.String("person_id", &con.PersonID)
-			contributors = append(contributors, con)
-			return true
-		})
-	for _, str := range b.Form().GetAll("files") {
-		var f bbl.WorkFile
-		if err := json.Unmarshal([]byte(str), &f); err != nil {
-			return "", err
-		}
-		files = append(files, f)
-	}
+		String("work.conference.name", &rec.Attrs.Conference.Name).
+		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
+		String("work.conference.location", &rec.Attrs.Conference.Location).
+		Err()
+	return err
+}
 
-	// manipulate and validate form
-	if refresh != "" {
-		switch {
-		case b.Form().Has("identifiers.add_at"):
-			var at int
-			b.Form().Int("identifiers.add_at", &at)
-			identifiers = slices.Grow(identifiers, 1)
-			identifiers = slices.Insert(identifiers, at, bbl.Code{})
-		case b.Form().Has("identifiers.remove_at"):
-			var at int
-			b.Form().Int("identifiers.remove_at", &at)
-			identifiers = slices.Delete(identifiers, at, at+1)
-		case b.Form().Has("titles.add_at"):
-			var at int
-			b.Form().Int("titles.add_at", &at)
-			titles = slices.Grow(titles, 1)
-			titles = slices.Insert(titles, at, bbl.Text{})
-		case b.Form().Has("titles.remove_at"):
-			var at int
-			b.Form().Int("titles.remove_at", &at)
-			titles = slices.Delete(titles, at, at+1)
-		case b.Form().Has("abstracts.add_at"):
-			var at int
-			var text bbl.Text
-			b.Form().Int("abstracts.add_at", &at).
-				String("abstracts.add.lang", &text.Lang).
-				String("abstracts.add.val", &text.Val)
-			abstracts = slices.Grow(abstracts, 1)
-			abstracts = slices.Insert(abstracts, at, text)
-		case b.Form().Has("abstracts.edit_at"):
-			var at int
-			var text bbl.Text
-			b.Form().Int("abstracts.edit_at", &at)
-			b.Form().
-				String(fmt.Sprintf("abstracts[%d].edit.lang", at), &text.Lang).
-				String(fmt.Sprintf("abstracts[%d].edit.val", at), &text.Val)
-			abstracts[at] = text
-		case b.Form().Has("abstracts.remove_at"):
-			var at int
-			b.Form().Int("abstracts.remove_at", &at)
-			abstracts = slices.Delete(abstracts, at, at+1)
-		case b.Form().Has("lay_summaries.add_at"):
-			var at int
-			var text bbl.Text
-			b.Form().Int("lay_summaries.add_at", &at).
-				String("lay_summaries.add.lang", &text.Lang).
-				String("lay_summaries.add.val", &text.Val)
-			laySummaries = slices.Grow(laySummaries, 1)
-			laySummaries = slices.Insert(laySummaries, at, text)
-		case b.Form().Has("lay_summaries.edit_at"):
-			var at int
-			var text bbl.Text
-			b.Form().Int("lay_summaries.edit_at", &at)
-			b.Form().
-				String(fmt.Sprintf("lay_summaries[%d].edit.lang", at), &text.Lang).
-				String(fmt.Sprintf("lay_summaries[%d].edit.val", at), &text.Val)
-			laySummaries[at] = text
-		case b.Form().Has("lay_summaries.remove_at"):
-			var at int
-			b.Form().Int("lay_summaries.remove_at", &at)
-			laySummaries = slices.Delete(laySummaries, at, at+1)
-		case b.Form().Has("contributors.add_at"):
-			var at int
-			var personID string
-			b.Form().Int("contributors.add_at", &at).
-				String("person_id", &personID)
-			contributors = slices.Grow(contributors, 1)
-			contributors = slices.Insert(contributors, at, bbl.WorkContributor{PersonID: personID})
-		case b.Form().Has("contributors.edit_at"):
-			var at int
-			var personID string
-			b.Form().Int("contributors.edit_at", &at).
-				String("person_id", &personID)
-			contributors[at] = bbl.WorkContributor{PersonID: personID}
-		case b.Form().Has("contributors.remove_at"):
-			var at int
-			b.Form().Int("contributors.remove_at", &at)
-			contributors = slices.Delete(contributors, at, at+1)
-		case b.Form().Has("files.add"):
-			for _, str := range b.Form().GetAll("files.add") {
-				var f bbl.WorkFile
-				if err := json.Unmarshal([]byte(str), &f); err != nil {
-					return "", err
-				}
-				files = append(files, f)
-			}
+func vacuumWork(rec *bbl.Work) {
+	var identifiers []bbl.Code
+	var titles []bbl.Text
+	for _, code := range rec.Identifiers {
+		if code.Val != "" {
+			identifiers = append(identifiers, code)
 		}
 	}
-
-	if err := b.Err(); err != nil {
-		return "", err
-	}
-
-	for i, con := range contributors {
-		if con.PersonID != "" {
-			person, err := h.repo.GetPerson(r.Context(), con.PersonID)
-			if err != nil {
-				return "", err
-			}
-			contributors[i].Person = person
+	for _, text := range rec.Attrs.Titles {
+		if text.Val != "" {
+			titles = append(titles, text)
 		}
 	}
-
-	rec.Kind = kind
-	rec.Subkind = subKind
-	if err := bbl.LoadWorkProfile(rec); err != nil {
-		return "", err
-	}
-
 	rec.Identifiers = identifiers
-	rec.Contributors = contributors
-	rec.Files = files
 	rec.Attrs.Titles = titles
-	rec.Attrs.Abstracts = abstracts
-	rec.Attrs.LaySummaries = laySummaries
-	rec.Attrs.Keywords = keywords
-	rec.Attrs.Conference = conference
-
-	return refresh, nil
 }

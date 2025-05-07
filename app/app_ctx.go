@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/i18n"
+	"github.com/ugent-library/crypt"
 )
 
 const (
@@ -39,16 +39,27 @@ type AppCtx struct {
 	secureCookie *securecookie.SecureCookie
 	assets       map[string]string
 	insecure     bool
-	Loc          *gotext.Locale
-	URL          *url.URL
-	User         *bbl.User
+	*crypt.Crypt
+	Loc  *gotext.Locale
+	URL  *url.URL
+	User *bbl.User
 }
 
-func BindAppCtx(router *mux.Router, cookies *securecookie.SecureCookie, assets map[string]string, insecure bool, userFunc func(context.Context, string) (*bbl.User, error)) ctx.Binder[*AppCtx] {
+func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ctx.Binder[*AppCtx] {
+	cookies := securecookie.New(config.HashSecret, config.Secret)
+	cookies.SetSerializer(securecookie.JSONEncoder{})
+
+	insecure := config.Env == "development"
+
 	loc := i18n.Locales["en"] // TODO hardcoded for now
+
+	userFunc := config.Repo.GetUser
+
+	crypter := crypt.New(config.Secret)
 
 	return func(r *http.Request) (*AppCtx, error) {
 		c := &AppCtx{
+			Crypt:        crypter,
 			URL:          r.URL,
 			router:       router,
 			secureCookie: cookies,

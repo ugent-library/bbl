@@ -33,8 +33,8 @@ func RunWithContext(ctx context.Context) error {
 	v.BindEnv("oidc.issuer_url")
 	v.BindEnv("oidc.client_id")
 	v.BindEnv("oidc.client_secret")
-	v.BindEnv("cookie_secret")
-	v.BindEnv("cookie_hash_secret")
+	v.BindEnv("secret")
+	v.BindEnv("hash_secret")
 
 	if err := v.Unmarshal(&config); err != nil {
 		return err

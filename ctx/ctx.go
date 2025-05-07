@@ -65,38 +65,36 @@ func (c *Ctx[T]) applyWrappers(w http.ResponseWriter, r *http.Request) (*http.Re
 	if err != nil {
 		return nil, err
 	}
-	req := r
 	for i := len(c.wrappers) - 1; i >= 0; i-- {
-		req, err = c.wrappers[i](w, r, t)
+		r, err = c.wrappers[i](w, r, t)
 		if err != nil {
 			return nil, err
 		}
-		if req == nil {
+		if r == nil {
 			return nil, nil
 		}
 	}
 
-	return req.WithContext(context.WithValue(req.Context(), ctxKey, t)), nil
+	return r.WithContext(context.WithValue(r.Context(), ctxKey, t)), nil
 }
 
 func (c *Ctx[T]) Bind(h Handler[T]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := r
 		var err error
 		for _, chained := range append(c.chain, c) {
-			req, err = chained.applyWrappers(w, req)
+			r, err = chained.applyWrappers(w, r)
 			if err != nil {
 				// TODO error handler
 				log.Printf("error: %s", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			if req == nil {
+			if r == nil {
 				return
 			}
 		}
 
-		t := req.Context().Value(ctxKey).(T)
+		t := r.Context().Value(ctxKey).(T)
 		if err := h(w, r, t); err != nil {
 			// TODO error handler
 			log.Printf("error: %s", err)

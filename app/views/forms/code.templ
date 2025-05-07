@@ -9,17 +9,12 @@ type CodeRepeatArgs struct {
 	FieldArgs
 	Attrs   []bbl.Code
 	Schemes []string
-	HxPost  string
+	AddURL    string
+	RemoveURL string
 }
 
-// TODO fix label for
 templ CodeRepeat(args CodeRepeatArgs) {
-	{{
-		if len(args.Attrs) == 0 {
-			args.Attrs = []bbl.Code{{}}
-		}
-	}}
-	@Field(args.FieldArgs, "") {
+	@Field(args.FieldArgs, fmt.Sprintf("%s[0].val", args.Name)) {
 		for i, attr := range args.Attrs {
 			<div class="form-group">
 				<div class="d-flex">
@@ -43,8 +38,8 @@ templ CodeRepeat(args CodeRepeatArgs) {
 					<button
 						class="btn btn-tertiary btn-icon-only ms-3"
 						type="button"
-						hx-post={ args.HxPost }
-						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.remove_at": %d}`, args.Name, args.Name, i) }
+						hx-post={ args.RemoveURL }
+						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 					>
 						<i class="if if-delete"></i>
 						<span class="visually-hidden">Delete</span>
@@ -52,8 +47,8 @@ templ CodeRepeat(args CodeRepeatArgs) {
 					<button
 						class="btn btn-tertiary btn-icon-only ms-3"
 						type="button"
-						hx-post={ args.HxPost }
-						hx-vals={ fmt.Sprintf(`{"refresh": "%s", "%s.add_at": %d}`, args.Name, args.Name, i+1) }
+						hx-post={ args.AddURL }
+						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i+1) }
 					>
 						<i class="if if-add"></i>
 						<span class="visually-hidden">Add</span>

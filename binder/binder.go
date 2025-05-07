@@ -46,12 +46,10 @@ func (b *Binder) Query() *Values {
 
 func (b *Binder) Form() *Values {
 	if b.formBinder == nil {
-		if b.r.Form == nil {
-			if b.multipart {
-				b.err = b.r.ParseMultipartForm(b.maxMemory)
-			} else {
-				b.err = b.r.ParseForm()
-			}
+		if b.multipart {
+			b.err = b.r.ParseMultipartForm(b.maxMemory)
+		} else {
+			b.err = b.r.ParseForm()
 		}
 		b.formBinder = &Values{binder: b, values: b.r.Form}
 	}
@@ -158,7 +156,7 @@ func (b *Values) Vacuum() *Values {
 }
 
 // TODO cap sparse array size
-func (b *Values) Each(key string, yield func(*Values) bool) *Values {
+func (b *Values) Each(key string, yield func(int, *Values) bool) *Values {
 	if b.binder.err != nil {
 		return b
 	}
@@ -194,8 +192,8 @@ func (b *Values) Each(key string, yield func(*Values) bool) *Values {
 		}
 	}
 
-	for _, v := range s {
-		if !yield(&Values{binder: b.binder, normalizeKey: b.normalizeKey, values: v}) {
+	for i, v := range s {
+		if !yield(i, &Values{binder: b.binder, normalizeKey: b.normalizeKey, values: v}) {
 			break
 		}
 	}

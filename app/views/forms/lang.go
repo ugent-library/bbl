@@ -496,17 +496,17 @@ var languageCodes = []string{
 	"zza",
 }
 
-var languageOptions []Option
+var LanguageOptions []Option
 
 func init() {
-	languageOptions = make([]Option, len(languageCodes))
+	LanguageOptions = make([]Option, len(languageCodes))
 	for i, code := range languageCodes {
 		tag := language.Make(code)
 		lbl := languageNamer.Name(tag)
 		if lbl == "" {
 			lbl = code
 		}
-		languageOptions[i] = Option{
+		LanguageOptions[i] = Option{
 			Value: code,
 			Label: lbl,
 		}

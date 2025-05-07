@@ -49,16 +49,10 @@ export default function (rootEl) {
 
         // TODO handle res.failed
         uppy.on('complete', (res) => {
-            let inputEl = document.createElement('input');
-            inputEl.type = 'hidden';
-            inputEl.name = 'refresh';
-            inputEl.value = 'files';
-            el.appendChild(inputEl);
-
             res.successful.forEach(f => {
                 let inputEl = document.createElement('input');
                 inputEl.type = 'hidden';
-                inputEl.name = 'files.add'; // TODO make reusable
+                inputEl.name = 'files';
                 inputEl.value = JSON.stringify({
                     id: f.meta.id,
                     name: f.name,
@@ -68,8 +62,7 @@ export default function (rootEl) {
                 el.appendChild(inputEl);
             });
 
-            // TODO make reusable
-            document.body.dispatchEvent(new Event('refresh-work-form'));
+            el.dispatchEvent(new Event('files-added'));
         });
     });
 }
