@@ -56,17 +56,17 @@ func (c *WorkContributor) GetName() string {
 	return ""
 }
 
+type WorkFile struct {
+	ObjectID    string `json:"object_id"`
+	Name        string `json:"name"`
+	ContentType string `json:"content_type"`
+	Size        int    `json:"size"`
+}
+
 type WorkRel struct {
 	Kind   string `json:"kind"`
 	WorkID string `json:"work_id"`
 	Work   *Work  `json:"work,omitempty"`
-}
-
-type WorkFile struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	ContentType string `json:"content_type"`
-	Size        int    `json:"size"`
 }
 
 func (rec *Work) RecID() string {

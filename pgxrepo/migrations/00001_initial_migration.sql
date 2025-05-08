@@ -11,7 +11,7 @@ create table bbl_organizations (
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_organizations_identifiers (
+create table bbl_organization_identifiers (
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
   idx int not null,
   scheme text not null,
@@ -21,12 +21,12 @@ create table bbl_organizations_identifiers (
 );
 
 -- TODO are these all necessary?
-create index on bbl_organizations_identifiers (organization_id);
-create unique index on bbl_organizations_identifiers (scheme, val) where uniq is true;
-create index on bbl_organizations_identifiers (scheme, val);
-create index on bbl_organizations_identifiers (uniq);
+create index on bbl_organization_identifiers (organization_id);
+create unique index on bbl_organization_identifiers (scheme, val) where uniq is true;
+create index on bbl_organization_identifiers (scheme, val);
+create index on bbl_organization_identifiers (uniq);
 
-create table bbl_organizations_rels (
+create table bbl_organization_rels (
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
   idx int not null,
   kind text not null,
@@ -35,8 +35,8 @@ create table bbl_organizations_rels (
   check (organization_id <> rel_organization_id)
 );
 
-create index on bbl_organizations_rels (organization_id); -- TODO probably not needed
-create index on bbl_organizations_rels (rel_organization_id);
+create index on bbl_organization_rels (organization_id); -- TODO probably not needed
+create index on bbl_organization_rels (rel_organization_id);
 
 create table bbl_people (
   id uuid primary key,
@@ -46,7 +46,7 @@ create table bbl_people (
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_people_identifiers (
+create table bbl_person_identifiers (
   person_id uuid not null references bbl_people (id) on delete cascade,
   idx int not null,
   scheme text not null,
@@ -56,20 +56,20 @@ create table bbl_people_identifiers (
 );
 
 -- TODO are these all necessary?
-create index on bbl_people_identifiers (person_id);
-create unique index on bbl_people_identifiers (scheme, val) where uniq is true;
-create index on bbl_people_identifiers (scheme, val);
-create index on bbl_people_identifiers (uniq);
+create index on bbl_person_identifiers (person_id);
+create unique index on bbl_person_identifiers (scheme, val) where uniq is true;
+create index on bbl_person_identifiers (scheme, val);
+create index on bbl_person_identifiers (uniq);
 
-create table bbl_people_organizations (
+create table bbl_person_organizations (
   person_id uuid not null references bbl_people (id) on delete cascade,
   idx int not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
   primary key (person_id, idx)
 );
 
-create index on bbl_people_organizations (person_id); -- TODO probably not needed
-create index on bbl_people_organizations (organization_id);
+create index on bbl_person_organizations (person_id); -- TODO probably not needed
+create index on bbl_person_organizations (organization_id);
 
 create table bbl_projects (
   id uuid primary key,
@@ -79,7 +79,7 @@ create table bbl_projects (
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_projects_identifiers (
+create table bbl_project_identifiers (
   project_id uuid not null references bbl_projects (id) on delete cascade,
   idx int not null,
   scheme text not null,
@@ -89,10 +89,10 @@ create table bbl_projects_identifiers (
 );
 
 -- TODO are these all necessary?
-create index on bbl_projects_identifiers (project_id);
-create unique index on bbl_projects_identifiers (scheme, val) where uniq is true;
-create index on bbl_projects_identifiers (scheme, val);
-create index on bbl_projects_identifiers (uniq);
+create index on bbl_project_identifiers (project_id);
+create unique index on bbl_project_identifiers (scheme, val) where uniq is true;
+create index on bbl_project_identifiers (scheme, val);
+create index on bbl_project_identifiers (uniq);
 
 create table bbl_works (
   id uuid primary key,
@@ -105,7 +105,7 @@ create table bbl_works (
   updated_at timestamptz not null default transaction_timestamp()
 );
 
-create table bbl_works_identifiers (
+create table bbl_work_identifiers (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
   scheme text not null,
@@ -115,21 +115,22 @@ create table bbl_works_identifiers (
 );
 
 -- TODO are these all necessary?
-create index on bbl_works_identifiers (work_id);
-create unique index on bbl_works_identifiers (scheme, val) where uniq is true;
-create index on bbl_works_identifiers (scheme, val);
-create index on bbl_works_identifiers (uniq);
+create index on bbl_work_identifiers (work_id);
+create unique index on bbl_work_identifiers (scheme, val) where uniq is true;
+create index on bbl_work_identifiers (scheme, val);
+create index on bbl_work_identifiers (uniq);
 
 create table bbl_work_files (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
-  id uuid not null, -- TODO rename
+  object_id uuid not null,
   name text not null,
   content_type text not null,
   size int not null,
   primary key (work_id, idx)
 );
 
+-- TODO is this necessary?
 create index on bbl_work_files (work_id);
 
 create table bbl_work_representations (
@@ -142,7 +143,7 @@ create table bbl_work_representations (
 
 create index on bbl_work_representations (updated_at);
 
-create table bbl_works_rels (
+create table bbl_work_rels (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
   kind text not null,
@@ -151,10 +152,10 @@ create table bbl_works_rels (
   check (work_id <> rel_work_id)
 );
 
-create index on bbl_works_rels (work_id); -- TODO probably not needed
-create index on bbl_works_rels (rel_work_id);
+create index on bbl_work_rels (work_id); -- TODO probably not needed
+create index on bbl_work_rels (rel_work_id);
 
-create table bbl_works_contributors (
+create table bbl_work_contributors (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
   person_id uuid references bbl_people (id) on delete set null,
@@ -162,28 +163,28 @@ create table bbl_works_contributors (
   primary key (work_id, idx)
 );
 
-create index on bbl_works_contributors (work_id); -- TODO probably not needed
-create index on bbl_works_contributors (person_id) where person_id is not null;
+create index on bbl_work_contributors (work_id); -- TODO probably not needed
+create index on bbl_work_contributors (person_id) where person_id is not null;
 
-create table bbl_works_organizations (
+create table bbl_work_organizations (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
   organization_id uuid not null references bbl_organizations (id) on delete cascade,
   primary key (work_id, idx)
 );
 
-create index on bbl_works_organizations (work_id); -- TODO probably not needed
-create index on bbl_works_organizations (organization_id);
+create index on bbl_work_organizations (work_id); -- TODO probably not needed
+create index on bbl_work_organizations (organization_id);
 
-create table bbl_works_projects (
+create table bbl_work_projects (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
   project_id uuid not null references bbl_projects (id) on delete cascade,
   primary key (work_id, idx)
 );
 
-create index on bbl_works_projects (work_id); -- TODO probably not needed
-create index on bbl_works_projects (project_id);
+create index on bbl_work_projects (work_id); -- TODO probably not needed
+create index on bbl_work_projects (project_id);
 
 create table bbl_users (
   id uuid primary key,
@@ -241,19 +242,19 @@ drop table bbl_changes cascade;
 drop table bbl_revs cascade;
 drop table bbl_user_identifiers cascade;
 drop table bbl_users cascade;
-drop table bbl_people_organizations cascade;
+drop table bbl_person_organizations cascade;
 drop table bbl_work_files cascade;
-drop table bbl_works_contributors cascade;
-drop table bbl_works_organizations cascade;
-drop table bbl_works_projects cascade;
-drop table bbl_organizations_identifiers cascade;
-drop table bbl_organizations_rels cascade;
+drop table bbl_work_contributors cascade;
+drop table bbl_work_organizations cascade;
+drop table bbl_work_projects cascade;
+drop table bbl_organization_identifiers cascade;
+drop table bbl_organization_rels cascade;
 drop table bbl_organizations cascade;
-drop table bbl_people_identifiers cascade;
+drop table bbl_person_identifiers cascade;
 drop table bbl_people cascade;
-drop table bbl_projects_identifiers cascade;
+drop table bbl_project_identifiers cascade;
 drop table bbl_projects cascade;
 drop table bbl_work_representations cascade;
-drop table bbl_works_identifiers cascade;
-drop table bbl_works_rels cascade;
+drop table bbl_work_identifiers cascade;
+drop table bbl_work_rels cascade;
 drop table bbl_works cascade;

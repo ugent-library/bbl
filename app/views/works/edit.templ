@@ -404,14 +404,14 @@ templ textsField(c views.Ctx, args textsFieldArgs) {
 										Label: args.Title,
 									},
 									Value: text.Val,
-									Rows: 8,
+									Rows:  8,
 								})
 								@forms.Select(forms.SelectArgs{
 									FieldArgs: forms.FieldArgs{
 										Name:  "lang",
 										Label: "Language",
 									},
-									Value: text.Lang,
+									Value:   text.Lang,
 									Options: forms.LanguageOptions,
 								})
 							</div>
@@ -648,7 +648,7 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action
 
 templ filesField(c views.Ctx, rec *bbl.Work) {
 	<ul class="list-group mb-6">
-		for _, f := range rec.Files {
+		for i, f := range rec.Files {
 			<li class="list-group-item">
 				<div class="bc-avatar-and-text align-items-start w-100">
 					<div class="bc-avatar bc-avatar--square mt-3 bc-avatar--muted">
@@ -681,18 +681,15 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 									<i class="if if-edit"></i>
 									<span class="btn-text">Edit</span>
 								</button>
-								<div class="dropdown">
-									<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-										<i class="if if-more"></i>
-										<span class="btn-text">Actions</span>
-									</button>
-									<div class="dropdown-menu">
-										<button class="dropdown-item" type="button">
-											<i class="if if-delete"></i>
-											<span>Remove</span>
-										</button>
-									</div>
-								</div>
+								<button
+									class="btn btn-tertiary btn-lg-only-responsive"
+									type="button"
+									hx-post={ c.Route("work_remove_file").String() }
+									hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
+								>
+									<i class="if if-delete"></i>
+									<span class="btn-text">Remove</span>
+								</button>
 							</div>
 						</div>
 					</div>

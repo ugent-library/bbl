@@ -46,7 +46,7 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
 			select w.id, w.kind, coalesce(w.subkind, ''), w.status, w.attrs, w.version, w.created_at, w.updated_at, w.identifiers, w.contributors, w.files, w.rels
-			from bbl_works_view w, bbl_works_identifiers w_i
+			from bbl_works_view w, bbl_work_identifiers w_i
 			where w.id = w_i.work_id and w_i.scheme = $1 and w_i.val = $2;`,
 			scheme, val,
 		)

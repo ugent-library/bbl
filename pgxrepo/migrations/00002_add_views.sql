@@ -9,7 +9,7 @@ left join lateral (
   select
    	organization_id,
     json_agg(json_build_object('scheme', o_i.scheme, 'val', o_i.val) order by o_i.idx) filter (where o_i.idx is not null) as identifiers
-  from bbl_organizations_identifiers o_i
+  from bbl_organization_identifiers o_i
   where o_i.organization_id=o.id
   group by organization_id
 ) o_i on o_i.organization_id=o.id
@@ -17,7 +17,7 @@ left join lateral (
   select
    	organization_id,
     json_agg(json_build_object('kind', o_r.kind, 'organization_id', o_r.rel_organization_id) order by o_r.idx) filter (where o_r.idx is not null) as rels
-  from bbl_organizations_rels o_r
+  from bbl_organization_rels o_r
   where o_r.organization_id=o.id
   group by organization_id
 ) o_r on o_r.organization_id=o.id;
@@ -30,7 +30,7 @@ left join lateral (
   select
    	person_id,
     json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) order by p_i.idx) filter (where p_i.idx is not null) as identifiers
-  from bbl_people_identifiers p_i
+  from bbl_person_identifiers p_i
   where p_i.person_id=p.id
   group by person_id
 ) p_i on p_i.person_id=p.id;
@@ -43,7 +43,7 @@ left join lateral (
   select
    	project_id,
     json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) order by p_i.idx) filter (where p_i.idx is not null) as identifiers
-  from bbl_projects_identifiers p_i
+  from bbl_project_identifiers p_i
   where p_i.project_id=p.id
   group by project_id
 ) p_i on p_i.project_id=p.id;
@@ -59,7 +59,7 @@ left join lateral (
   select
    	work_id,
     json_agg(json_build_object('scheme', w_i.scheme, 'val', w_i.val) order by w_i.idx) filter (where w_i.idx is not null) as identifiers
-  from bbl_works_identifiers w_i
+  from bbl_work_identifiers w_i
   where w_i.work_id=w.id
   group by work_id
 ) w_i on w_i.work_id=w.id
@@ -67,7 +67,7 @@ left join lateral (
   select
    	work_id,
     json_agg(json_build_object('person_id', w_c.person_id, 'person', p, 'attrs', w_c.attrs) order by w_c.idx) filter (where w_c.idx is not null) as contributors
-  from bbl_works_contributors w_c
+  from bbl_work_contributors w_c
   left join bbl_people_view p on p.id = w_c.person_id
   where w_c.work_id=w.id
   group by work_id
@@ -75,7 +75,7 @@ left join lateral (
 left join lateral (
   select
    	work_id,
-    json_agg(json_build_object('id', w_f.id, 'name', w_f.name, 'content_type', w_f.content_type, 'size', w_f.size) order by w_f.idx) filter (where w_f.idx is not null) as files
+    json_agg(json_build_object('object_id', w_f.object_id, 'name', w_f.name, 'content_type', w_f.content_type, 'size', w_f.size) order by w_f.idx) filter (where w_f.idx is not null) as files
   from bbl_work_files w_f
   where w_f.work_id=w.id
   group by work_id
@@ -84,7 +84,7 @@ left join lateral (
   select
    	work_id,
     json_agg(json_build_object('kind', w_r.kind, 'work_id', w_r.rel_work_id) order by w_r.idx) filter (where w_r.idx is not null) as rels
-  from bbl_works_rels w_r
+  from bbl_work_rels w_r
   where w_r.work_id=w.id
   group by work_id
 ) w_r on w_r.work_id=w.id;

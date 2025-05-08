@@ -72,6 +72,7 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_edit_contributor", workStateCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
 	router.Handle("/works/_remove_contributor", workStateCtx.Bind(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
 	router.Handle("/works/_add_files", workStateCtx.Bind(h.AddFiles)).Methods("POST").Name("work_add_files")
+	router.Handle("/works/_remove_file", workStateCtx.Bind(h.RemoveFile)).Methods("POST").Name("work_remove_file")
 	router.Handle("/works/_add_title", workStateCtx.Bind(h.AddTitle)).Methods("POST").Name("work_add_title")
 	router.Handle("/works/_remove_title", workStateCtx.Bind(h.RemoveTitle)).Methods("POST").Name("work_remove_title")
 	router.Handle("/works/_add_abstract", workStateCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
@@ -297,6 +298,17 @@ func (h *WorkHandler) AddFiles(w http.ResponseWriter, r *http.Request, c *WorkCt
 		}
 		c.Work.Files = append(c.Work.Files, f)
 	}
+
+	return h.refreshForm(w, r, c)
+}
+
+func (h *WorkHandler) RemoveFile(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	var idx int
+	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+		return err
+	}
+
+	c.Work.Files = slices.Delete(c.Work.Files, idx, idx+1)
 
 	return h.refreshForm(w, r, c)
 }

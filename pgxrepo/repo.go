@@ -139,14 +139,14 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Organization.Identifiers {
 				batch.Queue(`
-					insert into bbl_organizations_identifiers (organization_id, idx, scheme, val, uniq)
+					insert into bbl_organization_identifiers (organization_id, idx, scheme, val, uniq)
 					values ($1, $2, $3, $4, true);`,
 					a.Organization.ID, i, iden.Scheme, iden.Val,
 				)
 			}
 			for i, rel := range a.Organization.Rels {
 				batch.Queue(`
-					insert into bbl_organizations_rels (organization_id, idx, kind, rel_organization_id)
+					insert into bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
 					values ($1, $2, $3, $4);`,
 					a.Organization.ID, i, rel.Kind, rel.OrganizationID,
 				)
@@ -209,13 +209,13 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "organization", "organizations", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
+				queueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
 			}
 
 			if _, ok := diff["rels"]; ok {
 				if len(currentRec.Rels) > len(a.Organization.Rels) {
 					batch.Queue(`
-						delete from bbl_organizations_rels
+						delete from bbl_organization_rels
 						where organization_id = $1 and idx >= $2;`,
 						a.Organization.ID, len(a.Organization.Rels),
 					)
@@ -224,7 +224,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					// TODO only update if different
 					if i < len(currentRec.Rels) {
 						batch.Queue(`
-							update bbl_organizations_rels
+							update bbl_organization_rels
 							set kind = $3,
 							    rel_organization_id = $4,
 							where organization_id = $1 and idx = $2;`,
@@ -232,7 +232,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_organizations_rels (organization_id, idx, kind, rel_organization_id)
+							insert into bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
 							values ($1, $2, $3, $4);`,
 							a.Organization.ID, i, rel.Kind, rel.OrganizationID,
 						)
@@ -280,7 +280,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Person.Identifiers {
 				batch.Queue(`
-					insert into bbl_people_identifiers (person_id, idx, scheme, val, uniq)
+					insert into bbl_person_identifiers (person_id, idx, scheme, val, uniq)
 					values ($1, $2, $3, $4, true);`,
 					a.Person.ID, i, iden.Scheme, iden.Val,
 				)
@@ -338,7 +338,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "person", "people", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
+				queueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
 			}
 
 			batch.Queue(`
@@ -381,7 +381,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Project.Identifiers {
 				batch.Queue(`
-					insert into bbl_projects_identifiers (project_id, idx, scheme, val, uniq)
+					insert into bbl_project_identifiers (project_id, idx, scheme, val, uniq)
 					values ($1, $2, $3, $4, true);`,
 					a.Project.ID, i, iden.Scheme, iden.Val,
 				)
@@ -441,7 +441,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "project", "projects", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
+				queueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
 			}
 
 			batch.Queue(`
@@ -489,7 +489,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
-					insert into bbl_works_identifiers (work_id, idx, scheme, val, uniq)
+					insert into bbl_work_identifiers (work_id, idx, scheme, val, uniq)
 					values ($1, $2, $3, $4, true);`,
 					a.Work.ID, i, iden.Scheme, iden.Val,
 				)
@@ -501,21 +501,21 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 
 				batch.Queue(`
-				insert into bbl_works_contributors (id, work_id, attrs, person_id, idx)
+				insert into bbl_work_contributors (id, work_id, attrs, person_id, idx)
 				values ($1, $2, $3, $4, $5);`,
 					bbl.NewID(), a.Work.ID, jsonAttrs, con.PersonID, i,
 				)
 			}
 			for i, f := range a.Work.Files {
 				batch.Queue(`
-					insert into bbl_work_files (work_id, idx, id, name, content_type, size)
+					insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
 					values ($1, $2, $3, $4, $5, $6);`,
-					a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+					a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 				)
 			}
 			for i, rel := range a.Work.Rels {
 				batch.Queue(`
-					insert into bbl_works_rels (work_id, idx, kind, rel_work_id)
+					insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
 					values ($1, $2, $3, $4);`,
 					a.Work.ID, i, rel.Kind, rel.WorkID,
 				)
@@ -583,13 +583,13 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "work", "works", a.Work.ID, currentRec.Identifiers, a.Work.Identifiers)
+				queueUpdateIdentifiersQueries(batch, "work", a.Work.ID, currentRec.Identifiers, a.Work.Identifiers)
 			}
 
 			if _, ok := diff["contributors"]; ok {
 				if len(currentRec.Contributors) > len(a.Work.Contributors) {
 					batch.Queue(`
-						delete from bbl_works_contributors
+						delete from bbl_work_contributors
 						where work_id = $1 and idx >= $2;`,
 						a.Work.ID, len(a.Work.Contributors),
 					)
@@ -603,15 +603,15 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					// TODO only update if different
 					if i < len(currentRec.Contributors) {
 						batch.Queue(`
-							update bbl_works_contributors
+							update bbl_work_contributors
 							set attrs = $3,
-							    person_id = $4,
+							    person_id = $4
 							where work_id = $1 and idx = $2;`,
 							a.Work.ID, i, jsonAttrs, con.PersonID,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_works_contributors (work_id, idx, attrs, person_id)
+							insert into bbl_work_contributors (work_id, idx, attrs, person_id)
 							values ($1, $2, $3, $4);`,
 							a.Work.ID, i, jsonAttrs, con.PersonID,
 						)
@@ -632,18 +632,18 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					if i < len(currentRec.Files) {
 						batch.Queue(`
 							update bbl_work_files
-							set id = $3,
+							set object_id = $3,
 							    name = $4,
 								content_type = $5,
 								size = $6
 							where work_id = $1 and idx = $2;`,
-							a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+							a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_work_files (work_id, idx, id, name, content_type, size)
+							insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
 							values ($1, $2, $3, $4, $5, $6);`,
-							a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+							a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 						)
 					}
 				}
@@ -652,7 +652,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if _, ok := diff["rels"]; ok {
 				if len(currentRec.Rels) > len(a.Work.Rels) {
 					batch.Queue(`
-						delete from bbl_works_rels
+						delete from bbl_work_rels
 						where work_id = $1 and idx >= $2;`,
 						a.Work.ID, len(a.Work.Rels),
 					)
@@ -661,15 +661,15 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					// TODO only update if different
 					if i < len(currentRec.Rels) {
 						batch.Queue(`
-							update bbl_works_rels
+							update bbl_work_rels
 							set kind = $3,
-							    rel_work_id = $4,
+							    rel_work_id = $4
 							where work_id = $1 and idx = $2;`,
 							a.Work.ID, i, rel.Kind, rel.WorkID,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_works_rels (work_id, idx, kind, rel_work_id)
+							insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
 							values ($1, $2, $3, $4);`,
 							a.Work.ID, i, rel.Kind, rel.WorkID,
 						)
@@ -726,7 +726,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []bbl.OrganizationRel) error {
 	for i, rel := range rels {
 		if scheme, val, ok := strings.Cut(rel.OrganizationID, ":"); ok {
-			id, err := getIDByIdentifier(ctx, conn, "organization", "organizations", scheme, val)
+			id, err := getIDByIdentifier(ctx, conn, "organization", scheme, val)
 			if err != nil {
 				return err
 			}
@@ -739,7 +739,7 @@ func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []bbl.Organi
 func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []bbl.WorkContributor) error {
 	for i, con := range contributors {
 		if scheme, val, ok := strings.Cut(con.PersonID, ":"); ok {
-			id, err := getIDByIdentifier(ctx, conn, "person", "people", scheme, val)
+			id, err := getIDByIdentifier(ctx, conn, "person", scheme, val)
 			if err != nil {
 				return err
 			}
@@ -749,10 +749,10 @@ func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []bb
 	return nil
 }
 
-func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, pluralName, id string, old, new []bbl.Code) {
+func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
 	if len(old) > len(new) {
 		batch.Queue(`
-			delete from bbl_`+pluralName+`_identifiers
+			delete from bbl_`+name+`_identifiers
 			where `+name+`_id = $1 and idx >= $2;`,
 			id, len(new),
 		)
@@ -761,7 +761,7 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, pluralName, id string
 		// TODO only update if different
 		if i < len(old) {
 			batch.Queue(`
-				update bbl_`+pluralName+`_identifiers
+				update bbl_`+name+`_identifiers
 				set scheme = $3,
 					val = $4,
 					uniq = true
@@ -770,7 +770,7 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, pluralName, id string
 			)
 		} else {
 			batch.Queue(`
-				insert into bbl_`+pluralName+`_identifiers (`+name+`_id, idx, scheme, val, uniq)
+				insert into bbl_`+name+`_identifiers (`+name+`_id, idx, scheme, val, uniq)
 				values ($1, $2, $3, $4, true);`,
 				id, i, ident.Scheme, ident.Val,
 			)
@@ -778,10 +778,10 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, pluralName, id string
 	}
 }
 
-func getIDByIdentifier(ctx context.Context, conn pgxConn, name, pluralName, scheme, val string) (string, error) {
+func getIDByIdentifier(ctx context.Context, conn pgxConn, name, scheme, val string) (string, error) {
 	q := `
 		select ` + name + `_id
-		from bbl_` + pluralName + `_identifiers
+		from bbl_` + name + `_identifiers
 		where scheme = $1 and val = $2 and uniq = true;`
 
 	var id string

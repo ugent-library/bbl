@@ -46,7 +46,7 @@ func getOrganization(ctx context.Context, conn pgxConn, id string) (*bbl.Organiz
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
 			select o.id, o.kind, o.attrs, o.version, o.created_at, o.updated_at, o.identifiers, o.rels
-			from bbl_organizations_view o, bbl_organizations_identifiers o_i
+			from bbl_organizations_view o, bbl_organization_identifiers o_i
 			where o.id = o_i.organizatons_id and o_i.scheme = $1 and o_i.val = $2;`,
 			scheme, val,
 		)

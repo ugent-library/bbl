@@ -35,18 +35,19 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return err
 	}
-	id := bbl.NewID()
-	presignedURL, err := h.store.NewUploadURL(r.Context(), id, 15*time.Minute)
+
+	objectID := bbl.NewID()
+	presignedURL, err := h.store.NewUploadURL(r.Context(), objectID, 15*time.Minute)
 	if err != nil {
 		return err
 	}
 
 	res := struct {
-		ID  string `json:"id"`
-		URL string `json:"url"`
+		ObjectID string `json:"object_id"`
+		URL      string `json:"url"`
 	}{
-		ID:  id,
-		URL: presignedURL,
+		ObjectID: objectID,
+		URL:      presignedURL,
 	}
 	if err := json.NewEncoder(w).Encode(&res); err != nil {
 		return err

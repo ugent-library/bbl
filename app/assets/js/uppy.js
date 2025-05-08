@@ -34,7 +34,7 @@ export default function (rootEl) {
                     return res.json()
                 }).then((data) => {
                     uppy.setFileMeta(file.id, {
-                        id: data.id,
+                        object_id: data.object_id,
                     });
                     return {
                         method: 'PUT',
@@ -54,7 +54,7 @@ export default function (rootEl) {
                 inputEl.type = 'hidden';
                 inputEl.name = 'files';
                 inputEl.value = JSON.stringify({
-                    id: f.meta.id,
+                    object_id: f.meta.object_id,
                     name: f.name,
                     content_type: f.type,
                     size: f.size,
