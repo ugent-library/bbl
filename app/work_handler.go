@@ -159,7 +159,7 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 	vacuumWork(c.Work)
 
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.UpdateWork{Work: c.Work})
+	rev.Add(&bbl.UpdateWork{Work: c.Work, MatchVersion: true})
 	if err := h.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}

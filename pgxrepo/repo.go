@@ -163,6 +163,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
+			// conflict detection
+			if a.MatchVersion && a.Organization.Version != currentRec.Version {
+				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Organization.Version, currentRec.Version)
+			}
+
 			if err := lookupOrganizationRels(ctx, tx, a.Organization.Rels); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -282,6 +287,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
+			// conflict detection
+			if a.MatchVersion && a.Person.Version != currentRec.Version {
+				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Person.Version, currentRec.Version)
+			}
+
 			diff := a.Person.Diff(currentRec)
 
 			if len(diff) == 0 {
@@ -366,6 +376,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			currentRec, err := getProject(ctx, tx, a.Project.ID)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			// conflict detection
+			if a.MatchVersion && a.Project.Version != currentRec.Version {
+				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Project.Version, currentRec.Version)
 			}
 
 			diff := a.Project.Diff(currentRec)
@@ -488,6 +503,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			currentRec, err := getWork(ctx, tx, a.Work.ID)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			// conflict detection
+			if a.MatchVersion && a.Work.Version != currentRec.Version {
+				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Work.Version, currentRec.Version)
 			}
 
 			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {

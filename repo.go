@@ -10,6 +10,7 @@ import (
 )
 
 var ErrNotFound = errors.New("not found")
+var ErrConflict = errors.New("version conflict")
 
 func NewID() string {
 	return ulid.Make().UUIDString()
@@ -96,6 +97,7 @@ func (*CreateOrganization) isAction() {}
 
 type UpdateOrganization struct {
 	Organization *Organization `json:"organization"`
+	MatchVersion bool
 }
 
 func (*UpdateOrganization) isAction() {}
@@ -107,7 +109,8 @@ type CreatePerson struct {
 func (*CreatePerson) isAction() {}
 
 type UpdatePerson struct {
-	Person *Person `json:"person"`
+	Person       *Person `json:"person"`
+	MatchVersion bool
 }
 
 func (*UpdatePerson) isAction() {}
@@ -119,7 +122,8 @@ type CreateProject struct {
 func (*CreateProject) isAction() {}
 
 type UpdateProject struct {
-	Project *Project `json:"project"`
+	Project      *Project `json:"project"`
+	MatchVersion bool
 }
 
 func (*UpdateProject) isAction() {}
@@ -131,7 +135,8 @@ type CreateWork struct {
 func (*CreateWork) isAction() {}
 
 type UpdateWork struct {
-	Work *Work `json:"work"`
+	Work         *Work `json:"work"`
+	MatchVersion bool
 }
 
 func (*UpdateWork) isAction() {}
