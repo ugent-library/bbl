@@ -34,6 +34,10 @@ func (rec *Organization) RecVersion() int {
 	return rec.Version
 }
 
+func (rec *Organization) Validate() error {
+	return nil
+}
+
 func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	changes := map[string]any{}
 	if rec.Kind != rec2.Kind {

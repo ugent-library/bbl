@@ -29,6 +29,10 @@ func (rec *Person) RecVersion() int {
 	return rec.Version
 }
 
+func (rec *Person) Validate() error {
+	return nil
+}
+
 func (rec *Person) Diff(rec2 *Person) map[string]any {
 	changes := map[string]any{}
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {

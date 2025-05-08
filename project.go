@@ -27,6 +27,10 @@ func (rec *Project) RecVersion() int {
 	return rec.Version
 }
 
+func (rec *Project) Validate() error {
+	return nil
+}
+
 func (rec *Project) Diff(rec2 *Project) map[string]any {
 	changes := map[string]any{}
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
