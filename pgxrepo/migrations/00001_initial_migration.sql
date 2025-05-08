@@ -121,13 +121,13 @@ create index on bbl_works_identifiers (scheme, val);
 create index on bbl_works_identifiers (uniq);
 
 create table bbl_work_files (
-  id uuid primary key,
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
+  id uuid not null, -- TODO rename
   name text not null,
   content_type text not null,
   size int not null,
-  unique (work_id, idx)
+  primary key (work_id, idx)
 );
 
 create index on bbl_work_files (work_id);

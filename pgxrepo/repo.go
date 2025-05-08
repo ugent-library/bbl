@@ -619,6 +619,36 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 			}
 
+			if _, ok := diff["files"]; ok {
+				if len(currentRec.Files) > len(a.Work.Files) {
+					batch.Queue(`
+						delete from bbl_work_files
+						where work_id = $1 and idx >= $2;`,
+						a.Work.ID, len(a.Work.Files),
+					)
+				}
+				for i, f := range a.Work.Files {
+					// TODO only update if different
+					if i < len(currentRec.Files) {
+						batch.Queue(`
+							update bbl_work_files
+							set id = $3,
+							    name = $4,
+								content_type = $5,
+								size = $6
+							where work_id = $1 and idx = $2;`,
+							a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+						)
+					} else {
+						batch.Queue(`
+							insert into bbl_work_files (work_id, idx, id, name, content_type, size)
+							values ($1, $2, $3, $4, $5, $6);`,
+							a.Work.ID, i, f.ID, f.Name, f.ContentType, f.Size,
+						)
+					}
+				}
+			}
+
 			if _, ok := diff["rels"]; ok {
 				if len(currentRec.Rels) > len(a.Work.Rels) {
 					batch.Queue(`
