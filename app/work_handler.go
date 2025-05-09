@@ -9,14 +9,23 @@ import (
 	"github.com/ugent-library/bbl"
 	workviews "github.com/ugent-library/bbl/app/views/works"
 	"github.com/ugent-library/bbl/binder"
+	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/htmx"
+	"github.com/ugent-library/httperror"
 )
 
 type WorkCtx struct {
 	*AppCtx
 	Work *bbl.Work
+}
+
+func RequireCanViewWork(w http.ResponseWriter, r *http.Request, c *WorkCtx) (*http.Request, error) {
+	if !can.ViewWork(c.User, c.Work) {
+		return nil, httperror.Forbidden
+	}
+	return r, nil
 }
 
 type WorkHandler struct {
@@ -82,7 +91,7 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_edit_lay_summary", workStateCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
 	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
 	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/{id}", workCtx.Bind(h.Show)).Methods("GET").Name("work")
+	router.Handle("/works/{id}", workCtx.With(RequireCanViewWork).Bind(h.Show)).Methods("GET").Name("work")
 	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
 }

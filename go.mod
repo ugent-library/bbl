@@ -30,6 +30,7 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/ugent-library/httperror v0.0.0-20240522041727-58d71286fb15
 	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 )

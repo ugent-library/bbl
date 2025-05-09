@@ -6,7 +6,19 @@ import (
 	"time"
 )
 
-var WorkStatuses = []string{"suggestion", "draft", "public", "deleted"}
+const (
+	SuggestionStatus = "suggestion"
+	DraftStatus      = "draft"
+	PublicStatus     = "public"
+	DeletedStatus    = "deleted"
+)
+
+var WorkStatuses = []string{
+	SuggestionStatus,
+	DraftStatus,
+	PublicStatus,
+	DeletedStatus,
+}
 
 type Work struct {
 	RecHeader

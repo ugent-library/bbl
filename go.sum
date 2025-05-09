@@ -165,6 +165,8 @@ github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9 h1:wthRE6R1V0R
 github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9/go.mod h1:kamafwnieKPUZiNvnyN0/kBjhO9tzCzSrPY069QBBwk=
 github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690 h1:Dsbqd3u/sjlKlwHK7ikROTZ0xatKkYGamuNkCqChcgU=
 github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690/go.mod h1:kUwZPkdZkQ7AxWSVNuOOcu9bk2jcFyGJcn868cStEjI=
+github.com/ugent-library/httperror v0.0.0-20240522041727-58d71286fb15 h1:YQlO81kuG2VoBtvmpXfNhjAtPbIOT8BY7zQgZ/+P6xk=
+github.com/ugent-library/httperror v0.0.0-20240522041727-58d71286fb15/go.mod h1:OtKzv31gT+JbMil3u99F2WedTNNrP1xrpJRykBfaxYE=
 github.com/ugent-library/oidc v0.1.0 h1:MEXXUBcWEH+5RbPyUYEx7eONbhKm7/mydiwzCSNzN2c=
 github.com/ugent-library/oidc v0.1.0/go.mod h1:oSHG0rvTDa6hJKCyow+xK1Mmf/yKfjJh3ab3m/8O0WI=
 github.com/ugent-library/tonga v0.0.0-20250416071751-ab5c715b2347 h1:7vRq/oGQR7zv07BKUtxuVWlqnrD/7dELcnmtluWQUcE=

@@ -7,14 +7,14 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
-      "completion": {
-        "type": "search_as_you_type"
-      },
       "kind": {
         "type": "keyword"
       },
       "status": {
         "type": "keyword"
+      },
+      "completion": {
+        "type": "search_as_you_type"
       },
       "rec": {
         "enabled": false

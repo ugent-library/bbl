@@ -2,6 +2,11 @@ package bbl
 
 import "time"
 
+const (
+	AdminRole = "admin"
+	UserRole  = "user"
+)
+
 type User struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
