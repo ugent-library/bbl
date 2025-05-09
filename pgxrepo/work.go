@@ -16,9 +16,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 }
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
-	q := `
-		select id, kind, coalesce(subkind, ''), status, attrs, version, created_at, updated_at, identifiers, contributors, files, rels
-		from bbl_works_view;`
+	q := `select ` + workCols + ` from bbl_works_view w;`
 
 	return func(yield func(*bbl.Work) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -45,18 +43,15 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select w.id, w.kind, coalesce(w.subkind, ''), w.status, w.attrs, w.version, w.created_at, w.updated_at, w.identifiers, w.contributors, w.files, w.rels
+			select `+workCols+` 
 			from bbl_works_view w, bbl_work_identifiers w_i
-			where w.id = w_i.work_id and w_i.scheme = $1 and w_i.val = $2;`,
+			where w.id = w_i.work_id and
+			      w_i.scheme = $1 and
+				  w_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `
-			select id, kind, coalesce(subkind, ''), status, attrs, version, created_at, updated_at, identifiers, contributors, files, rels
-			from bbl_works_view
-			where id = $1;`,
-			id,
-		)
+		row = conn.QueryRow(ctx, `select `+workCols+` from bbl_works_view w where w.id = $1;`, id)
 	}
 
 	rec, err := scanWork(row)
@@ -70,40 +65,84 @@ func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
 	return rec, err
 }
 
+const workCols = `
+	w.id,
+	w.version,
+	w.created_at,
+	w.updated_at,
+	coalesce(w.created_by_id::text, ''),
+	coalesce(w.updated_by_id::text, ''),
+	w.created_by,
+	w.updated_by,
+	w.kind,
+	coalesce(w.subkind, ''),
+	w.status,
+	w.attrs,
+	w.identifiers,
+	w.contributors,
+	w.files,
+	w.rels
+`
+
 func scanWork(row pgx.Row) (*bbl.Work, error) {
 	var rec bbl.Work
+	var rawCreatedBy json.RawMessage
+	var rawUpdatedBy json.RawMessage
 	var rawAttrs json.RawMessage
 	var rawIdentifiers json.RawMessage
 	var rawContributors json.RawMessage
 	var rawFiles json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Kind, &rec.Subkind, &rec.Status, &rawAttrs, &rec.Version, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawContributors, &rawFiles, &rawRels); err != nil {
+	if err := row.Scan(
+		&rec.ID,
+		&rec.Version,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+		&rec.CreatedByID,
+		&rec.UpdatedByID,
+		&rawCreatedBy,
+		&rawUpdatedBy,
+		&rec.Kind,
+		&rec.Subkind,
+		&rec.Status,
+		&rawAttrs,
+		&rawIdentifiers,
+		&rawContributors,
+		&rawFiles,
+		&rawRels,
+	); err != nil {
 		return nil, err
 	}
 
+	if rawCreatedBy != nil {
+		if err := json.Unmarshal(rawCreatedBy, &rec.CreatedBy); err != nil {
+			return nil, err
+		}
+	}
+	if rawUpdatedBy != nil {
+		if err := json.Unmarshal(rawUpdatedBy, &rec.UpdatedBy); err != nil {
+			return nil, err
+		}
+	}
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
 		return nil, err
 	}
-
 	if rawIdentifiers != nil {
 		if err := json.Unmarshal(rawIdentifiers, &rec.Identifiers); err != nil {
 			return nil, err
 		}
 	}
-
 	if rawContributors != nil {
 		if err := json.Unmarshal(rawContributors, &rec.Contributors); err != nil {
 			return nil, err
 		}
 	}
-
 	if rawFiles != nil {
 		if err := json.Unmarshal(rawFiles, &rec.Files); err != nil {
 			return nil, err
 		}
 	}
-
 	if rawRels != nil {
 		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
 			return nil, err

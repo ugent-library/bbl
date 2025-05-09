@@ -2,13 +2,47 @@
 
 create extension if not exists citext;
 
-create table bbl_organizations (
+create table bbl_users (
   id uuid primary key,
-  kind text not null,
-  attrs jsonb not null default '{}',
-  version int not null, -- TODO should be bigint?
+  username text not null unique,
+  email citext not null unique,
+  name text not null,
+  role text not null,
   created_at timestamptz not null default transaction_timestamp(),
   updated_at timestamptz not null default transaction_timestamp()
+);
+
+create table bbl_user_identifiers (
+  user_id uuid not null references bbl_users (id) on delete cascade,
+  idx int not null,
+  scheme text not null,
+  val text not null,
+  primary key (user_id, idx),
+  unique (scheme, val)
+);
+
+-- TODO is this necessary?
+create index on bbl_user_identifiers (user_id);
+
+create table bbl_user_proxies (
+  user_id uuid not null references bbl_users (id) on delete cascade,
+  proxy_user_id uuid not null references bbl_users (id) on delete cascade,
+  primary key (user_id, proxy_user_id),
+  check (user_id <> proxy_user_id)
+);
+
+create index on bbl_user_proxies (user_id); -- TODO probably not needed
+create index on bbl_user_proxies (proxy_user_id);
+
+create table bbl_organizations (
+  id uuid primary key,
+  version int not null,
+  created_at timestamptz not null default transaction_timestamp(),
+  updated_at timestamptz not null default transaction_timestamp(),
+  created_by_id uuid references bbl_users (id) on delete set null,
+  updated_by_id uuid references bbl_users (id) on delete set null,
+  kind text not null,
+  attrs jsonb not null default '{}'
 );
 
 create table bbl_organization_identifiers (
@@ -40,10 +74,12 @@ create index on bbl_organization_rels (rel_organization_id);
 
 create table bbl_people (
   id uuid primary key,
-  attrs jsonb not null default '{}',
-  version int not null, -- TODO should be bigint?
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
+  updated_at timestamptz not null default transaction_timestamp(),
+  created_by_id uuid references bbl_users (id) on delete set null,
+  updated_by_id uuid references bbl_users (id) on delete set null,
+  attrs jsonb not null default '{}'
 );
 
 create table bbl_person_identifiers (
@@ -73,10 +109,12 @@ create index on bbl_person_organizations (organization_id);
 
 create table bbl_projects (
   id uuid primary key,
-  attrs jsonb not null default '{}',
-  version int not null, -- TODO should be bigint?
+  version int not null,
   created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
+  updated_at timestamptz not null default transaction_timestamp(),
+  created_by_id uuid references bbl_users (id) on delete set null,
+  updated_by_id uuid references bbl_users (id) on delete set null,
+  attrs jsonb not null default '{}'
 );
 
 create table bbl_project_identifiers (
@@ -96,13 +134,15 @@ create index on bbl_project_identifiers (uniq);
 
 create table bbl_works (
   id uuid primary key,
+  version int not null,
+  created_at timestamptz not null default transaction_timestamp(),
+  updated_at timestamptz not null default transaction_timestamp(),
+  created_by_id uuid references bbl_users (id) on delete set null,
+  updated_by_id uuid references bbl_users (id) on delete set null,
   kind text not null,
   subkind text,
   status text not null,
-  attrs jsonb not null default '{}',
-  version int not null, -- TODO should be bigint?
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
+  attrs jsonb not null default '{}'
 );
 
 create table bbl_work_identifiers (
@@ -186,35 +226,14 @@ create table bbl_work_projects (
 create index on bbl_work_projects (work_id); -- TODO probably not needed
 create index on bbl_work_projects (project_id);
 
-create table bbl_users (
-  id uuid primary key,
-  username text not null unique,
-  email citext not null unique,
-  name text not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
-);
-
-create table bbl_user_identifiers (
-  user_id uuid not null references bbl_users (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  primary key (user_id, idx),
-  unique (scheme, val)
-);
-
--- TODO is this necessary?
-create index on bbl_user_identifiers (user_id);
-
 create table bbl_revs (
   id uuid primary key,
-  user_id uuid references bbl_users (id) on delete set null,
-  created_at timestamptz not null default transaction_timestamp()
+  created_at timestamptz not null default transaction_timestamp(),
+  user_id uuid references bbl_users (id) on delete set null
 );
 
 create table bbl_changes (
-  id bigint generated always as identity,
+  id bigserial primary key,
   rev_id uuid not null references bbl_revs (id) on delete cascade,
   organization_id uuid references bbl_organizations (id) on delete cascade,
   person_id uuid references bbl_people (id) on delete cascade,
@@ -240,8 +259,6 @@ create index on bbl_changes (work_id) where work_id is not null;
 
 drop table bbl_changes cascade;
 drop table bbl_revs cascade;
-drop table bbl_user_identifiers cascade;
-drop table bbl_users cascade;
 drop table bbl_person_organizations cascade;
 drop table bbl_work_files cascade;
 drop table bbl_work_contributors cascade;
@@ -258,3 +275,6 @@ drop table bbl_work_representations cascade;
 drop table bbl_work_identifiers cascade;
 drop table bbl_work_rels cascade;
 drop table bbl_works cascade;
+drop table bbl_user_proxies cascade;
+drop table bbl_user_identifiers cascade;
+drop table bbl_users cascade;

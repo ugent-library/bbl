@@ -9,8 +9,8 @@ import (
 var WorkStatuses = []string{"suggestion", "draft", "public", "deleted"}
 
 type Work struct {
+	RecHeader
 	Profile      *WorkProfile      `json:"-"`
-	ID           string            `json:"id,omitempty"`
 	Kind         string            `json:"kind"`
 	Subkind      string            `json:"subkind,omitempty"`
 	Status       string            `json:"status"`
@@ -19,9 +19,6 @@ type Work struct {
 	Files        []WorkFile        `json:"files,omitempty"`
 	Rels         []WorkRel         `json:"rels,omitempty"`
 	Attrs        WorkAttrs         `json:"attrs"`
-	Version      int               `json:"version,omitzero"`
-	CreatedAt    time.Time         `json:"created_at,omitzero"`
-	UpdatedAt    time.Time         `json:"updated_at,omitzero"`
 }
 
 type WorkAttrs struct {
@@ -67,14 +64,6 @@ type WorkRel struct {
 	Kind   string `json:"kind"`
 	WorkID string `json:"work_id"`
 	Work   *Work  `json:"work,omitempty"`
-}
-
-func (rec *Work) RecID() string {
-	return rec.ID
-}
-
-func (rec *Work) RecVersion() int {
-	return rec.Version
 }
 
 func (rec *Work) Validate() error {

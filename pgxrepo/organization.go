@@ -16,9 +16,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*bbl.Organizatio
 }
 
 func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Organization] {
-	q := `
-		select id, kind, attrs, version, created_at, updated_at, identifiers, rels
-		from bbl_organizations_view;`
+	q := `select ` + organizationCols + ` from bbl_organizations_view o;`
 
 	return func(yield func(*bbl.Organization) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -45,18 +43,15 @@ func getOrganization(ctx context.Context, conn pgxConn, id string) (*bbl.Organiz
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select o.id, o.kind, o.attrs, o.version, o.created_at, o.updated_at, o.identifiers, o.rels
+			select `+organizationCols+`
 			from bbl_organizations_view o, bbl_organization_identifiers o_i
-			where o.id = o_i.organizatons_id and o_i.scheme = $1 and o_i.val = $2;`,
+			where o.id = o_i.organizatons_id and 
+			      o_i.scheme = $1 and 
+				  o_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `
-			select id, kind, attrs, version, created_at, updated_at, identifiers, rels
-			from bbl_organizations_view
-			where id = $1;`,
-			id,
-		)
+		row = conn.QueryRow(ctx, `select `+organizationCols+` from bbl_organizations_view o where o.id = $1;`, id)
 	}
 
 	rec, err := scanOrganization(row)
@@ -70,26 +65,64 @@ func getOrganization(ctx context.Context, conn pgxConn, id string) (*bbl.Organiz
 	return rec, err
 }
 
+const organizationCols = `
+	o.id,
+	o.version,
+	o.created_at,
+	o.updated_at,
+	coalesce(o.created_by_id::text, ''),
+	coalesce(o.updated_by_id::text, ''),
+	o.created_by,
+	o.updated_by,
+	o.kind,
+	o.attrs,
+	o.identifiers,
+	o.rels
+`
+
 func scanOrganization(row pgx.Row) (*bbl.Organization, error) {
 	var rec bbl.Organization
+	var rawCreatedBy json.RawMessage
+	var rawUpdatedBy json.RawMessage
 	var rawAttrs json.RawMessage
 	var rawIdentifiers json.RawMessage
 	var rawRels json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Kind, &rawAttrs, &rec.Version, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers, &rawRels); err != nil {
+	if err := row.Scan(
+		&rec.ID,
+		&rec.Version,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+		&rec.CreatedByID,
+		&rec.UpdatedByID,
+		&rawCreatedBy,
+		&rawUpdatedBy,
+		&rec.Kind,
+		&rawAttrs,
+		&rawIdentifiers,
+		&rawRels,
+	); err != nil {
 		return nil, err
 	}
 
+	if rawCreatedBy != nil {
+		if err := json.Unmarshal(rawCreatedBy, &rec.CreatedBy); err != nil {
+			return nil, err
+		}
+	}
+	if rawUpdatedBy != nil {
+		if err := json.Unmarshal(rawUpdatedBy, &rec.UpdatedBy); err != nil {
+			return nil, err
+		}
+	}
 	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
 		return nil, err
 	}
-
 	if rawIdentifiers != nil {
 		if err := json.Unmarshal(rawIdentifiers, &rec.Identifiers); err != nil {
 			return nil, err
 		}
 	}
-
 	if rawRels != nil {
 		if err := json.Unmarshal(rawRels, &rec.Rels); err != nil {
 			return nil, err

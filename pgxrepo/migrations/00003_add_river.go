@@ -31,6 +31,11 @@ func Down00003(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
+	// migrating down fails if there are river jobs
+	if _, err = db.ExecContext(ctx, `truncate river_job;`); err != nil {
+		return err
+	}
+
 	_, err = migrator.Migrate(ctx, rivermigrate.DirectionDown, &rivermigrate.MigrateOpts{
 		TargetVersion: -1,
 	})

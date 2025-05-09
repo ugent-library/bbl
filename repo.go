@@ -16,17 +16,23 @@ func NewID() string {
 	return ulid.Make().UUIDString()
 }
 
-type GetWorkRepresentationsOpts struct {
-	WorkID       string
-	Scheme       string
-	Limit        int
-	UpdatedAtLTE time.Time
-	UpdatedAtGTE time.Time
+type RecHeader struct {
+	ID          string    `json:"id,omitempty"`
+	Version     int       `json:"version,omitzero"`
+	CreatedAt   time.Time `json:"created_at,omitzero"`
+	UpdatedAt   time.Time `json:"updated_at,omitzero"`
+	CreatedByID string    `json:"created_by_id,omitempty"`
+	CreatedBy   *User     `json:"created_by,omitempty"`
+	UpdatedByID string    `json:"updated_by_id,omitempty"`
+	UpdatedBy   *User     `json:"updated_by,omitempty"`
+}
+
+func (h *RecHeader) Header() *RecHeader {
+	return h
 }
 
 type Rec interface {
-	RecID() string
-	RecVersion() int
+	Header() *RecHeader
 }
 
 type Rev struct {
@@ -140,3 +146,11 @@ type UpdateWork struct {
 }
 
 func (*UpdateWork) isAction() {}
+
+type GetWorkRepresentationsOpts struct {
+	WorkID       string
+	Scheme       string
+	Limit        int
+	UpdatedAtLTE time.Time
+	UpdatedAtGTE time.Time
+}

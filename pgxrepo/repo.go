@@ -133,9 +133,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_organizations (id, kind, attrs, version)
-				values ($1, $2, $3, 1);`,
-				a.Organization.ID, a.Organization.Kind, jsonAttrs,
+				insert into bbl_organizations (id, kind, attrs, version, created_by_id, updated_by_id)
+				values ($1, $2, $3, 1, nullif($4, '')::uuid, nullif($5, '')::uuid);`,
+				a.Organization.ID, a.Organization.Kind, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Organization.Identifiers {
 				batch.Queue(`
@@ -203,9 +203,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				set kind = $2,
 				    attrs = $3,
 					version = version + 1,
-				    updated_at = transaction_timestamp()
+				    updated_at = transaction_timestamp(),
+					updated_by_id = nullif($4, '')::uuid
 				where id = $1;`,
-				a.Organization.ID, a.Organization.Kind, jsonAttrs,
+				a.Organization.ID, a.Organization.Kind, jsonAttrs, rev.UserID,
 			)
 
 			if _, ok := diff["identifiers"]; ok {
@@ -274,9 +275,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_people (id, attrs, version)
-				values ($1, $2, 1);`,
-				a.Person.ID, jsonAttrs,
+				insert into bbl_people (id, attrs, version, created_by_id, updated_by_id)
+				values ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
+				a.Person.ID, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Person.Identifiers {
 				batch.Queue(`
@@ -332,9 +333,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				update bbl_people
 				set attrs = $2,
 					version = version + 1,
-				    updated_at = transaction_timestamp()
+				    updated_at = transaction_timestamp(),
+					updated_by_id = nullif($3, '')::uuid
 				where id = $1;`,
-				a.Person.ID, jsonAttrs,
+				a.Person.ID, jsonAttrs, rev.UserID,
 			)
 
 			if _, ok := diff["identifiers"]; ok {
@@ -375,9 +377,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_projects (id, attrs, version)
-				values ($1, $2, 1);`,
-				a.Project.ID, jsonAttrs,
+				insert into bbl_projects (id, attrs, version, created_by_id, updated_by_id)
+				values ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
+				a.Project.ID, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Project.Identifiers {
 				batch.Queue(`
@@ -433,9 +435,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				update bbl_projects
 				set attrs = $2,
 					version = version + 1,
-				    updated_at = transaction_timestamp()
+				    updated_at = transaction_timestamp(),
+					updated_by_id = nullif($3, '')::uuid
 				where id = $1;`,
-				a.Project.ID, jsonAttrs,
+				a.Project.ID, jsonAttrs, rev.UserID,
 			)
 
 			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
@@ -483,9 +486,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_works (id, kind, subkind, status, attrs, version)
-				values ($1, $2, nullif($3, ''), $4, $5, 1);`,
-				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,
+				insert into bbl_works (id, kind, subkind, status, attrs, version, created_by_id, updated_by_id)
+				values ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
+				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
@@ -577,9 +580,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					status = $4,
 				    attrs = $5,
 					version = version + 1,
-				    updated_at = transaction_timestamp()
+				    updated_at = transaction_timestamp(),
+					updated_by_id = nullif($6, '')::uuid
 				where id = $1;`,
-				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs,
+				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID,
 			)
 
 			if _, ok := diff["identifiers"]; ok {

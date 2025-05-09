@@ -2,29 +2,17 @@ package bbl
 
 import (
 	"slices"
-	"time"
 )
 
 type Project struct {
-	ID          string       `json:"id,omitempty"`
+	RecHeader
 	Identifiers []Code       `json:"identifiers,omitempty"`
 	Attrs       ProjectAttrs `json:"attrs"`
-	Version     int          `json:"version,omitzero"`
-	CreatedAt   time.Time    `json:"created_at,omitzero"`
-	UpdatedAt   time.Time    `json:"updated_at,omitzero"`
 }
 
 type ProjectAttrs struct {
 	Names     []Text `json:"names,omitempty"`
 	Abstracts []Text `json:"abstracts,omitempty"`
-}
-
-func (rec *Project) RecID() string {
-	return rec.ID
-}
-
-func (rec *Project) RecVersion() int {
-	return rec.Version
 }
 
 func (rec *Project) Validate() error {

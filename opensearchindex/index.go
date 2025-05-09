@@ -133,10 +133,11 @@ func (idx *recIndex[T]) NewSwitcher(ctx context.Context) (bbl.RecIndexSwitcher[T
 		IndexSettings: strings.NewReader(idx.settings),
 		Retention:     idx.retention,
 		ToItem: func(rec T) opensearchswitcher.Item {
+			hdr := rec.Header()
 			return opensearchswitcher.Item{
 				Doc:     idx.toDoc(rec),
-				ID:      rec.RecID(),
-				Version: int64(rec.RecVersion()),
+				ID:      hdr.ID,
+				Version: int64(hdr.Version),
 			}
 		},
 	})
@@ -148,12 +149,12 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 		return err
 	}
 
-	version := int64(rec.RecVersion())
+	hdr := rec.Header()
+	version := int64(hdr.Version)
 
 	err = idx.bulkIndexer.Add(ctx, opensearchutil.BulkIndexerItem{
-		Action:     "index",
-		DocumentID: rec.RecID(),
-		// TODO
+		Action:      "index",
+		DocumentID:  hdr.ID,
 		Version:     &version,
 		VersionType: &versionType,
 		Body:        bytes.NewReader(b),

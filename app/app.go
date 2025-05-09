@@ -97,7 +97,7 @@ func New(config *Config) (http.Handler, error) {
 		ClientSecret:     config.AuthClientSecret,
 		RedirectURL:      config.BaseURL + "/auth/callback",
 		CookieInsecure:   config.Env == "development",
-		CookiePrefix:     "biblio.oidc.",
+		CookiePrefix:     "bbl.oidc.",
 		CookieHashSecret: config.HashSecret,
 		CookieSecret:     config.Secret,
 	})

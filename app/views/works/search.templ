@@ -228,8 +228,20 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 											</div>
 											<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
 												<ul class="c-meta-list c-meta-list-inline c-body-small">
-													<li class="c-meta-item">Created { c.FormatTime(hit.Rec.CreatedAt) } by Valerie Van Den Bussche.</li>
-													<li class="c-meta-item">Edited { c.FormatTime(hit.Rec.UpdatedAt) } by Valerie Van Den Bussche.</li>
+													<li class="c-meta-item">
+														Created { c.FormatTime(hit.Rec.CreatedAt) }
+														if u := hit.Rec.CreatedBy; u != nil {
+															 by { u.Name }
+														}
+														.
+													</li>
+													<li class="c-meta-item">
+														Edited { c.FormatTime(hit.Rec.UpdatedAt) }
+														if u := hit.Rec.UpdatedBy; u != nil {
+															 by { u.Name }
+														}
+														.
+													</li>
 												</ul>
 												<div class="btn btn-sm btn-outline-secondary me-3">
 													<i class="if if-copy"></i>

@@ -443,7 +443,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				Label:       c.Loc.Get("abstract"),
 				PluralLabel: c.Loc.Get("abstracts"),
 				Title:       c.Loc.Get("Abstract"),
-				PluralTitle: c.Loc.Get("Abatracts"),
+				PluralTitle: c.Loc.Get("Abstracts"),
 				AddURL:      c.Route("work_add_abstract").String(),
 				EditURL:     c.Route("work_edit_abstract").String(),
 				RemoveURL:   c.Route("work_remove_abstract").String(),

@@ -2,18 +2,14 @@ package bbl
 
 import (
 	"slices"
-	"time"
 )
 
 type Organization struct {
-	ID          string            `json:"id,omitempty"`
+	RecHeader
 	Kind        string            `json:"kind"`
 	Identifiers []Code            `json:"identifiers,omitempty"`
 	Rels        []OrganizationRel `json:"rels,omitempty"`
 	Attrs       OrganizationAttrs `json:"attrs"`
-	Version     int               `json:"version,omitzero"`
-	CreatedAt   time.Time         `json:"created_at,omitzero"`
-	UpdatedAt   time.Time         `json:"updated_at,omitzero"`
 }
 
 type OrganizationAttrs struct {
@@ -24,14 +20,6 @@ type OrganizationRel struct {
 	Kind           string        `json:"kind"`
 	OrganizationID string        `json:"organization_id"`
 	Organization   *Organization `json:"organization,omitempty"`
-}
-
-func (rec *Organization) RecID() string {
-	return rec.ID
-}
-
-func (rec *Organization) RecVersion() int {
-	return rec.Version
 }
 
 func (rec *Organization) Validate() error {

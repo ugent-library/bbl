@@ -17,7 +17,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
 	q := `
-		select id, username, email, name, created_at, updated_at, identifiers
+		select id, username, email, name, role, created_at, updated_at, identifiers
 		from bbl_users_view;`
 
 	return func(yield func(*bbl.User) bool) {
@@ -42,7 +42,7 @@ func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User]
 }
 
 func getUserByColQuery(col string) string {
-	return `select id, username, email, name, created_at, updated_at, identifiers
+	return `select id, username, email, name, role, created_at, updated_at, identifiers
 		    from bbl_users_view
 		    where ` + col + ` = $1;`
 }
@@ -57,7 +57,7 @@ func getUser(ctx context.Context, conn pgxConn, id string) (*bbl.User, error) {
 			row = conn.QueryRow(ctx, getUserByColQuery("email"), val)
 		default:
 			row = conn.QueryRow(ctx, `
-				select u.id, u.username, u.email, u.name, u.created_at, u.updated_at, u.identifiers
+				select u.id, u.username, u.email, u.name, u.role, u.created_at, u.updated_at, u.identifiers
 				from bbl_users_view u, bbl_user_identifiers u_i
 				where u.id = u_i.user_id and u_i.scheme = $1 and u_i.val = $2;`,
 				scheme, val,
@@ -82,7 +82,7 @@ func scanUser(row pgx.Row) (*bbl.User, error) {
 	var rec bbl.User
 	var rawIdentifiers json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Username, &rec.Email, &rec.Name, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Username, &rec.Email, &rec.Name, &rec.Role, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers); err != nil {
 		return nil, err
 	}
 

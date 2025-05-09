@@ -2,16 +2,12 @@ package bbl
 
 import (
 	"slices"
-	"time"
 )
 
 type Person struct {
-	ID          string      `json:"id,omitempty"`
+	RecHeader
 	Identifiers []Code      `json:"identifiers,omitempty"`
 	Attrs       PersonAttrs `json:"attrs"`
-	Version     int         `json:"version,omitzero"`
-	CreatedAt   time.Time   `json:"created_at,omitzero"`
-	UpdatedAt   time.Time   `json:"updated_at,omitzero"`
 }
 
 type PersonAttrs struct {
@@ -19,14 +15,6 @@ type PersonAttrs struct {
 	GivenName  string `json:"given_name,omitempty"`
 	MiddleName string `json:"middle_name,omitempty"`
 	FamilyName string `json:"family_name,omitempty"`
-}
-
-func (rec *Person) RecID() string {
-	return rec.ID
-}
-
-func (rec *Person) RecVersion() int {
-	return rec.Version
 }
 
 func (rec *Person) Validate() error {

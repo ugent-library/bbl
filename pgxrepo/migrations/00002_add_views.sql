@@ -1,9 +1,24 @@
 -- +goose up
 
+create view bbl_users_view as
+select u.*,
+       u_i.identifiers as identifiers
+from bbl_users u
+left join lateral (
+  select
+   	user_id,
+    json_agg(json_build_object('scheme', u_i.scheme, 'val', u_i.val) order by u_i.idx) filter (where u_i.idx is not null) as identifiers
+  from bbl_user_identifiers u_i
+  where u_i.user_id=u.id
+  group by user_id
+) u_i on u_i.user_id=u.id;
+
 create view bbl_organizations_view as
 select o.*,
        o_i.identifiers as identifiers,
-       o_r.rels as rels
+       o_r.rels as rels,
+       row_to_json(u_c) as created_by,
+       row_to_json(u_u) as updated_by
 from bbl_organizations o
 left join lateral (
   select
@@ -20,11 +35,15 @@ left join lateral (
   from bbl_organization_rels o_r
   where o_r.organization_id=o.id
   group by organization_id
-) o_r on o_r.organization_id=o.id;
+) o_r on o_r.organization_id=o.id
+left join bbl_users_view u_c on o.created_by_id = u_c.id
+left join bbl_users_view u_u on o.updated_by_id = u_u.id;
 
 create view bbl_people_view as
 select p.*,
-       p_i.identifiers as identifiers
+       p_i.identifiers as identifiers,
+       row_to_json(u_c) as created_by,
+       row_to_json(u_u) as updated_by
 from bbl_people p
 left join lateral (
   select
@@ -33,11 +52,15 @@ left join lateral (
   from bbl_person_identifiers p_i
   where p_i.person_id=p.id
   group by person_id
-) p_i on p_i.person_id=p.id;
+) p_i on p_i.person_id=p.id
+left join bbl_users_view u_c on p.created_by_id = u_c.id
+left join bbl_users_view u_u on p.updated_by_id = u_u.id;
 
 create view bbl_projects_view as
 select p.*,
-       p_i.identifiers as identifiers
+       p_i.identifiers as identifiers,
+       row_to_json(u_c) as created_by,
+       row_to_json(u_u) as updated_by
 from bbl_projects p
 left join lateral (
   select
@@ -46,14 +69,18 @@ left join lateral (
   from bbl_project_identifiers p_i
   where p_i.project_id=p.id
   group by project_id
-) p_i on p_i.project_id=p.id;
+) p_i on p_i.project_id=p.id
+left join bbl_users_view u_c on p.created_by_id = u_c.id
+left join bbl_users_view u_u on p.updated_by_id = u_u.id;
 
 create view bbl_works_view as
 select w.*,
        w_i.identifiers as identifiers,
        w_c.contributors as contributors,
        w_f.files as files,
-       w_r.rels as rels
+       w_r.rels as rels,
+       row_to_json(u_c) as created_by,
+       row_to_json(u_u) as updated_by
 from bbl_works w
 left join lateral (
   select
@@ -87,20 +114,9 @@ left join lateral (
   from bbl_work_rels w_r
   where w_r.work_id=w.id
   group by work_id
-) w_r on w_r.work_id=w.id;
-
-create view bbl_users_view as
-select u.*,
-       u_i.identifiers as identifiers
-from bbl_users u
-left join lateral (
-  select
-   	user_id,
-    json_agg(json_build_object('scheme', u_i.scheme, 'val', u_i.val) order by u_i.idx) filter (where u_i.idx is not null) as identifiers
-  from bbl_user_identifiers u_i
-  where u_i.user_id=u.id
-  group by user_id
-) u_i on u_i.user_id=u.id;
+) w_r on w_r.work_id=w.id
+left join bbl_users_view u_c on w.created_by_id = u_c.id
+left join bbl_users_view u_u on w.updated_by_id = u_u.id;
 
 -- +goose down
 
