@@ -8,6 +8,9 @@ func ViewWork(u *bbl.User, rec *bbl.Work) bool {
 	if rec.Status == bbl.PublicStatus {
 		return true
 	}
+	if u == nil {
+		return false
+	}
 	if u.Role == bbl.AdminRole {
 		return true
 	}
