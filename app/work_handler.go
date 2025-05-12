@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"slices"
 
@@ -79,6 +80,8 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	workStateCtx := ctx.Derive(appCtx, h.BindWorkState)
 
 	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
+	router.Handle("/works/created", searchCtx.Bind(h.SearchCreated)).Methods("GET").Name("works_created")
+	router.Handle("/works/contributed", searchCtx.Bind(h.SearchContributed)).Methods("GET").Name("works_contributed")
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/_change_kind", workStateCtx.Bind(h.ChangeKind)).Methods("POST").Name("work_change_kind")
 	router.Handle("/works/_add_identifier", workStateCtx.Bind(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
@@ -104,7 +107,27 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 }
 
 func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	c.SearchOpts.Facets = []string{"kind", "status"}
+	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
+	if err != nil {
+		return err
+	}
+
+	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
+	if err != nil {
+		return err
+	}
+
+	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) SearchCreated(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	log.Printf("filters in handler: %+v", c.SearchOpts.Filters)
+	c.SearchOpts.SetFilterVal("created", c.User.ID)
+	log.Printf("filters in handler after set: %+v", c.SearchOpts.Filters)
 
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
@@ -248,7 +271,7 @@ func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	hits, err := h.index.People().Search(r.Context(), bbl.SearchOpts{Query: query, Size: 20})
+	hits, err := h.index.People().Search(r.Context(), &bbl.SearchOpts{Query: query, Size: 20})
 	if err != nil {
 		return err
 	}

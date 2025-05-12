@@ -79,7 +79,7 @@ func generateWorkFilters(filters map[string][]string) (map[string]string, error)
 	m := map[string]string{}
 	for filter, vals := range filters {
 		switch filter {
-		case "created_by":
+		case "created":
 			f, err := sjson.Set(``, "terms.created_by_id", vals)
 			if err != nil {
 				return nil, err

@@ -11,6 +11,7 @@ import (
 
 type Ctx struct {
 	URL       *url.URL
+	RouteName string
 	Route     func(name string, pairs ...string) *url.URL
 	AssetPath func(string) string
 	Loc       *gotext.Locale

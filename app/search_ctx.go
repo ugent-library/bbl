@@ -9,13 +9,16 @@ import (
 
 type SearchCtx struct {
 	*AppCtx
-	SearchOpts bbl.SearchOpts
+	SearchOpts *bbl.SearchOpts
 }
 
 func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
-	c := &SearchCtx{AppCtx: appCtx}
-
-	c.SearchOpts.Size = 20
+	c := &SearchCtx{
+		AppCtx: appCtx,
+		SearchOpts: &bbl.SearchOpts{
+			Size: 20,
+		},
+	}
 
 	b := binder.New(r).
 		Query().
@@ -25,6 +28,8 @@ func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 		Int("from", &c.SearchOpts.From).
 		String("cursor", &c.SearchOpts.Cursor)
 
+	// TODO make reusable
+	c.SearchOpts.Facets = []string{"kind", "status"}
 	c.SearchOpts.Filters = b.Select("kind", "status")
 
 	return c, b.Err()

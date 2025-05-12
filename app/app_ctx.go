@@ -40,9 +40,10 @@ type AppCtx struct {
 	assets       map[string]string
 	insecure     bool
 	*crypt.Crypt
-	Loc  *gotext.Locale
-	URL  *url.URL
-	User *bbl.User
+	Loc       *gotext.Locale
+	URL       *url.URL
+	RouteName string
+	User      *bbl.User
 }
 
 func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ctx.Binder[*AppCtx] {
@@ -61,6 +62,7 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ct
 		c := &AppCtx{
 			Crypt:        crypter,
 			URL:          r.URL,
+			RouteName:    mux.CurrentRoute(r).GetName(),
 			router:       router,
 			secureCookie: cookies,
 			assets:       assets,
@@ -89,6 +91,7 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ct
 func (c *AppCtx) ViewCtx() views.Ctx {
 	return views.Ctx{
 		URL:       c.URL,
+		RouteName: c.RouteName,
 		Route:     c.Route,
 		AssetPath: c.AssetPath,
 		Loc:       c.Loc,

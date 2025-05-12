@@ -16,9 +16,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 }
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
-	q := `
-		select id, username, email, name, role, created_at, updated_at, identifiers
-		from bbl_users_view;`
+	q := `select ` + userCols + ` from bbl_users_view;`
 
 	return func(yield func(*bbl.User) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -41,30 +39,24 @@ func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User]
 	}
 }
 
-func getUserByColQuery(col string) string {
-	return `select id, username, email, name, role, created_at, updated_at, identifiers
-		    from bbl_users_view
-		    where ` + col + ` = $1;`
-}
-
 func getUser(ctx context.Context, conn pgxConn, id string) (*bbl.User, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		switch scheme {
 		case "username":
-			row = conn.QueryRow(ctx, getUserByColQuery("username"), val)
+			row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.username = $1;`, val)
 		case "email":
-			row = conn.QueryRow(ctx, getUserByColQuery("email"), val)
+			row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.email = $1;`, val)
 		default:
 			row = conn.QueryRow(ctx, `
-				select u.id, u.username, u.email, u.name, u.role, u.created_at, u.updated_at, u.identifiers
+				select `+userCols+`
 				from bbl_users_view u, bbl_user_identifiers u_i
 				where u.id = u_i.user_id and u_i.scheme = $1 and u_i.val = $2;`,
 				scheme, val,
 			)
 		}
 	} else {
-		row = conn.QueryRow(ctx, getUserByColQuery("id"), id)
+		row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.id = $1;`, val)
 	}
 
 	rec, err := scanUser(row)
@@ -77,6 +69,17 @@ func getUser(ctx context.Context, conn pgxConn, id string) (*bbl.User, error) {
 
 	return rec, err
 }
+
+const userCols = `
+	u.id,
+	u.username,
+	u.email,
+	u.name,
+	u.role,
+	u.created_at,
+	u.updated_at,
+	u.identifiers
+`
 
 func scanUser(row pgx.Row) (*bbl.User, error) {
 	var rec bbl.User

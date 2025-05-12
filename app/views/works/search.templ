@@ -8,7 +8,7 @@ import (
 )
 
 templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
-	{{ pager := pagination.New(hits.Size, hits.From, hits.Total) }}
+	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
 	@views.Page(c, "Overview works") {
 		<div class="w-100 u-scroll-wrapper">
 			<div class="bg-white">
@@ -36,13 +36,13 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 						<div class="bc-toolbar-left">
 							<ul class="nav nav-tabs">
 								<li class="nav-item">
-									<a class="nav-link active" href="#">All</a>
+									<a class={ "nav-link", templ.KV("active", c.RouteName == "works") } href={ c.SafeRoute("works") }>All</a>
 								</li>
 								<li class="nav-item">
-									<a class="nav-link" href="#">My works</a>
+									<a class={ "nav-link", templ.KV("active", c.RouteName == "works_contributed") } href={ c.SafeRoute("works_contributed") }>My works</a>
 								</li>
 								<li class="nav-item">
-									<a class="nav-link" href="#">Registered by me</a>
+									<a class={ "nav-link", templ.KV("active", c.RouteName == "works_created") } href={ c.SafeRoute("works_created") }>Registered by me</a>
 								</li>
 							</ul>
 						</div>
@@ -50,7 +50,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="work-search-form" class="mb-4" action={ templ.SafeURL("works") } method="GET">
+				<form id="work-search-form" class="mb-4" action={ templ.SafeURL(c.URL.Path) } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">
@@ -91,7 +91,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 													type="checkbox"
 													name={ f.Name }
 													value={ v.Val }
-													checked?={ hits.Filters.HasVal(f.Name, v.Val) }
+													checked?={ hits.Opts.HasFilterVal(f.Name, v.Val) }
 													form="work-search-form"
 												/>
 												<label class="form-check-label">{ v.Val } ({ fmt.Sprint(v.Count) })</label>
@@ -231,14 +231,14 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 													<li class="c-meta-item">
 														Created { c.FormatTime(hit.Rec.CreatedAt) }
 														if u := hit.Rec.CreatedBy; u != nil {
-															 by { u.Name }
+															by { u.Name }
 														}
 														.
 													</li>
 													<li class="c-meta-item">
 														Edited { c.FormatTime(hit.Rec.UpdatedAt) }
 														if u := hit.Rec.UpdatedBy; u != nil {
-															 by { u.Name }
+															by { u.Name }
 														}
 														.
 													</li>

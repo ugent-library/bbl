@@ -170,7 +170,7 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 	return nil
 }
 
-func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.RecHits[T], error) {
+func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.RecHits[T], error) {
 	query := `{
 		"bool": {
 			"must": [{"match_all": {}}]
@@ -288,13 +288,10 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts bbl.SearchOpts) (*bbl.R
 	}
 
 	hits := &bbl.RecHits[T]{
-		Hits:    make([]bbl.RecHit[T], len(res.Hits.Hits)),
-		Total:   res.Hits.Total.Value,
-		Query:   opts.Query,
-		Filters: opts.Filters,
-		Size:    opts.Size,
-		From:    opts.From,
-		Cursor:  cursor,
+		Opts:   opts,
+		Hits:   make([]bbl.RecHit[T], len(res.Hits.Hits)),
+		Total:  res.Hits.Total.Value,
+		Cursor: cursor,
 	}
 
 	for i, hit := range res.Hits.Hits {

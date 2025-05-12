@@ -9,4 +9,4 @@ var rootCmd = &cobra.Command{
 	Use: "bbl",
 }
 
-var searchOpts = bbl.SearchOpts{}
+var searchOpts = &bbl.SearchOpts{}

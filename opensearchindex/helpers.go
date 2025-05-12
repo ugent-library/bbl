@@ -8,7 +8,7 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
-func encodeCursor(res *opensearchapi.SearchResp, opts bbl.SearchOpts) (string, error) {
+func encodeCursor(res *opensearchapi.SearchResp, opts *bbl.SearchOpts) (string, error) {
 	n := len(res.Hits.Hits)
 	if n == 0 || n < opts.Size {
 		return "", nil
