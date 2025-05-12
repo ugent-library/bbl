@@ -7,6 +7,12 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
+      "created_by_id": {
+        "type": "keyword"
+      },
+      "person_id": {
+        "type": "keyword"
+      },
       "kind": {
         "type": "keyword"
       },

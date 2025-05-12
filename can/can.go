@@ -14,8 +14,25 @@ func ViewWork(u *bbl.User, rec *bbl.Work) bool {
 	if u.Role == bbl.AdminRole {
 		return true
 	}
-	if u.ID == rec.CreatedByID {
+	for _, perm := range rec.Permissions {
+		if perm.UserID == u.ID && (perm.Kind == bbl.EditPermission || perm.Kind == bbl.ViewPermission) {
+			return true
+		}
+	}
+	return false
+}
+
+func EditWork(u *bbl.User, rec *bbl.Work) bool {
+	if u == nil {
+		return false
+	}
+	if u.Role == bbl.AdminRole {
 		return true
+	}
+	for _, perm := range rec.Permissions {
+		if perm.UserID == u.ID && perm.Kind == bbl.EditPermission {
+			return true
+		}
 	}
 	return false
 }

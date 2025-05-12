@@ -74,6 +74,7 @@ const workCols = `
 	coalesce(w.updated_by_id::text, ''),
 	w.created_by,
 	w.updated_by,
+	w.permissions,
 	w.kind,
 	coalesce(w.subkind, ''),
 	w.status,
@@ -88,6 +89,7 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 	var rec bbl.Work
 	var rawCreatedBy json.RawMessage
 	var rawUpdatedBy json.RawMessage
+	var rawPermissions json.RawMessage
 	var rawAttrs json.RawMessage
 	var rawIdentifiers json.RawMessage
 	var rawContributors json.RawMessage
@@ -103,6 +105,7 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 		&rec.UpdatedByID,
 		&rawCreatedBy,
 		&rawUpdatedBy,
+		&rawPermissions,
 		&rec.Kind,
 		&rec.Subkind,
 		&rec.Status,
@@ -122,6 +125,11 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 	}
 	if rawUpdatedBy != nil {
 		if err := json.Unmarshal(rawUpdatedBy, &rec.UpdatedBy); err != nil {
+			return nil, err
+		}
+	}
+	if rawPermissions != nil {
+		if err := json.Unmarshal(rawPermissions, &rec.Permissions); err != nil {
 			return nil, err
 		}
 	}

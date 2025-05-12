@@ -490,6 +490,17 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				values ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID, rev.UserID,
 			)
+
+			if _, ok := diff["permissions"]; ok {
+				for _, perm := range a.Work.Permissions {
+					batch.Queue(`
+						insert into bbl_work_permissions (work_id, kind, user_id)
+						values ($1, $2, $3);`,
+						a.Work.ID, perm.Kind, perm.UserID,
+					)
+				}
+			}
+
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
 					insert into bbl_work_identifiers (work_id, idx, scheme, val, uniq)
@@ -585,6 +596,21 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				where id = $1;`,
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID,
 			)
+
+			if _, ok := diff["permissions"]; ok {
+				batch.Queue(`
+					delete from bbl_work_permissions
+					where work_id = $1;`,
+					a.Work.ID,
+				)
+				for _, perm := range a.Work.Permissions {
+					batch.Queue(`
+						insert into bbl_work_permissions (work_id, kind, user_id)
+						values ($1, $2, $3);`,
+						a.Work.ID, perm.Kind, perm.UserID,
+					)
+				}
+			}
 
 			if _, ok := diff["identifiers"]; ok {
 				queueUpdateIdentifiersQueries(batch, "work", a.Work.ID, currentRec.Identifiers, a.Work.Identifiers)

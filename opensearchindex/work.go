@@ -12,21 +12,28 @@ import (
 var workSettings string
 
 type workDoc struct {
-	Completion []string  `json:"completion"`
-	Kind       string    `json:"kind"`
-	Status     string    `json:"status"`
-	Rec        *bbl.Work `json:"rec"`
+	CreatedByID string    `json:"created_by_id,omitempty"`
+	PersonID    []string  `json:"person_id,omitempty"`
+	Kind        string    `json:"kind"`
+	Status      string    `json:"status"`
+	Completion  []string  `json:"completion"`
+	Rec         *bbl.Work `json:"rec"`
 }
 
 func workToDoc(rec *bbl.Work) any {
 	doc := workDoc{
-		Completion: make([]string, len(rec.Attrs.Titles)),
-		Kind:       rec.Kind,
-		Status:     rec.Status,
-		Rec:        rec,
+		CreatedByID: rec.CreatedByID,
+		Kind:        rec.Kind,
+		Status:      rec.Status,
+		Rec:         rec,
 	}
-	for i, text := range rec.Attrs.Titles {
-		doc.Completion[i] = text.Val
+	for _, con := range rec.Contributors {
+		if con.PersonID != "" {
+			doc.PersonID = append(doc.PersonID, con.PersonID)
+		}
+	}
+	for _, text := range rec.Attrs.Titles {
+		doc.Completion = append(doc.Completion, text.Val)
 	}
 	return &doc
 }
@@ -72,6 +79,12 @@ func generateWorkFilters(filters map[string][]string) (map[string]string, error)
 	m := map[string]string{}
 	for filter, vals := range filters {
 		switch filter {
+		case "created_by":
+			f, err := sjson.Set(``, "terms.created_by_id", vals)
+			if err != nil {
+				return nil, err
+			}
+			m[filter] = f
 		case "kind":
 			f, err := sjson.Set(``, "terms.kind", vals)
 			if err != nil {
@@ -79,7 +92,7 @@ func generateWorkFilters(filters map[string][]string) (map[string]string, error)
 			}
 			m[filter] = f
 		case "status":
-			f, err := sjson.Set(``, "terms.kind", vals)
+			f, err := sjson.Set(``, "terms.status", vals)
 			if err != nil {
 				return nil, err
 			}

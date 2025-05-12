@@ -15,11 +15,13 @@ left join lateral (
 
 create view bbl_organizations_view as
 select o.*,
-       o_i.identifiers as identifiers,
-       o_r.rels as rels,
        row_to_json(u_c) as created_by,
-       row_to_json(u_u) as updated_by
+       row_to_json(u_u) as updated_by,
+       o_i.identifiers as identifiers,
+       o_r.rels as rels
 from bbl_organizations o
+left join bbl_users_view u_c on o.created_by_id = u_c.id
+left join bbl_users_view u_u on o.updated_by_id = u_u.id
 left join lateral (
   select
    	organization_id,
@@ -35,16 +37,16 @@ left join lateral (
   from bbl_organization_rels o_r
   where o_r.organization_id=o.id
   group by organization_id
-) o_r on o_r.organization_id=o.id
-left join bbl_users_view u_c on o.created_by_id = u_c.id
-left join bbl_users_view u_u on o.updated_by_id = u_u.id;
+) o_r on o_r.organization_id=o.id;
 
 create view bbl_people_view as
 select p.*,
-       p_i.identifiers as identifiers,
        row_to_json(u_c) as created_by,
-       row_to_json(u_u) as updated_by
+       row_to_json(u_u) as updated_by,
+       p_i.identifiers as identifiers
 from bbl_people p
+left join bbl_users_view u_c on p.created_by_id = u_c.id
+left join bbl_users_view u_u on p.updated_by_id = u_u.id
 left join lateral (
   select
    	person_id,
@@ -52,16 +54,16 @@ left join lateral (
   from bbl_person_identifiers p_i
   where p_i.person_id=p.id
   group by person_id
-) p_i on p_i.person_id=p.id
-left join bbl_users_view u_c on p.created_by_id = u_c.id
-left join bbl_users_view u_u on p.updated_by_id = u_u.id;
+) p_i on p_i.person_id=p.id;
 
 create view bbl_projects_view as
 select p.*,
-       p_i.identifiers as identifiers,
        row_to_json(u_c) as created_by,
-       row_to_json(u_u) as updated_by
+       row_to_json(u_u) as updated_by,
+       p_i.identifiers as identifiers
 from bbl_projects p
+left join bbl_users_view u_c on p.created_by_id = u_c.id
+left join bbl_users_view u_u on p.updated_by_id = u_u.id
 left join lateral (
   select
    	project_id,
@@ -69,19 +71,28 @@ left join lateral (
   from bbl_project_identifiers p_i
   where p_i.project_id=p.id
   group by project_id
-) p_i on p_i.project_id=p.id
-left join bbl_users_view u_c on p.created_by_id = u_c.id
-left join bbl_users_view u_u on p.updated_by_id = u_u.id;
+) p_i on p_i.project_id=p.id;
 
 create view bbl_works_view as
 select w.*,
+       row_to_json(u_c) as created_by,
+       row_to_json(u_u) as updated_by,
+       w_pe.permissions as permissions,
        w_i.identifiers as identifiers,
        w_c.contributors as contributors,
        w_f.files as files,
-       w_r.rels as rels,
-       row_to_json(u_c) as created_by,
-       row_to_json(u_u) as updated_by
+       w_r.rels as rels
 from bbl_works w
+left join bbl_users_view u_c on w.created_by_id = u_c.id
+left join bbl_users_view u_u on w.updated_by_id = u_u.id
+left join lateral (
+  select
+   	work_id,
+    json_agg(json_build_object('kind', w_pe.kind, 'user_id', w_pe.user_id)) filter (where w_pe.work_id is not null) as permissions
+  from bbl_work_permissions w_pe
+  where w_pe.work_id=w.id
+  group by work_id
+) w_pe on w_pe.work_id=w.id
 left join lateral (
   select
    	work_id,
@@ -114,9 +125,7 @@ left join lateral (
   from bbl_work_rels w_r
   where w_r.work_id=w.id
   group by work_id
-) w_r on w_r.work_id=w.id
-left join bbl_users_view u_c on w.created_by_id = u_c.id
-left join bbl_users_view u_u on w.updated_by_id = u_u.id;
+) w_r on w_r.work_id=w.id;
 
 -- +goose down
 

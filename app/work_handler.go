@@ -28,6 +28,13 @@ func RequireCanViewWork(w http.ResponseWriter, r *http.Request, c *WorkCtx) (*ht
 	return r, nil
 }
 
+func RequireCanEditWork(w http.ResponseWriter, r *http.Request, c *WorkCtx) (*http.Request, error) {
+	if !can.EditWork(c.User, c.Work) {
+		return nil, httperror.Forbidden
+	}
+	return r, nil
+}
+
 type WorkHandler struct {
 	repo  *pgxrepo.Repo
 	index bbl.Index
@@ -92,7 +99,7 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
 	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
 	router.Handle("/works/{id}", workCtx.With(RequireCanViewWork).Bind(h.Show)).Methods("GET").Name("work")
-	router.Handle("/works/{id}/edit", workCtx.Bind(h.Edit)).Methods("GET").Name("edit_work")
+	router.Handle("/works/{id}/edit", workCtx.With(RequireCanEditWork).Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
 }
 
@@ -112,7 +119,11 @@ func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) e
 }
 
 func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	rec := &bbl.Work{Kind: bbl.WorkKinds[0]}
+	rec := &bbl.Work{
+		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?
+		Kind:        bbl.WorkKinds[0],
+	}
+
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return err
 	}

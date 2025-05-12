@@ -22,6 +22,7 @@ var WorkStatuses = []string{
 
 type Work struct {
 	RecHeader
+	Permissions  []Permission      `json:"permissions,omitempty"` // TODO move to header?
 	Profile      *WorkProfile      `json:"-"`
 	Kind         string            `json:"kind"`
 	Subkind      string            `json:"subkind,omitempty"`
@@ -84,6 +85,9 @@ func (rec *Work) Validate() error {
 
 func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
+	if !slices.Equal(rec.Permissions, rec2.Permissions) {
+		changes["permissions"] = rec.Permissions
+	}
 	if rec.Kind != rec2.Kind {
 		changes["kind"] = rec.Kind
 	}

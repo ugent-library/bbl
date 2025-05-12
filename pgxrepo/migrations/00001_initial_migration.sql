@@ -145,6 +145,15 @@ create table bbl_works (
   attrs jsonb not null default '{}'
 );
 
+create table bbl_work_permissions (
+  work_id uuid not null references bbl_works (id) on delete cascade,
+  user_id uuid not null references bbl_users (id) on delete cascade,
+  kind text not null
+  -- TODO duration of access
+);
+
+create index on bbl_work_permissions (work_id);
+
 create table bbl_work_identifiers (
   work_id uuid not null references bbl_works (id) on delete cascade,
   idx int not null,
@@ -271,6 +280,7 @@ drop table bbl_person_identifiers cascade;
 drop table bbl_people cascade;
 drop table bbl_project_identifiers cascade;
 drop table bbl_projects cascade;
+drop table bbl_work_permissions cascade;
 drop table bbl_work_representations cascade;
 drop table bbl_work_identifiers cascade;
 drop table bbl_work_rels cascade;
