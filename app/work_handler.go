@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"slices"
 
@@ -125,9 +124,7 @@ func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *WorkHandler) SearchCreated(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	log.Printf("filters in handler: %+v", c.SearchOpts.Filters)
 	c.SearchOpts.SetFilterVal("created", c.User.ID)
-	log.Printf("filters in handler after set: %+v", c.SearchOpts.Filters)
 
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
