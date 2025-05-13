@@ -16,8 +16,8 @@ export default function (rootEl) {
                 inputEl.remove();
             });
             evt.detail.tagify.value.forEach((v) => {
-                let inputEl = document.createElement("input");
-                inputEl.type = "hidden";
+                let inputEl = document.createElement('input');
+                inputEl.type = 'hidden';
                 inputEl.name = inputName;
                 inputEl.value = v.value;
                 tagify.DOM.scope.parentElement.appendChild(inputEl);
