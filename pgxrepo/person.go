@@ -39,6 +39,7 @@ func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Pers
 	}
 }
 
+// TODO include in users view?
 func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.Code) ([]string, error) {
 	var qVals string
 	var qVars []any
