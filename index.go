@@ -39,11 +39,11 @@ func (s *SearchOpts) HasFilterVal(k, v string) bool {
 	return false
 }
 
-func (s *SearchOpts) SetFilterVal(k, v string) *SearchOpts {
+func (s *SearchOpts) SetFilter(k string, vals ...string) *SearchOpts {
 	if s.Filters == nil {
 		s.Filters = make(map[string][]string)
 	}
-	s.Filters[k] = []string{v}
+	s.Filters[k] = vals
 	return s
 }
 

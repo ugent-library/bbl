@@ -56,7 +56,7 @@ func getUser(ctx context.Context, conn pgxConn, id string) (*bbl.User, error) {
 			)
 		}
 	} else {
-		row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.id = $1;`, val)
+		row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.id = $1;`, id)
 	}
 
 	rec, err := scanUser(row)

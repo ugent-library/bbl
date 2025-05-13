@@ -39,6 +39,32 @@ func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Pers
 	}
 }
 
+func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.Code) ([]string, error) {
+	var qVals string
+	var qVars []any
+	for i, iden := range identifiers {
+		if i > 0 {
+			qVals += `,`
+		}
+		qVals += fmt.Sprintf(`($%d, $%d)`, len(qVars)+1, len(qVars)+2)
+		qVars = append(qVars, iden.Scheme, iden.Val)
+	}
+
+	q := `select distinct person_id from bbl_person_identifiers where (scheme, val) = any(values ` + qVals + `);`
+
+	rows, err := r.conn.Query(ctx, q, qVars...)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
 func getPerson(ctx context.Context, conn pgxConn, id string) (*bbl.Person, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {

@@ -115,6 +115,13 @@ func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCt
 }
 
 func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	personIDs, err := h.repo.GetPeopleIDsByIdentifiers(r.Context(), c.User.Identifiers)
+	if err != nil {
+		return err
+	}
+
+	c.SearchOpts.SetFilter("contributed", personIDs...)
+
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
 		return err
@@ -124,7 +131,7 @@ func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *WorkHandler) SearchCreated(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	c.SearchOpts.SetFilterVal("created", c.User.ID)
+	c.SearchOpts.SetFilter("created", c.User.ID)
 
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {

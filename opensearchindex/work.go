@@ -85,6 +85,12 @@ func generateWorkFilters(filters map[string][]string) (map[string]string, error)
 				return nil, err
 			}
 			m[filter] = f
+		case "contributed":
+			f, err := sjson.Set(``, "terms.person_id", vals)
+			if err != nil {
+				return nil, err
+			}
+			m[filter] = f
 		case "kind":
 			f, err := sjson.Set(``, "terms.kind", vals)
 			if err != nil {
