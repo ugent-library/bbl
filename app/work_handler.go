@@ -489,6 +489,7 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 			rec.Attrs.Titles[i] = text
 			return true
 		}).
+		StringSlice("work.keywords", &rec.Attrs.Keywords).
 		String("work.conference.name", &rec.Attrs.Conference.Name).
 		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
 		String("work.conference.location", &rec.Attrs.Conference.Location).

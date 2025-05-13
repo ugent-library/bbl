@@ -468,6 +468,18 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
+		if rec.Profile.Keywords != nil {
+			templ_7745c5c3_Err = forms.Tags(forms.TagsArgs{
+				FieldArgs: forms.FieldArgs{
+					Name:  "work.keywords",
+					Label: "Keywords",
+				},
+				Values: rec.Attrs.Keywords,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div></div></div><div class=\"mb-6\" id=\"work-contributors-affiliations\"><div class=\"mb-4\"><h2>People & affiliations</h2></div><div class=\"card mb-6\"><div class=\"card-body\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -593,7 +605,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-%s-add", args.Name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 328, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 337, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -606,7 +618,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 332, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 341, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -643,7 +655,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 351, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 360, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -656,7 +668,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(args.AddURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 357, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 366, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -669,7 +681,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, len(args.Texts)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 358, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 367, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -682,7 +694,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 360, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 369, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -695,7 +707,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(args.PluralTitle)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 370, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 379, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -708,7 +720,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-%s-add", args.Name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 377, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 386, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -721,7 +733,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 380, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 389, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -739,7 +751,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 			var templ_7745c5c3_Var27 string
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("No %s.", args.Label))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 388, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 397, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 			if templ_7745c5c3_Err != nil {
@@ -758,7 +770,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-%s-edit-%d", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 394, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 403, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -771,7 +783,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit %s", args.Label))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 398, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 407, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -810,7 +822,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var30 string
 				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Cancel"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 419, Col: 96}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 428, Col: 96}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 				if templ_7745c5c3_Err != nil {
@@ -823,7 +835,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var31 string
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(args.EditURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 425, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 434, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
@@ -836,7 +848,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 426, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 435, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -849,7 +861,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit %s", args.Label))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 428, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 437, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -862,7 +874,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var34 string
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-%s-edit-%d", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 442, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 451, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
@@ -875,7 +887,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var35 string
 				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 445, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 454, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 				if templ_7745c5c3_Err != nil {
@@ -888,7 +900,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(args.RemoveURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 450, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 459, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 				if templ_7745c5c3_Err != nil {
@@ -901,7 +913,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var37 string
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 451, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 460, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
@@ -914,7 +926,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Remove"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 454, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 463, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -927,7 +939,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var39 string
 				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(text.Lang)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 457, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 466, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
@@ -940,7 +952,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(text.Val)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 458, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 467, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -988,7 +1000,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_suggest_contributor").String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 485, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 494, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -1001,7 +1013,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "add", "idx": %d}`, len(rec.Contributors)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 486, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 495, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
@@ -1025,7 +1037,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var44 string
 				templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-contributors-edit-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 529, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 538, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 				if templ_7745c5c3_Err != nil {
@@ -1038,7 +1050,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var45 string
 				templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_suggest_contributor").String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 547, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 556, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 				if templ_7745c5c3_Err != nil {
@@ -1051,7 +1063,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var46 string
 				templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "edit", "idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 548, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 557, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 				if templ_7745c5c3_Err != nil {
@@ -1064,7 +1076,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var47 string
 				templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-contributor-suggestions-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 550, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 559, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 				if templ_7745c5c3_Err != nil {
@@ -1077,7 +1089,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var48 string
 				templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-contributor-suggestions-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 556, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 565, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 				if templ_7745c5c3_Err != nil {
@@ -1090,7 +1102,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var49 string
 				templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("contributors[%d].person_id", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 564, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 573, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 				if templ_7745c5c3_Err != nil {
@@ -1103,7 +1115,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var50 string
 				templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(con.PersonID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 564, Col: 101}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 573, Col: 101}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 				if templ_7745c5c3_Err != nil {
@@ -1116,7 +1128,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var51 string
 				templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(con.GetName())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 572, Col: 42}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 581, Col: 42}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 				if templ_7745c5c3_Err != nil {
@@ -1129,7 +1141,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var52 string
 				templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-contributors-edit-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 579, Col: 72}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 588, Col: 72}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 				if templ_7745c5c3_Err != nil {
@@ -1142,7 +1154,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var53 string
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_remove_contributor").String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 589, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 598, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 				if templ_7745c5c3_Err != nil {
@@ -1155,7 +1167,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var54 string
 				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 590, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 599, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 				if templ_7745c5c3_Err != nil {
@@ -1208,7 +1220,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 			var templ_7745c5c3_Var56 string
 			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Attrs.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 617, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 626, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 			if templ_7745c5c3_Err != nil {
@@ -1226,7 +1238,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 				var templ_7745c5c3_Var57 string
 				templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_add_contributor").String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 627, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 636, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 				if templ_7745c5c3_Err != nil {
@@ -1244,7 +1256,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 				var templ_7745c5c3_Var58 string
 				templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_edit_contributor").String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 629, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 638, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 				if templ_7745c5c3_Err != nil {
@@ -1262,7 +1274,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 			var templ_7745c5c3_Var59 string
 			templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 631, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 640, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 			if templ_7745c5c3_Err != nil {
@@ -1329,7 +1341,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var61 string
 			templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 668, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 677, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 			if templ_7745c5c3_Err != nil {
@@ -1342,7 +1354,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var62 string
 			templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(f.ContentType)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 671, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 680, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 			if templ_7745c5c3_Err != nil {
@@ -1355,7 +1367,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var63 string
 			templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(f.Size))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 672, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 681, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 			if templ_7745c5c3_Err != nil {
@@ -1368,7 +1380,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var64 string
 			templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_remove_file").String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 687, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 696, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 			if templ_7745c5c3_Err != nil {
@@ -1381,7 +1393,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var65 string
 			templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 688, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 697, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 			if templ_7745c5c3_Err != nil {
@@ -1399,7 +1411,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("create_file_upload_url").String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 702, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 711, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
@@ -1412,7 +1424,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 		var templ_7745c5c3_Var67 string
 		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("work_add_files").String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 703, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/edit.templ`, Line: 712, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 		if templ_7745c5c3_Err != nil {

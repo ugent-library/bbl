@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@yaireo/dragsort": "^1.3.2",
+    "sortablejs": "^1.15.6"
+  }
+}

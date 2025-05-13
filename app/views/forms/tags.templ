@@ -1,0 +1,30 @@
+package forms
+
+type TagsArgs struct {
+	FieldArgs
+	Values []string
+}
+
+type tagifyTag struct {
+	Value string `json:"value"`
+}
+
+templ Tags(args TagsArgs) {
+	{{
+		tags := make([]tagifyTag, len(args.Values))
+		for i, v := range args.Values {
+			tags[i].Value = v
+		}
+	}}
+
+	@Field(args.FieldArgs, args.ID()) {
+		<textarea
+			data-tags
+			data-tags-input-name={ args.Name }
+			id={ args.ID() }
+			class="form-control tagify-custom"
+			autofocus?={ args.AutoFocus }
+			{ fieldAria(args.FieldArgs)... }
+		>{ templ.JSONString(tags) }</textarea>
+	}
+}

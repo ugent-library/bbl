@@ -14,6 +14,14 @@ bootstrap/dist/js/bootstrap.esm.js:
     * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
     */
 
+sortablejs/modular/sortable.core.esm.js:
+  /**!
+   * Sortable 1.15.6
+   * @author	RubaXa   <trash@rubaxa.org>
+   * @author	owenm    <owen23355@gmail.com>
+   * @license MIT
+   */
+
 @uppy/utils/lib/Translator.js:
   /**
    * Takes a string with placeholder variables like `%{smart_count} file selected`

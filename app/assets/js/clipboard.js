@@ -1,16 +1,16 @@
 export default function (rootEl) {
-  rootEl.querySelectorAll("[data-clipboard]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      navigator.clipboard.writeText(btn.dataset.clipboard).then(() => {
-        let icon = btn.querySelector(".if");
-        let text = btn.querySelector(".btn-text");
-        let origBtnClass = btn.className;
+  rootEl.querySelectorAll("[data-clipboard]").forEach((el) => {
+    el.addEventListener("click", () => {
+      navigator.clipboard.writeText(el.dataset.clipboard).then(() => {
+        let icon = el.querySelector(".if");
+        let text = el.querySelector(".btn-text");
+        let origBtnClass = el.className;
         let origIconClass = icon.className;
         let origTextClass = text.className;
         let origText = text.innerText;
 
-        btn.classList.remove("btn-outline-secondary");
-        btn.classList.add("btn-outline-success");
+        el.classList.remove("btn-outline-secondary");
+        el.classList.add("btn-outline-success");
 
         icon.classList.remove("if-copy", "text-muted");
         icon.classList.add("if-check", "text-success");
@@ -21,7 +21,7 @@ export default function (rootEl) {
         text.innerText = "Copied";
 
         setTimeout(function () {
-          btn.className = origBtnClass;
+          el.className = origBtnClass;
           icon.className = origIconClass;
           text.className = origTextClass;
           text.innerText = origText;

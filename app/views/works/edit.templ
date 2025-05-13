@@ -233,6 +233,15 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 							RemoveURL:   c.Route("work_remove_lay_summary").String(),
 						})
 					}
+					if rec.Profile.Keywords != nil {
+						@forms.Tags(forms.TagsArgs{
+							FieldArgs: forms.FieldArgs{
+								Name:  "work.keywords",
+								Label: "Keywords",
+							},
+							Values: rec.Attrs.Keywords,
+						})
+					}
 				</div>
 			</div>
 		</div>
