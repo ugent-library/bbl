@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/tidwall/sjson"
 	"github.com/ugent-library/bbl"
 )
 
@@ -18,6 +17,13 @@ type workDoc struct {
 	Status      string    `json:"status"`
 	Completion  []string  `json:"completion"`
 	Rec         *bbl.Work `json:"rec"`
+}
+
+var workTermsFilters = map[string]string{
+	"created":     "created_by_id",
+	"contributed": "person_id",
+	"kind":        "kind",
+	"status":      "status",
 }
 
 func workToDoc(rec *bbl.Work) any {
@@ -73,42 +79,6 @@ func generateWorkQuery(q string) (string, error) {
 		}
 	}`
 	return j, nil
-}
-
-func generateWorkFilters(filters map[string][]string) (map[string]string, error) {
-	m := map[string]string{}
-	for filter, vals := range filters {
-		switch filter {
-		case "created":
-			f, err := sjson.Set(``, "terms.created_by_id", vals)
-			if err != nil {
-				return nil, err
-			}
-			m[filter] = f
-		case "contributed":
-			f, err := sjson.Set(``, "terms.person_id", vals)
-			if err != nil {
-				return nil, err
-			}
-			m[filter] = f
-		case "kind":
-			f, err := sjson.Set(``, "terms.kind", vals)
-			if err != nil {
-				return nil, err
-			}
-			m[filter] = f
-		case "status":
-			f, err := sjson.Set(``, "terms.status", vals)
-			if err != nil {
-				return nil, err
-			}
-			m[filter] = f
-		default:
-			return nil, fmt.Errorf("unknown filter %s", filter)
-		}
-
-	}
-	return m, nil
 }
 
 func generateWorkAggs(facets []string) (map[string]string, error) {

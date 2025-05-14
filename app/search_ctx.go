@@ -27,10 +27,18 @@ func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 		Int("size", &c.SearchOpts.Size).
 		Int("from", &c.SearchOpts.From).
 		String("cursor", &c.SearchOpts.Cursor)
+	if err := b.Err(); err != nil {
+		return c, err
+	}
 
 	// TODO make reusable
 	c.SearchOpts.Facets = []string{"kind", "status"}
-	c.SearchOpts.Filters = b.Select("kind", "status")
+	for _, field := range c.SearchOpts.Facets {
+		if b.Has(field) {
+			tf := &bbl.TermsFilter{Field: field, Terms: b.GetAll(field)}
+			c.SearchOpts.Filters = append(c.SearchOpts.Filters, tf)
+		}
+	}
 
 	return c, b.Err()
 }

@@ -43,7 +43,7 @@ func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	worksIndex, err := newRecIndex(ctx, client, "bbl_works", workSettings, workToDoc, generateWorkQuery, generateWorkFilters, generateWorkAggs)
+	worksIndex, err := newRecIndex(ctx, client, "bbl_works", workSettings, workToDoc, generateWorkQuery, workTermsFilters, generateWorkAggs)
 	if err != nil {
 		return nil, err
 	}
@@ -73,15 +73,15 @@ func (idx *Index) Works() bbl.RecIndex[*bbl.Work] {
 }
 
 type recIndex[T bbl.Rec] struct {
-	client          *opensearchapi.Client
-	alias           string
-	settings        string
-	retention       int
-	toDoc           func(T) any
-	generateQuery   func(string) (string, error)
-	generateFilters func(map[string][]string) (map[string]string, error)
-	generateAggs    func([]string) (map[string]string, error)
-	bulkIndexer     opensearchutil.BulkIndexer
+	client        *opensearchapi.Client
+	alias         string
+	settings      string
+	retention     int
+	toDoc         func(T) any
+	generateQuery func(string) (string, error)
+	termsFilters  map[string]string
+	generateAggs  func([]string) (map[string]string, error)
+	bulkIndexer   opensearchutil.BulkIndexer
 }
 
 func newRecIndex[T bbl.Rec](
@@ -91,7 +91,7 @@ func newRecIndex[T bbl.Rec](
 	settings string,
 	toDoc func(T) any,
 	generateQuery func(string) (string, error),
-	generateFilters func(map[string][]string) (map[string]string, error),
+	termsFilters map[string]string,
 	generateAggs func([]string) (map[string]string, error),
 ) (*recIndex[T], error) {
 	retention := 1
@@ -114,15 +114,15 @@ func newRecIndex[T bbl.Rec](
 	}
 
 	return &recIndex[T]{
-		client:          client,
-		alias:           alias,
-		settings:        settings,
-		retention:       retention,
-		bulkIndexer:     bulkIndexer,
-		toDoc:           toDoc,
-		generateQuery:   generateQuery,
-		generateFilters: generateFilters,
-		generateAggs:    generateAggs,
+		client:        client,
+		alias:         alias,
+		settings:      settings,
+		retention:     retention,
+		bulkIndexer:   bulkIndexer,
+		toDoc:         toDoc,
+		generateQuery: generateQuery,
+		termsFilters:  termsFilters,
+		generateAggs:  generateAggs,
 	}, nil
 }
 
@@ -191,22 +191,27 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
 	}
 
-	var filtersMap map[string]string
-
-	// TODO remove nil check
-	if idx.generateFilters != nil && len(opts.Filters) > 0 {
-		m, err := idx.generateFilters(opts.Filters)
-		if err != nil {
-			return nil, err
-		}
-		filtersMap = m
-
-		for _, filter := range filtersMap {
-			var err error
-			query, err = sjson.SetRaw(query, "bool.filter.-1", filter)
+	// TODO make recursive
+	for _, filter := range opts.Filters {
+		switch f := filter.(type) {
+		case *bbl.AndClause:
+			// TODO
+		case *bbl.OrClause:
+			// TODO
+		case *bbl.TermsFilter:
+			indexField, ok := idx.termsFilters[f.Field]
+			if !ok {
+				return nil, fmt.Errorf("unknown terms filter %s", f.Field)
+			}
+			jFilter, err := sjson.Set(``, "terms."+indexField, f.Terms)
 			if err != nil {
 				return nil, err
 			}
+			q, err := sjson.SetRaw(query, "bool.filter.-1", jFilter)
+			if err != nil {
+				return nil, err
+			}
+			query = q
 		}
 	}
 
@@ -220,28 +225,23 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 		facets := `{}`
 
 		for key, facet := range m {
-			f := `{"aggs": {"facet": ` + facet + `}}`
-
-			facetFilter, err := sjson.Delete(query, "bool.filter")
-			if err != nil {
-				return nil, err
-			}
-			for filterKey, filter := range filtersMap {
-				if filterKey == key {
-					continue
-				}
-				facetFilter, err = sjson.SetRaw(facetFilter, "bool.filter.-1", filter)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			f, err = sjson.SetRaw(f, "filter", facetFilter)
+			jFacet := `{"aggs": {"facet": ` + facet + `}}`
+			jFacet, err = sjson.SetRaw(jFacet, "filter", query)
 			if err != nil {
 				return nil, err
 			}
 
-			facets, err = sjson.SetRaw(facets, key, f)
+			// the facet filter is the query except the terms filter matching the facet
+			for i, filter := range opts.Filters {
+				if tf, ok := filter.(*bbl.TermsFilter); ok {
+					if tf.Field == key {
+						jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
+						break
+					}
+				}
+			}
+
+			facets, err = sjson.SetRaw(facets, key, jFacet)
 		}
 
 		aggs = `

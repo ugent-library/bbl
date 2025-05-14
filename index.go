@@ -24,26 +24,59 @@ type RecIndexSwitcher[T Rec] interface {
 }
 
 type SearchOpts struct {
-	Query   string              `json:"query,omitempty"`
-	Filters map[string][]string `json:"filters,omitempty"`
-	Size    int                 `json:"size"`
-	From    int                 `json:"from,omitempty"`
-	Cursor  string              `json:"cursor,omitempty"`
-	Facets  []string            `json:"facets,omitempty"`
+	Query   string   `json:"query,omitempty"`
+	Filters []Filter `json:"filters,omitempty"`
+	Size    int      `json:"size"`
+	From    int      `json:"from,omitempty"`
+	Cursor  string   `json:"cursor,omitempty"`
+	Facets  []string `json:"facets,omitempty"`
 }
 
-func (s *SearchOpts) HasFilterVal(k, v string) bool {
-	if vals, ok := s.Filters[k]; ok {
-		return slices.Contains(vals, v)
+type Filter interface {
+	isFilter()
+}
+
+type AndClause struct {
+	Filters []Filter
+}
+
+func (*AndClause) isFilter() {}
+
+type OrClause struct {
+	Filters []Filter
+}
+
+func (*OrClause) isFilter() {}
+
+type TermsFilter struct {
+	Field string
+	Terms []string
+}
+
+func (*TermsFilter) isFilter() {}
+
+func (s *SearchOpts) HasFilterTerm(field, term string) bool {
+	for _, f := range s.Filters {
+		if tf, ok := f.(*TermsFilter); ok {
+			if tf.Field == field && slices.Contains(tf.Terms, term) {
+				return true
+			}
+		}
 	}
 	return false
 }
 
-func (s *SearchOpts) SetFilter(k string, vals ...string) *SearchOpts {
-	if s.Filters == nil {
-		s.Filters = make(map[string][]string)
+func (s *SearchOpts) SetTermsFilter(field string, terms ...string) *SearchOpts {
+	for _, f := range s.Filters {
+		if tf, ok := f.(*TermsFilter); ok {
+			if tf.Field == field {
+				tf.Terms = terms
+				return s
+			}
+		}
 	}
-	s.Filters[k] = vals
+	tf := &TermsFilter{Field: field, Terms: terms}
+	s.Filters = append(s.Filters, tf)
 	return s
 }
 
