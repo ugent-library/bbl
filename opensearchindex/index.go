@@ -215,6 +215,17 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 		}
 	}
 
+	if len(opts.Filters) > 0 {
+		jFilter, err := generateFilter(opts.Filters, idx.termsFilters)
+		if err != nil {
+			return nil, err
+		}
+		query, err = sjson.SetRaw(query, "bool.filter", jFilter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// TODO remove nil check
 	if idx.generateAggs != nil && len(opts.Facets) > 0 {
 		m, err := idx.generateAggs(opts.Facets)
@@ -322,4 +333,50 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 	}
 
 	return hits, nil
+}
+
+func generateFilter(filters []bbl.Filter, termsFilters map[string]string) (string, error) {
+	jFilters := `[]`
+
+	for _, filter := range filters {
+		var jFilter string
+		var err error
+
+		switch f := filter.(type) {
+		case *bbl.AndClause:
+			jClauses, err := generateFilter(f.Filters, termsFilters)
+			if err != nil {
+				return jFilters, err
+			}
+			jFilter, err = sjson.SetRaw(``, "bool.must", jClauses)
+			if err != nil {
+				return jFilters, err
+			}
+		case *bbl.OrClause:
+			jClauses, err := generateFilter(f.Filters, termsFilters)
+			if err != nil {
+				return jFilters, err
+			}
+			jFilter, err = sjson.SetRaw(``, "bool.should", jClauses)
+			if err != nil {
+				return jFilters, err
+			}
+		case *bbl.TermsFilter:
+			docField, ok := termsFilters[f.Field]
+			if !ok {
+				return jFilters, fmt.Errorf("unknown terms filter %s", f.Field)
+			}
+			jFilter, err = sjson.Set(``, "terms."+docField, f.Terms)
+			if err != nil {
+				return jFilters, err
+			}
+		}
+
+		jFilters, err = sjson.SetRaw(jFilters, "-1", jFilter)
+		if err != nil {
+			return jFilters, err
+		}
+	}
+
+	return jFilters, nil
 }

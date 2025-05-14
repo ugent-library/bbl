@@ -106,6 +106,16 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 }
 
 func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	personIDs, err := h.repo.GetPeopleIDsByIdentifiers(r.Context(), c.User.Identifiers)
+	if err != nil {
+		return err
+	}
+
+	c.SearchOpts.AddFilters(bbl.Or(
+		bbl.Terms("created", c.User.ID),
+		bbl.Terms("contributed", personIDs...),
+	))
+
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
 		return err
@@ -120,7 +130,7 @@ func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, 
 		return err
 	}
 
-	c.SearchOpts.SetTermsFilter("contributed", personIDs...)
+	c.SearchOpts.AddFilters(bbl.Terms("contributed", personIDs...))
 
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {
@@ -131,7 +141,7 @@ func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *WorkHandler) SearchCreated(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	c.SearchOpts.SetTermsFilter("created", c.User.ID)
+	c.SearchOpts.AddFilters(bbl.Terms("created", c.User.ID))
 
 	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
 	if err != nil {

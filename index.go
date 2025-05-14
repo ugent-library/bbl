@@ -23,15 +23,6 @@ type RecIndexSwitcher[T Rec] interface {
 	Switch(context.Context) error
 }
 
-type SearchOpts struct {
-	Query   string   `json:"query,omitempty"`
-	Filters []Filter `json:"filters,omitempty"`
-	Size    int      `json:"size"`
-	From    int      `json:"from,omitempty"`
-	Cursor  string   `json:"cursor,omitempty"`
-	Facets  []string `json:"facets,omitempty"`
-}
-
 type Filter interface {
 	isFilter()
 }
@@ -42,11 +33,19 @@ type AndClause struct {
 
 func (*AndClause) isFilter() {}
 
+func And(filters ...Filter) *AndClause {
+	return &AndClause{Filters: filters}
+}
+
 type OrClause struct {
 	Filters []Filter
 }
 
 func (*OrClause) isFilter() {}
+
+func Or(filters ...Filter) *OrClause {
+	return &OrClause{Filters: filters}
+}
 
 type TermsFilter struct {
 	Field string
@@ -55,7 +54,20 @@ type TermsFilter struct {
 
 func (*TermsFilter) isFilter() {}
 
-func (s *SearchOpts) HasFilterTerm(field, term string) bool {
+func Terms(field string, terms ...string) *TermsFilter {
+	return &TermsFilter{Field: field, Terms: terms}
+}
+
+type SearchOpts struct {
+	Query   string   `json:"query,omitempty"`
+	Filters []Filter `json:"filters,omitempty"`
+	Size    int      `json:"size"`
+	From    int      `json:"from,omitempty"`
+	Cursor  string   `json:"cursor,omitempty"`
+	Facets  []string `json:"facets,omitempty"`
+}
+
+func (s *SearchOpts) HasFacetTerm(field, term string) bool {
 	for _, f := range s.Filters {
 		if tf, ok := f.(*TermsFilter); ok {
 			if tf.Field == field && slices.Contains(tf.Terms, term) {
@@ -66,17 +78,8 @@ func (s *SearchOpts) HasFilterTerm(field, term string) bool {
 	return false
 }
 
-func (s *SearchOpts) SetTermsFilter(field string, terms ...string) *SearchOpts {
-	for _, f := range s.Filters {
-		if tf, ok := f.(*TermsFilter); ok {
-			if tf.Field == field {
-				tf.Terms = terms
-				return s
-			}
-		}
-	}
-	tf := &TermsFilter{Field: field, Terms: terms}
-	s.Filters = append(s.Filters, tf)
+func (s *SearchOpts) AddFilters(filters ...Filter) *SearchOpts {
+	s.Filters = append(s.Filters, filters...)
 	return s
 }
 
