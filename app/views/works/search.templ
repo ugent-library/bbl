@@ -91,7 +91,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 													type="checkbox"
 													name={ f.Name }
 													value={ v.Val }
-													checked?={ hits.Opts.HasFilterTerm(f.Name, v.Val) }
+													checked?={ hits.Opts.HasFacetTerm(f.Name, v.Val) }
 													form="work-search-form"
 												/>
 												<label class="form-check-label">{ v.Val } ({ fmt.Sprint(v.Count) })</label>

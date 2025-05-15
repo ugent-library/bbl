@@ -492,6 +492,13 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 			rec.Identifiers[i] = code
 			return true
 		}).
+		Each("work.classifications", func(i int, b *binder.Values) bool {
+			var code bbl.Code
+			b.String("scheme", &code.Scheme)
+			b.String("val", &code.Val)
+			rec.Attrs.Classifications[i] = code
+			return true
+		}).
 		Each("work.titles", func(i int, b *binder.Values) bool {
 			var text bbl.Text
 			b.String("lang", &text.Lang)
@@ -503,6 +510,17 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		String("work.conference.name", &rec.Attrs.Conference.Name).
 		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
 		String("work.conference.location", &rec.Attrs.Conference.Location).
+		String("work.article_number", &rec.Attrs.ArticleNumber).
+		String("work.report_number", &rec.Attrs.ReportNumber).
+		String("work.volume", &rec.Attrs.Volume).
+		String("work.issue", &rec.Attrs.Issue).
+		String("work.issue_title", &rec.Attrs.IssueTitle).
+		String("work.edition", &rec.Attrs.Edition).
+		String("work.total_pages", &rec.Attrs.TotalPages).
+		String("work.pages.start", &rec.Attrs.Pages.Start).
+		String("work.pages.end", &rec.Attrs.Pages.End).
+		String("work.place_of_publication", &rec.Attrs.PlaceOfPublication).
+		String("work.publisher", &rec.Attrs.Publisher).
 		Err()
 	return err
 }

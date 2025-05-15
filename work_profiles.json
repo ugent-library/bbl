@@ -18,7 +18,8 @@
                 "required": true
             },
             "lay_summaries": {},
-            "keywords": {}
+            "keywords": {},
+            "edition": {}
         }
     },
     {
@@ -43,7 +44,10 @@
                 "required": true
             },
             "lay_summaries": {},
-            "keywords": {}
+            "keywords": {},
+            "pages": {},
+            "total_pages": {},
+            "article_number": {}
         },
         "subkinds": [
             {

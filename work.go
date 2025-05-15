@@ -35,11 +35,22 @@ type Work struct {
 }
 
 type WorkAttrs struct {
-	Titles       []Text     `json:"titles,omitempty"`
-	Abstracts    []Text     `json:"abstracts,omitempty"`
-	LaySummaries []Text     `json:"lay_summaries,omitempty"`
-	Keywords     []string   `json:"keywords,omitempty"`
-	Conference   Conference `json:"conference,omitzero"`
+	Classifications    []Code     `json:"classifications,omitempty"`
+	Titles             []Text     `json:"titles,omitempty"`
+	Abstracts          []Text     `json:"abstracts,omitempty"`
+	LaySummaries       []Text     `json:"lay_summaries,omitempty"`
+	Keywords           []string   `json:"keywords,omitempty"`
+	Conference         Conference `json:"conference,omitzero"`
+	ArticleNumber      string     `json:"article_number,omitempty"`
+	ReportNumber       string     `json:"report_number,omitempty"`
+	Volume             string     `json:"volume,omitempty"`
+	Issue              string     `json:"issue,omitempty"`
+	IssueTitle         string     `json:"issue_title,omitempty"`
+	Edition            string     `json:"edition,omitempty"`
+	TotalPages         string     `json:"total_pages,omitempty"`
+	Pages              Extent     `json:"pages,omitzero"`
+	PlaceOfPublication string     `json:"place_of_publication,omitempty"`
+	Publisher          string     `json:"publisher,omitempty"`
 }
 
 type WorkContributor struct {
@@ -85,7 +96,7 @@ func (rec *Work) Validate() error {
 
 func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
-	if !slices.Equal(rec.Permissions, rec2.Permissions) {
+	if !slices.Equal(rec.Permissions, rec2.Permissions) { // TODO should we include this in changes?
 		changes["permissions"] = rec.Permissions
 	}
 	if rec.Kind != rec2.Kind {
@@ -118,6 +129,9 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 	}) {
 		changes["rels"] = rec.Rels
 	}
+	if !slices.Equal(rec.Attrs.Classifications, rec2.Attrs.Classifications) {
+		changes["classifications"] = rec.Attrs.Classifications
+	}
 	if !slices.Equal(rec.Attrs.Titles, rec2.Attrs.Titles) {
 		changes["titles"] = rec.Attrs.Titles
 	}
@@ -132,6 +146,36 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 	}
 	if rec.Attrs.Conference != rec2.Attrs.Conference {
 		changes["conference"] = rec.Attrs.Conference
+	}
+	if rec.Attrs.ArticleNumber != rec2.Attrs.ArticleNumber {
+		changes["article_number"] = rec.Attrs.ArticleNumber
+	}
+	if rec.Attrs.ReportNumber != rec2.Attrs.ReportNumber {
+		changes["report_number"] = rec.Attrs.ReportNumber
+	}
+	if rec.Attrs.Volume != rec2.Attrs.Volume {
+		changes["volume"] = rec.Attrs.Volume
+	}
+	if rec.Attrs.Issue != rec2.Attrs.Issue {
+		changes["issue"] = rec.Attrs.Issue
+	}
+	if rec.Attrs.IssueTitle != rec2.Attrs.IssueTitle {
+		changes["issue_title"] = rec.Attrs.IssueTitle
+	}
+	if rec.Attrs.Edition != rec2.Attrs.Edition {
+		changes["edition"] = rec.Attrs.Edition
+	}
+	if rec.Attrs.TotalPages != rec2.Attrs.TotalPages {
+		changes["total_pages"] = rec.Attrs.TotalPages
+	}
+	if rec.Attrs.Pages != rec2.Attrs.Pages {
+		changes["pages"] = rec.Attrs.Pages
+	}
+	if rec.Attrs.PlaceOfPublication != rec2.Attrs.PlaceOfPublication {
+		changes["place_of_publication"] = rec.Attrs.PlaceOfPublication
+	}
+	if rec.Attrs.Publisher != rec2.Attrs.Publisher {
+		changes["publisher"] = rec.Attrs.Publisher
 	}
 	return changes
 }

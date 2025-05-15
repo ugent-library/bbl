@@ -35,3 +35,12 @@ type Conference struct {
 	StartDate time.Time `json:"start_date,omitzero"`
 	EndDate   time.Time `json:"end_date,omitzero"`
 }
+
+type Extent struct {
+	Start string `json:"start,omitempty"`
+	End   string `json:"end,omitempty"`
+}
+
+func (e Extent) String() string {
+	return e.Start + "-" + e.End
+}

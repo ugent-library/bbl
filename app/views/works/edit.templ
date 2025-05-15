@@ -268,7 +268,124 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 				<h2>Bibliographic information</h2>
 			</div>
 			<div class="card mb-6">
-				<div class="card-body"></div>
+				<div class="card-body">
+					if rec.Profile.Publisher != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Publisher",
+								Name:     "work.publisher",
+								Required: rec.Profile.Publisher.Required,
+							},
+							Value: rec.Attrs.Publisher,
+						})
+					}
+					if rec.Profile.PlaceOfPublication != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Place of publication",
+								Name:     "work.place_of_publication",
+								Required: rec.Profile.PlaceOfPublication.Required,
+							},
+							Value: rec.Attrs.PlaceOfPublication,
+						})
+					}
+					if rec.Profile.Volume != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Volume",
+								Name:     "work.volume",
+								Required: rec.Profile.Volume.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.Volume,
+						})
+					}
+					if rec.Profile.Issue != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Issue",
+								Name:     "work.issue",
+								Required: rec.Profile.Issue.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.Issue,
+						})
+					}
+					if rec.Profile.IssueTitle != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Special issue title",
+								Name:     "work.issue_title",
+								Required: rec.Profile.IssueTitle.Required,
+							},
+							Value: rec.Attrs.IssueTitle,
+						})
+					}
+					if rec.Profile.Edition != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Edition",
+								Name:     "work.edition",
+								Required: rec.Profile.Edition.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.Edition,
+						})
+					}
+					if rec.Profile.Pages != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "First page",
+								Name:     "work.pages.start",
+								Required: rec.Profile.Pages.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.Pages.Start,
+						})
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Last page",
+								Name:     "work.pages.end",
+								Required: rec.Profile.Pages.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.Pages.End,
+						})
+					}
+					if rec.Profile.TotalPages != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Number of pages",
+								Name:     "work.total_pages",
+								Required: rec.Profile.TotalPages.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.TotalPages,
+						})
+					}
+					if rec.Profile.ArticleNumber != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Article number",
+								Name:     "work.article_number",
+								Required: rec.Profile.ArticleNumber.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.ArticleNumber,
+						})
+					}
+					if rec.Profile.ReportNumber != nil {
+						@forms.TextInput(forms.TextInputArgs{
+							FieldArgs: forms.FieldArgs{
+								Label:    "Report number",
+								Name:     "work.report_number",
+								Required: rec.Profile.ReportNumber.Required,
+								Cols:     1,
+							},
+							Value: rec.Attrs.ReportNumber,
+						})
+					}
+				</div>
 			</div>
 		</div>
 		if rec.Profile.Conference != nil {

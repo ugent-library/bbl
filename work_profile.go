@@ -13,6 +13,31 @@ var WorkProfiles = map[string]map[string]*WorkProfile{}
 var WorkKinds []string
 var WorkSubkinds = map[string][]string{}
 
+type WorkProfile struct {
+	Identifiers        *CodeAttrProfile `json:"identifiers,omitempty"`
+	Contributors       *AttrProfile     `json:"contributors,omitempty"`
+	Rels               *AttrProfile     `json:"rels,omitempty"`
+	Classifications    *CodeAttrProfile `json:"classifications,omitempty"`
+	Titles             *AttrProfile     `json:"titles,omitempty"`
+	Abstracts          *AttrProfile     `json:"abstracts,omitempty"`
+	LaySummaries       *AttrProfile     `json:"lay_summaries,omitempty"`
+	Keywords           *AttrProfile     `json:"keywords,omitempty"`
+	Conference         *AttrProfile     `json:"conference,omitempty"`
+	ArticleNumber      *AttrProfile     `json:"article_number,omitempty"`
+	ReportNumber       *AttrProfile     `json:"report_number,omitempty"`
+	Volume             *AttrProfile     `json:"volume,omitempty"`
+	Issue              *AttrProfile     `json:"issue,omitempty"`
+	IssueTitle         *AttrProfile     `json:"issue_title,omitempty"`
+	Edition            *AttrProfile     `json:"edition,omitempty"`
+	TotalPages         *AttrProfile     `json:"total_pages,omitempty"`
+	Pages              *AttrProfile     `json:"pages,omitempty"`
+	PlaceOfPublication *AttrProfile     `json:"place_of_publication,omitempty"`
+	Publisher          *AttrProfile     `json:"publisher,omitempty"`
+
+	IdentifierSchemes     []string `json:"-"`
+	ClassificationSchemes []string `json:"-"`
+}
+
 func LoadWorkProfile(rec *Work) error {
 	if subKinds, ok := WorkProfiles[rec.Kind]; ok {
 		if !ok {
@@ -50,6 +75,11 @@ func init() {
 				kp.IdentifierSchemes = append(kp.IdentifierSchemes, scheme.Scheme)
 			}
 		}
+		if kp.Classifications != nil {
+			for _, scheme := range kp.Classifications.Schemes {
+				kp.ClassificationSchemes = append(kp.ClassificationSchemes, scheme.Scheme)
+			}
+		}
 		WorkKinds = append(WorkKinds, p.Kind)
 		WorkProfiles[p.Kind] = map[string]*WorkProfile{"": &kp}
 		for _, pp := range p.Subkinds {
@@ -67,21 +97,13 @@ func init() {
 					skp.IdentifierSchemes = append(skp.IdentifierSchemes, scheme.Scheme)
 				}
 			}
+			if skp.Classifications != nil {
+				for _, scheme := range skp.Classifications.Schemes {
+					skp.ClassificationSchemes = append(skp.ClassificationSchemes, scheme.Scheme)
+				}
+			}
 			WorkSubkinds[p.Kind] = append(WorkSubkinds[p.Kind], pp.Subkind)
 			WorkProfiles[p.Kind][pp.Subkind] = &skp
 		}
 	}
-}
-
-type WorkProfile struct {
-	Identifiers  *CodeAttrProfile `json:"identifiers,omitempty"`
-	Titles       *AttrProfile     `json:"titles,omitempty"`
-	Abstracts    *AttrProfile     `json:"abstracts,omitempty"`
-	LaySummaries *AttrProfile     `json:"lay_summaries,omitempty"`
-	Keywords     *AttrProfile     `json:"keywords,omitempty"`
-	Conference   *AttrProfile     `json:"conference,omitempty"`
-	Contributors *AttrProfile     `json:"contributors,omitempty"`
-	Rels         *AttrProfile     `json:"rels,omitempty"`
-
-	IdentifierSchemes []string `json:"-"`
 }
