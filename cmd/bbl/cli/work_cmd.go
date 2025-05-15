@@ -2,11 +2,14 @@ package cli
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/queryparser"
 )
 
 func init() {
@@ -14,6 +17,7 @@ func init() {
 	rootCmd.AddCommand(worksCmd)
 	worksCmd.AddCommand(searchWorksCmd)
 	searchWorksCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
+	searchWorksCmd.Flags().StringVarP(&queryFilter, "filter", "f", "", "")
 	searchWorksCmd.Flags().IntVar(&searchOpts.Size, "size", 20, "")
 	searchWorksCmd.Flags().IntVar(&searchOpts.From, "from", 0, "")
 	searchWorksCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
@@ -125,6 +129,15 @@ var searchWorksCmd = &cobra.Command{
 			return err
 		}
 
+		// TODO organize this
+		if queryFilter != "" {
+			ast, err := queryparser.ParseReader("filter", strings.NewReader(queryFilter))
+			if err != nil {
+				return err
+			}
+			searchOpts.Filter = andClauseFrom(ast)
+		}
+
 		hits, err := index.Works().Search(cmd.Context(), searchOpts)
 		if err != nil {
 			return err
@@ -133,4 +146,52 @@ var searchWorksCmd = &cobra.Command{
 		enc := json.NewEncoder(cmd.OutOrStdout())
 		return enc.Encode(hits)
 	},
+}
+
+func andClauseFrom(node any) *bbl.AndClause {
+	var f bbl.Filter
+	switch n := node.(type) {
+	case *queryparser.AndQuery:
+		f = filterFromAndQuery(n)
+	case *queryparser.Query:
+		f = filterFromQuery(n)
+	case *queryparser.Field:
+		f = filterFromField(n)
+	}
+	if andClause, ok := f.(*bbl.AndClause); ok {
+		return andClause
+	} else {
+		return bbl.And(f)
+	}
+}
+
+func filterFromAndQuery(n *queryparser.AndQuery) bbl.Filter {
+	f := &bbl.AndClause{Filters: make([]bbl.Filter, len(n.FieldOrQueries))}
+	for i, fq := range n.FieldOrQueries {
+		if fq.Field != nil {
+			f.Filters[i] = filterFromField(fq.Field)
+		} else {
+			f.Filters[i] = filterFromQuery(fq.Query)
+		}
+	}
+	if len(f.Filters) == 1 {
+		return f.Filters[0]
+	}
+	return f
+}
+
+func filterFromQuery(n *queryparser.Query) bbl.Filter {
+	if len(n.OrQueries) > 0 {
+		f := &bbl.OrClause{Filters: make([]bbl.Filter, 1+len(n.OrQueries))}
+		f.Filters[0] = filterFromAndQuery(n.AndQuery)
+		for i, aq := range n.OrQueries {
+			f.Filters[i+1] = filterFromAndQuery(aq)
+		}
+		return f
+	}
+	return filterFromAndQuery(n.AndQuery)
+}
+
+func filterFromField(n *queryparser.Field) bbl.Filter {
+	return bbl.Terms(n.Key.Name, n.Value.(string))
 }

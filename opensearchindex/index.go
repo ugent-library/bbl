@@ -192,31 +192,31 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 	}
 
 	// TODO make recursive
-	for _, filter := range opts.Filters {
-		switch f := filter.(type) {
-		case *bbl.AndClause:
-			// TODO
-		case *bbl.OrClause:
-			// TODO
-		case *bbl.TermsFilter:
-			indexField, ok := idx.termsFilters[f.Field]
-			if !ok {
-				return nil, fmt.Errorf("unknown terms filter %s", f.Field)
+	if opts.Filter != nil {
+		for _, filter := range opts.Filter.Filters {
+			switch f := filter.(type) {
+			case *bbl.AndClause:
+				// TODO
+			case *bbl.OrClause:
+				// TODO
+			case *bbl.TermsFilter:
+				indexField, ok := idx.termsFilters[f.Field]
+				if !ok {
+					return nil, fmt.Errorf("unknown terms filter %s", f.Field)
+				}
+				jFilter, err := sjson.Set(``, "terms."+indexField, f.Terms)
+				if err != nil {
+					return nil, err
+				}
+				q, err := sjson.SetRaw(query, "bool.filter.-1", jFilter)
+				if err != nil {
+					return nil, err
+				}
+				query = q
 			}
-			jFilter, err := sjson.Set(``, "terms."+indexField, f.Terms)
-			if err != nil {
-				return nil, err
-			}
-			q, err := sjson.SetRaw(query, "bool.filter.-1", jFilter)
-			if err != nil {
-				return nil, err
-			}
-			query = q
 		}
-	}
 
-	if len(opts.Filters) > 0 {
-		jFilter, err := generateFilter(opts.Filters, idx.termsFilters)
+		jFilter, err := generateFilter(opts.Filter.Filters, idx.termsFilters)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +243,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 			}
 
 			// the facet filter is the query except the terms filter matching the facet
-			for i, filter := range opts.Filters {
+			for i, filter := range opts.Filter.Filters {
 				if tf, ok := filter.(*bbl.TermsFilter); ok {
 					if tf.Field == key {
 						jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))

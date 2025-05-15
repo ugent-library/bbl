@@ -59,16 +59,19 @@ func Terms(field string, terms ...string) *TermsFilter {
 }
 
 type SearchOpts struct {
-	Query   string   `json:"query,omitempty"`
-	Filters []Filter `json:"filters,omitempty"`
-	Size    int      `json:"size"`
-	From    int      `json:"from,omitempty"`
-	Cursor  string   `json:"cursor,omitempty"`
-	Facets  []string `json:"facets,omitempty"`
+	Query  string     `json:"query,omitempty"`
+	Filter *AndClause `json:"filter,omitempty"`
+	Size   int        `json:"size"`
+	From   int        `json:"from,omitempty"`
+	Cursor string     `json:"cursor,omitempty"`
+	Facets []string   `json:"facets,omitempty"`
 }
 
 func (s *SearchOpts) HasFacetTerm(field, term string) bool {
-	for _, f := range s.Filters {
+	if s.Filter == nil {
+		return false
+	}
+	for _, f := range s.Filter.Filters {
 		if tf, ok := f.(*TermsFilter); ok {
 			if tf.Field == field && slices.Contains(tf.Terms, term) {
 				return true
@@ -79,12 +82,16 @@ func (s *SearchOpts) HasFacetTerm(field, term string) bool {
 }
 
 func (s *SearchOpts) AddFilters(filters ...Filter) *SearchOpts {
-	s.Filters = append(s.Filters, filters...)
+	if s.Filter == nil {
+		s.Filter = &AndClause{Filters: filters}
+	} else {
+		s.Filter.Filters = append(s.Filter.Filters, filters...)
+	}
 	return s
 }
 
 type RecHits[T Rec] struct {
-	Opts   *SearchOpts
+	Opts   *SearchOpts `json:"-"`
 	Hits   []RecHit[T] `json:"hits"`
 	Total  int         `json:"total"`
 	Cursor string      `json:"cursor,omitempty"`

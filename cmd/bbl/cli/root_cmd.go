@@ -10,3 +10,4 @@ var rootCmd = &cobra.Command{
 }
 
 var searchOpts = &bbl.SearchOpts{}
+var queryFilter string

@@ -35,8 +35,7 @@ func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 	c.SearchOpts.Facets = []string{"kind", "status"}
 	for _, field := range c.SearchOpts.Facets {
 		if b.Has(field) {
-			tf := &bbl.TermsFilter{Field: field, Terms: b.GetAll(field)}
-			c.SearchOpts.Filters = append(c.SearchOpts.Filters, tf)
+			c.SearchOpts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
 		}
 	}
 
