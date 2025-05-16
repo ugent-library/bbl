@@ -559,167 +559,28 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Work.Version, currentRec.Version)
 			}
 
-			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {
-				return fmt.Errorf("AddRev: %w", err)
+			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, a.Work, currentRec); err != nil {
+				return err
 			}
-
-			// validate
-			if err := a.Work.Validate(); err != nil {
-				return fmt.Errorf("AddRev: %w", err)
-			}
-
-			diff := a.Work.Diff(currentRec)
-
-			if len(diff) == 0 {
-				continue
-			}
-
-			jsonAttrs, err := json.Marshal(a.Work.Attrs)
+		case *bbl.ChangeWork:
+			currentRec, err := getWork(ctx, tx, a.WorkID)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 
-			jsonDiff, err := json.Marshal(diff)
+			rec, err := currentRec.Clone()
 			if err != nil {
-				return fmt.Errorf("AddRev: %w", err)
+				return err
 			}
 
-			batch.Queue(`
-				update bbl_works
-				set kind = $2,
-				    subkind = nullif($3, ''),
-					status = $4,
-				    attrs = $5,
-					version = version + 1,
-				    updated_at = transaction_timestamp(),
-					updated_by_id = nullif($6, '')::uuid
-				where id = $1;`,
-				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID,
-			)
-
-			if _, ok := diff["permissions"]; ok {
-				batch.Queue(`
-					delete from bbl_work_permissions
-					where work_id = $1;`,
-					a.Work.ID,
-				)
-				for _, perm := range a.Work.Permissions {
-					batch.Queue(`
-						insert into bbl_work_permissions (work_id, kind, user_id)
-						values ($1, $2, $3);`,
-						a.Work.ID, perm.Kind, perm.UserID,
-					)
+			for _, c := range a.Changes {
+				if err := c.Apply(rec); err != nil {
+					return err
 				}
 			}
 
-			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "work", a.Work.ID, currentRec.Identifiers, a.Work.Identifiers)
-			}
-
-			if _, ok := diff["contributors"]; ok {
-				if len(currentRec.Contributors) > len(a.Work.Contributors) {
-					batch.Queue(`
-						delete from bbl_work_contributors
-						where work_id = $1 and idx >= $2;`,
-						a.Work.ID, len(a.Work.Contributors),
-					)
-				}
-				for i, con := range a.Work.Contributors {
-					jsonAttrs, err := json.Marshal(con.Attrs)
-					if err != nil {
-						return fmt.Errorf("AddRev: %w", err)
-					}
-
-					// TODO only update if different
-					if i < len(currentRec.Contributors) {
-						batch.Queue(`
-							update bbl_work_contributors
-							set attrs = $3,
-							    person_id = $4
-							where work_id = $1 and idx = $2;`,
-							a.Work.ID, i, jsonAttrs, con.PersonID,
-						)
-					} else {
-						batch.Queue(`
-							insert into bbl_work_contributors (work_id, idx, attrs, person_id)
-							values ($1, $2, $3, $4);`,
-							a.Work.ID, i, jsonAttrs, con.PersonID,
-						)
-					}
-				}
-			}
-
-			if _, ok := diff["files"]; ok {
-				if len(currentRec.Files) > len(a.Work.Files) {
-					batch.Queue(`
-						delete from bbl_work_files
-						where work_id = $1 and idx >= $2;`,
-						a.Work.ID, len(a.Work.Files),
-					)
-				}
-				for i, f := range a.Work.Files {
-					// TODO only update if different
-					if i < len(currentRec.Files) {
-						batch.Queue(`
-							update bbl_work_files
-							set object_id = $3,
-							    name = $4,
-								content_type = $5,
-								size = $6
-							where work_id = $1 and idx = $2;`,
-							a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
-						)
-					} else {
-						batch.Queue(`
-							insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
-							values ($1, $2, $3, $4, $5, $6);`,
-							a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
-						)
-					}
-				}
-			}
-
-			if _, ok := diff["rels"]; ok {
-				if len(currentRec.Rels) > len(a.Work.Rels) {
-					batch.Queue(`
-						delete from bbl_work_rels
-						where work_id = $1 and idx >= $2;`,
-						a.Work.ID, len(a.Work.Rels),
-					)
-				}
-				for i, rel := range a.Work.Rels {
-					// TODO only update if different
-					if i < len(currentRec.Rels) {
-						batch.Queue(`
-							update bbl_work_rels
-							set kind = $3,
-							    rel_work_id = $4
-							where work_id = $1 and idx = $2;`,
-							a.Work.ID, i, rel.Kind, rel.WorkID,
-						)
-					} else {
-						batch.Queue(`
-							insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
-							values ($1, $2, $3, $4);`,
-							a.Work.ID, i, rel.Kind, rel.WorkID,
-						)
-					}
-				}
-			}
-
-			batch.Queue(`
-				insert into bbl_changes (rev_id, work_id, diff)
-				values ($1, $2, $3);`,
-				revID, a.Work.ID, jsonDiff,
-			)
-
-			riverJobs = append(riverJobs,
-				river.InsertManyParams{Args: jobs.IndexWork{ID: a.Work.ID}},
-				river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: a.Work.ID}},
-			)
-
-			if err := mq.Send(ctx, "work.update", a.Work.ID, tonga.SendOpts{}); err != nil {
-				return fmt.Errorf("AddRev: %w", err)
+			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, rec, currentRec); err != nil {
+				return err
 			}
 		default:
 			return errors.New("AddRev: unknown action")
@@ -806,6 +667,174 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new [
 			)
 		}
 	}
+}
+
+func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Client, riverJobs *[]river.InsertManyParams, revID, userID string, rec, currentRec *bbl.Work) error {
+	if err := lookupWorkContributors(ctx, tx, rec.Contributors); err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	// validate
+	if err := rec.Validate(); err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	diff := rec.Diff(currentRec)
+
+	if len(diff) == 0 {
+		return nil
+	}
+
+	jsonAttrs, err := json.Marshal(rec.Attrs)
+	if err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	jsonDiff, err := json.Marshal(diff)
+	if err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	batch.Queue(`
+		update bbl_works
+		set kind = $2,
+			subkind = nullif($3, ''),
+			status = $4,
+			attrs = $5,
+			version = version + 1,
+			updated_at = transaction_timestamp(),
+			updated_by_id = nullif($6, '')::uuid
+		where id = $1;`,
+		rec.ID, rec.Kind, rec.Subkind, rec.Status, jsonAttrs, userID,
+	)
+
+	if _, ok := diff["permissions"]; ok {
+		batch.Queue(`
+			delete from bbl_work_permissions
+			where work_id = $1;`,
+			rec.ID,
+		)
+		for _, perm := range rec.Permissions {
+			batch.Queue(`
+				insert into bbl_work_permissions (work_id, kind, user_id)
+				values ($1, $2, $3);`,
+				rec.ID, perm.Kind, perm.UserID,
+			)
+		}
+	}
+
+	if _, ok := diff["identifiers"]; ok {
+		queueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
+	}
+
+	if _, ok := diff["contributors"]; ok {
+		if len(currentRec.Contributors) > len(rec.Contributors) {
+			batch.Queue(`
+				delete from bbl_work_contributors
+				where work_id = $1 and idx >= $2;`,
+				rec.ID, len(rec.Contributors),
+			)
+		}
+		for i, con := range rec.Contributors {
+			jsonAttrs, err := json.Marshal(con.Attrs)
+			if err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			// TODO only update if different
+			if i < len(currentRec.Contributors) {
+				batch.Queue(`
+					update bbl_work_contributors
+					set attrs = $3,
+						person_id = $4
+					where work_id = $1 and idx = $2;`,
+					rec.ID, i, jsonAttrs, con.PersonID,
+				)
+			} else {
+				batch.Queue(`
+					insert into bbl_work_contributors (work_id, idx, attrs, person_id)
+					values ($1, $2, $3, $4);`,
+					rec.ID, i, jsonAttrs, con.PersonID,
+				)
+			}
+		}
+	}
+
+	if _, ok := diff["files"]; ok {
+		if len(currentRec.Files) > len(rec.Files) {
+			batch.Queue(`
+				delete from bbl_work_files
+				where work_id = $1 and idx >= $2;`,
+				rec.ID, len(rec.Files),
+			)
+		}
+		for i, f := range rec.Files {
+			// TODO only update if different
+			if i < len(currentRec.Files) {
+				batch.Queue(`
+					update bbl_work_files
+					set object_id = $3,
+						name = $4,
+						content_type = $5,
+						size = $6
+					where work_id = $1 and idx = $2;`,
+					rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
+				)
+			} else {
+				batch.Queue(`
+					insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
+					values ($1, $2, $3, $4, $5, $6);`,
+					rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
+				)
+			}
+		}
+	}
+
+	if _, ok := diff["rels"]; ok {
+		if len(currentRec.Rels) > len(rec.Rels) {
+			batch.Queue(`
+				delete from bbl_work_rels
+				where work_id = $1 and idx >= $2;`,
+				rec.ID, len(rec.Rels),
+			)
+		}
+		for i, rel := range rec.Rels {
+			// TODO only update if different
+			if i < len(currentRec.Rels) {
+				batch.Queue(`
+					update bbl_work_rels
+					set kind = $3,
+						rel_work_id = $4
+					where work_id = $1 and idx = $2;`,
+					rec.ID, i, rel.Kind, rel.WorkID,
+				)
+			} else {
+				batch.Queue(`
+					insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
+					values ($1, $2, $3, $4);`,
+					rec.ID, i, rel.Kind, rel.WorkID,
+				)
+			}
+		}
+	}
+
+	batch.Queue(`
+		insert into bbl_changes (rev_id, work_id, diff)
+		values ($1, $2, $3);`,
+		revID, rec.ID, jsonDiff,
+	)
+
+	// TODO ugly
+	*riverJobs = append(*riverJobs,
+		river.InsertManyParams{Args: jobs.IndexWork{ID: rec.ID}},
+		river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: rec.ID}},
+	)
+
+	if err := mq.Send(ctx, "work.update", rec.ID, tonga.SendOpts{}); err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+
+	return nil
 }
 
 func getIDByIdentifier(ctx context.Context, conn pgxConn, name, scheme, val string) (string, error) {

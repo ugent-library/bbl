@@ -95,6 +95,18 @@ func (rec *Work) Validate() error {
 	return nil
 }
 
+func (rec *Work) Clone() (*Work, error) {
+	clone := &Work{Profile: rec.Profile}
+	b, err := json.Marshal(rec)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(b, clone); err != nil {
+		return nil, err
+	}
+	return clone, nil
+}
+
 func (rec *Work) Diff(rec2 *Work) map[string]any {
 	changes := map[string]any{}
 	if !slices.Equal(rec.Permissions, rec2.Permissions) { // TODO should we include this in changes?
@@ -195,59 +207,4 @@ type WorkRepresentation struct {
 	Scheme    string    `json:"scheme"`
 	Record    []byte    `json:"record"`
 	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type WorkChange interface {
-	Name() string
-	ParseArgs([]string) error
-	Apply(*Work) error
-}
-
-type workChangeApplier struct {
-	ApplyJSON func(*Work, json.RawMessage) error
-	ApplyArgs func(*Work, []string) error
-}
-
-var WorkChanges = map[string]workChangeApplier{}
-
-func RegisterWorkChange[T WorkChange](initFn func() T) {
-	WorkChanges[initFn().Name()] = workChangeApplier{
-		ApplyJSON: func(rec *Work, b json.RawMessage) error {
-			c := initFn()
-			if err := json.Unmarshal(b, c); err != nil {
-				return err
-			}
-			return c.Apply(rec)
-		},
-		ApplyArgs: func(rec *Work, args []string) error {
-			c := initFn()
-			if err := c.ParseArgs(args); err != nil {
-				return err
-			}
-			return c.Apply(rec)
-		},
-	}
-}
-
-func init() { // TODO move registry to repo?
-	RegisterWorkChange(func() *SetWorkKind { return &SetWorkKind{} })
-}
-
-type SetWorkKind struct {
-	Kind    string `json:"kind"`
-	Subkind string `json:"subkind"`
-}
-
-func (c *SetWorkKind) Name() string { return "set_kind" }
-
-func (c *SetWorkKind) Apply(rec *Work) error {
-	rec.Kind = c.Kind
-	rec.Subkind = c.Subkind
-	return nil
-}
-
-func (c *SetWorkKind) ParseArgs(args []string) error {
-	c.Kind = args[0]
-	c.Subkind = args[1]
-	return nil
 }

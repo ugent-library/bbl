@@ -36,8 +36,8 @@ type Rec interface {
 }
 
 type Rev struct {
-	Actions []Action
 	UserID  string
+	Actions []Action
 }
 
 func (r *Rev) Add(action Action) {
@@ -46,11 +46,11 @@ func (r *Rev) Add(action Action) {
 
 func (r *Rev) UnmarshalJSON(b []byte) error {
 	rawRev := struct {
+		UserID  string `json:"user_id"`
 		Actions []struct {
 			Action string          `json:"action"`
 			Data   json.RawMessage `json:"data"`
 		} `json:"actions"`
-		UserID string `json:"user_id"`
 	}{}
 	if err := json.Unmarshal(b, &rawRev); err != nil {
 		return err
@@ -77,6 +77,8 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 			action = &CreateWork{}
 		case "update_work":
 			action = &UpdateWork{}
+		case "change_work":
+			action = &ChangeWork{}
 		default:
 			return fmt.Errorf("Rev: invalid action %q", rawAction.Action)
 		}
@@ -146,6 +148,44 @@ type UpdateWork struct {
 }
 
 func (*UpdateWork) isAction() {}
+
+type ChangeWork struct {
+	WorkID  string
+	Changes []WorkChange
+}
+
+func (*ChangeWork) isAction() {}
+
+func (a *ChangeWork) UnmarshalJSON(b []byte) error {
+	rawAction := struct {
+		WorkID  string `json:"work_id"`
+		Changes []struct {
+			Change string          `json:"change"`
+			Data   json.RawMessage `json:"data"`
+		} `json:"changes"`
+	}{}
+	if err := json.Unmarshal(b, &rawAction); err != nil {
+		return err
+	}
+
+	action := ChangeWork{WorkID: rawAction.WorkID}
+
+	for _, rawChange := range rawAction.Changes {
+		initChange, ok := WorkChanges[rawChange.Change]
+		if !ok {
+			return fmt.Errorf("Rev: invalid change %q", rawChange.Change)
+		}
+		c := initChange()
+		if err := json.Unmarshal(rawChange.Data, c); err != nil {
+			return fmt.Errorf("Rev: %w", err)
+		}
+		action.Changes = append(action.Changes, c)
+	}
+
+	*a = action
+
+	return nil
+}
 
 type GetWorkRepresentationsOpts struct {
 	WorkID       string
