@@ -100,6 +100,8 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_edit_lay_summary", workStateCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
 	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
 	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
+	router.Handle("/works/batch/edit", appCtx.Bind(h.New)).Methods("GET").Name("batch_edit_works")
+	router.Handle("/works/batch", appCtx.Bind(h.New)).Methods("POST").Name("batch_update_works")
 	router.Handle("/works/{id}", workCtx.With(RequireCanViewWork).Bind(h.Show)).Methods("GET").Name("work")
 	router.Handle("/works/{id}/edit", workCtx.With(RequireCanEditWork).Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
@@ -540,4 +542,12 @@ func vacuumWork(rec *bbl.Work) {
 	}
 	rec.Identifiers = identifiers
 	rec.Attrs.Titles = titles
+}
+
+func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	return nil
+}
+
+func (h *WorkHandler) BatchUpdate(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+	return nil
 }
