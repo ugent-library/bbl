@@ -40,8 +40,8 @@ type Rev struct {
 	Actions []Action
 }
 
-func (r *Rev) Add(action Action) {
-	r.Actions = append(r.Actions, action)
+func (r *Rev) Add(actions ...Action) {
+	r.Actions = append(r.Actions, actions...)
 }
 
 func (r *Rev) UnmarshalJSON(b []byte) error {

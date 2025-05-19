@@ -1,9 +1,12 @@
 package app
 
 import (
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
@@ -100,8 +103,8 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/_edit_lay_summary", workStateCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
 	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
 	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/batch/edit", appCtx.Bind(h.New)).Methods("GET").Name("batch_edit_works")
-	router.Handle("/works/batch", appCtx.Bind(h.New)).Methods("POST").Name("batch_update_works")
+	router.Handle("/works/batch/edit", appCtx.Bind(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
+	router.Handle("/works/batch", appCtx.Bind(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
 	router.Handle("/works/{id}", workCtx.With(RequireCanViewWork).Bind(h.Show)).Methods("GET").Name("work")
 	router.Handle("/works/{id}/edit", workCtx.With(RequireCanEditWork).Bind(h.Edit)).Methods("GET").Name("edit_work")
 	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
@@ -545,9 +548,93 @@ func vacuumWork(rec *bbl.Work) {
 }
 
 func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	return nil
+	return workviews.BatchEdit(c.ViewCtx(), workviews.BatchEditArgs{}).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) BatchUpdate(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
-	return nil
+	args := workviews.BatchEditArgs{}
+	args.Value = strings.ReplaceAll(strings.TrimSpace(r.FormValue("changes")), "\r\n", "\n")
+
+	lines := strings.Split(args.Value, "\n")
+	if len(lines) > 500 {
+		args.Errors = []string{"no more than 500 changes can be processed at a time"}
+		return workviews.BatchEdit(c.ViewCtx(), args).Render(r.Context(), w)
+	}
+
+	var actions []*bbl.ChangeWork
+
+LINES:
+	for lineIndex, line := range lines {
+		line = strings.TrimSpace(line)
+
+		if len(line) == 0 || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		reader := csv.NewReader(strings.NewReader(line))
+		reader.TrimLeadingSpace = true
+		rec, err := reader.Read()
+
+		if err != nil {
+			args.Errors = append(args.Errors, fmt.Sprintf("error parsing line %d", lineIndex+1))
+			continue
+		}
+
+		if len(rec) < 2 {
+			args.Errors = append(args.Errors, fmt.Sprintf("error parsing line %d", lineIndex+1))
+			continue
+		}
+
+		id := strings.TrimSpace(rec[0])
+		changeName := strings.TrimSpace(rec[1])
+		changeArgs := rec[2:]
+		for i, arg := range changeArgs {
+			changeArgs[i] = strings.TrimSpace(arg)
+			if changeArgs[i] == "" {
+				args.Errors = append(args.Errors, fmt.Sprintf("argument %d is empty at line %d", i+1, lineIndex+1))
+				continue LINES
+			}
+		}
+
+		if id == "" {
+			args.Errors = append(args.Errors, fmt.Sprintf("empty id at line %d", lineIndex+1))
+			continue
+		}
+
+		if len(actions) == 0 || actions[len(actions)-1].WorkID != id {
+			actions = append(actions, &bbl.ChangeWork{WorkID: id})
+		}
+
+		action := actions[len(actions)-1]
+
+		initChange, ok := bbl.WorkChanges[changeName]
+		if !ok {
+			args.Errors = append(args.Errors, fmt.Sprintf("unknown change %s at line %d", changeName, lineIndex+1))
+			continue
+		}
+
+		change := initChange()
+		if err := change.UnmarshalArgs(changeArgs); err != nil {
+			args.Errors = append(args.Errors, fmt.Sprintf("invalid arguments for change %s at line %d", changeName, lineIndex+1))
+			continue
+		}
+
+		action.Changes = append(action.Changes, change)
+	}
+
+	rev := &bbl.Rev{UserID: c.User.ID}
+	for _, a := range actions {
+		rev.Add(a)
+	}
+
+	if err := h.repo.AddRev(r.Context(), rev); err != nil {
+		args.Errors = append(args.Errors, fmt.Sprintf("could not process works: %s", err))
+	}
+
+	if len(args.Errors) == 0 {
+		args.Done = len(lines)
+		args.Value = ""
+	}
+
+	return workviews.BatchEdit(c.ViewCtx(), args).Render(r.Context(), w)
 }
