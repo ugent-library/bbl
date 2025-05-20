@@ -1,7 +1,4 @@
 // Start your CSS here
-
-@use "sass:map";
-
 @import "_colors";
 @import "_settings.bootstrap";
 @import "_icon-font";
@@ -24,7 +21,7 @@ $custom-theme-colors: (
 @import "bootstrap/scss/variables";
 
 // Optional Sass map overrides here
-$theme-colors: map.merge($theme-colors, $custom-theme-colors);
+$theme-colors: map-merge($theme-colors, $custom-theme-colors);
 
 // Followed by our default maps
 @import "bootstrap/scss/maps";

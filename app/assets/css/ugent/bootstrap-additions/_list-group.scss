@@ -2,8 +2,6 @@
 // Additions to Bootstrap `_list-group.scss`
 //
 
-@use "sass:color";
-
 .list-group-item-title {
   font-weight: 500;
   color: $header;
@@ -60,7 +58,7 @@ a:hover .list-group-item-title {
   display: flex;
   background: rgba($light-blue, 0.6);
   border: 1px solid rgba($blue, 0.4);
-  color: color.mix($blue, $text, 30%);
+  color: mix($blue, $text, 30%);
   border-radius: 0.3rem;
   margin-top: 2rem;
   padding: 1.6rem 2rem;
@@ -68,12 +66,12 @@ a:hover .list-group-item-title {
   font-size: 1.2rem;
 
   .list-group-item-comment-title {
-    color: color.mix($blue, $header, 32%);
+    color: mix($blue, $header, 32%);
     font-weight: 500;
   }
 
   .list-group-item-comment-meta {
-    color: color.mix($blue, $header, 28%);
+    color: mix($blue, $header, 28%);
   }
 
   .bc-avatar {

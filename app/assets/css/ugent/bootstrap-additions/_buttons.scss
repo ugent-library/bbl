@@ -2,8 +2,6 @@
 // Additions to Bootstrap `_buttons.scss`
 //
 
-@use "sass:color";
-
 .btn {
   align-self: center;
   line-height: 1.5;
@@ -156,10 +154,10 @@
 }
 
 .btn-dark {
-  background-color: color.mix($dark-gray, $white, 80%);
+  background-color: mix($dark-gray, $white, 80%);
   &:hover,
   &:focus {
-    background-color: color.mix($dark-gray, $white, 75%);
+    background-color: mix($dark-gray, $white, 75%);
   }
 }
 

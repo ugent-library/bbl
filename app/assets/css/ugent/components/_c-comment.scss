@@ -1,9 +1,7 @@
-@use "sass:color";
-
 .c-comment {
   background: rgba($light-blue, 0.6);
   border: 1px solid rgba($blue, 0.2);
-  color: color.mix($blue, $text, 30%);
+  color: mix($blue, $text, 30%);
   border-radius: 0.3rem;
   margin-top: 2rem;
   padding: 1.2rem 2rem;
@@ -16,12 +14,12 @@
 }
 
 .c-comment-meta {
-  color: color.mix($blue, $text-muted, 32%);
+  color: mix($blue, $text-muted, 32%);
   font-size: 1.2rem;
 }
 
 .c-comment-title {
-  color: color.mix($blue, $header, 32%);
+  color: mix($blue, $header, 32%);
   font-weight: 500;
   font-size: 1.2rem;
 }
