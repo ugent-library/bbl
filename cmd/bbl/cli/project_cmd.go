@@ -111,7 +111,7 @@ var reindexProjectsCmd = &cobra.Command{
 			logger.Info("started projects reindexer", "job", res.Job.ID)
 		}
 
-		return nil
+		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
 	},
 }
 
