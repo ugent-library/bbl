@@ -73,6 +73,7 @@ var projectsCmd = &cobra.Command{
 		return err
 	},
 }
+
 var reindexProjectsCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex projects job",

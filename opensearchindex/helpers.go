@@ -8,6 +8,7 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
+// TODO use a more space efficient serialization format (protobuf?)
 func encodeCursor(res *opensearchapi.SearchResp, opts *bbl.SearchOpts) (string, error) {
 	n := len(res.Hits.Hits)
 	if n == 0 || n < opts.Size {

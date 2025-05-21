@@ -2,6 +2,8 @@ package pgxrepo
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -43,12 +45,12 @@ func (r *Repo) GetWorkRepresentation(ctx context.Context, id, scheme string) (*b
 	return &repr, nil
 }
 
-// TODO cursor
-func (r *Repo) GetWorkRepresentations(ctx context.Context, opts bbl.GetWorkRepresentationsOpts) ([]*bbl.WorkRepresentation, string, error) {
+func getWorkRepresentationsQuery(opts bbl.GetWorkRepresentationsOpts) *sqlbuilder.SelectBuilder {
 	b := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	b.Select("work_id", "scheme", "record", "updated_at").
 		From("bbl_work_representations").
-		Limit(opts.Limit)
+		Limit(opts.Limit).
+		OrderBy("work_id", "scheme").Asc()
 	if opts.WorkID != "" {
 		b.Where(b.Equal("work_id", opts.WorkID))
 	}
@@ -61,6 +63,11 @@ func (r *Repo) GetWorkRepresentations(ctx context.Context, opts bbl.GetWorkRepre
 	if !opts.UpdatedAtGTE.IsZero() {
 		b.Where(b.LTE("updated_at", opts.UpdatedAtGTE))
 	}
+	return b
+}
+
+func (r *Repo) GetWorkRepresentations(ctx context.Context, opts bbl.GetWorkRepresentationsOpts) ([]*bbl.WorkRepresentation, string, error) {
+	b := getWorkRepresentationsQuery(opts)
 	q, args := b.Build()
 
 	rows, err := r.conn.Query(ctx, q, args...)
@@ -72,12 +79,44 @@ func (r *Repo) GetWorkRepresentations(ctx context.Context, opts bbl.GetWorkRepre
 		return nil, "", fmt.Errorf("GetWorkRepresentations: %w", err)
 	}
 
-	return recs, "", nil
+	cursor, err := encodeWorkRepresentationsCursor(recs, opts)
+	if err != nil {
+		return nil, "", fmt.Errorf("GetWorkRepresentations: %w", err)
+	}
+
+	return recs, cursor, nil
 }
 
-// TODO
 func (r *Repo) GetMoreWorkRepresentations(ctx context.Context, cursor string) ([]*bbl.WorkRepresentation, string, error) {
-	return nil, "", nil
+	c, err := decodeWorkRepresentationsCursor(cursor)
+	if err != nil {
+		return nil, "", err
+	}
+
+	b := getWorkRepresentationsQuery(c.Opts)
+	if c.Opts.WorkID == "" {
+		b.Where(b.GT("work_id", c.LastWorkID))
+	}
+	if c.Opts.Scheme == "" {
+		b.Where(b.GT("scheme", c.LastScheme))
+	}
+	q, args := b.Build()
+
+	rows, err := r.conn.Query(ctx, q, args...)
+	if err != nil {
+		return nil, "", fmt.Errorf("GetMoreWorkRepresentations: %w", err)
+	}
+	recs, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByPos[bbl.WorkRepresentation])
+	if err != nil {
+		return nil, "", fmt.Errorf("GetMoreWorkRepresentations: %w", err)
+	}
+
+	cursor, err = encodeWorkRepresentationsCursor(recs, c.Opts)
+	if err != nil {
+		return nil, "", fmt.Errorf("GetMoreWorkRepresentations: %w", err)
+	}
+
+	return recs, cursor, nil
 }
 
 func (r *Repo) AddWorkRepresentation(ctx context.Context, id string, scheme string, record []byte) error {
@@ -94,4 +133,42 @@ func (r *Repo) AddWorkRepresentation(ctx context.Context, id string, scheme stri
 		return fmt.Errorf("AddWorkRepresentation: %w", err)
 	}
 	return nil
+}
+
+type WorkRepresentationsCursor struct {
+	LastWorkID string
+	LastScheme string
+	Opts       bbl.GetWorkRepresentationsOpts
+}
+
+// TODO use a more space efficient serialization format (protobuf?)
+func encodeWorkRepresentationsCursor(recs []*bbl.WorkRepresentation, opts bbl.GetWorkRepresentationsOpts) (string, error) {
+	if len(recs) == 0 {
+		return "", nil
+	}
+
+	lastRec := recs[len(recs)-1]
+
+	c, err := json.Marshal(&WorkRepresentationsCursor{
+		LastWorkID: lastRec.WorkID,
+		LastScheme: lastRec.Scheme,
+		Opts:       opts,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(c), nil
+}
+
+func decodeWorkRepresentationsCursor(cursor string) (*WorkRepresentationsCursor, error) {
+	b, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, err
+	}
+	var c WorkRepresentationsCursor
+	if err := json.Unmarshal(b, &c); err != nil {
+		return nil, err
+	}
+	return &c, nil
 }

@@ -218,8 +218,7 @@ type ProviderBackend interface {
 	GetRecordMetadataFormats(context.Context, string) ([]*MetadataFormat, error)
 	GetSets(context.Context) ([]*Set, *ResumptionToken, error)
 	GetMoreSets(context.Context, string) ([]*Set, *ResumptionToken, error)
-	// TODO pass from, until as time objects
-	GetIdentifiers(context.Context, string, string, string, string) ([]*Header, *ResumptionToken, error)
+	GetIdentifiers(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*Header, *ResumptionToken, error)
 	GetMoreIdentifiers(context.Context, string) ([]*Header, *ResumptionToken, error)
 	HasRecord(context.Context, string) (bool, error)
 	GetRecords(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*Record, *ResumptionToken, error)
@@ -420,8 +419,8 @@ func listIdentifiers(ctx context.Context, p *Provider, res *response, args url.V
 		headers, token, err = p.Backend.GetIdentifiers(ctx,
 			res.Request.MetadataPrefix,
 			res.Request.Set,
-			res.Request.From,
-			res.Request.Until,
+			res.Request.fromTime,
+			res.Request.untilTime,
 		)
 	}
 

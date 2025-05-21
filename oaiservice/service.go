@@ -50,11 +50,11 @@ func (s *Service) HasSet(context.Context, string) (bool, error) {
 	return false, nil // TODO
 }
 
-func (s *Service) GetMetadataFormats(_ context.Context) ([]*oaipmh.MetadataFormat, error) {
+func (s *Service) GetMetadataFormats(context.Context) ([]*oaipmh.MetadataFormat, error) {
 	return metadataFormats, nil // TODO
 }
 
-func (s *Service) GetRecordMetadataFormats(_ context.Context, _ string) ([]*oaipmh.MetadataFormat, error) {
+func (s *Service) GetRecordMetadataFormats(context.Context, string) ([]*oaipmh.MetadataFormat, error) {
 	return metadataFormats, nil // TODO
 }
 
@@ -66,12 +66,47 @@ func (s *Service) GetMoreSets(context.Context, string) ([]*oaipmh.Set, *oaipmh.R
 	return nil, nil, nil // TODO
 }
 
-func (s *Service) GetIdentifiers(context.Context, string, string, string, string) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
-	return nil, nil, nil // TODO
+func (s *Service) GetIdentifiers(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
+	reps, cursor, err := s.repo.GetWorkRepresentations(ctx, bbl.GetWorkRepresentationsOpts{
+		Limit:        50,
+		Scheme:       metadataPrefix,
+		UpdatedAtGTE: from,
+		UpdatedAtLTE: until,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	hdrs := make([]*oaipmh.Header, len(reps))
+	for i, rep := range reps {
+		hdrs[i] = &oaipmh.Header{
+			Identifier: rep.WorkID,
+			Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+		}
+	}
+
+	// TODO completeListSize
+	resumptionToken := &oaipmh.ResumptionToken{Value: cursor}
+
+	return hdrs, resumptionToken, nil
 }
 
-func (s *Service) GetMoreIdentifiers(context.Context, string) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
-	return nil, nil, nil // TODO
+func (s *Service) GetMoreIdentifiers(ctx context.Context, cursor string) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
+	reps, newCursor, err := s.repo.GetMoreWorkRepresentations(ctx, cursor)
+	if err != nil {
+		return nil, nil, err
+	}
+	hdrs := make([]*oaipmh.Header, len(reps))
+	for i, rep := range reps {
+		hdrs[i] = &oaipmh.Header{
+			Identifier: rep.WorkID,
+			Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+		}
+	}
+
+	// TODO completeListSize
+	resumptionToken := &oaipmh.ResumptionToken{Value: newCursor}
+
+	return hdrs, resumptionToken, nil
 }
 
 func (s *Service) HasRecord(ctx context.Context, id string) (bool, error) {
@@ -79,7 +114,7 @@ func (s *Service) HasRecord(ctx context.Context, id string) (bool, error) {
 }
 
 func (s *Service) GetRecords(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*oaipmh.Record, *oaipmh.ResumptionToken, error) {
-	reps, _, err := s.repo.GetWorkRepresentations(ctx, bbl.GetWorkRepresentationsOpts{
+	reps, cursor, err := s.repo.GetWorkRepresentations(ctx, bbl.GetWorkRepresentationsOpts{
 		Limit:        50,
 		Scheme:       metadataPrefix,
 		UpdatedAtGTE: from,
@@ -98,11 +133,33 @@ func (s *Service) GetRecords(ctx context.Context, metadataPrefix, set string, fr
 			Metadata: &oaipmh.Payload{XML: string(rep.Record)},
 		}
 	}
-	return recs, nil, nil
+
+	// TODO completeListSize
+	resumptionToken := &oaipmh.ResumptionToken{Value: cursor}
+
+	return recs, resumptionToken, nil
 }
 
-func (s *Service) GetMoreRecords(context.Context, string) ([]*oaipmh.Record, *oaipmh.ResumptionToken, error) {
-	return nil, nil, nil // TODO
+func (s *Service) GetMoreRecords(ctx context.Context, cursor string) ([]*oaipmh.Record, *oaipmh.ResumptionToken, error) {
+	reps, newCursor, err := s.repo.GetMoreWorkRepresentations(ctx, cursor)
+	if err != nil {
+		return nil, nil, err
+	}
+	recs := make([]*oaipmh.Record, len(reps))
+	for i, rep := range reps {
+		recs[i] = &oaipmh.Record{
+			Header: &oaipmh.Header{
+				Identifier: rep.WorkID,
+				Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+			},
+			Metadata: &oaipmh.Payload{XML: string(rep.Record)},
+		}
+	}
+
+	// TODO completeListSize
+	resumptionToken := &oaipmh.ResumptionToken{Value: newCursor}
+
+	return recs, resumptionToken, nil
 }
 
 func (s *Service) GetRecord(ctx context.Context, id string, metadataPrefix string) (*oaipmh.Record, error) {
