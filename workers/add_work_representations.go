@@ -30,7 +30,7 @@ func (w *AddWorkRepresentations) Work(ctx context.Context, job *river.Job[jobs.A
 		return err
 	}
 	for scheme, enc := range w.workEncoders {
-		b, err := enc(ctx, rec)
+		b, err := enc(rec)
 		if err != nil {
 			return err
 		}

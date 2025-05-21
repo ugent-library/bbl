@@ -12,9 +12,12 @@ import (
 	"github.com/ugent-library/bbl/queryparser"
 )
 
+var workFormat string
+
 func init() {
 	rootCmd.AddCommand(workCmd)
 	rootCmd.AddCommand(worksCmd)
+	worksCmd.Flags().StringVar(&workFormat, "format", "jsonl", "")
 	worksCmd.AddCommand(searchWorksCmd)
 	searchWorksCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
 	searchWorksCmd.Flags().StringVarP(&queryFilter, "filter", "f", "", "")
@@ -66,12 +69,11 @@ var worksCmd = &cobra.Command{
 			return err
 		}
 
-		enc := json.NewEncoder(cmd.OutOrStdout())
+		seq := repo.WorksIter(cmd.Context(), &err)
 
-		for rec := range repo.WorksIter(cmd.Context(), &err) {
-			if err = enc.Encode(rec); err != nil {
-				return err
-			}
+		enc := workExporters()[workFormat]
+		if err := enc(seq, cmd.OutOrStdout()); err != nil {
+			return err
 		}
 
 		return err

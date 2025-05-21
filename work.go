@@ -1,8 +1,9 @@
 package bbl
 
 import (
-	"context"
 	"encoding/json"
+	"io"
+	"iter"
 	"slices"
 	"time"
 )
@@ -200,7 +201,9 @@ func (rec *Work) Title() string {
 	return ""
 }
 
-type WorkEncoder = func(context.Context, *Work) ([]byte, error)
+type WorkEncoder = func(*Work) ([]byte, error)
+
+type WorkExporter = func(iter.Seq[*Work], io.Writer) error
 
 type WorkRepresentation struct {
 	WorkID    string    `json:"work_id"`

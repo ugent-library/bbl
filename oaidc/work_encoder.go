@@ -1,8 +1,7 @@
-package oaidcscheme
+package oaidc
 
 import (
 	"bytes"
-	"context"
 	"encoding/xml"
 
 	"github.com/ugent-library/bbl"
@@ -19,7 +18,7 @@ const endTag = `
 </oai_dc:dc>
 `
 
-func EncodeWork(ctx context.Context, rec *bbl.Work) ([]byte, error) {
+func EncodeWork(rec *bbl.Work) ([]byte, error) {
 	b := &bytes.Buffer{}
 	b.WriteString(startTag)
 

@@ -3,7 +3,9 @@ package cli
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io"
+	"iter"
 	"log/slog"
 	"net/http"
 	"time"
@@ -16,8 +18,9 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/csv"
 	"github.com/ugent-library/bbl/jobs"
-	"github.com/ugent-library/bbl/oaidcscheme"
+	"github.com/ugent-library/bbl/oaidc"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workers"
@@ -87,6 +90,21 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 
 func workEncoders() map[string]bbl.WorkEncoder {
 	return map[string]bbl.WorkEncoder{
-		"oai_dc": oaidcscheme.EncodeWork,
+		"oai_dc": oaidc.EncodeWork,
+	}
+}
+
+func workExporters() map[string]bbl.WorkExporter {
+	return map[string]bbl.WorkExporter{
+		"jsonl": func(recs iter.Seq[*bbl.Work], w io.Writer) error {
+			enc := json.NewEncoder(w)
+			for rec := range recs {
+				if err := enc.Encode(rec); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		"csv": csv.ExportWorks,
 	}
 }
