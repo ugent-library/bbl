@@ -13,11 +13,13 @@ import (
 )
 
 var workFormat string
+var worksFormat string
 
 func init() {
 	rootCmd.AddCommand(workCmd)
+	workCmd.Flags().StringVar(&workFormat, "format", "json", "")
 	rootCmd.AddCommand(worksCmd)
-	worksCmd.Flags().StringVar(&workFormat, "format", "jsonl", "")
+	worksCmd.Flags().StringVar(&worksFormat, "format", "jsonl", "")
 	worksCmd.AddCommand(searchWorksCmd)
 	searchWorksCmd.Flags().StringVarP(&searchOpts.Query, "query", "q", "", "")
 	searchWorksCmd.Flags().StringVarP(&queryFilter, "filter", "f", "", "")
@@ -48,8 +50,14 @@ var workCmd = &cobra.Command{
 			return err
 		}
 
-		enc := json.NewEncoder(cmd.OutOrStdout())
-		return enc.Encode(rec)
+		b, err := bbl.EncodeWork(rec, workFormat)
+		if err != nil {
+			return err
+		}
+
+		_, err = cmd.OutOrStdout().Write(b)
+
+		return err
 	},
 }
 
@@ -71,8 +79,8 @@ var worksCmd = &cobra.Command{
 
 		seq := repo.WorksIter(cmd.Context(), &err)
 
-		enc := workExporters()[workFormat]
-		if err := enc(seq, cmd.OutOrStdout()); err != nil {
+		exp := bbl.GetWorkExporter(worksFormat)
+		if err := exp(seq, cmd.OutOrStdout()); err != nil {
 			return err
 		}
 

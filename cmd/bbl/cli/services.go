@@ -3,9 +3,7 @@ package cli
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"io"
-	"iter"
 	"log/slog"
 	"net/http"
 	"time"
@@ -25,6 +23,11 @@ import (
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workers"
 )
+
+func init() {
+	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
+	bbl.RegisterWorkExporter("csv", csv.ExportWorks)
+}
 
 func newLogger(w io.Writer) *slog.Logger {
 	if config.Env == "development" {
@@ -61,7 +64,7 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	river.AddWorker(w, workers.NewReindexOrganizations(repo, index))
 	river.AddWorker(w, workers.NewIndexProject(repo, index))
 	river.AddWorker(w, workers.NewReindexProjects(repo, index))
-	river.AddWorker(w, workers.NewAddWorkRepresentations(repo, index, workEncoders()))
+	river.AddWorker(w, workers.NewAddWorkRepresentations(repo, index))
 	river.AddWorker(w, workers.NewIndexWork(repo, index))
 	river.AddWorker(w, workers.NewReindexWorks(repo, index))
 
@@ -86,25 +89,4 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	}
 
 	return riverClient, nil
-}
-
-func workEncoders() map[string]bbl.WorkEncoder {
-	return map[string]bbl.WorkEncoder{
-		"oai_dc": oaidc.EncodeWork,
-	}
-}
-
-func workExporters() map[string]bbl.WorkExporter {
-	return map[string]bbl.WorkExporter{
-		"jsonl": func(recs iter.Seq[*bbl.Work], w io.Writer) error {
-			enc := json.NewEncoder(w)
-			for rec := range recs {
-				if err := enc.Encode(rec); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-		"csv": csv.ExportWorks,
-	}
 }

@@ -2,8 +2,10 @@ package bbl
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"iter"
+	"maps"
 	"slices"
 	"time"
 )
@@ -201,13 +203,59 @@ func (rec *Work) Title() string {
 	return ""
 }
 
-type WorkEncoder = func(*Work) ([]byte, error)
-
-type WorkExporter = func(iter.Seq[*Work], io.Writer) error
-
 type WorkRepresentation struct {
 	WorkID    string    `json:"work_id"`
 	Scheme    string    `json:"scheme"`
 	Record    []byte    `json:"record"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type WorkEncoder = func(*Work) ([]byte, error)
+
+var workEncoders = map[string]WorkEncoder{
+	"json": func(rec *Work) ([]byte, error) {
+		return json.Marshal(rec)
+	},
+}
+
+func RegisterWorkEncoder(format string, enc WorkEncoder) {
+	workEncoders[format] = enc
+}
+
+func WorkEncoders() iter.Seq[string] {
+	return maps.Keys(workEncoders)
+}
+
+func EncodeWork(rec *Work, format string) ([]byte, error) {
+	enc, ok := workEncoders[format]
+	if !ok {
+		return nil, fmt.Errorf("EncodeWork: unknown encoder %q", format)
+	}
+	return enc(rec)
+}
+
+type WorkExporter = func(iter.Seq[*Work], io.Writer) error
+
+var workExporters = map[string]WorkExporter{
+	"jsonl": func(recs iter.Seq[*Work], w io.Writer) error {
+		enc := json.NewEncoder(w)
+		for rec := range recs {
+			if err := enc.Encode(rec); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+}
+
+func RegisterWorkExporter(format string, exp WorkExporter) {
+	workExporters[format] = exp
+}
+
+func WorkExporters() iter.Seq[string] {
+	return maps.Keys(workExporters)
+}
+
+func GetWorkExporter(format string) WorkExporter {
+	return workExporters[format]
 }

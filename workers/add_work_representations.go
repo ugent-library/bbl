@@ -11,16 +11,14 @@ import (
 
 type AddWorkRepresentations struct {
 	river.WorkerDefaults[jobs.AddWorkRepresentations]
-	repo         *pgxrepo.Repo
-	index        bbl.Index
-	workEncoders map[string]bbl.WorkEncoder
+	repo  *pgxrepo.Repo
+	index bbl.Index
 }
 
-func NewAddWorkRepresentations(repo *pgxrepo.Repo, index bbl.Index, workEncoders map[string]bbl.WorkEncoder) *AddWorkRepresentations {
+func NewAddWorkRepresentations(repo *pgxrepo.Repo, index bbl.Index) *AddWorkRepresentations {
 	return &AddWorkRepresentations{
-		repo:         repo,
-		index:        index,
-		workEncoders: workEncoders,
+		repo:  repo,
+		index: index,
 	}
 }
 
@@ -29,8 +27,9 @@ func (w *AddWorkRepresentations) Work(ctx context.Context, job *river.Job[jobs.A
 	if err != nil {
 		return err
 	}
-	for scheme, enc := range w.workEncoders {
-		b, err := enc(rec)
+	// TODO schemes hardcoded for now
+	for _, scheme := range []string{"oai_dc"} {
+		b, err := bbl.EncodeWork(rec, scheme)
 		if err != nil {
 			return err
 		}
