@@ -3,7 +3,6 @@ package csv
 import (
 	"encoding/csv"
 	"io"
-	"iter"
 
 	"github.com/ugent-library/bbl"
 )
@@ -15,21 +14,28 @@ var header = []string{
 	"title",
 }
 
-func ExportWorks(recs iter.Seq[*bbl.Work], w io.Writer) error {
+type Exporter struct {
+	writer *csv.Writer
+}
+
+func NewWorkExporter(w io.Writer) (bbl.WorkExporter, error) {
 	writer := csv.NewWriter(w)
 	if err := writer.Write(header); err != nil {
-		return err
+		return nil, err
 	}
-	row := make([]string, len(header))
-	for rec := range recs {
-		row[0] = rec.ID
-		row[1] = rec.Kind
-		row[2] = rec.Subkind
-		row[3] = rec.Title()
-		if err := writer.Write(row); err != nil {
-			return err
-		}
-	}
-	writer.Flush()
-	return writer.Error()
+	return &Exporter{writer: writer}, nil
+}
+
+func (e *Exporter) Add(rec *bbl.Work) error {
+	return e.writer.Write([]string{
+		rec.ID,
+		rec.Kind,
+		rec.Subkind,
+		rec.Title(),
+	})
+}
+
+func (e *Exporter) Done() error {
+	e.writer.Flush()
+	return e.writer.Error()
 }

@@ -26,7 +26,7 @@ import (
 
 func init() {
 	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
-	bbl.RegisterWorkExporter("csv", csv.ExportWorks)
+	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
 }
 
 func newLogger(w io.Writer) *slog.Logger {

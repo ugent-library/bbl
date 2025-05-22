@@ -77,14 +77,21 @@ var worksCmd = &cobra.Command{
 			return err
 		}
 
-		seq := repo.WorksIter(cmd.Context(), &err)
-
-		exp := bbl.GetWorkExporter(worksFormat)
-		if err := exp(seq, cmd.OutOrStdout()); err != nil {
+		exp, err := bbl.NewWorkExporter(cmd.OutOrStdout(), worksFormat)
+		if err != nil {
 			return err
 		}
 
-		return err
+		for rec := range repo.WorksIter(cmd.Context(), &err) {
+			if err := exp.Add(rec); err != nil {
+				return err
+			}
+		}
+		if err != nil {
+			return err
+		}
+
+		return exp.Done()
 	},
 }
 

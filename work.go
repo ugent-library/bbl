@@ -234,28 +234,31 @@ func EncodeWork(rec *Work, format string) ([]byte, error) {
 	return enc(rec)
 }
 
-type WorkExporter = func(iter.Seq[*Work], io.Writer) error
+type WorkExporter interface {
+	Add(*Work) error
+	Done() error
+}
 
-var workExporters = map[string]WorkExporter{
-	"jsonl": func(recs iter.Seq[*Work], w io.Writer) error {
-		enc := json.NewEncoder(w)
-		for rec := range recs {
-			if err := enc.Encode(rec); err != nil {
-				return err
-			}
-		}
-		return nil
+type WorkExporterFactory = func(io.Writer) (WorkExporter, error)
+
+var workExporters = map[string]WorkExporterFactory{
+	"jsonl": func(w io.Writer) (WorkExporter, error) {
+		return &jsonlExporter[*Work]{enc: json.NewEncoder(w)}, nil
 	},
 }
 
-func RegisterWorkExporter(format string, exp WorkExporter) {
-	workExporters[format] = exp
+func RegisterWorkExporter(format string, factory WorkExporterFactory) {
+	workExporters[format] = factory
 }
 
 func WorkExporters() iter.Seq[string] {
 	return maps.Keys(workExporters)
 }
 
-func GetWorkExporter(format string) WorkExporter {
-	return workExporters[format]
+func NewWorkExporter(w io.Writer, format string) (WorkExporter, error) {
+	factory, ok := workExporters[format]
+	if !ok {
+		return nil, fmt.Errorf("NewWorkExporter: unknown exporter %q", format)
+	}
+	return factory(w)
 }
