@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/views"
 	workviews "github.com/ugent-library/bbl/app/views/works"
 	"github.com/ugent-library/bbl/binder"
 	"github.com/ugent-library/bbl/can"
@@ -161,13 +162,17 @@ func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCt
 	c.Opts.Facets = nil
 	format := r.FormValue("format")
 
-	// TODO do something with jobID
-	_, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{Opts: c.Opts, Format: format})
+	jobID, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{Opts: c.Opts, Format: format})
 	if err != nil {
 		return err
 	}
 
-	return nil
+	flash := views.Flash{
+		Type: views.FlashInfo,
+		Body: fmt.Sprint(jobID), // TODO
+	}
+
+	return views.AddFlashMessages(flash).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {

@@ -1,0 +1,64 @@
+package views
+
+import (
+	"fmt"
+	"time"
+)
+
+const (
+	FlashSuccess = "success"
+	FlashInfo    = "info"
+	FlashWarning = "warning"
+	FlashError   = "error"
+)
+
+type Flash struct {
+	Type         string
+	Title        string
+	Body         string
+	DismissAfter time.Duration
+}
+
+templ AddFlashMessages(flashes ...Flash) {
+	<div hx-swap-oob="beforeend:#flash-messages">
+		for _, f := range flashes {
+			@FlashMessage(f)
+		}
+	</div>
+}
+
+templ FlashMessage(f Flash) {
+	<div
+		class="toast"
+		role="alert"
+		aria-live="assertive"
+		aria-atomic="true"
+		if f.DismissAfter != 0 {
+			data-bs-delay={ fmt.Sprint(f.DismissAfter.Milliseconds()) }
+		} else {
+			data-bs-autohide="false"
+		}
+	>
+		<div class="toast-body">
+			switch f.Type {
+				case FlashSuccess:
+					<i class="if if--success if-check-circle-fill"></i>
+				case FlashInfo:
+					<i class="if if--primary if-info-circle-filled"></i>
+				case FlashWarning:
+					<i class="if if--warning if-alert-fill"></i>
+				case FlashError:
+					<i class="if if--error if-error-circle-fill"></i>
+			}
+			<div class="toast-content">
+				if f.Title != "" {
+					<h3 class="alert-title">{ f.Title }</h3>
+				}
+				{ f.Body }
+			</div>
+			<button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="toast">
+				<i class="if if-close"></i>
+			</button>
+		</div>
+	</div>
+}
