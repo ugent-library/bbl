@@ -75,6 +75,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.75
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.3
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/securecookie v1.1.2

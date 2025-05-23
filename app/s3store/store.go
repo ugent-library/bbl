@@ -2,10 +2,12 @@ package s3store
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -37,6 +39,28 @@ func New(c Config) (*Store, error) {
 		presignClient: presignClient,
 		bucket:        c.Bucket,
 	}, nil
+}
+
+func (s *Store) Download(ctx context.Context, id string, w io.Writer) error {
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(id),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(w, out.Body)
+	return err
+}
+
+func (s *Store) Upload(ctx context.Context, id string, r io.Reader) error {
+	uploader := manager.NewUploader(s.client)
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(id),
+		Body:   r,
+	})
+	return err
 }
 
 func (s *Store) NewUploadURL(ctx context.Context, id string, ttl time.Duration) (string, error) {

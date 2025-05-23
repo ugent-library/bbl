@@ -77,13 +77,13 @@ var worksCmd = &cobra.Command{
 			return err
 		}
 
-		exp, err := bbl.NewWorkExporter(cmd.OutOrStdout(), worksFormat)
+		e, err := bbl.NewWorkExporter(cmd.OutOrStdout(), worksFormat)
 		if err != nil {
 			return err
 		}
 
 		for rec := range repo.WorksIter(cmd.Context(), &err) {
-			if err := exp.Add(rec); err != nil {
+			if err := e.Add(rec); err != nil {
 				return err
 			}
 		}
@@ -91,7 +91,7 @@ var worksCmd = &cobra.Command{
 			return err
 		}
 
-		return exp.Done()
+		return e.Done()
 	},
 }
 
@@ -107,17 +107,7 @@ var reindexWorksCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
-
-		index, err := newIndex(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		riverClient, err := newRiverClient(logger, conn, repo, index)
+		riverClient, err := newInsertOnlyRiverClient(logger, conn)
 		if err != nil {
 			return err
 		}

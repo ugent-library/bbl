@@ -86,17 +86,7 @@ var reindexPeopleCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
-
-		index, err := newIndex(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		riverClient, err := newRiverClient(logger, conn, repo, index)
+		riverClient, err := newInsertOnlyRiverClient(logger, conn)
 		if err != nil {
 			return err
 		}

@@ -9,33 +9,35 @@ import (
 
 type SearchCtx struct {
 	*AppCtx
-	SearchOpts *bbl.SearchOpts
+	Scope string
+	Opts  *bbl.SearchOpts
 }
 
+// TODO make reusable
 func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 	c := &SearchCtx{
 		AppCtx: appCtx,
-		SearchOpts: &bbl.SearchOpts{
-			Size: 20,
+		Opts: &bbl.SearchOpts{
+			Size:   20,
+			Facets: []string{"kind", "status"},
 		},
 	}
 
 	b := binder.New(r).
-		Query().
+		Form().
 		Vacuum().
-		String("q", &c.SearchOpts.Query).
-		Int("size", &c.SearchOpts.Size).
-		Int("from", &c.SearchOpts.From).
-		String("cursor", &c.SearchOpts.Cursor)
+		String("scope", &c.Scope).
+		String("q", &c.Opts.Query).
+		Int("size", &c.Opts.Size).
+		Int("from", &c.Opts.From).
+		String("cursor", &c.Opts.Cursor)
 	if err := b.Err(); err != nil {
 		return c, err
 	}
 
-	// TODO make reusable
-	c.SearchOpts.Facets = []string{"kind", "status"}
-	for _, field := range c.SearchOpts.Facets {
+	for _, field := range c.Opts.Facets {
 		if b.Has(field) {
-			c.SearchOpts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
+			c.Opts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
 		}
 	}
 

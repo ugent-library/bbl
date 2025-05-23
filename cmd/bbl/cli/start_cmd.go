@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"golang.org/x/sync/errgroup"
 )
@@ -40,13 +39,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		store, err := s3store.New(s3store.Config{
-			URL:    config.S3.URL,
-			Region: config.S3.Region,
-			ID:     config.S3.ID,
-			Secret: config.S3.Secret,
-			Bucket: config.S3.Bucket,
-		})
+		store, err := newStore()
 		if err != nil {
 			return err
 		}
@@ -56,7 +49,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		riverClient, err := newRiverClient(logger, conn, repo, index)
+		riverClient, err := newRiverClient(logger, conn, repo, index, store)
 		if err != nil {
 			return err
 		}

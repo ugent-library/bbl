@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/ugent-library/bbl/binder"
 	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/htmx"
 	"github.com/ugent-library/httperror"
@@ -82,8 +84,7 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	workStateCtx := ctx.Derive(appCtx, h.BindWorkState)
 
 	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
-	router.Handle("/works/created", searchCtx.Bind(h.SearchCreated)).Methods("GET").Name("works_created")
-	router.Handle("/works/contributed", searchCtx.Bind(h.SearchContributed)).Methods("GET").Name("works_contributed")
+	router.Handle("/works/export", searchCtx.Bind(h.Export)).Methods("POST").Name("export_works")
 	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
 	router.Handle("/works/_change_kind", workStateCtx.Bind(h.ChangeKind)).Methods("POST").Name("work_change_kind")
 	router.Handle("/works/_add_identifier", workStateCtx.Bind(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
@@ -110,50 +111,63 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
 }
 
+func (h *WorkHandler) setSearchScope(ctx context.Context, c *SearchCtx) error {
+	switch c.Scope {
+	case "created":
+		c.Opts.AddFilters(bbl.Terms("created", c.User.ID))
+	case "contributed":
+		personIDs, err := h.repo.GetPeopleIDsByIdentifiers(ctx, c.User.Identifiers)
+		if err != nil {
+			return err
+		}
+		c.Opts.AddFilters(bbl.Terms("contributed", personIDs...))
+	case "":
+		personIDs, err := h.repo.GetPeopleIDsByIdentifiers(ctx, c.User.Identifiers)
+		if err != nil {
+			return err
+		}
+		c.Opts.AddFilters(bbl.Or(
+			bbl.Terms("created", c.User.ID),
+			bbl.Terms("contributed", personIDs...),
+		))
+	default:
+		return httperror.BadRequest
+	}
+	return nil
+}
+
 func (h *WorkHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	personIDs, err := h.repo.GetPeopleIDsByIdentifiers(r.Context(), c.User.Identifiers)
+	if err := h.setSearchScope(r.Context(), c); err != nil {
+		return err
+	}
+
+	hits, err := h.index.Works().Search(r.Context(), c.Opts)
 	if err != nil {
 		return err
 	}
 
-	c.SearchOpts.AddFilters(bbl.Or(
-		bbl.Terms("created", c.User.ID),
-		bbl.Terms("contributed", personIDs...),
-	))
-
-	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
-	if err != nil {
-		return err
-	}
-
-	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+	return workviews.Search(c.ViewCtx(), c.Scope, hits).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) SearchContributed(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	personIDs, err := h.repo.GetPeopleIDsByIdentifiers(r.Context(), c.User.Identifiers)
+func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+	if err := h.setSearchScope(r.Context(), c); err != nil {
+		return err
+	}
+
+	// TODO
+	c.Opts.From = 0
+	c.Opts.Cursor = ""
+	c.Opts.Size = 100
+	c.Opts.Facets = nil
+	format := r.FormValue("format")
+
+	// TODO do something with jobID
+	_, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{Opts: c.Opts, Format: format})
 	if err != nil {
 		return err
 	}
 
-	c.SearchOpts.AddFilters(bbl.Terms("contributed", personIDs...))
-
-	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
-	if err != nil {
-		return err
-	}
-
-	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
-}
-
-func (h *WorkHandler) SearchCreated(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
-	c.SearchOpts.AddFilters(bbl.Terms("created", c.User.ID))
-
-	hits, err := h.index.Works().Search(r.Context(), c.SearchOpts)
-	if err != nil {
-		return err
-	}
-
-	return workviews.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+	return nil
 }
 
 func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
@@ -487,66 +501,6 @@ func (h *WorkHandler) refreshForm(w http.ResponseWriter, r *http.Request, c *Wor
 	return workviews.RefreshForm(c.ViewCtx(), c.Work, state).Render(r.Context(), w)
 }
 
-func bindWorkForm(r *http.Request, rec *bbl.Work) error {
-	// we only need to bind inline editable fields
-	err := binder.New(r).Form().
-		Each("work.identifiers", func(i int, b *binder.Values) bool {
-			var code bbl.Code
-			b.String("scheme", &code.Scheme)
-			b.String("val", &code.Val)
-			rec.Identifiers[i] = code
-			return true
-		}).
-		Each("work.classifications", func(i int, b *binder.Values) bool {
-			var code bbl.Code
-			b.String("scheme", &code.Scheme)
-			b.String("val", &code.Val)
-			rec.Attrs.Classifications[i] = code
-			return true
-		}).
-		Each("work.titles", func(i int, b *binder.Values) bool {
-			var text bbl.Text
-			b.String("lang", &text.Lang)
-			b.String("val", &text.Val)
-			rec.Attrs.Titles[i] = text
-			return true
-		}).
-		StringSlice("work.keywords", &rec.Attrs.Keywords).
-		String("work.conference.name", &rec.Attrs.Conference.Name).
-		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
-		String("work.conference.location", &rec.Attrs.Conference.Location).
-		String("work.article_number", &rec.Attrs.ArticleNumber).
-		String("work.report_number", &rec.Attrs.ReportNumber).
-		String("work.volume", &rec.Attrs.Volume).
-		String("work.issue", &rec.Attrs.Issue).
-		String("work.issue_title", &rec.Attrs.IssueTitle).
-		String("work.edition", &rec.Attrs.Edition).
-		String("work.total_pages", &rec.Attrs.TotalPages).
-		String("work.pages.start", &rec.Attrs.Pages.Start).
-		String("work.pages.end", &rec.Attrs.Pages.End).
-		String("work.place_of_publication", &rec.Attrs.PlaceOfPublication).
-		String("work.publisher", &rec.Attrs.Publisher).
-		Err()
-	return err
-}
-
-func vacuumWork(rec *bbl.Work) {
-	var identifiers []bbl.Code
-	var titles []bbl.Text
-	for _, code := range rec.Identifiers {
-		if code.Val != "" {
-			identifiers = append(identifiers, code)
-		}
-	}
-	for _, text := range rec.Attrs.Titles {
-		if text.Val != "" {
-			titles = append(titles, text)
-		}
-	}
-	rec.Identifiers = identifiers
-	rec.Attrs.Titles = titles
-}
-
 func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
 	return workviews.BatchEdit(c.ViewCtx(), workviews.BatchEditArgs{}).Render(r.Context(), w)
 }
@@ -637,4 +591,64 @@ LINES:
 	}
 
 	return workviews.BatchEdit(c.ViewCtx(), args).Render(r.Context(), w)
+}
+
+func vacuumWork(rec *bbl.Work) {
+	var identifiers []bbl.Code
+	var titles []bbl.Text
+	for _, code := range rec.Identifiers {
+		if code.Val != "" {
+			identifiers = append(identifiers, code)
+		}
+	}
+	for _, text := range rec.Attrs.Titles {
+		if text.Val != "" {
+			titles = append(titles, text)
+		}
+	}
+	rec.Identifiers = identifiers
+	rec.Attrs.Titles = titles
+}
+
+func bindWorkForm(r *http.Request, rec *bbl.Work) error {
+	// we only need to bind inline editable fields
+	err := binder.New(r).Form().
+		Each("work.identifiers", func(i int, b *binder.Values) bool {
+			var code bbl.Code
+			b.String("scheme", &code.Scheme)
+			b.String("val", &code.Val)
+			rec.Identifiers[i] = code
+			return true
+		}).
+		Each("work.classifications", func(i int, b *binder.Values) bool {
+			var code bbl.Code
+			b.String("scheme", &code.Scheme)
+			b.String("val", &code.Val)
+			rec.Attrs.Classifications[i] = code
+			return true
+		}).
+		Each("work.titles", func(i int, b *binder.Values) bool {
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			rec.Attrs.Titles[i] = text
+			return true
+		}).
+		StringSlice("work.keywords", &rec.Attrs.Keywords).
+		String("work.conference.name", &rec.Attrs.Conference.Name).
+		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
+		String("work.conference.location", &rec.Attrs.Conference.Location).
+		String("work.article_number", &rec.Attrs.ArticleNumber).
+		String("work.report_number", &rec.Attrs.ReportNumber).
+		String("work.volume", &rec.Attrs.Volume).
+		String("work.issue", &rec.Attrs.Issue).
+		String("work.issue_title", &rec.Attrs.IssueTitle).
+		String("work.edition", &rec.Attrs.Edition).
+		String("work.total_pages", &rec.Attrs.TotalPages).
+		String("work.pages.start", &rec.Attrs.Pages.Start).
+		String("work.pages.end", &rec.Attrs.Pages.End).
+		String("work.place_of_publication", &rec.Attrs.PlaceOfPublication).
+		String("work.publisher", &rec.Attrs.Publisher).
+		Err()
+	return err
 }

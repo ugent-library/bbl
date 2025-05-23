@@ -36,6 +36,7 @@ type Repo struct {
 
 func New(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
 	// insert only client
+	// TODO pass logger, duplicates newInsertOnlyRiverClient
 	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{})
 	if err != nil {
 		return nil, err
@@ -46,6 +47,14 @@ func New(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
 		queue:       tonga.New(conn),
 		riverClient: riverClient,
 	}, nil
+}
+
+func (r *Repo) AddJob(ctx context.Context, job river.JobArgs) (int64, error) {
+	res, err := r.riverClient.Insert(ctx, job, nil)
+	if err != nil {
+		return 0, err
+	}
+	return res.Job.ID, nil
 }
 
 func (r *Repo) Queue() *tonga.Client {

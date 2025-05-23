@@ -16,6 +16,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/csv"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/oaidc"
@@ -55,7 +56,17 @@ func newIndex(ctx context.Context) (bbl.Index, error) {
 	return opensearchindex.New(ctx, client)
 }
 
-func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index) (*river.Client[pgx.Tx], error) {
+func newInsertOnlyRiverClient(logger *slog.Logger, conn *pgxpool.Pool) (*river.Client[pgx.Tx], error) {
+	client, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
+		Logger: logger,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index, store *s3store.Store) (*river.Client[pgx.Tx], error) {
 	w := river.NewWorkers()
 	river.AddWorker(w, workers.NewQueueGc(repo.Queue()))
 	river.AddWorker(w, workers.NewIndexPerson(repo, index))
@@ -67,8 +78,9 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	river.AddWorker(w, workers.NewAddWorkRepresentations(repo, index))
 	river.AddWorker(w, workers.NewIndexWork(repo, index))
 	river.AddWorker(w, workers.NewReindexWorks(repo, index))
+	river.AddWorker(w, workers.NewExportWorks(index, store))
 
-	riverClient, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
+	client, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
 		Logger: logger,
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: 100},
@@ -88,5 +100,19 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 		return nil, err
 	}
 
-	return riverClient, nil
+	return client, nil
+}
+
+func newStore() (*s3store.Store, error) {
+	store, err := s3store.New(s3store.Config{
+		URL:    config.S3.URL,
+		Region: config.S3.Region,
+		ID:     config.S3.ID,
+		Secret: config.S3.Secret,
+		Bucket: config.S3.Bucket,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return store, nil
 }
