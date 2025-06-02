@@ -13,6 +13,7 @@ import (
 	"github.com/leonelquinteros/gotext"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/i18n"
 	"github.com/ugent-library/crypt"
@@ -36,6 +37,7 @@ type SessionCookie struct {
 
 type AppCtx struct {
 	router       *mux.Router
+	Hub          *catbird.Hub
 	secureCookie *securecookie.SecureCookie
 	assets       map[string]string
 	insecure     bool
@@ -64,6 +66,7 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ct
 			URL:          r.URL,
 			RouteName:    mux.CurrentRoute(r).GetName(),
 			router:       router,
+			Hub:          config.Hub,
 			secureCookie: cookies,
 			assets:       assets,
 			insecure:     insecure,

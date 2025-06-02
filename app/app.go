@@ -13,6 +13,7 @@ import (
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/s3store"
+	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
@@ -30,6 +31,7 @@ type Config struct {
 	Repo             *pgxrepo.Repo
 	Index            bbl.Index
 	Store            *s3store.Store
+	Hub              *catbird.Hub
 	Secret           []byte
 	HashSecret       []byte
 	AuthIssuerURL    string
@@ -90,6 +92,8 @@ func New(config *Config) (http.Handler, error) {
 	loggedInCtx := appCtx.With(RequireUser)
 
 	router.Handle("/", appCtx.Bind(HomeHandler)).Methods("GET").Name("home")
+
+	router.Handle("/sse", loggedInCtx.Bind(SSEHandler)).Methods("GET").Name("sse")
 
 	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
 		IssuerURL:        config.AuthIssuerURL,

@@ -53,7 +53,7 @@ func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 	}
 }
 
-func (h *WorkHandler) BindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+func (h *WorkHandler) bindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
 	work, err := h.repo.GetWork(r.Context(), mux.Vars(r)["id"])
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (h *WorkHandler) BindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
 	return &WorkCtx{AppCtx: c, Work: work}, nil
 }
 
-func (h *WorkHandler) BindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+func (h *WorkHandler) bindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error) {
 	var recState string
 	var rec bbl.Work
 	if err := binder.New(r).Form().String("work.state", &recState).Err(); err != nil {
@@ -81,8 +81,8 @@ func (h *WorkHandler) BindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error
 
 func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 	searchCtx := ctx.Derive(appCtx, BindSearch)
-	workCtx := ctx.Derive(appCtx, h.BindWork)
-	workStateCtx := ctx.Derive(appCtx, h.BindWorkState)
+	workCtx := ctx.Derive(appCtx, h.bindWork)
+	workStateCtx := ctx.Derive(appCtx, h.bindWorkState)
 
 	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
 	router.Handle("/works/export", searchCtx.Bind(h.Export)).Methods("POST").Name("export_works")

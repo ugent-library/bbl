@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"golang.org/x/sync/errgroup"
 )
@@ -49,6 +50,8 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
+		hub := catbird.NewHub(catbird.HubOpts{})
+
 		riverClient, err := newRiverClient(logger, conn, repo, index, store)
 		if err != nil {
 			return err
@@ -64,6 +67,7 @@ var startCmd = &cobra.Command{
 			Repo:             repo,
 			Index:            index,
 			Store:            store,
+			Hub:              hub,
 			Secret:           []byte(config.Secret),
 			HashSecret:       []byte(config.HashSecret),
 			AuthIssuerURL:    config.OIDC.IssuerURL,
