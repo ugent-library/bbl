@@ -167,12 +167,10 @@ func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCt
 		return err
 	}
 
-	flash := views.Flash{
+	return c.Hub.Render(r.Context(), "users."+c.User.ID, "flash", views.Flash(views.FlashArgs{
 		Type: views.FlashInfo,
 		Body: fmt.Sprint(jobID), // TODO
-	}
-
-	return views.AddFlashMessages(flash).Render(r.Context(), w)
+	}))
 }
 
 func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {

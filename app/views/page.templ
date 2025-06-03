@@ -11,7 +11,9 @@ templ Page(c Ctx, title string) {
 			<link rel="icon" href={ c.AssetPath("/images/ugent/favicon.ico") }/>
 			<title>{ title }</title>
 		</head>
-		<body class="u-maximize-height overflow-hidden u-scroll-wrapper">
+		<body
+			class="u-maximize-height overflow-hidden u-scroll-wrapper"
+		>
 			<header>
 				<div class="bc-navbar bc-navbar--small bc-navbar--bordered-bottom bc-navbar--white bc-navbar--fixed shadow-sm px-4">
 					<div class="bc-toolbar bc-toolbar-sm">
@@ -101,10 +103,14 @@ templ Page(c Ctx, title string) {
 					{ children... }
 				</div>
 			</main>
-
-			<div id="flash-messages">
-			</div>
-
+			if c.User != nil {
+				<div
+					hx-ext="sse"
+					sse-connect={ c.SSEPath() }
+					sse-swap="flash"
+					hx-swap="beforeend"
+				></div>
+			}
 			<div id="modals" class="modal modal-blur fade" style="display: none" aria-hidden="false" tabindex="-1">
 				<div class="modal-dialog modal-lg modal-dialog-centered" role="document">
 					<div class="modal-content"></div>

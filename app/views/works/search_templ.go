@@ -74,7 +74,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var4).String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 1, Col: 0}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 1, Col: 0}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -105,7 +105,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var7).String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 1, Col: 0}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 1, Col: 0}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var10).String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 1, Col: 0}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 1, Col: 0}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -167,7 +167,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(scope)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 54, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 54, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -185,7 +185,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 72, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 72, Col: 41}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -198,7 +198,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 79, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 79, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -216,7 +216,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 93, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 93, Col: 26}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -229,7 +229,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(v.Val)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 94, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 94, Col: 26}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -252,7 +252,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var19 string
 					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(v.Val)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 98, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 98, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 					if templ_7745c5c3_Err != nil {
@@ -265,7 +265,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var20 string
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(v.Count))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 98, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 98, Col: 76}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
@@ -296,7 +296,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(views.PaginationCount(c, pager))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 122, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 122, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -314,7 +314,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("export_works").String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 138, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 138, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -327,7 +327,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(format)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 142, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 142, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -340,7 +340,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(format)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 144, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 144, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -363,7 +363,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Status)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 163, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 163, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -376,7 +376,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Kind)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 165, Col: 89}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 165, Col: 89}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -398,7 +398,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Title())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 175, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 175, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -411,7 +411,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.CreatedAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 259, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 259, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -429,7 +429,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var30 string
 					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(u.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 261, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 261, Col: 26}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 					if templ_7745c5c3_Err != nil {
@@ -447,7 +447,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				var templ_7745c5c3_Var31 string
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(c.FormatTime(hit.Rec.UpdatedAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 266, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 266, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
@@ -465,7 +465,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					var templ_7745c5c3_Var32 string
 					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(u.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 268, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 268, Col: 26}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 					if templ_7745c5c3_Err != nil {
@@ -522,7 +522,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(views.PaginationCount(c, pager))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/search.templ`, Line: 315, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/search.templ`, Line: 315, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {

@@ -14,6 +14,7 @@ type Ctx struct {
 	RouteName string
 	Route     func(name string, pairs ...string) *url.URL
 	AssetPath func(string) string
+	SSEPath   func() string
 	Loc       *gotext.Locale
 	User      *bbl.User
 }

@@ -2,6 +2,10 @@ package catbird
 
 import (
 	"bufio"
+	"bytes"
+	"context"
+	"errors"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
@@ -15,6 +19,7 @@ type HubOpts struct {
 }
 
 type Hub struct {
+	shutdown      chan struct{}
 	messageBuffer int
 	subscribers   map[string][]*subscriber
 	mu            sync.RWMutex
@@ -30,6 +35,7 @@ func NewHub(opts HubOpts) *Hub {
 		opts.MessageBuffer = DefaultMessageBuffer
 	}
 	return &Hub{
+		shutdown:      make(chan struct{}),
 		messageBuffer: opts.MessageBuffer,
 		subscribers:   make(map[string][]*subscriber),
 	}
@@ -40,16 +46,25 @@ type ConnectOpts struct {
 	MessageBuffer int
 }
 
+func (h *Hub) Shutdown() {
+	close(h.shutdown)
+}
+
 func (h *Hub) ConnectSSE(w http.ResponseWriter, r *http.Request, opts ConnectOpts) error {
 	if opts.MessageBuffer == 0 {
 		opts.MessageBuffer = h.messageBuffer
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return errors.New("could not upgrade sse connection")
 	}
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	disconnected := r.Context().Done()
+	ctx := r.Context()
 
 	msgs := make(chan Msg, opts.MessageBuffer)
 
@@ -61,19 +76,17 @@ func (h *Hub) ConnectSSE(w http.ResponseWriter, r *http.Request, opts ConnectOpt
 	h.addSubscriber(sub)
 	defer h.removeSubscriber(sub)
 
-	res := http.NewResponseController(w)
-
 	for {
 		select {
-		case <-disconnected:
+		case <-h.shutdown:
 			return nil
+		case <-ctx.Done():
+			return ctx.Err()
 		case msg := <-msgs:
 			if err := writeMsg(w, msg); err != nil {
 				return err
 			}
-			if err := res.Flush(); err != nil {
-				return err
-			}
+			flusher.Flush()
 		}
 	}
 }
@@ -111,29 +124,39 @@ var eventField = []byte("event: ")
 var dataField = []byte("data: ")
 
 func writeMsg(w http.ResponseWriter, msg Msg) (err error) {
+	b := &bytes.Buffer{} // TODO bufpool
+
 	if msg.Event != "" {
-		if _, err = w.Write(eventField); err != nil {
+		if _, err = b.Write(eventField); err != nil {
 			return
 		}
-		if _, err = w.Write(eventField); err != nil {
+		if _, err = b.Write([]byte(msg.Event)); err != nil {
+			return
+		}
+		if _, err = b.Write(newline); err != nil {
 			return
 		}
 	}
 
 	sc := bufio.NewScanner(strings.NewReader(msg.Data))
 	for sc.Scan() {
-		if _, err = w.Write(dataField); err != nil {
+		if _, err = b.Write(dataField); err != nil {
 			return
 		}
-		if _, err = w.Write(sc.Bytes()); err != nil {
+		if _, err = b.Write(sc.Bytes()); err != nil {
 			return
 		}
-		if _, err = w.Write(newline); err != nil {
+		if _, err = b.Write(newline); err != nil {
 			return
 		}
 	}
 
-	_, err = w.Write(newline)
+	_, err = b.Write(newline)
+
+	if err == nil {
+		w.Write(b.Bytes())
+	}
+
 	return
 }
 
@@ -146,4 +169,20 @@ func (h *Hub) Send(topic string, msg Msg) {
 			sub.msgs <- msg // TODO handle too slow (buffer full)
 		}
 	}
+}
+
+type Renderer interface {
+	Render(context.Context, io.Writer) error
+}
+
+func (h *Hub) Render(ctx context.Context, topic, event string, r Renderer) error {
+	var b strings.Builder
+	if err := r.Render(ctx, &b); err != nil {
+		return err
+	}
+	h.Send(topic, Msg{
+		Event: event,
+		Data:  b.String(),
+	})
+	return nil
 }

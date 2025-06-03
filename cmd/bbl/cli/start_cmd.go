@@ -102,12 +102,15 @@ var startCmd = &cobra.Command{
 
 			logger.Info("gracefully stopping server")
 
-			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
+			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 5*time.Second)
 			defer timeoutRelease()
+
+			hub.Shutdown() // TODO not graceful
 
 			err := server.Shutdown(timeoutCtx)
 			if err == nil {
 				logger.Info("gracefully stopped server")
+				return nil
 			}
 			return err
 		})

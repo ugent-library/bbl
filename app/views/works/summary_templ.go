@@ -38,7 +38,7 @@ func SummaryCite(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/summary.templ`, Line: 10, Col: 9}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/summary.templ`, Line: 10, Col: 9}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -78,7 +78,7 @@ func SummaryID(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(rec.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/summary.templ`, Line: 16, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/summary.templ`, Line: 16, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -91,7 +91,7 @@ func SummaryID(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(rec.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `works/summary.templ`, Line: 20, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/works/summary.templ`, Line: 20, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {

@@ -38,6 +38,7 @@ type SessionCookie struct {
 type AppCtx struct {
 	router       *mux.Router
 	Hub          *catbird.Hub
+	topics       []string
 	secureCookie *securecookie.SecureCookie
 	assets       map[string]string
 	insecure     bool
@@ -85,6 +86,8 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ct
 				return nil, err
 			}
 			c.User = user
+			c.AddTopic("users")
+			c.AddTopic("users." + user.ID)
 		}
 
 		return c, nil
@@ -97,6 +100,7 @@ func (c *AppCtx) ViewCtx() views.Ctx {
 		RouteName: c.RouteName,
 		Route:     c.Route,
 		AssetPath: c.AssetPath,
+		SSEPath:   c.SSEPath,
 		Loc:       c.Loc,
 		User:      c.User,
 	}
@@ -108,6 +112,20 @@ func (c *AppCtx) AssetPath(asset string) string {
 		panic(fmt.Errorf("asset '%s' not found in manifest", asset))
 	}
 	return a
+}
+
+func (c *AppCtx) AddTopic(topic string) {
+	if !slices.Contains(c.topics, topic) {
+		c.topics = append(c.topics, topic)
+	}
+}
+
+func (c *AppCtx) SSEPath() string {
+	token, err := c.EncryptValue(c.topics)
+	if err != nil {
+		panic(err)
+	}
+	return c.Route("sse", "token", token).String()
 }
 
 // TODO accept other types than string?

@@ -12,24 +12,16 @@ const (
 	FlashError   = "error"
 )
 
-type Flash struct {
+type FlashArgs struct {
 	Type         string
 	Title        string
 	Body         string
 	DismissAfter time.Duration
 }
 
-templ AddFlashMessages(flashes ...Flash) {
-	<div hx-swap-oob="beforeend:#flash-messages">
-		for _, f := range flashes {
-			@FlashMessage(f)
-		}
-	</div>
-}
-
-templ FlashMessage(f Flash) {
+templ Flash(f FlashArgs) {
 	<div
-		class="toast"
+		class="toast show"
 		role="alert"
 		aria-live="assertive"
 		aria-atomic="true"
