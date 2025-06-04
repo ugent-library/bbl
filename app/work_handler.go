@@ -162,14 +162,15 @@ func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCt
 	c.Opts.Facets = nil
 	format := r.FormValue("format")
 
-	jobID, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{Opts: c.Opts, Format: format})
+	_, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{UserID: c.User.ID, Opts: c.Opts, Format: format})
 	if err != nil {
 		return err
 	}
 
 	return c.Hub.Render(r.Context(), "users."+c.User.ID, "flash", views.Flash(views.FlashArgs{
-		Type: views.FlashInfo,
-		Body: fmt.Sprint(jobID), // TODO
+		Type:  views.FlashInfo,
+		Title: "Export started",
+		Body:  "You will be notified when your export is ready.",
 	}))
 }
 
