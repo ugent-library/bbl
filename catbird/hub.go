@@ -4,12 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgxlisten"
 )
 
 var DefaultMessageBuffer = 16
@@ -19,6 +25,7 @@ type HubOpts struct {
 }
 
 type Hub struct {
+	pool          *pgxpool.Pool
 	shutdown      chan struct{}
 	messageBuffer int
 	subscribers   map[string][]*subscriber
@@ -30,11 +37,18 @@ type subscriber struct {
 	msgs   chan Msg
 }
 
-func NewHub(opts HubOpts) *Hub {
+type Msg struct {
+	Topic string `json:"topic,omitempty"`
+	Event string `json:"event,omitempty"`
+	Data  string `json:"data,omitempty"`
+}
+
+func NewHub(pool *pgxpool.Pool, opts HubOpts) *Hub {
 	if opts.MessageBuffer == 0 {
 		opts.MessageBuffer = DefaultMessageBuffer
 	}
 	return &Hub{
+		pool:          pool,
 		shutdown:      make(chan struct{}),
 		messageBuffer: opts.MessageBuffer,
 		subscribers:   make(map[string][]*subscriber),
@@ -46,8 +60,29 @@ type ConnectOpts struct {
 	MessageBuffer int
 }
 
+func (h *Hub) Start(ctx context.Context) error {
+	listener := &pgxlisten.Listener{
+		Connect: func(ctx context.Context) (*pgx.Conn, error) {
+			conn, err := h.pool.Acquire(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return conn.Conn(), nil
+		},
+	}
+	listener.Handle("catbird", pgxlisten.HandlerFunc(func(ctx context.Context, not *pgconn.Notification, _ *pgx.Conn) error {
+		var msg Msg
+		if err := json.Unmarshal([]byte(not.Payload), &msg); err != nil {
+			return err
+		}
+		h.send(msg)
+		return nil
+	}))
+	return listener.Listen(ctx)
+}
+
 func (h *Hub) Shutdown() {
-	close(h.shutdown)
+	close(h.shutdown) // TODO stop accepting new connections?
 }
 
 func (h *Hub) ConnectSSE(w http.ResponseWriter, r *http.Request, opts ConnectOpts) error {
@@ -113,10 +148,41 @@ func (h *Hub) removeSubscriber(sub *subscriber) {
 
 	close(sub.msgs)
 }
+func (h *Hub) send(msg Msg) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 
-type Msg struct {
-	Event string
-	Data  string
+	if subs, ok := h.subscribers[msg.Topic]; ok {
+		for _, sub := range subs {
+			sub.msgs <- msg // TODO handle too slow (buffer full)
+		}
+	}
+}
+
+func (h *Hub) Send(ctx context.Context, msg Msg) error {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	_, err = h.pool.Exec(ctx, `select pg_notify($1, $2)`, "catbird", b)
+	return err
+}
+
+type Renderer interface {
+	Render(context.Context, io.Writer) error
+}
+
+func (h *Hub) Render(ctx context.Context, topic, event string, r Renderer) error {
+	var b strings.Builder
+	if err := r.Render(ctx, &b); err != nil {
+		return err
+	}
+	h.Send(ctx, Msg{
+		Topic: topic,
+		Event: event,
+		Data:  b.String(),
+	})
+	return nil
 }
 
 var newline = []byte{'\n'}
@@ -158,31 +224,4 @@ func writeMsg(w http.ResponseWriter, msg Msg) (err error) {
 	}
 
 	return
-}
-
-func (h *Hub) Send(topic string, msg Msg) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	if subs, ok := h.subscribers[topic]; ok {
-		for _, sub := range subs {
-			sub.msgs <- msg // TODO handle too slow (buffer full)
-		}
-	}
-}
-
-type Renderer interface {
-	Render(context.Context, io.Writer) error
-}
-
-func (h *Hub) Render(ctx context.Context, topic, event string, r Renderer) error {
-	var b strings.Builder
-	if err := r.Render(ctx, &b); err != nil {
-		return err
-	}
-	h.Send(topic, Msg{
-		Event: event,
-		Data:  b.String(),
-	})
-	return nil
 }

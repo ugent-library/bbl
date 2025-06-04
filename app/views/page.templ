@@ -13,6 +13,10 @@ templ Page(c Ctx, title string) {
 		</head>
 		<body
 			class="u-maximize-height overflow-hidden u-scroll-wrapper"
+			if c.User != nil {
+				hx-ext="sse"
+				sse-connect={ c.SSEPath() }
+			}
 		>
 			<header>
 				<div class="bc-navbar bc-navbar--small bc-navbar--bordered-bottom bc-navbar--white bc-navbar--fixed shadow-sm px-4">
@@ -103,14 +107,13 @@ templ Page(c Ctx, title string) {
 					{ children... }
 				</div>
 			</main>
-			if c.User != nil {
-				<div
-					hx-ext="sse"
-					sse-connect={ c.SSEPath() }
+			<div
+				id="flashes"
+				if c.User != nil {
 					sse-swap="flash"
 					hx-swap="beforeend"
-				></div>
-			}
+				}
+			></div>
 			<div id="modals" class="modal modal-blur fade" style="display: none" aria-hidden="false" tabindex="-1">
 				<div class="modal-dialog modal-lg modal-dialog-centered" role="document">
 					<div class="modal-content"></div>

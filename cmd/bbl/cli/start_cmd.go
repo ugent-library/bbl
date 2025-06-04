@@ -50,7 +50,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		hub := catbird.NewHub(catbird.HubOpts{})
+		hub := catbird.NewHub(conn, catbird.HubOpts{})
 
 		riverClient, err := newRiverClient(logger, conn, repo, index, store)
 		if err != nil {
@@ -89,6 +89,11 @@ var startCmd = &cobra.Command{
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
 		group.Go(func() error {
+			logger.Info("started message hub")
+			return hub.Start(groupCtx)
+		})
+
+		group.Go(func() error {
 			logger.Info("server listening", "host", config.Host, "port", config.Port)
 
 			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
@@ -106,6 +111,7 @@ var startCmd = &cobra.Command{
 			defer timeoutRelease()
 
 			hub.Shutdown() // TODO not graceful
+			logger.Info("stopped message hub")
 
 			err := server.Shutdown(timeoutCtx)
 			if err == nil {
@@ -120,7 +126,7 @@ var startCmd = &cobra.Command{
 				return err
 			}
 
-			logger.Info("workers started")
+			logger.Info("started workers")
 
 			<-riverClient.Stopped()
 			return nil

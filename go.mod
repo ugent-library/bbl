@@ -15,6 +15,11 @@ require (
 )
 
 require (
+	github.com/bokwoon95/wgo v0.5.13 // indirect
+	github.com/jackc/pgxlisten v0.0.0-20241106001234-1d6f6656415c // indirect
+)
+
+require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.34 // indirect
@@ -100,4 +105,7 @@ require (
 	golang.org/x/text v0.25.0
 )
 
-tool github.com/a-h/templ/cmd/templ
+tool (
+	github.com/a-h/templ/cmd/templ
+	github.com/bokwoon95/wgo
+)
