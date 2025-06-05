@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
@@ -168,9 +169,10 @@ func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCt
 	}
 
 	return c.Hub.Render(r.Context(), "users."+c.User.ID, "flash", views.Flash(views.FlashArgs{
-		Type:  views.FlashInfo,
-		Title: "Export started",
-		Text:  "You will be notified when your export is ready.",
+		Type:         views.FlashInfo,
+		Title:        "Export started",
+		Text:         "You will be notified when your export is ready.",
+		DismissAfter: 5 * time.Second,
 	}))
 }
 
