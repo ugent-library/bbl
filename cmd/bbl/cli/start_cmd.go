@@ -52,7 +52,7 @@ var startCmd = &cobra.Command{
 
 		hub := catbird.NewHub(conn, catbird.HubOpts{})
 
-		riverClient, err := newRiverClient(logger, conn, repo, index, store)
+		riverClient, err := newRiverClient(logger, conn, repo, index, store, hub)
 		if err != nil {
 			return err
 		}

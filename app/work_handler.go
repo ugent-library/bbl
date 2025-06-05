@@ -170,7 +170,7 @@ func (h *WorkHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCt
 	return c.Hub.Render(r.Context(), "users."+c.User.ID, "flash", views.Flash(views.FlashArgs{
 		Type:  views.FlashInfo,
 		Title: "Export started",
-		Body:  "You will be notified when your export is ready.",
+		Text:  "You will be notified when your export is ready.",
 	}))
 }
 

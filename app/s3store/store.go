@@ -53,6 +53,20 @@ func (s *Store) Download(ctx context.Context, id string, w io.Writer) error {
 	return err
 }
 
+func (s *Store) NewDownloadURL(ctx context.Context, id string, ttl time.Duration) (string, error) {
+	presignedUrl, err := s.presignClient.PresignGetObject(ctx,
+		&s3.GetObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(id),
+		},
+		s3.WithPresignExpires(ttl),
+	)
+	if err != nil {
+		return "", err
+	}
+	return presignedUrl.URL, nil
+}
+
 func (s *Store) Upload(ctx context.Context, id string, r io.Reader) error {
 	uploader := manager.NewUploader(s.client)
 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
@@ -64,11 +78,13 @@ func (s *Store) Upload(ctx context.Context, id string, r io.Reader) error {
 }
 
 func (s *Store) NewUploadURL(ctx context.Context, id string, ttl time.Duration) (string, error) {
-	params := &s3.PutObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(id),
-	}
-	presigned, err := s.presignClient.PresignPutObject(ctx, params, s3.WithPresignExpires(ttl))
+	presigned, err := s.presignClient.PresignPutObject(ctx,
+		&s3.PutObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(id),
+		},
+		s3.WithPresignExpires(ttl),
+	)
 	if err != nil {
 		return "", err
 	}

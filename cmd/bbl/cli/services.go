@@ -17,6 +17,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/s3store"
+	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/csv"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/oaidc"
@@ -66,7 +67,7 @@ func newInsertOnlyRiverClient(logger *slog.Logger, conn *pgxpool.Pool) (*river.C
 	return client, nil
 }
 
-func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index, store *s3store.Store) (*river.Client[pgx.Tx], error) {
+func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index, store *s3store.Store, hub *catbird.Hub) (*river.Client[pgx.Tx], error) {
 	w := river.NewWorkers()
 	river.AddWorker(w, workers.NewQueueGc(repo.Queue()))
 	river.AddWorker(w, workers.NewIndexPerson(repo, index))
@@ -78,7 +79,7 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	river.AddWorker(w, workers.NewAddWorkRepresentations(repo, index))
 	river.AddWorker(w, workers.NewIndexWork(repo, index))
 	river.AddWorker(w, workers.NewReindexWorks(repo, index))
-	river.AddWorker(w, workers.NewExportWorks(index, store))
+	river.AddWorker(w, workers.NewExportWorks(index, store, hub))
 
 	client, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
 		Logger: logger,

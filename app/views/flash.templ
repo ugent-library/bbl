@@ -15,7 +15,8 @@ const (
 type FlashArgs struct {
 	Type         string
 	Title        string
-	Body         string
+	Text         string
+	HTML         string
 	DismissAfter time.Duration
 }
 
@@ -46,7 +47,11 @@ templ Flash(f FlashArgs) {
 				if f.Title != "" {
 					<h3 class="alert-title">{ f.Title }</h3>
 				}
-				{ f.Body }
+				if f.Text != "" {
+					{ f.Text }
+				} else if f.HTML != "" {
+					@templ.Raw(f.HTML)
+				}
 			</div>
 			<button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="toast">
 				<i class="if if-close"></i>
