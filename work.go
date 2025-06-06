@@ -2,10 +2,6 @@ package bbl
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"iter"
-	"maps"
 	"slices"
 	"time"
 )
@@ -208,57 +204,4 @@ type WorkRepresentation struct {
 	Scheme    string    `json:"scheme"`
 	Record    []byte    `json:"record"`
 	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type WorkEncoder = func(*Work) ([]byte, error)
-
-var workEncoders = map[string]WorkEncoder{
-	"json": func(rec *Work) ([]byte, error) {
-		return json.Marshal(rec)
-	},
-}
-
-func RegisterWorkEncoder(format string, enc WorkEncoder) {
-	workEncoders[format] = enc
-}
-
-func WorkEncoders() iter.Seq[string] {
-	return maps.Keys(workEncoders)
-}
-
-func EncodeWork(rec *Work, format string) ([]byte, error) {
-	enc, ok := workEncoders[format]
-	if !ok {
-		return nil, fmt.Errorf("EncodeWork: unknown encoder %q", format)
-	}
-	return enc(rec)
-}
-
-type WorkExporter interface {
-	Add(*Work) error
-	Done() error
-}
-
-type WorkExporterFactory = func(io.Writer) (WorkExporter, error)
-
-var workExporters = map[string]WorkExporterFactory{
-	"jsonl": func(w io.Writer) (WorkExporter, error) {
-		return &jsonlExporter[*Work]{enc: json.NewEncoder(w)}, nil
-	},
-}
-
-func RegisterWorkExporter(format string, factory WorkExporterFactory) {
-	workExporters[format] = factory
-}
-
-func WorkExporters() iter.Seq[string] {
-	return maps.Keys(workExporters)
-}
-
-func NewWorkExporter(w io.Writer, format string) (WorkExporter, error) {
-	factory, ok := workExporters[format]
-	if !ok {
-		return nil, fmt.Errorf("NewWorkExporter: unknown exporter %q", format)
-	}
-	return factory(w)
 }

@@ -80,22 +80,39 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	river.AddWorker(w, workers.NewIndexWork(repo, index))
 	river.AddWorker(w, workers.NewReindexWorks(repo, index))
 	river.AddWorker(w, workers.NewExportWorks(index, store, hub))
+	river.AddWorker(w, workers.NewImportWorkSource(repo))
+
+	periodicJobs := []*river.PeriodicJob{
+		river.NewPeriodicJob(
+			river.PeriodicInterval(10*time.Minute),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.QueueGc{}, nil
+			},
+			&river.PeriodicJobOpts{RunOnStart: true},
+		),
+	}
+
+	for name := range bbl.WorkSources() {
+		ws := bbl.GetWorkSource(name)
+		if err := ws.Init(); err != nil {
+			return nil, err
+		}
+		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
+			river.PeriodicInterval(ws.Interval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.ImportWorkSource{Name: name}, nil
+			},
+			&river.PeriodicJobOpts{RunOnStart: false},
+		))
+	}
 
 	client, err := river.NewClient(riverpgxv5.New(conn), &river.Config{
 		Logger: logger,
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: 100},
 		},
-		PeriodicJobs: []*river.PeriodicJob{
-			river.NewPeriodicJob(
-				river.PeriodicInterval(10*time.Minute),
-				func() (river.JobArgs, *river.InsertOpts) {
-					return jobs.QueueGc{}, nil
-				},
-				&river.PeriodicJobOpts{RunOnStart: true},
-			),
-		},
-		Workers: w,
+		PeriodicJobs: periodicJobs,
+		Workers:      w,
 	})
 	if err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,6 +28,7 @@ func init() {
 	searchWorksCmd.Flags().IntVar(&searchOpts.From, "from", 0, "")
 	searchWorksCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
 	worksCmd.AddCommand(reindexWorksCmd)
+	worksCmd.AddCommand(importWorkSourceCmd)
 }
 
 var workCmd = &cobra.Command{
@@ -95,6 +97,71 @@ var worksCmd = &cobra.Command{
 	},
 }
 
+var searchWorksCmd = &cobra.Command{
+	Use:   "search",
+	Short: "Search works",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		index, err := newIndex(cmd.Context())
+		if err != nil {
+			return err
+		}
+
+		// TODO organize this
+		if queryFilter != "" {
+			ast, err := queryparser.ParseReader("filter", strings.NewReader(queryFilter))
+			if err != nil {
+				return err
+			}
+			searchOpts.Filter = andClauseFrom(ast)
+		}
+
+		hits, err := index.Works().Search(cmd.Context(), searchOpts)
+		if err != nil {
+			return err
+		}
+
+		enc := json.NewEncoder(cmd.OutOrStdout())
+		return enc.Encode(hits)
+	},
+}
+
+var importWorkSourceCmd = &cobra.Command{
+	Use:   "import-source",
+	Short: "import works from source",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if bbl.GetWorkSource(args[0]) == nil {
+			return fmt.Errorf("unknown source %s", args[0])
+		}
+
+		logger := newLogger(cmd.OutOrStdout())
+
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+
+		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		if err != nil {
+			return err
+		}
+
+		res, err := riverClient.Insert(cmd.Context(), jobs.ImportWorkSource{Name: args[0]}, nil)
+		if err != nil {
+			return err
+		}
+
+		if res.UniqueSkippedAsDuplicate {
+			logger.Info("source imoport is already running")
+		} else {
+			logger.Info("started source imoporter", "job", res.Job.ID)
+		}
+
+		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+	},
+}
+
 var reindexWorksCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex works job",
@@ -124,34 +191,6 @@ var reindexWorksCmd = &cobra.Command{
 		}
 
 		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
-	},
-}
-
-var searchWorksCmd = &cobra.Command{
-	Use:   "search",
-	Short: "Search works",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		index, err := newIndex(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		// TODO organize this
-		if queryFilter != "" {
-			ast, err := queryparser.ParseReader("filter", strings.NewReader(queryFilter))
-			if err != nil {
-				return err
-			}
-			searchOpts.Filter = andClauseFrom(ast)
-		}
-
-		hits, err := index.Works().Search(cmd.Context(), searchOpts)
-		if err != nil {
-			return err
-		}
-
-		enc := json.NewEncoder(cmd.OutOrStdout())
-		return enc.Encode(hits)
 	},
 }
 
