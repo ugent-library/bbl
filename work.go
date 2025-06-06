@@ -3,7 +3,6 @@ package bbl
 import (
 	"encoding/json"
 	"slices"
-	"time"
 )
 
 const (
@@ -197,11 +196,4 @@ func (rec *Work) Title() string {
 		return rec.Attrs.Titles[0].Val
 	}
 	return ""
-}
-
-type WorkRepresentation struct {
-	WorkID    string    `json:"work_id"`
-	Scheme    string    `json:"scheme"`
-	Record    []byte    `json:"record"`
-	UpdatedAt time.Time `json:"updated_at"`
 }
