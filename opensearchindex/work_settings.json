@@ -7,6 +7,9 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
+      "identifiers": {
+        "type": "keyword"
+      },
       "created_by_id": {
         "type": "keyword"
       },

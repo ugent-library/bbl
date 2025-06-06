@@ -11,6 +11,7 @@ import (
 var workSettings string
 
 type workDoc struct {
+	Identifiers []string  `json:"identifiers,omitempty"`
 	CreatedByID string    `json:"created_by_id,omitempty"`
 	PersonID    []string  `json:"person_id,omitempty"`
 	Kind        string    `json:"kind"`
@@ -28,10 +29,14 @@ var workTermsFilters = map[string]string{
 
 func workToDoc(rec *bbl.Work) any {
 	doc := workDoc{
+		Identifiers: []string{rec.ID},
 		CreatedByID: rec.CreatedByID,
 		Kind:        rec.Kind,
 		Status:      rec.Status,
 		Rec:         rec,
+	}
+	for _, iden := range rec.Identifiers {
+		doc.Identifiers = append(doc.Identifiers, iden.String())
 	}
 	for _, con := range rec.Contributors {
 		if con.PersonID != "" {
@@ -52,7 +57,17 @@ func generateWorkQuery(q string) (string, error) {
 
 	j := `{
 		"bool": {
+			"minimum_should_match": "1",
 			"should": [
+				{
+					"term": {
+						"identifiers": {
+							"value": "` + jQ + `",
+							"boost": 100.0,
+							"_name": "identity"
+						}
+					}
+				},
 				{
 					"multi_match": {
 						"query": "` + jQ + `",
