@@ -21,8 +21,8 @@ type workDoc struct {
 }
 
 var workTermsFilters = map[string]string{
-	"created":     "created_by_id",
-	"contributed": "person_id",
+	"creator":     "created_by_id",
+	"contributor": "person_id",
 	"kind":        "kind",
 	"status":      "status",
 }

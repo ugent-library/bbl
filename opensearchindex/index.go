@@ -243,11 +243,13 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 			}
 
 			// the facet filter is the query except the terms filter matching the facet
-			for i, filter := range opts.Filter.Filters {
-				if tf, ok := filter.(*bbl.TermsFilter); ok {
-					if tf.Field == key {
-						jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
-						break
+			if opts.Filter != nil {
+				for i, filter := range opts.Filter.Filters {
+					if tf, ok := filter.(*bbl.TermsFilter); ok {
+						if tf.Field == key {
+							jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
+							break
+						}
 					}
 				}
 			}
@@ -264,14 +266,14 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 		},`
 	}
 
-	if opts.From != 0 {
-		paging = `"from": ` + fmt.Sprint(opts.Size) + `,`
-	} else if opts.Cursor != "" {
+	if opts.Cursor != "" {
 		cursor, err := base64.StdEncoding.DecodeString(opts.Cursor)
 		if err != nil {
 			return nil, err
 		}
 		paging = `"search_after": ` + string(cursor) + `,`
+	} else if opts.From != 0 {
+		paging = `"from": ` + fmt.Sprint(opts.From) + `,`
 	}
 
 	body := `{

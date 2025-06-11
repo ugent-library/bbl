@@ -4,6 +4,10 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
+func Curate(u *bbl.User) bool {
+	return u.Role == bbl.AdminRole || u.Role == bbl.CuratorRole
+}
+
 func ViewWork(u *bbl.User, rec *bbl.Work) bool {
 	if rec.Status == bbl.PublicStatus {
 		return true
@@ -11,7 +15,7 @@ func ViewWork(u *bbl.User, rec *bbl.Work) bool {
 	if u == nil {
 		return false
 	}
-	if u.Role == bbl.AdminRole {
+	if u.Role == bbl.AdminRole || u.Role == bbl.CuratorRole {
 		return true
 	}
 	for _, perm := range rec.Permissions {
@@ -26,7 +30,7 @@ func EditWork(u *bbl.User, rec *bbl.Work) bool {
 	if u == nil {
 		return false
 	}
-	if u.Role == bbl.AdminRole {
+	if u.Role == bbl.AdminRole || u.Role == bbl.CuratorRole {
 		return true
 	}
 	for _, perm := range rec.Permissions {

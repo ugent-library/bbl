@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/pagination"
 )
 
@@ -35,14 +36,16 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 					<div class="bc-toolbar">
 						<div class="bc-toolbar-left">
 							<ul class="nav nav-tabs">
+								if can.Curate(c.User) {
+									<li class="nav-item">
+										<a class={ "nav-link", templ.KV("active", scope == "curator") } href={ c.SafeRoute("works", "scope", "curator") }>All works</a>
+									</li>
+								}
 								<li class="nav-item">
-									<a class={ "nav-link", templ.KV("active", scope == "") } href={ c.SafeRoute("works") }>All</a>
+									<a class={ "nav-link", templ.KV("active", scope == "contributor") } href={ c.SafeRoute("works", "scope", "contributor") }>My works</a>
 								</li>
 								<li class="nav-item">
-									<a class={ "nav-link", templ.KV("active", scope == "contributed") } href={ c.SafeRoute("works", "scope", "contributed") }>My works</a>
-								</li>
-								<li class="nav-item">
-									<a class={ "nav-link", templ.KV("active", scope == "created") } href={ c.SafeRoute("works", "scope", "created") }>Registered by me</a>
+									<a class={ "nav-link", templ.KV("active", scope == "creator") } href={ c.SafeRoute("works", "scope", "creator") }>Registered by me</a>
 								</li>
 							</ul>
 						</div>

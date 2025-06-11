@@ -5,6 +5,7 @@ import (
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/binder"
+	"github.com/ugent-library/bbl/can"
 )
 
 type SearchCtx struct {
@@ -13,7 +14,7 @@ type SearchCtx struct {
 	Opts  *bbl.SearchOpts
 }
 
-// TODO make reusable
+// TODO make reusable or move to works handler
 func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 	c := &SearchCtx{
 		AppCtx: appCtx,
@@ -21,6 +22,11 @@ func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 			Size:   20,
 			Facets: []string{"kind", "status"},
 		},
+	}
+	if can.Curate(appCtx.User) {
+		c.Scope = "curator"
+	} else {
+		c.Scope = "contributor"
 	}
 
 	b := binder.New(r).

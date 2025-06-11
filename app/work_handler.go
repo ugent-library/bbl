@@ -115,23 +115,18 @@ func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
 
 func (h *WorkHandler) setSearchScope(ctx context.Context, c *SearchCtx) error {
 	switch c.Scope {
-	case "created":
-		c.Opts.AddFilters(bbl.Terms("created", c.User.ID))
-	case "contributed":
+	case "curator":
+		if !can.Curate(c.User) {
+			return httperror.Forbidden
+		}
+	case "creator":
+		c.Opts.AddFilters(bbl.Terms("creator", c.User.ID))
+	case "contributor":
 		personIDs, err := h.repo.GetPeopleIDsByIdentifiers(ctx, c.User.Identifiers)
 		if err != nil {
 			return err
 		}
-		c.Opts.AddFilters(bbl.Terms("contributed", personIDs...))
-	case "":
-		personIDs, err := h.repo.GetPeopleIDsByIdentifiers(ctx, c.User.Identifiers)
-		if err != nil {
-			return err
-		}
-		c.Opts.AddFilters(bbl.Or(
-			bbl.Terms("created", c.User.ID),
-			bbl.Terms("contributed", personIDs...),
-		))
+		c.Opts.AddFilters(bbl.Terms("contributor", personIDs...))
 	default:
 		return httperror.BadRequest
 	}

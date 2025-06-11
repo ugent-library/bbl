@@ -3,8 +3,9 @@ package bbl
 import "time"
 
 const (
-	AdminRole = "admin"
-	UserRole  = "user"
+	AdminRole   = "admin"
+	CuratorRole = "curator"
+	UserRole    = "user"
 
 	ViewPermission = "view"
 	EditPermission = "edit"
