@@ -14,7 +14,7 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	workviews "github.com/ugent-library/bbl/app/views/works"
-	"github.com/ugent-library/bbl/binder"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/jobs"
@@ -65,7 +65,7 @@ func (h *WorkHandler) bindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
 func (h *WorkHandler) bindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error) {
 	var recState string
 	var rec bbl.Work
-	if err := binder.New(r).Form().String("work.state", &recState).Err(); err != nil {
+	if err := bind.Request(r).Form().String("work.state", &recState).Err(); err != nil {
 		return nil, err
 	}
 	if err := c.DecryptValue(recState, &rec); err != nil {
@@ -253,7 +253,7 @@ func (h *WorkHandler) Update(w http.ResponseWriter, r *http.Request, c *WorkCtx)
 }
 
 func (h *WorkHandler) ChangeKind(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	err := binder.New(r).Form().
+	err := bind.Request(r).Form().
 		String("kind", &c.Work.Kind).
 		String("subkind", &c.Work.Subkind).
 		Err()
@@ -270,7 +270,7 @@ func (h *WorkHandler) ChangeKind(w http.ResponseWriter, r *http.Request, c *Work
 
 func (h *WorkHandler) AddIdentifier(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 	c.Work.Identifiers = slices.Insert(slices.Grow(c.Work.Identifiers, 1), idx, bbl.Code{})
@@ -280,7 +280,7 @@ func (h *WorkHandler) AddIdentifier(w http.ResponseWriter, r *http.Request, c *W
 
 func (h *WorkHandler) RemoveIdentifier(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -296,7 +296,7 @@ func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request,
 	var query string
 	var action string
 	var idx int
-	err := binder.New(r).Query().
+	err := bind.Request(r).Query().
 		String("q", &query).
 		String("action", &action).
 		Int("idx", &idx).
@@ -316,7 +316,7 @@ func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request,
 func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var personID string
-	err := binder.New(r).Form().
+	err := bind.Request(r).Form().
 		Int("idx", &idx).
 		String("person_id", &personID).
 		Err()
@@ -338,7 +338,7 @@ func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *
 func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var personID string
-	err := binder.New(r).Form().
+	err := bind.Request(r).Form().
 		Int("idx", &idx).
 		String("person_id", &personID).
 		Err()
@@ -358,7 +358,7 @@ func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c 
 
 func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -368,7 +368,7 @@ func (h *WorkHandler) RemoveContributor(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *WorkHandler) AddFiles(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	for _, str := range binder.New(r).Form().GetAll("files") {
+	for _, str := range bind.Request(r).Form().GetAll("files") {
 		var f bbl.WorkFile
 		if err := json.Unmarshal([]byte(str), &f); err != nil {
 			return err
@@ -381,7 +381,7 @@ func (h *WorkHandler) AddFiles(w http.ResponseWriter, r *http.Request, c *WorkCt
 
 func (h *WorkHandler) RemoveFile(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -392,7 +392,7 @@ func (h *WorkHandler) RemoveFile(w http.ResponseWriter, r *http.Request, c *Work
 
 func (h *WorkHandler) AddTitle(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -403,7 +403,7 @@ func (h *WorkHandler) AddTitle(w http.ResponseWriter, r *http.Request, c *WorkCt
 
 func (h *WorkHandler) RemoveTitle(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -418,7 +418,7 @@ func (h *WorkHandler) RemoveTitle(w http.ResponseWriter, r *http.Request, c *Wor
 func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var text bbl.Text
-	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
 		return err
 	}
 
@@ -430,7 +430,7 @@ func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *Wor
 func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var text bbl.Text
-	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
 		return err
 	}
 
@@ -441,7 +441,7 @@ func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *Wo
 
 func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -453,7 +453,7 @@ func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *
 func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var text bbl.Text
-	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
 		return err
 	}
 
@@ -465,7 +465,7 @@ func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *W
 func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
 	var text bbl.Text
-	if err := binder.New(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
 		return err
 	}
 
@@ -476,7 +476,7 @@ func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *
 
 func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
-	if err := binder.New(r).Form().Int("idx", &idx).Err(); err != nil {
+	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
 		return err
 	}
 
@@ -613,22 +613,22 @@ func vacuumWork(rec *bbl.Work) {
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 	// we only need to bind inline editable fields
-	err := binder.New(r).Form().
-		Each("work.identifiers", func(i int, b *binder.Values) bool {
+	err := bind.Request(r).Form().
+		Each("work.identifiers", func(i int, b *bind.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
 			rec.Identifiers[i] = code
 			return true
 		}).
-		Each("work.classifications", func(i int, b *binder.Values) bool {
+		Each("work.classifications", func(i int, b *bind.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
 			rec.Attrs.Classifications[i] = code
 			return true
 		}).
-		Each("work.titles", func(i int, b *binder.Values) bool {
+		Each("work.titles", func(i int, b *bind.Values) bool {
 			var text bbl.Text
 			b.String("lang", &text.Lang)
 			b.String("val", &text.Val)

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/binder"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
 )
 
@@ -29,7 +29,7 @@ func BindSearch(r *http.Request, appCtx *AppCtx) (*SearchCtx, error) {
 		c.Scope = "contributor"
 	}
 
-	b := binder.New(r).
+	b := bind.Request(r).
 		Form().
 		Vacuum().
 		String("scope", &c.Scope).

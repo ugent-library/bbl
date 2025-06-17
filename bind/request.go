@@ -1,4 +1,4 @@
-package binder
+package bind
 
 import (
 	"net/http"
@@ -13,11 +13,11 @@ import (
 
 const MaxMemory int64 = 32 << 20
 
-func New(r *http.Request) *Binder {
-	return &Binder{r: r, maxMemory: MaxMemory}
+func Request(r *http.Request) *RequestBinder {
+	return &RequestBinder{r: r, maxMemory: MaxMemory}
 }
 
-type Binder struct {
+type RequestBinder struct {
 	r            *http.Request
 	multipart    bool
 	maxMemory    int64
@@ -27,24 +27,24 @@ type Binder struct {
 	headerBinder *Values
 }
 
-func (b *Binder) Multipart() *Binder {
+func (b *RequestBinder) Multipart() *RequestBinder {
 	b.multipart = true
 	return b
 }
 
-func (b *Binder) MaxMemory(maxMemory int64) *Binder {
+func (b *RequestBinder) MaxMemory(maxMemory int64) *RequestBinder {
 	b.maxMemory = maxMemory
 	return b
 }
 
-func (b *Binder) Query() *Values {
+func (b *RequestBinder) Query() *Values {
 	if b.queryBinder == nil {
 		b.queryBinder = &Values{binder: b, values: b.r.URL.Query()}
 	}
 	return b.queryBinder
 }
 
-func (b *Binder) Form() *Values {
+func (b *RequestBinder) Form() *Values {
 	if b.formBinder == nil {
 		if b.multipart {
 			b.err = b.r.ParseMultipartForm(b.maxMemory)
@@ -56,7 +56,7 @@ func (b *Binder) Form() *Values {
 	return b.formBinder
 }
 
-func (b *Binder) Header() *Values {
+func (b *RequestBinder) Header() *Values {
 	if b.headerBinder == nil {
 		b.headerBinder = &Values{
 			binder:       b,
@@ -67,12 +67,12 @@ func (b *Binder) Header() *Values {
 	return b.headerBinder
 }
 
-func (b *Binder) Err() error {
+func (b *RequestBinder) Err() error {
 	return b.err
 }
 
 type Values struct {
-	binder       *Binder
+	binder       *RequestBinder
 	values       map[string][]string
 	normalizeKey func(string) string
 }
