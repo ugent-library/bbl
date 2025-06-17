@@ -228,11 +228,11 @@ func (rec *Work) Title() string {
 	return ""
 }
 
-func (rec *Work) ContributorsWithCreditRole(creditRole string) []WorkContributor {
+func (rec *Work) ContributorsWithCreditRole(role string) []WorkContributor {
 	var s []WorkContributor
-	for _, c := range rec.Contributors {
-		if slices.Contains(c.Attrs.CreditRoles, creditRole) {
-			s = append(s, c)
+	for _, con := range rec.Contributors {
+		if slices.Contains(con.Attrs.CreditRoles, role) {
+			s = append(s, con)
 		}
 	}
 	return s

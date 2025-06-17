@@ -315,9 +315,11 @@ func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request,
 
 func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
+	var creditRoles []string
 	var personID string
 	err := bind.Request(r).Form().
 		Int("idx", &idx).
+		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
 		Err()
 	if err != nil {
@@ -330,16 +332,24 @@ func (h *WorkHandler) AddContributor(w http.ResponseWriter, r *http.Request, c *
 	}
 
 	c.Work.Contributors = slices.Grow(c.Work.Contributors, 1)
-	c.Work.Contributors = slices.Insert(c.Work.Contributors, idx, bbl.WorkContributor{PersonID: personID, Person: person})
+	c.Work.Contributors = slices.Insert(c.Work.Contributors, idx, bbl.WorkContributor{
+		Attrs: bbl.WorkContributorAttrs{
+			CreditRoles: creditRoles,
+		},
+		PersonID: personID,
+		Person:   person,
+	})
 
 	return h.refreshForm(w, r, c)
 }
 
 func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 	var idx int
+	var creditRoles []string
 	var personID string
 	err := bind.Request(r).Form().
 		Int("idx", &idx).
+		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
 		Err()
 	if err != nil {
@@ -351,7 +361,13 @@ func (h *WorkHandler) EditContributor(w http.ResponseWriter, r *http.Request, c 
 		return err
 	}
 
-	c.Work.Contributors[idx] = bbl.WorkContributor{PersonID: personID, Person: person}
+	c.Work.Contributors[idx] = bbl.WorkContributor{
+		Attrs: bbl.WorkContributorAttrs{
+			CreditRoles: creditRoles,
+		},
+		PersonID: personID,
+		Person:   person,
+	}
 
 	return h.refreshForm(w, r, c)
 }
