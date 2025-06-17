@@ -19,7 +19,11 @@
             },
             "lay_summaries": {},
             "keywords": {},
-            "edition": {}
+            "edition": {},
+            "publication_year": {
+                "required": true
+            },
+            "series_title": {}
         }
     },
     {
@@ -47,7 +51,14 @@
             "keywords": {},
             "pages": {},
             "total_pages": {},
-            "article_number": {}
+            "article_number": {},
+            "publication_year": {
+                "required": true
+            },
+            "journal_title": {
+                "required": true
+            },
+            "journal_abbreviation": {}
         },
         "subkinds": [
             {

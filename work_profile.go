@@ -14,25 +14,30 @@ var WorkKinds []string
 var WorkSubkinds = map[string][]string{}
 
 type WorkProfile struct {
-	Identifiers        *CodeAttrProfile `json:"identifiers,omitempty"`
-	Contributors       *AttrProfile     `json:"contributors,omitempty"`
-	Rels               *AttrProfile     `json:"rels,omitempty"`
-	Classifications    *CodeAttrProfile `json:"classifications,omitempty"`
-	Titles             *AttrProfile     `json:"titles,omitempty"`
-	Abstracts          *AttrProfile     `json:"abstracts,omitempty"`
-	LaySummaries       *AttrProfile     `json:"lay_summaries,omitempty"`
-	Keywords           *AttrProfile     `json:"keywords,omitempty"`
-	Conference         *AttrProfile     `json:"conference,omitempty"`
-	ArticleNumber      *AttrProfile     `json:"article_number,omitempty"`
-	ReportNumber       *AttrProfile     `json:"report_number,omitempty"`
-	Volume             *AttrProfile     `json:"volume,omitempty"`
-	Issue              *AttrProfile     `json:"issue,omitempty"`
-	IssueTitle         *AttrProfile     `json:"issue_title,omitempty"`
-	Edition            *AttrProfile     `json:"edition,omitempty"`
-	TotalPages         *AttrProfile     `json:"total_pages,omitempty"`
-	Pages              *AttrProfile     `json:"pages,omitempty"`
-	PlaceOfPublication *AttrProfile     `json:"place_of_publication,omitempty"`
-	Publisher          *AttrProfile     `json:"publisher,omitempty"`
+	Identifiers         *CodeAttrProfile `json:"identifiers,omitempty"`
+	Contributors        *AttrProfile     `json:"contributors,omitempty"`
+	Rels                *AttrProfile     `json:"rels,omitempty"`
+	Classifications     *CodeAttrProfile `json:"classifications,omitempty"`
+	Titles              *AttrProfile     `json:"titles,omitempty"`
+	Abstracts           *AttrProfile     `json:"abstracts,omitempty"`
+	LaySummaries        *AttrProfile     `json:"lay_summaries,omitempty"`
+	Keywords            *AttrProfile     `json:"keywords,omitempty"`
+	Conference          *AttrProfile     `json:"conference,omitempty"`
+	ArticleNumber       *AttrProfile     `json:"article_number,omitempty"`
+	ReportNumber        *AttrProfile     `json:"report_number,omitempty"`
+	Volume              *AttrProfile     `json:"volume,omitempty"`
+	Issue               *AttrProfile     `json:"issue,omitempty"`
+	IssueTitle          *AttrProfile     `json:"issue_title,omitempty"`
+	Edition             *AttrProfile     `json:"edition,omitempty"`
+	TotalPages          *AttrProfile     `json:"total_pages,omitempty"`
+	Pages               *AttrProfile     `json:"pages,omitempty"`
+	PlaceOfPublication  *AttrProfile     `json:"place_of_publication,omitempty"`
+	Publisher           *AttrProfile     `json:"publisher,omitempty"`
+	PublicationYear     *AttrProfile     `json:"publication_year,omitempty"`
+	JournalTitle        *AttrProfile     `json:"journal_title,omitempty"`
+	JournalAbbreviation *AttrProfile     `json:"journal_abbreviation,omitempty"`
+	BookTitle           *AttrProfile     `json:"book_title,omitempty"`
+	SeriesTitle         *AttrProfile     `json:"series_title,omitempty"`
 
 	IdentifierSchemes     []string `json:"-"`
 	ClassificationSchemes []string `json:"-"`

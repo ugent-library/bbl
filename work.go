@@ -19,6 +19,16 @@ var WorkStatuses = []string{
 	DeletedStatus,
 }
 
+const (
+	AuthorCreditRole     = "author"
+	SupervisorCreditRole = "supervisor"
+)
+
+var CreditRoles = []string{
+	AuthorCreditRole,
+	SupervisorCreditRole,
+}
+
 type Work struct {
 	RecHeader
 	Permissions  []Permission      `json:"permissions,omitempty"` // TODO move to header?
@@ -34,22 +44,27 @@ type Work struct {
 }
 
 type WorkAttrs struct {
-	Classifications    []Code     `json:"classifications,omitempty"`
-	Titles             []Text     `json:"titles,omitempty"`
-	Abstracts          []Text     `json:"abstracts,omitempty"`
-	LaySummaries       []Text     `json:"lay_summaries,omitempty"`
-	Keywords           []string   `json:"keywords,omitempty"`
-	Conference         Conference `json:"conference,omitzero"`
-	ArticleNumber      string     `json:"article_number,omitempty"`
-	ReportNumber       string     `json:"report_number,omitempty"`
-	Volume             string     `json:"volume,omitempty"`
-	Issue              string     `json:"issue,omitempty"`
-	IssueTitle         string     `json:"issue_title,omitempty"`
-	Edition            string     `json:"edition,omitempty"`
-	TotalPages         string     `json:"total_pages,omitempty"`
-	Pages              Extent     `json:"pages,omitzero"`
-	PlaceOfPublication string     `json:"place_of_publication,omitempty"`
-	Publisher          string     `json:"publisher,omitempty"`
+	Classifications     []Code     `json:"classifications,omitempty"`
+	Titles              []Text     `json:"titles,omitempty"`
+	Abstracts           []Text     `json:"abstracts,omitempty"`
+	LaySummaries        []Text     `json:"lay_summaries,omitempty"`
+	Keywords            []string   `json:"keywords,omitempty"`
+	Conference          Conference `json:"conference,omitzero"`
+	ArticleNumber       string     `json:"article_number,omitempty"`
+	ReportNumber        string     `json:"report_number,omitempty"`
+	Volume              string     `json:"volume,omitempty"`
+	Issue               string     `json:"issue,omitempty"`
+	IssueTitle          string     `json:"issue_title,omitempty"`
+	Edition             string     `json:"edition,omitempty"`
+	TotalPages          string     `json:"total_pages,omitempty"`
+	Pages               Extent     `json:"pages,omitzero"`
+	PlaceOfPublication  string     `json:"place_of_publication,omitempty"`
+	Publisher           string     `json:"publisher,omitempty"`
+	PublicationYear     string     `json:"publication_year,omitempty"`
+	JournalTitle        string     `json:"journal_title,omitempty"`
+	JournalAbbreviation string     `json:"journal_abbreviation,omitempty"`
+	BookTitle           string     `json:"book_title,omitempty"`
+	SeriesTitle         string     `json:"series_title,omitempty"`
 }
 
 type WorkContributor struct {
@@ -188,6 +203,21 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 	if rec.Attrs.Publisher != rec2.Attrs.Publisher {
 		changes["publisher"] = rec.Attrs.Publisher
 	}
+	if rec.Attrs.PublicationYear != rec2.Attrs.PublicationYear {
+		changes["publication_year"] = rec.Attrs.PublicationYear
+	}
+	if rec.Attrs.JournalTitle != rec2.Attrs.JournalTitle {
+		changes["journal_title"] = rec.Attrs.JournalTitle
+	}
+	if rec.Attrs.JournalAbbreviation != rec2.Attrs.JournalAbbreviation {
+		changes["journal_abbreviation"] = rec.Attrs.JournalAbbreviation
+	}
+	if rec.Attrs.BookTitle != rec2.Attrs.BookTitle {
+		changes["book_title"] = rec.Attrs.BookTitle
+	}
+	if rec.Attrs.SeriesTitle != rec2.Attrs.SeriesTitle {
+		changes["series_title"] = rec.Attrs.SeriesTitle
+	}
 	return changes
 }
 
@@ -196,4 +226,22 @@ func (rec *Work) Title() string {
 		return rec.Attrs.Titles[0].Val
 	}
 	return ""
+}
+
+func (rec *Work) ContributorsWithCreditRole(creditRole string) []WorkContributor {
+	var s []WorkContributor
+	for _, c := range rec.Contributors {
+		if slices.Contains(c.Attrs.CreditRoles, creditRole) {
+			s = append(s, c)
+		}
+	}
+	return s
+}
+
+func (rec *Work) Authors() []WorkContributor {
+	return rec.ContributorsWithCreditRole(AuthorCreditRole)
+}
+
+func (rec *Work) Supervisors() []WorkContributor {
+	return rec.ContributorsWithCreditRole(SupervisorCreditRole)
 }

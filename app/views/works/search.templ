@@ -179,34 +179,45 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 													</a>
 												</h4>
 												<ul class="c-meta-list c-meta-list-inline">
-													<li class="c-meta-item">2020</li>
-													<li class="c-meta-item">International Journal of Environmental Research and Public Health</li>
-													<li class="c-meta-item">
-														<span>Volume: 192</span>
-													</li>
-													<li class="c-meta-item">
-														<span>Issue: 7</span>
-													</li>
-													<li class="c-meta-item">
-														<span>Pages: 12-32</span>
-													</li>
+													if hit.Rec.Attrs.PublicationYear != "" {
+														<li class="c-meta-item">{ hit.Rec.Attrs.PublicationYear }</li>
+													}
+													if hit.Rec.Attrs.JournalTitle != "" {
+														<li class="c-meta-item">{ hit.Rec.Attrs.JournalTitle }</li>
+													}
+													if hit.Rec.Attrs.BookTitle != "" {
+														<li class="c-meta-item">{ hit.Rec.Attrs.BookTitle }</li>
+													}
+													if hit.Rec.Attrs.Volume != "" {
+														<li class="c-meta-item">
+															<span>Volume: { hit.Rec.Attrs.Volume }</span>
+														</li>
+													}
+													if hit.Rec.Attrs.Issue != "" {
+														<li class="c-meta-item">
+															<span>Issue: { hit.Rec.Attrs.Issue }</span>
+														</li>
+													}
+													if !bbl.IsZero(hit.Rec.Attrs.Pages) {
+														<li class="c-meta-item">
+															<span>Pages: { hit.Rec.Attrs.Pages.String() }</span>
+														</li>
+													}
 												</ul>
 												<div class="c-author-list">
-													<div class="c-author">
-														<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
-														<span>Jane Cooper</span>
-													</div>
-													<div class="c-author fst-italic">supervised by</div>
-													<div class="c-author">
-														<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
-														<span>Brooklyn Simmons</span>
-													</div>
-													<div class="c-author fst-italic">supervised by</div>
-													<div class="c-author">
-														<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
-														<span>Esther Howard</span>
-													</div>
-													<div class="c-author fst-italic">supervised by</div>
+													for _, c := range hit.Rec.Authors() {
+														<div class="c-author">
+															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
+															<span>{ c.GetName() }</span>
+														</div>
+													}
+													for _, c := range hit.Rec.Supervisors() {
+														<div class="c-author fst-italic">supervised by</div>
+														<div class="c-author">
+															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
+															<span>{ c.GetName() }</span>
+														</div>
+													}
 													<span class="badge badge-light badge-sm">Your role: Author</span>
 												</div>
 											</div>
@@ -293,6 +304,12 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 														<i class="if if-file-text"></i>
 														<span>View details</span>
 													</a>
+													if can.EditWork(c.User, hit.Rec) {
+														<a class="dropdown-item" href={ c.SafeRoute("edit_work", "id", hit.Rec.ID) }>
+															<i class="if if-edit"></i>
+															<span>Edit</span>
+														</a>
+													}
 												</div>
 											</div>
 											<a class="btn btn-tertiary btn-lg-only-responsive" href={ c.SafeRoute("work", "id", hit.Rec.ID) }>

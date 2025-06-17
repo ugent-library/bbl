@@ -44,3 +44,8 @@ type Extent struct {
 func (e Extent) String() string {
 	return e.Start + "-" + e.End
 }
+
+func IsZero[T comparable](t T) bool {
+	var tt T
+	return t == tt
+}

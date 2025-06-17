@@ -650,6 +650,11 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		String("work.pages.end", &rec.Attrs.Pages.End).
 		String("work.place_of_publication", &rec.Attrs.PlaceOfPublication).
 		String("work.publisher", &rec.Attrs.Publisher).
+		String("work.publication_year", &rec.Attrs.PublicationYear).
+		String("work.journal_title", &rec.Attrs.JournalTitle).
+		String("work.journal_abbreviation", &rec.Attrs.JournalAbbreviation).
+		String("work.book_title", &rec.Attrs.BookTitle).
+		String("work.series_title", &rec.Attrs.SeriesTitle).
 		Err()
 	return err
 }
