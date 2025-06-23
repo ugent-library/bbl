@@ -33,14 +33,6 @@ func RequireUser(next bind.Handler[*AppCtx]) bind.Handler[*AppCtx] {
 	})
 }
 
-// func RequireUser(w http.ResponseWriter, r *http.Request, c *AppCtx) (*http.Request, error) {
-// 	if c.User == nil {
-// 		http.Redirect(w, r, c.Route("login").String(), http.StatusFound)
-// 		return nil, nil
-// 	}
-// 	return r, nil
-// }
-
 type SessionCookie struct {
 	UserID string `json:"u"`
 }
