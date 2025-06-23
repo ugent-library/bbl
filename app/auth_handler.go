@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/tidwall/gjson"
-	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/pgxrepo"
 )
 
@@ -27,10 +27,10 @@ func NewAuthHandler(repo *pgxrepo.Repo, provider AuthProvider) *AuthHandler {
 	}
 }
 
-func (h *AuthHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
-	router.Handle("/login", appCtx.Bind(h.Login)).Methods("GET").Name("login")
-	router.Handle("/auth/callback", appCtx.Bind(h.AuthCallback)).Methods("GET")
-	router.Handle("/logout", appCtx.Bind(h.Logout)).Methods("GET").Name("logout")
+func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+	r.Handle("/login", b.BindFunc(h.Login)).Methods("GET").Name("login")
+	r.Handle("/auth/callback", b.BindFunc(h.AuthCallback)).Methods("GET")
+	r.Handle("/logout", b.BindFunc(h.Logout)).Methods("GET").Name("logout")
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request, c *AppCtx) error {

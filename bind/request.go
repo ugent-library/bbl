@@ -13,10 +13,6 @@ import (
 
 const MaxMemory int64 = 32 << 20
 
-func Request(r *http.Request) *RequestBinder {
-	return &RequestBinder{r: r, maxMemory: MaxMemory}
-}
-
 type RequestBinder struct {
 	r            *http.Request
 	multipart    bool
@@ -25,6 +21,10 @@ type RequestBinder struct {
 	queryBinder  *Values
 	formBinder   *Values
 	headerBinder *Values
+}
+
+func Request(r *http.Request) *RequestBinder {
+	return &RequestBinder{r: r, maxMemory: MaxMemory}
 }
 
 func (b *RequestBinder) Multipart() *RequestBinder {
@@ -156,6 +156,7 @@ func (b *Values) Vacuum() *Values {
 }
 
 // TODO cap sparse array size
+// TODO return iter.Seq2?
 func (b *Values) Each(key string, yield func(int, *Values) bool) *Values {
 	if b.binder.err != nil {
 		return b

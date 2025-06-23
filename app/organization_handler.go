@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/pgxrepo"
 )
 
@@ -19,5 +19,5 @@ func NewOrganizationHandler(repo *pgxrepo.Repo, index bbl.Index) *OrganizationHa
 	}
 }
 
-func (h *OrganizationHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
+func (h *OrganizationHandler) AddRoutes(router *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
 }

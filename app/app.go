@@ -13,8 +13,8 @@ import (
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/s3store"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/catbird"
-	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -87,13 +87,12 @@ func New(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	// appCtx := ctx.New(BindAppCtx(router, cookies, assets, config.Env == "development", config.Repo.GetUser))
-	appCtx := ctx.New(BindAppCtx(config, router, assets))
+	appCtx := bind.New(BindAppCtx(config, router, assets))
 	loggedInCtx := appCtx.With(RequireUser)
 
-	router.Handle("/", appCtx.Bind(HomeHandler)).Methods("GET").Name("home")
+	router.Handle("/", appCtx.BindFunc(HomeHandler)).Methods("GET").Name("home")
 
-	router.Handle("/sse", loggedInCtx.Bind(SSEHandler)).Methods("GET").Name("sse")
+	router.Handle("/sse", loggedInCtx.BindFunc(SSEHandler)).Methods("GET").Name("sse")
 
 	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
 		IssuerURL:        config.AuthIssuerURL,

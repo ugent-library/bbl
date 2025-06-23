@@ -13,8 +13,8 @@ import (
 	"github.com/leonelquinteros/gotext"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/catbird"
-	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/i18n"
 	"github.com/ugent-library/crypt"
 )
@@ -23,13 +23,23 @@ const (
 	sessionCookieName = "bbl.session"
 )
 
-func RequireUser(w http.ResponseWriter, r *http.Request, c *AppCtx) (*http.Request, error) {
-	if c.User == nil {
+func RequireUser(next bind.Handler[*AppCtx]) bind.Handler[*AppCtx] {
+	return bind.HandlerFunc[*AppCtx](func(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+		if c.User != nil {
+			return next.ServeHTTP(w, r, c)
+		}
 		http.Redirect(w, r, c.Route("login").String(), http.StatusFound)
-		return nil, nil
-	}
-	return r, nil
+		return nil
+	})
 }
+
+// func RequireUser(w http.ResponseWriter, r *http.Request, c *AppCtx) (*http.Request, error) {
+// 	if c.User == nil {
+// 		http.Redirect(w, r, c.Route("login").String(), http.StatusFound)
+// 		return nil, nil
+// 	}
+// 	return r, nil
+// }
 
 type SessionCookie struct {
 	UserID string `json:"u"`
@@ -49,7 +59,7 @@ type AppCtx struct {
 	User      *bbl.User
 }
 
-func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) ctx.Binder[*AppCtx] {
+func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) func(r *http.Request) (*AppCtx, error) {
 	cookies := securecookie.New(config.HashSecret, config.Secret)
 	cookies.SetSerializer(securecookie.JSONEncoder{})
 

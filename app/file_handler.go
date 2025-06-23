@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/s3store"
-	"github.com/ugent-library/bbl/ctx"
+	"github.com/ugent-library/bbl/bind"
 )
 
 type FileHandler struct {
@@ -21,8 +21,8 @@ func NewFileHandler(store *s3store.Store) *FileHandler {
 	}
 }
 
-func (h *FileHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
-	router.Handle("/files/upload_url", appCtx.Bind(h.CreateUploadURL)).Methods("POST").Name("create_file_upload_url")
+func (h *FileHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+	r.Handle("/files/upload_url", b.BindFunc(h.CreateUploadURL)).Methods("POST").Name("create_file_upload_url")
 }
 
 func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c *AppCtx) error {

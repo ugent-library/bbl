@@ -16,7 +16,6 @@ import (
 	workviews "github.com/ugent-library/bbl/app/views/works"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
-	"github.com/ugent-library/bbl/ctx"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/htmx"
@@ -28,18 +27,22 @@ type WorkCtx struct {
 	Work *bbl.Work
 }
 
-func RequireCanViewWork(w http.ResponseWriter, r *http.Request, c *WorkCtx) (*http.Request, error) {
-	if !can.ViewWork(c.User, c.Work) {
-		return nil, httperror.Forbidden
-	}
-	return r, nil
+func RequireCanViewWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
+	return bind.HandlerFunc[*WorkCtx](func(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+		if can.ViewWork(c.User, c.Work) {
+			return next.ServeHTTP(w, r, c)
+		}
+		return httperror.Forbidden
+	})
 }
 
-func RequireCanEditWork(w http.ResponseWriter, r *http.Request, c *WorkCtx) (*http.Request, error) {
-	if !can.EditWork(c.User, c.Work) {
-		return nil, httperror.Forbidden
-	}
-	return r, nil
+func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
+	return bind.HandlerFunc[*WorkCtx](func(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+		if can.EditWork(c.User, c.Work) {
+			return next.ServeHTTP(w, r, c)
+		}
+		return httperror.Forbidden
+	})
 }
 
 type WorkHandler struct {
@@ -80,37 +83,37 @@ func (h *WorkHandler) bindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error
 	return &WorkCtx{AppCtx: c, Work: &rec}, nil
 }
 
-func (h *WorkHandler) AddRoutes(router *mux.Router, appCtx *ctx.Ctx[*AppCtx]) {
-	searchCtx := ctx.Derive(appCtx, BindSearch)
-	workCtx := ctx.Derive(appCtx, h.bindWork)
-	workStateCtx := ctx.Derive(appCtx, h.bindWorkState)
+func (h *WorkHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+	searchBinder := bind.Derive(b, BindSearch)
+	workBinder := bind.Derive(b, h.bindWork)
+	workStateBinder := bind.Derive(b, h.bindWorkState)
 
-	router.Handle("/works", searchCtx.Bind(h.Search)).Methods("GET").Name("works")
-	router.Handle("/works/export", searchCtx.Bind(h.Export)).Methods("POST").Name("export_works")
-	router.Handle("/works/new", appCtx.Bind(h.New)).Methods("GET").Name("new_work")
-	router.Handle("/works/_change_kind", workStateCtx.Bind(h.ChangeKind)).Methods("POST").Name("work_change_kind")
-	router.Handle("/works/_add_identifier", workStateCtx.Bind(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
-	router.Handle("/works/_remove_identifier", workStateCtx.Bind(h.RemoveIdentifier)).Methods("POST").Name("work_remove_identifier")
-	router.Handle("/works/_suggest_contributor", appCtx.Bind(h.SuggestContributor)).Methods("GET").Name("work_suggest_contributor")
-	router.Handle("/works/_add_contributor", workStateCtx.Bind(h.AddContributor)).Methods("POST").Name("work_add_contributor")
-	router.Handle("/works/_edit_contributor", workStateCtx.Bind(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
-	router.Handle("/works/_remove_contributor", workStateCtx.Bind(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
-	router.Handle("/works/_add_files", workStateCtx.Bind(h.AddFiles)).Methods("POST").Name("work_add_files")
-	router.Handle("/works/_remove_file", workStateCtx.Bind(h.RemoveFile)).Methods("POST").Name("work_remove_file")
-	router.Handle("/works/_add_title", workStateCtx.Bind(h.AddTitle)).Methods("POST").Name("work_add_title")
-	router.Handle("/works/_remove_title", workStateCtx.Bind(h.RemoveTitle)).Methods("POST").Name("work_remove_title")
-	router.Handle("/works/_add_abstract", workStateCtx.Bind(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
-	router.Handle("/works/_edit_abstract", workStateCtx.Bind(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
-	router.Handle("/works/_remove_abstract", workStateCtx.Bind(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
-	router.Handle("/works/_add_lay_summary", workStateCtx.Bind(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
-	router.Handle("/works/_edit_lay_summary", workStateCtx.Bind(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
-	router.Handle("/works/_remove_lay_summary", workStateCtx.Bind(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
-	router.Handle("/works", workStateCtx.Bind(h.Create)).Methods("POST").Name("create_work")
-	router.Handle("/works/batch/edit", appCtx.Bind(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
-	router.Handle("/works/batch", appCtx.Bind(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
-	router.Handle("/works/{id}", workCtx.With(RequireCanViewWork).Bind(h.Show)).Methods("GET").Name("work")
-	router.Handle("/works/{id}/edit", workCtx.With(RequireCanEditWork).Bind(h.Edit)).Methods("GET").Name("edit_work")
-	router.Handle("/works/{id}", workStateCtx.Bind(h.Update)).Methods("POST").Name("update_work")
+	r.Handle("/works", searchBinder.BindFunc(h.Search)).Methods("GET").Name("works")
+	r.Handle("/works/export", searchBinder.BindFunc(h.Export)).Methods("POST").Name("export_works")
+	r.Handle("/works/new", b.BindFunc(h.New)).Methods("GET").Name("new_work")
+	r.Handle("/works/_change_kind", workStateBinder.BindFunc(h.ChangeKind)).Methods("POST").Name("work_change_kind")
+	r.Handle("/works/_add_identifier", workStateBinder.BindFunc(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
+	r.Handle("/works/_remove_identifier", workStateBinder.BindFunc(h.RemoveIdentifier)).Methods("POST").Name("work_remove_identifier")
+	r.Handle("/works/_suggest_contributor", b.BindFunc(h.SuggestContributor)).Methods("GET").Name("work_suggest_contributor")
+	r.Handle("/works/_add_contributor", workStateBinder.BindFunc(h.AddContributor)).Methods("POST").Name("work_add_contributor")
+	r.Handle("/works/_edit_contributor", workStateBinder.BindFunc(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
+	r.Handle("/works/_remove_contributor", workStateBinder.BindFunc(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
+	r.Handle("/works/_add_files", workStateBinder.BindFunc(h.AddFiles)).Methods("POST").Name("work_add_files")
+	r.Handle("/works/_remove_file", workStateBinder.BindFunc(h.RemoveFile)).Methods("POST").Name("work_remove_file")
+	r.Handle("/works/_add_title", workStateBinder.BindFunc(h.AddTitle)).Methods("POST").Name("work_add_title")
+	r.Handle("/works/_remove_title", workStateBinder.BindFunc(h.RemoveTitle)).Methods("POST").Name("work_remove_title")
+	r.Handle("/works/_add_abstract", workStateBinder.BindFunc(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
+	r.Handle("/works/_edit_abstract", workStateBinder.BindFunc(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
+	r.Handle("/works/_remove_abstract", workStateBinder.BindFunc(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
+	r.Handle("/works/_add_lay_summary", workStateBinder.BindFunc(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
+	r.Handle("/works/_edit_lay_summary", workStateBinder.BindFunc(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
+	r.Handle("/works/_remove_lay_summary", workStateBinder.BindFunc(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
+	r.Handle("/works", workStateBinder.BindFunc(h.Create)).Methods("POST").Name("create_work")
+	r.Handle("/works/batch/edit", b.BindFunc(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
+	r.Handle("/works/batch", b.BindFunc(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
+	r.Handle("/works/{id}", workBinder.With(RequireCanViewWork).BindFunc(h.Show)).Methods("GET").Name("work")
+	r.Handle("/works/{id}/edit", workBinder.With(RequireCanEditWork).BindFunc(h.Edit)).Methods("GET").Name("edit_work")
+	r.Handle("/works/{id}", workStateBinder.BindFunc(h.Update)).Methods("POST").Name("update_work")
 }
 
 func (h *WorkHandler) setSearchScope(ctx context.Context, c *SearchCtx) error {
