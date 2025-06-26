@@ -5,8 +5,10 @@ go 1.24.1
 require (
 	github.com/a-h/templ v0.3.865
 	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/charmbracelet/fang v0.2.0
 	github.com/huandu/go-sqlbuilder v1.35.0
 	github.com/jackc/pgx/v5 v5.7.4
+	github.com/jackc/pgxlisten v0.0.0-20241106001234-1d6f6656415c
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/riverqueue/river v0.21.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.21.0
@@ -16,7 +18,21 @@ require (
 
 require (
 	github.com/bokwoon95/wgo v0.5.13 // indirect
-	github.com/jackc/pgxlisten v0.0.0-20241106001234-1d6f6656415c // indirect
+	github.com/charmbracelet/colorprofile v0.3.0 // indirect
+	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.1 // indirect
+	github.com/charmbracelet/x/ansi v0.8.0 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect
+	github.com/charmbracelet/x/term v0.2.1 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/muesli/mango v0.1.0 // indirect
+	github.com/muesli/mango-cobra v1.2.0 // indirect
+	github.com/muesli/mango-pflag v0.1.0 // indirect
+	github.com/muesli/roff v0.1.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 )
 
 require (

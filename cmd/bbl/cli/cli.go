@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,7 +41,7 @@ func RunWithContext(ctx context.Context) error {
 		return err
 	}
 
-	if err := rootCmd.ExecuteContext(ctx); err != nil {
+	if err := fang.Execute(ctx, rootCmd); err != nil {
 		return err
 	}
 
