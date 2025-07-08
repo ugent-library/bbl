@@ -16,7 +16,7 @@ import (
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/i18n"
-	"github.com/ugent-library/bbl/muxurl"
+	"github.com/ugent-library/bbl/muxbuilder"
 	"github.com/ugent-library/crypt"
 )
 
@@ -132,7 +132,7 @@ func (c *AppCtx) SSEPath() string {
 }
 
 func (c *AppCtx) Route(name string, params ...any) *url.URL {
-	return muxurl.New(c.router, name, params...)
+	return muxbuilder.URL(c.router, name, params...)
 }
 
 func (c *AppCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {

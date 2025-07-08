@@ -1,4 +1,4 @@
-package muxurl
+package muxbuilder
 
 import (
 	"errors"
@@ -9,15 +9,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func New(router *mux.Router, name string, params ...any) *url.URL {
-	u, err := TryNew(router, name, params...)
+func URL(router *mux.Router, name string, params ...any) *url.URL {
+	u, err := NewURL(router, name, params...)
 	if err != nil {
 		panic(err)
 	}
 	return u
 }
 
-func TryNew(router *mux.Router, name string, params ...any) (*url.URL, error) {
+func NewURL(router *mux.Router, name string, params ...any) (*url.URL, error) {
 	route := router.Get(name)
 	if route == nil {
 		return nil, errors.New("muxurl: unknown route " + name)
