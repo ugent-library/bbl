@@ -16,6 +16,7 @@ import (
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/i18n"
+	"github.com/ugent-library/bbl/muxurl"
 	"github.com/ugent-library/crypt"
 )
 
@@ -130,44 +131,8 @@ func (c *AppCtx) SSEPath() string {
 	return c.Route("sse", "token", token).String()
 }
 
-// TODO accept other types than string?
-// TODO split off together with a url builder
-func (c *AppCtx) Route(name string, pairs ...string) *url.URL {
-	route := c.router.Get(name)
-	if route == nil {
-		panic(errors.New("unknown route " + name))
-	}
-
-	varsNames, err := route.GetVarNames()
-	if err != nil {
-		panic(err)
-	}
-
-	var vars []string
-	var queryParams []string
-
-	for i := 0; i+1 < len(pairs); i += 2 {
-		if slices.Contains(varsNames, pairs[i]) {
-			vars = append(vars, pairs[i], pairs[i+1])
-		} else {
-			queryParams = append(queryParams, pairs[i], pairs[i+1])
-		}
-	}
-
-	u, err := route.URL(vars...)
-	if err != nil {
-		panic(err)
-	}
-
-	if len(queryParams) > 0 {
-		q := u.Query()
-		for i := 0; i < len(queryParams); i += 2 {
-			q.Add(queryParams[i], queryParams[i+1])
-		}
-		u.RawQuery = q.Encode()
-	}
-
-	return u
+func (c *AppCtx) Route(name string, params ...any) *url.URL {
+	return muxurl.New(c.router, name, params...)
 }
 
 func (c *AppCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {

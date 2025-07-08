@@ -12,15 +12,15 @@ import (
 type Ctx struct {
 	URL       *url.URL
 	RouteName string
-	Route     func(name string, pairs ...string) *url.URL
+	Route     func(string, ...any) *url.URL
 	AssetPath func(string) string
 	SSEPath   func() string
 	Loc       *gotext.Locale
 	User      *bbl.User
 }
 
-func (c Ctx) SafeRoute(name string, pairs ...string) templ.SafeURL {
-	return templ.SafeURL(c.Route(name, pairs...).String())
+func (c Ctx) SafeRoute(name string, params ...any) templ.SafeURL {
+	return templ.SafeURL(c.Route(name, params...).String())
 }
 
 func (c Ctx) FormatTime(t time.Time) string {
