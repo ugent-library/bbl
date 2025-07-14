@@ -7,10 +7,10 @@ import (
 
 	"github.com/riverqueue/river"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/jobs"
+	"github.com/ugent-library/bbl/s3store"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/bind"
+	"github.com/ugent-library/bbl/s3store"
 )
 
 type FileHandler struct {

@@ -12,12 +12,12 @@ import (
 	sloghttp "github.com/samber/slog-http"
 
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/s3store"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/s3store"
 	"github.com/ugent-library/oidc"
 )
 
