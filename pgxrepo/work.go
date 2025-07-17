@@ -133,7 +133,7 @@ func scanWork(row pgx.Row) (*bbl.Work, error) {
 			return nil, err
 		}
 	}
-	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+	if err := json.Unmarshal(rawAttrs, &rec.WorkAttrs); err != nil {
 		return nil, err
 	}
 	if rawIdentifiers != nil {

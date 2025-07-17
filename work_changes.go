@@ -57,8 +57,8 @@ func (c *WorkSetClassification) UnmarshalArgs(args []string) error {
 }
 
 func (c *WorkSetClassification) Apply(rec *Work) error {
-	rec.Attrs.Classifications = slices.DeleteFunc(rec.Attrs.Classifications, func(clas Code) bool { return clas.Scheme == c.Scheme })
-	rec.Attrs.Classifications = append(rec.Attrs.Classifications, Code{Scheme: c.Scheme, Val: c.Val})
+	rec.Classifications = slices.DeleteFunc(rec.Classifications, func(clas Code) bool { return clas.Scheme == c.Scheme })
+	rec.Classifications = append(rec.Classifications, Code{Scheme: c.Scheme, Val: c.Val})
 	return nil
 }
 
@@ -72,8 +72,8 @@ func (c *WorkAddKeyword) UnmarshalArgs(args []string) error {
 }
 
 func (c *WorkAddKeyword) Apply(rec *Work) error {
-	if !slices.Contains(rec.Attrs.Keywords, c.Val) {
-		rec.Attrs.Keywords = append(rec.Attrs.Keywords, c.Val)
+	if !slices.Contains(rec.Keywords, c.Val) {
+		rec.Keywords = append(rec.Keywords, c.Val)
 	}
 	return nil
 }
@@ -89,11 +89,11 @@ func (c *WorkRemoveKeyword) UnmarshalArgs(args []string) error {
 
 func (c *WorkRemoveKeyword) Apply(rec *Work) error {
 	var vals []string
-	for _, val := range rec.Attrs.Keywords {
+	for _, val := range rec.Keywords {
 		if val != c.Val {
 			vals = append(vals, val)
 		}
 	}
-	rec.Attrs.Keywords = vals
+	rec.Keywords = vals
 	return nil
 }

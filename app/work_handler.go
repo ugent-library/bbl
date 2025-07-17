@@ -193,7 +193,7 @@ func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) err
 		rec.Identifiers = []bbl.Code{{}}
 	}
 	if rec.Profile.Titles != nil {
-		rec.Attrs.Titles = []bbl.Text{{}}
+		rec.Titles = []bbl.Text{{}}
 	}
 
 	state, err := c.EncryptValue(rec)
@@ -415,7 +415,7 @@ func (h *WorkHandler) AddTitle(w http.ResponseWriter, r *http.Request, c *WorkCt
 		return err
 	}
 
-	c.Work.Attrs.Titles = slices.Insert(slices.Grow(c.Work.Attrs.Titles, 1), idx, bbl.Text{})
+	c.Work.Titles = slices.Insert(slices.Grow(c.Work.Titles, 1), idx, bbl.Text{})
 
 	return h.refreshForm(w, r, c)
 }
@@ -426,9 +426,9 @@ func (h *WorkHandler) RemoveTitle(w http.ResponseWriter, r *http.Request, c *Wor
 		return err
 	}
 
-	c.Work.Attrs.Titles = slices.Delete(c.Work.Attrs.Titles, idx, idx+1)
-	if len(c.Work.Attrs.Titles) == 0 {
-		c.Work.Attrs.Titles = []bbl.Text{{}}
+	c.Work.Titles = slices.Delete(c.Work.Titles, idx, idx+1)
+	if len(c.Work.Titles) == 0 {
+		c.Work.Titles = []bbl.Text{{}}
 	}
 
 	return h.refreshForm(w, r, c)
@@ -441,7 +441,7 @@ func (h *WorkHandler) AddAbstract(w http.ResponseWriter, r *http.Request, c *Wor
 		return err
 	}
 
-	c.Work.Attrs.Abstracts = slices.Insert(slices.Grow(c.Work.Attrs.Abstracts, 1), idx, text)
+	c.Work.Abstracts = slices.Insert(slices.Grow(c.Work.Abstracts, 1), idx, text)
 
 	return h.refreshForm(w, r, c)
 }
@@ -453,7 +453,7 @@ func (h *WorkHandler) EditAbstract(w http.ResponseWriter, r *http.Request, c *Wo
 		return err
 	}
 
-	c.Work.Attrs.Abstracts[idx] = text
+	c.Work.Abstracts[idx] = text
 
 	return h.refreshForm(w, r, c)
 }
@@ -464,7 +464,7 @@ func (h *WorkHandler) RemoveAbstract(w http.ResponseWriter, r *http.Request, c *
 		return err
 	}
 
-	c.Work.Attrs.Abstracts = slices.Delete(c.Work.Attrs.Abstracts, idx, idx+1)
+	c.Work.Abstracts = slices.Delete(c.Work.Abstracts, idx, idx+1)
 
 	return h.refreshForm(w, r, c)
 }
@@ -476,7 +476,7 @@ func (h *WorkHandler) AddLaySummary(w http.ResponseWriter, r *http.Request, c *W
 		return err
 	}
 
-	c.Work.Attrs.LaySummaries = slices.Insert(slices.Grow(c.Work.Attrs.LaySummaries, 1), idx, text)
+	c.Work.LaySummaries = slices.Insert(slices.Grow(c.Work.LaySummaries, 1), idx, text)
 
 	return h.refreshForm(w, r, c)
 }
@@ -488,7 +488,7 @@ func (h *WorkHandler) EditLaySummary(w http.ResponseWriter, r *http.Request, c *
 		return err
 	}
 
-	c.Work.Attrs.LaySummaries[idx] = text
+	c.Work.LaySummaries[idx] = text
 
 	return h.refreshForm(w, r, c)
 }
@@ -499,7 +499,7 @@ func (h *WorkHandler) RemoveLaySummary(w http.ResponseWriter, r *http.Request, c
 		return err
 	}
 
-	c.Work.Attrs.LaySummaries = slices.Delete(c.Work.Attrs.LaySummaries, idx, idx+1)
+	c.Work.LaySummaries = slices.Delete(c.Work.LaySummaries, idx, idx+1)
 
 	return h.refreshForm(w, r, c)
 }
@@ -509,8 +509,8 @@ func (h *WorkHandler) refreshForm(w http.ResponseWriter, r *http.Request, c *Wor
 	if c.Work.Profile.Identifiers != nil && len(c.Work.Identifiers) == 0 {
 		c.Work.Identifiers = []bbl.Code{{}}
 	}
-	if c.Work.Profile.Titles != nil && len(c.Work.Attrs.Titles) == 0 {
-		c.Work.Attrs.Titles = []bbl.Text{{}}
+	if c.Work.Profile.Titles != nil && len(c.Work.Titles) == 0 {
+		c.Work.Titles = []bbl.Text{{}}
 	}
 
 	state, err := c.EncryptValue(c.Work)
@@ -621,13 +621,13 @@ func vacuumWork(rec *bbl.Work) {
 			identifiers = append(identifiers, code)
 		}
 	}
-	for _, text := range rec.Attrs.Titles {
+	for _, text := range rec.Titles {
 		if text.Val != "" {
 			titles = append(titles, text)
 		}
 	}
 	rec.Identifiers = identifiers
-	rec.Attrs.Titles = titles
+	rec.Titles = titles
 }
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {
@@ -644,36 +644,36 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
-			rec.Attrs.Classifications[i] = code
+			rec.Classifications[i] = code
 			return true
 		}).
 		Each("work.titles", func(i int, b *bind.Values) bool {
 			var text bbl.Text
 			b.String("lang", &text.Lang)
 			b.String("val", &text.Val)
-			rec.Attrs.Titles[i] = text
+			rec.Titles[i] = text
 			return true
 		}).
-		StringSlice("work.keywords", &rec.Attrs.Keywords).
-		String("work.conference.name", &rec.Attrs.Conference.Name).
-		String("work.conference.organizer", &rec.Attrs.Conference.Organizer).
-		String("work.conference.location", &rec.Attrs.Conference.Location).
-		String("work.article_number", &rec.Attrs.ArticleNumber).
-		String("work.report_number", &rec.Attrs.ReportNumber).
-		String("work.volume", &rec.Attrs.Volume).
-		String("work.issue", &rec.Attrs.Issue).
-		String("work.issue_title", &rec.Attrs.IssueTitle).
-		String("work.edition", &rec.Attrs.Edition).
-		String("work.total_pages", &rec.Attrs.TotalPages).
-		String("work.pages.start", &rec.Attrs.Pages.Start).
-		String("work.pages.end", &rec.Attrs.Pages.End).
-		String("work.place_of_publication", &rec.Attrs.PlaceOfPublication).
-		String("work.publisher", &rec.Attrs.Publisher).
-		String("work.publication_year", &rec.Attrs.PublicationYear).
-		String("work.journal_title", &rec.Attrs.JournalTitle).
-		String("work.journal_abbreviation", &rec.Attrs.JournalAbbreviation).
-		String("work.book_title", &rec.Attrs.BookTitle).
-		String("work.series_title", &rec.Attrs.SeriesTitle).
+		StringSlice("work.keywords", &rec.Keywords).
+		String("work.conference.name", &rec.Conference.Name).
+		String("work.conference.organizer", &rec.Conference.Organizer).
+		String("work.conference.location", &rec.Conference.Location).
+		String("work.article_number", &rec.ArticleNumber).
+		String("work.report_number", &rec.ReportNumber).
+		String("work.volume", &rec.Volume).
+		String("work.issue", &rec.Issue).
+		String("work.issue_title", &rec.IssueTitle).
+		String("work.edition", &rec.Edition).
+		String("work.total_pages", &rec.TotalPages).
+		String("work.pages.start", &rec.Pages.Start).
+		String("work.pages.end", &rec.Pages.End).
+		String("work.place_of_publication", &rec.PlaceOfPublication).
+		String("work.publisher", &rec.Publisher).
+		String("work.publication_year", &rec.PublicationYear).
+		String("work.journal_title", &rec.JournalTitle).
+		String("work.journal_abbreviation", &rec.JournalAbbreviation).
+		String("work.book_title", &rec.BookTitle).
+		String("work.series_title", &rec.SeriesTitle).
 		Err()
 	return err
 }

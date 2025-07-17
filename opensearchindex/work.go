@@ -43,7 +43,7 @@ func workToDoc(rec *bbl.Work) any {
 			doc.PersonID = append(doc.PersonID, con.PersonID)
 		}
 	}
-	for _, text := range rec.Attrs.Titles {
+	for _, text := range rec.Titles {
 		doc.Completion = append(doc.Completion, text.Val)
 	}
 	return &doc

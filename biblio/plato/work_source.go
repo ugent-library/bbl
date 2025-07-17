@@ -110,7 +110,7 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 		Identifiers: []bbl.Code{
 			{Scheme: "plato", Val: platoID},
 		},
-		Attrs: bbl.WorkAttrs{
+		WorkAttrs: bbl.WorkAttrs{
 			Classifications: []bbl.Code{
 				{Scheme: "ugent_classification", Val: "U"},
 			},
@@ -119,10 +119,10 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 	}
 
 	if v := res.Get("titel.eng").String(); v != "" {
-		rec.Attrs.Titles = append(rec.Attrs.Titles, bbl.Text{Lang: "eng", Val: v})
+		rec.Titles = append(rec.Titles, bbl.Text{Lang: "eng", Val: v})
 	}
 	if v := res.Get("titel.ned").String(); v != "" {
-		rec.Attrs.Titles = append(rec.Attrs.Titles, bbl.Text{Lang: "dut", Val: v})
+		rec.Titles = append(rec.Titles, bbl.Text{Lang: "dut", Val: v})
 	}
 
 	// TODO
@@ -194,7 +194,7 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 	}
 
 	if v := res.Get("pdf.abstract").String(); v != "" {
-		rec.Attrs.Abstracts = append(rec.Attrs.Abstracts, bbl.Text{Lang: "dut", Val: v})
+		rec.Abstracts = append(rec.Abstracts, bbl.Text{Lang: "dut", Val: v})
 	}
 
 	// TODO

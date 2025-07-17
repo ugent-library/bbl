@@ -461,7 +461,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Label:    "Title",
 					Required: rec.Profile.Titles.Required,
 				},
-				Attrs:     rec.Attrs.Titles,
+				Attrs:     rec.Titles,
 				AddURL:    c.Route("work_add_title").String(),
 				RemoveURL: c.Route("work_remove_title").String(),
 			}).Render(ctx, templ_7745c5c3_Buffer)
@@ -471,7 +471,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 		}
 		if rec.Profile.Abstracts != nil {
 			templ_7745c5c3_Err = textsField(c, textsFieldArgs{
-				Texts:       rec.Attrs.Abstracts,
+				Texts:       rec.Abstracts,
 				Name:        "abstracts",
 				Label:       c.Loc.Get("abstract"),
 				PluralLabel: c.Loc.Get("abstracts"),
@@ -487,7 +487,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 		}
 		if rec.Profile.LaySummaries != nil {
 			templ_7745c5c3_Err = textsField(c, textsFieldArgs{
-				Texts:       rec.Attrs.LaySummaries,
+				Texts:       rec.LaySummaries,
 				Name:        "lay_summaries",
 				Label:       c.Loc.Get("lay summary"),
 				PluralLabel: c.Loc.Get("lay summaries"),
@@ -507,7 +507,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:  "work.keywords",
 					Label: "Keywords",
 				},
-				Values: rec.Attrs.Keywords,
+				Values: rec.Keywords,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -535,7 +535,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.PublicationYear.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.PublicationYear,
+				Value: rec.PublicationYear,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -548,7 +548,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.publisher",
 					Required: rec.Profile.Publisher.Required,
 				},
-				Value: rec.Attrs.Publisher,
+				Value: rec.Publisher,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -561,7 +561,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.place_of_publication",
 					Required: rec.Profile.PlaceOfPublication.Required,
 				},
-				Value: rec.Attrs.PlaceOfPublication,
+				Value: rec.PlaceOfPublication,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -574,7 +574,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.journal_title",
 					Required: rec.Profile.JournalTitle.Required,
 				},
-				Value: rec.Attrs.JournalTitle,
+				Value: rec.JournalTitle,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -587,7 +587,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.journal_abbreviation",
 					Required: rec.Profile.JournalAbbreviation.Required,
 				},
-				Value: rec.Attrs.JournalAbbreviation,
+				Value: rec.JournalAbbreviation,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -600,7 +600,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.book_title",
 					Required: rec.Profile.BookTitle.Required,
 				},
-				Value: rec.Attrs.BookTitle,
+				Value: rec.BookTitle,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -613,7 +613,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.series_title",
 					Required: rec.Profile.SeriesTitle.Required,
 				},
-				Value: rec.Attrs.SeriesTitle,
+				Value: rec.SeriesTitle,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -627,7 +627,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Volume.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.Volume,
+				Value: rec.Volume,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -641,7 +641,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Issue.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.Issue,
+				Value: rec.Issue,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -654,7 +654,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Name:     "work.issue_title",
 					Required: rec.Profile.IssueTitle.Required,
 				},
-				Value: rec.Attrs.IssueTitle,
+				Value: rec.IssueTitle,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -668,7 +668,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Edition.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.Edition,
+				Value: rec.Edition,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -682,7 +682,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Pages.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.Pages.Start,
+				Value: rec.Pages.Start,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -698,7 +698,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Pages.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.Pages.End,
+				Value: rec.Pages.End,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -712,7 +712,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.TotalPages.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.TotalPages,
+				Value: rec.TotalPages,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -726,7 +726,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.ArticleNumber.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.ArticleNumber,
+				Value: rec.ArticleNumber,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -740,7 +740,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.ReportNumber.Required,
 					Cols:     1,
 				},
-				Value: rec.Attrs.ReportNumber,
+				Value: rec.ReportNumber,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -760,7 +760,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Label: "Conference",
 					Name:  "work.conference.name",
 				},
-				Value: rec.Attrs.Conference.Name,
+				Value: rec.Conference.Name,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -770,7 +770,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Label: "Conference location",
 					Name:  "work.conference.location",
 				},
-				Value: rec.Attrs.Conference.Location,
+				Value: rec.Conference.Location,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -780,7 +780,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Label: "Conference organizer",
 					Name:  "work.conference.organizer",
 				},
-				Value: rec.Attrs.Conference.Organizer,
+				Value: rec.Conference.Organizer,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

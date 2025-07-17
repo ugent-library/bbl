@@ -31,40 +31,40 @@ var CreditRoles = []string{
 
 type Work struct {
 	RecHeader
-	Permissions  []Permission      `json:"permissions,omitempty"` // TODO move to header?
-	Profile      *WorkProfile      `json:"-"`
-	Kind         string            `json:"kind"`
-	Subkind      string            `json:"subkind,omitempty"`
-	Status       string            `json:"status"`
-	Identifiers  []Code            `json:"identifiers,omitempty"`
 	Contributors []WorkContributor `json:"contributors,omitempty"`
 	Files        []WorkFile        `json:"files,omitempty"`
+	Identifiers  []Code            `json:"identifiers,omitempty"`
+	Kind         string            `json:"kind"`
+	Permissions  []Permission      `json:"permissions,omitempty"` // TODO move to header?
+	Profile      *WorkProfile      `json:"-"`
 	Rels         []WorkRel         `json:"rels,omitempty"`
-	Attrs        WorkAttrs         `json:"attrs"`
+	Status       string            `json:"status"`
+	Subkind      string            `json:"subkind,omitempty"`
+	WorkAttrs
 }
 
 type WorkAttrs struct {
-	Classifications     []Code     `json:"classifications,omitempty"`
-	Titles              []Text     `json:"titles,omitempty"`
 	Abstracts           []Text     `json:"abstracts,omitempty"`
-	LaySummaries        []Text     `json:"lay_summaries,omitempty"`
-	Keywords            []string   `json:"keywords,omitempty"`
-	Conference          Conference `json:"conference,omitzero"`
 	ArticleNumber       string     `json:"article_number,omitempty"`
-	ReportNumber        string     `json:"report_number,omitempty"`
-	Volume              string     `json:"volume,omitempty"`
+	BookTitle           string     `json:"book_title,omitempty"`
+	Classifications     []Code     `json:"classifications,omitempty"`
+	Conference          Conference `json:"conference,omitzero"`
+	Edition             string     `json:"edition,omitempty"`
 	Issue               string     `json:"issue,omitempty"`
 	IssueTitle          string     `json:"issue_title,omitempty"`
-	Edition             string     `json:"edition,omitempty"`
-	TotalPages          string     `json:"total_pages,omitempty"`
+	JournalAbbreviation string     `json:"journal_abbreviation,omitempty"`
+	JournalTitle        string     `json:"journal_title,omitempty"`
+	Keywords            []string   `json:"keywords,omitempty"`
+	LaySummaries        []Text     `json:"lay_summaries,omitempty"`
 	Pages               Extent     `json:"pages,omitzero"`
 	PlaceOfPublication  string     `json:"place_of_publication,omitempty"`
-	Publisher           string     `json:"publisher,omitempty"`
 	PublicationYear     string     `json:"publication_year,omitempty"`
-	JournalTitle        string     `json:"journal_title,omitempty"`
-	JournalAbbreviation string     `json:"journal_abbreviation,omitempty"`
-	BookTitle           string     `json:"book_title,omitempty"`
+	Publisher           string     `json:"publisher,omitempty"`
+	ReportNumber        string     `json:"report_number,omitempty"`
 	SeriesTitle         string     `json:"series_title,omitempty"`
+	Titles              []Text     `json:"titles,omitempty"`
+	TotalPages          string     `json:"total_pages,omitempty"`
+	Volume              string     `json:"volume,omitempty"`
 }
 
 type WorkContributor struct {
@@ -104,6 +104,38 @@ type WorkRel struct {
 	Work   *Work  `json:"work,omitempty"`
 }
 
+type WorkDiff struct {
+	Abstracts           *[]Text            `json:"abstracts,omitempty"`
+	ArticleNumber       *string            `json:"article_number,omitempty"`
+	BookTitle           *string            `json:"book_title,omitempty"`
+	Classifications     *[]Code            `json:"classifications,omitempty"`
+	Conference          *Conference        `json:"conference,omitempty"`
+	Contributors        *[]WorkContributor `json:"contributors,omitempty"`
+	Edition             *string            `json:"edition,omitempty"`
+	Files               *[]WorkFile        `json:"files,omitempty"`
+	Identifiers         *[]Code            `json:"identifiers,omitempty"`
+	Issue               *string            `json:"issue,omitempty"`
+	IssueTitle          *string            `json:"issue_title,omitempty"`
+	JournalAbbreviation *string            `json:"journal_abbreviation,omitempty"`
+	JournalTitle        *string            `json:"journal_title,omitempty"`
+	Keywords            *[]string          `json:"keywords,omitempty"`
+	Kind                *string            `json:"kind,omitempty"`
+	LaySummaries        *[]Text            `json:"lay_summaries,omitempty"`
+	Pages               *Extent            `json:"pages,omitempty"`
+	Permissions         *[]Permission      `json:"permissions,omitempty"` // TODO should we include this in changes?
+	PlaceOfPublication  *string            `json:"place_of_publication,omitempty"`
+	PublicationYear     *string            `json:"publication_year,omitempty"`
+	Publisher           *string            `json:"publisher,omitempty"`
+	Rels                *[]WorkRel         `json:"rels,omitempty"`
+	ReportNumber        *string            `json:"report_number,omitempty"`
+	SeriesTitle         *string            `json:"series_title,omitempty"`
+	Status              *string            `json:"status,omitempty"`
+	SubKind             *string            `json:"subkind,omitempty"`
+	Titles              *[]Text            `json:"titles,omitempty"`
+	TotalPages          *string            `json:"total_pages,omitempty"`
+	Volume              *string            `json:"volume,omitempty"`
+}
+
 func (rec *Work) Validate() error {
 	return nil
 }
@@ -120,22 +152,23 @@ func (rec *Work) Clone() (*Work, error) {
 	return clone, nil
 }
 
-func (rec *Work) Diff(rec2 *Work) map[string]any {
-	changes := map[string]any{}
-	if !slices.Equal(rec.Permissions, rec2.Permissions) { // TODO should we include this in changes?
-		changes["permissions"] = rec.Permissions
+func (rec *Work) Diff(rec2 *Work) *WorkDiff {
+	diff := &WorkDiff{}
+
+	if !slices.Equal(rec.Abstracts, rec2.Abstracts) {
+		diff.Abstracts = &rec.Abstracts
 	}
-	if rec.Kind != rec2.Kind {
-		changes["kind"] = rec.Kind
+	if rec.ArticleNumber != rec2.ArticleNumber {
+		diff.ArticleNumber = &rec.ArticleNumber
 	}
-	if rec.Subkind != rec2.Subkind {
-		changes["subkind"] = rec.Subkind
+	if rec.BookTitle != rec2.BookTitle {
+		diff.BookTitle = &rec.BookTitle
 	}
-	if rec.Status != rec2.Status {
-		changes["status"] = rec.Status
+	if !slices.Equal(rec.Classifications, rec2.Classifications) {
+		diff.Classifications = &rec.Classifications
 	}
-	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
-		changes["identifiers"] = rec.Identifiers
+	if rec.Conference != rec2.Conference {
+		diff.Conference = &rec.Conference
 	}
 	if !slices.EqualFunc(rec.Contributors, rec2.Contributors, func(c1, c2 WorkContributor) bool {
 		return c1.PersonID == c2.PersonID &&
@@ -145,85 +178,86 @@ func (rec *Work) Diff(rec2 *Work) map[string]any {
 			c1.Attrs.MiddleName == c2.Attrs.MiddleName &&
 			c1.Attrs.FamilyName == c2.Attrs.FamilyName
 	}) {
-		changes["contributors"] = rec.Contributors
+		diff.Contributors = &rec.Contributors
+	}
+	if rec.Edition != rec2.Edition {
+		diff.Edition = &rec.Edition
 	}
 	if !slices.Equal(rec.Files, rec2.Files) {
-		changes["files"] = rec.Files
+		diff.Files = &rec.Files
+	}
+	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
+		diff.Identifiers = &rec.Identifiers
+	}
+	if rec.Issue != rec2.Issue {
+		diff.Issue = &rec.Issue
+	}
+	if rec.IssueTitle != rec2.IssueTitle {
+		diff.IssueTitle = &rec.IssueTitle
+	}
+	if rec.JournalAbbreviation != rec2.JournalAbbreviation {
+		diff.JournalAbbreviation = &rec.JournalAbbreviation
+	}
+	if rec.JournalTitle != rec2.JournalTitle {
+		diff.JournalTitle = &rec.JournalTitle
+	}
+	if !slices.Equal(rec.Keywords, rec2.Keywords) {
+		diff.Keywords = &rec.Keywords
+	}
+	if rec.Kind != rec2.Kind {
+		diff.Kind = &rec.Kind
+	}
+	if !slices.Equal(rec.LaySummaries, rec2.LaySummaries) {
+		diff.LaySummaries = &rec.LaySummaries
+	}
+	if rec.Pages != rec2.Pages {
+		diff.Pages = &rec.Pages
+	}
+	if !slices.Equal(rec.Permissions, rec2.Permissions) { // TODO should we include this in changes?
+		diff.Permissions = &rec.Permissions
+	}
+	if rec.PlaceOfPublication != rec2.PlaceOfPublication {
+		diff.PlaceOfPublication = &rec.PlaceOfPublication
+	}
+	if rec.PublicationYear != rec2.PublicationYear {
+		diff.PublicationYear = &rec.PublicationYear
+	}
+	if rec.Publisher != rec2.Publisher {
+		diff.Publisher = &rec.Publisher
 	}
 	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 WorkRel) bool {
 		return r1.Kind == r2.Kind && r1.WorkID == r2.WorkID
 	}) {
-		changes["rels"] = rec.Rels
+		diff.Rels = &rec.Rels
 	}
-	if !slices.Equal(rec.Attrs.Classifications, rec2.Attrs.Classifications) {
-		changes["classifications"] = rec.Attrs.Classifications
+	if rec.ReportNumber != rec2.ReportNumber {
+		diff.ReportNumber = &rec.ReportNumber
 	}
-	if !slices.Equal(rec.Attrs.Titles, rec2.Attrs.Titles) {
-		changes["titles"] = rec.Attrs.Titles
+	if rec.SeriesTitle != rec2.SeriesTitle {
+		diff.SeriesTitle = &rec.SeriesTitle
 	}
-	if !slices.Equal(rec.Attrs.Abstracts, rec2.Attrs.Abstracts) {
-		changes["abstracts"] = rec.Attrs.Abstracts
+	if rec.Status != rec2.Status {
+		diff.Status = &rec.Status
 	}
-	if !slices.Equal(rec.Attrs.LaySummaries, rec2.Attrs.LaySummaries) {
-		changes["lay_summaries"] = rec.Attrs.LaySummaries
+	if rec.Subkind != rec2.Subkind {
+		diff.SubKind = &rec.Subkind
 	}
-	if !slices.Equal(rec.Attrs.Keywords, rec2.Attrs.Keywords) {
-		changes["keywords"] = rec.Attrs.Keywords
+	if !slices.Equal(rec.Titles, rec2.Titles) {
+		diff.Titles = &rec.Titles
 	}
-	if rec.Attrs.Conference != rec2.Attrs.Conference {
-		changes["conference"] = rec.Attrs.Conference
+	if rec.TotalPages != rec2.TotalPages {
+		diff.TotalPages = &rec.TotalPages
 	}
-	if rec.Attrs.ArticleNumber != rec2.Attrs.ArticleNumber {
-		changes["article_number"] = rec.Attrs.ArticleNumber
+	if rec.Volume != rec2.Volume {
+		diff.Volume = &rec.Volume
 	}
-	if rec.Attrs.ReportNumber != rec2.Attrs.ReportNumber {
-		changes["report_number"] = rec.Attrs.ReportNumber
-	}
-	if rec.Attrs.Volume != rec2.Attrs.Volume {
-		changes["volume"] = rec.Attrs.Volume
-	}
-	if rec.Attrs.Issue != rec2.Attrs.Issue {
-		changes["issue"] = rec.Attrs.Issue
-	}
-	if rec.Attrs.IssueTitle != rec2.Attrs.IssueTitle {
-		changes["issue_title"] = rec.Attrs.IssueTitle
-	}
-	if rec.Attrs.Edition != rec2.Attrs.Edition {
-		changes["edition"] = rec.Attrs.Edition
-	}
-	if rec.Attrs.TotalPages != rec2.Attrs.TotalPages {
-		changes["total_pages"] = rec.Attrs.TotalPages
-	}
-	if rec.Attrs.Pages != rec2.Attrs.Pages {
-		changes["pages"] = rec.Attrs.Pages
-	}
-	if rec.Attrs.PlaceOfPublication != rec2.Attrs.PlaceOfPublication {
-		changes["place_of_publication"] = rec.Attrs.PlaceOfPublication
-	}
-	if rec.Attrs.Publisher != rec2.Attrs.Publisher {
-		changes["publisher"] = rec.Attrs.Publisher
-	}
-	if rec.Attrs.PublicationYear != rec2.Attrs.PublicationYear {
-		changes["publication_year"] = rec.Attrs.PublicationYear
-	}
-	if rec.Attrs.JournalTitle != rec2.Attrs.JournalTitle {
-		changes["journal_title"] = rec.Attrs.JournalTitle
-	}
-	if rec.Attrs.JournalAbbreviation != rec2.Attrs.JournalAbbreviation {
-		changes["journal_abbreviation"] = rec.Attrs.JournalAbbreviation
-	}
-	if rec.Attrs.BookTitle != rec2.Attrs.BookTitle {
-		changes["book_title"] = rec.Attrs.BookTitle
-	}
-	if rec.Attrs.SeriesTitle != rec2.Attrs.SeriesTitle {
-		changes["series_title"] = rec.Attrs.SeriesTitle
-	}
-	return changes
+
+	return diff
 }
 
 func (rec *Work) Title() string {
-	if len(rec.Attrs.Titles) > 0 {
-		return rec.Attrs.Titles[0].Val
+	if len(rec.Titles) > 0 {
+		return rec.Titles[0].Val
 	}
 	return ""
 }

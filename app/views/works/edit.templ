@@ -209,14 +209,14 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Label:    "Title",
 								Required: rec.Profile.Titles.Required,
 							},
-							Attrs:     rec.Attrs.Titles,
+							Attrs:     rec.Titles,
 							AddURL:    c.Route("work_add_title").String(),
 							RemoveURL: c.Route("work_remove_title").String(),
 						})
 					}
 					if rec.Profile.Abstracts != nil {
 						@textsField(c, textsFieldArgs{
-							Texts:       rec.Attrs.Abstracts,
+							Texts:       rec.Abstracts,
 							Name:        "abstracts",
 							Label:       c.Loc.Get("abstract"),
 							PluralLabel: c.Loc.Get("abstracts"),
@@ -229,7 +229,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 					}
 					if rec.Profile.LaySummaries != nil {
 						@textsField(c, textsFieldArgs{
-							Texts:       rec.Attrs.LaySummaries,
+							Texts:       rec.LaySummaries,
 							Name:        "lay_summaries",
 							Label:       c.Loc.Get("lay summary"),
 							PluralLabel: c.Loc.Get("lay summaries"),
@@ -246,7 +246,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:  "work.keywords",
 								Label: "Keywords",
 							},
-							Values: rec.Attrs.Keywords,
+							Values: rec.Keywords,
 						})
 					}
 				</div>
@@ -278,7 +278,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.PublicationYear.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.PublicationYear,
+							Value: rec.PublicationYear,
 						})
 					}
 					if rec.Profile.Publisher != nil {
@@ -288,7 +288,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.publisher",
 								Required: rec.Profile.Publisher.Required,
 							},
-							Value: rec.Attrs.Publisher,
+							Value: rec.Publisher,
 						})
 					}
 					if rec.Profile.PlaceOfPublication != nil {
@@ -298,7 +298,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.place_of_publication",
 								Required: rec.Profile.PlaceOfPublication.Required,
 							},
-							Value: rec.Attrs.PlaceOfPublication,
+							Value: rec.PlaceOfPublication,
 						})
 					}
 					if rec.Profile.JournalTitle != nil {
@@ -308,7 +308,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.journal_title",
 								Required: rec.Profile.JournalTitle.Required,
 							},
-							Value: rec.Attrs.JournalTitle,
+							Value: rec.JournalTitle,
 						})
 					}
 					if rec.Profile.JournalAbbreviation != nil {
@@ -318,7 +318,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.journal_abbreviation",
 								Required: rec.Profile.JournalAbbreviation.Required,
 							},
-							Value: rec.Attrs.JournalAbbreviation,
+							Value: rec.JournalAbbreviation,
 						})
 					}
 					if rec.Profile.BookTitle != nil {
@@ -328,7 +328,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.book_title",
 								Required: rec.Profile.BookTitle.Required,
 							},
-							Value: rec.Attrs.BookTitle,
+							Value: rec.BookTitle,
 						})
 					}
 					if rec.Profile.SeriesTitle != nil {
@@ -338,7 +338,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.series_title",
 								Required: rec.Profile.SeriesTitle.Required,
 							},
-							Value: rec.Attrs.SeriesTitle,
+							Value: rec.SeriesTitle,
 						})
 					}
 					if rec.Profile.Volume != nil {
@@ -349,7 +349,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Volume.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.Volume,
+							Value: rec.Volume,
 						})
 					}
 					if rec.Profile.Issue != nil {
@@ -360,7 +360,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Issue.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.Issue,
+							Value: rec.Issue,
 						})
 					}
 					if rec.Profile.IssueTitle != nil {
@@ -370,7 +370,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.issue_title",
 								Required: rec.Profile.IssueTitle.Required,
 							},
-							Value: rec.Attrs.IssueTitle,
+							Value: rec.IssueTitle,
 						})
 					}
 					if rec.Profile.Edition != nil {
@@ -381,7 +381,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Edition.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.Edition,
+							Value: rec.Edition,
 						})
 					}
 					if rec.Profile.Pages != nil {
@@ -392,7 +392,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Pages.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.Pages.Start,
+							Value: rec.Pages.Start,
 						})
 						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
@@ -401,7 +401,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Pages.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.Pages.End,
+							Value: rec.Pages.End,
 						})
 					}
 					if rec.Profile.TotalPages != nil {
@@ -412,7 +412,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.TotalPages.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.TotalPages,
+							Value: rec.TotalPages,
 						})
 					}
 					if rec.Profile.ArticleNumber != nil {
@@ -423,7 +423,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.ArticleNumber.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.ArticleNumber,
+							Value: rec.ArticleNumber,
 						})
 					}
 					if rec.Profile.ReportNumber != nil {
@@ -434,7 +434,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.ReportNumber.Required,
 								Cols:     1,
 							},
-							Value: rec.Attrs.ReportNumber,
+							Value: rec.ReportNumber,
 						})
 					}
 				</div>
@@ -452,21 +452,21 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Label: "Conference",
 								Name:  "work.conference.name",
 							},
-							Value: rec.Attrs.Conference.Name,
+							Value: rec.Conference.Name,
 						})
 						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
 								Label: "Conference location",
 								Name:  "work.conference.location",
 							},
-							Value: rec.Attrs.Conference.Location,
+							Value: rec.Conference.Location,
 						})
 						@forms.TextInput(forms.TextInputArgs{
 							FieldArgs: forms.FieldArgs{
 								Label: "Conference organizer",
 								Name:  "work.conference.organizer",
 							},
-							Value: rec.Attrs.Conference.Organizer,
+							Value: rec.Conference.Organizer,
 						})
 					</div>
 				</div>

@@ -406,7 +406,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			diff := a.Work.Diff(&bbl.Work{})
 
-			jsonAttrs, err := json.Marshal(a.Work.Attrs)
+			jsonAttrs, err := json.Marshal(a.Work.WorkAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -422,7 +422,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID, rev.UserID,
 			)
 
-			if _, ok := diff["permissions"]; ok {
+			if diff.Permissions != nil {
 				for _, perm := range a.Work.Permissions {
 					batch.Queue(`
 						insert into bbl_work_permissions (work_id, kind, user_id)
@@ -612,11 +612,11 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 
 	diff := rec.Diff(currentRec)
 
-	if len(diff) == 0 {
+	if bbl.IsZero(*diff) {
 		return nil
 	}
 
-	jsonAttrs, err := json.Marshal(rec.Attrs)
+	jsonAttrs, err := json.Marshal(rec.WorkAttrs)
 	if err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
@@ -639,7 +639,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		rec.ID, rec.Kind, rec.Subkind, rec.Status, jsonAttrs, userID,
 	)
 
-	if _, ok := diff["permissions"]; ok {
+	if diff.Permissions != nil {
 		batch.Queue(`
 			delete from bbl_work_permissions
 			where work_id = $1;`,
@@ -654,11 +654,11 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		}
 	}
 
-	if _, ok := diff["identifiers"]; ok {
+	if diff.Identifiers != nil {
 		queueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
 	}
 
-	if _, ok := diff["contributors"]; ok {
+	if diff.Contributors != nil {
 		if len(currentRec.Contributors) > len(rec.Contributors) {
 			batch.Queue(`
 				delete from bbl_work_contributors
@@ -691,7 +691,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		}
 	}
 
-	if _, ok := diff["files"]; ok {
+	if diff.Files != nil {
 		if len(currentRec.Files) > len(rec.Files) {
 			batch.Queue(`
 				delete from bbl_work_files
@@ -721,7 +721,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		}
 	}
 
-	if _, ok := diff["rels"]; ok {
+	if diff.Rels != nil {
 		if len(currentRec.Rels) > len(rec.Rels) {
 			batch.Queue(`
 				delete from bbl_work_rels

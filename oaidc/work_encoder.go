@@ -22,7 +22,7 @@ func EncodeWork(rec *bbl.Work) ([]byte, error) {
 	b := &bytes.Buffer{}
 	b.WriteString(startTag)
 
-	for _, text := range rec.Attrs.Titles {
+	for _, text := range rec.Titles {
 		writeField(b, "title", text.Val)
 	}
 

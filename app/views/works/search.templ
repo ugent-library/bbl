@@ -179,28 +179,28 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 													</a>
 												</h4>
 												<ul class="c-meta-list c-meta-list-inline">
-													if hit.Rec.Attrs.PublicationYear != "" {
-														<li class="c-meta-item">{ hit.Rec.Attrs.PublicationYear }</li>
+													if hit.Rec.PublicationYear != "" {
+														<li class="c-meta-item">{ hit.Rec.PublicationYear }</li>
 													}
-													if hit.Rec.Attrs.JournalTitle != "" {
-														<li class="c-meta-item">{ hit.Rec.Attrs.JournalTitle }</li>
+													if hit.Rec.JournalTitle != "" {
+														<li class="c-meta-item">{ hit.Rec.JournalTitle }</li>
 													}
-													if hit.Rec.Attrs.BookTitle != "" {
-														<li class="c-meta-item">{ hit.Rec.Attrs.BookTitle }</li>
+													if hit.Rec.BookTitle != "" {
+														<li class="c-meta-item">{ hit.Rec.BookTitle }</li>
 													}
-													if hit.Rec.Attrs.Volume != "" {
+													if hit.Rec.Volume != "" {
 														<li class="c-meta-item">
-															<span>Volume: { hit.Rec.Attrs.Volume }</span>
+															<span>Volume: { hit.Rec.Volume }</span>
 														</li>
 													}
-													if hit.Rec.Attrs.Issue != "" {
+													if hit.Rec.Issue != "" {
 														<li class="c-meta-item">
-															<span>Issue: { hit.Rec.Attrs.Issue }</span>
+															<span>Issue: { hit.Rec.Issue }</span>
 														</li>
 													}
-													if !bbl.IsZero(hit.Rec.Attrs.Pages) {
+													if !bbl.IsZero(hit.Rec.Pages) {
 														<li class="c-meta-item">
-															<span>Pages: { hit.Rec.Attrs.Pages.String() }</span>
+															<span>Pages: { hit.Rec.Pages.String() }</span>
 														</li>
 													}
 												</ul>
