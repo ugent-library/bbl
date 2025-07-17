@@ -151,7 +151,7 @@ func (*UpdateWork) isAction() {}
 
 type ChangeWork struct {
 	WorkID  string
-	Changes []WorkChange
+	Changes []WorkChanger
 }
 
 func (*ChangeWork) isAction() {}
@@ -171,7 +171,7 @@ func (a *ChangeWork) UnmarshalJSON(b []byte) error {
 	action := ChangeWork{WorkID: rawAction.WorkID}
 
 	for _, rawChange := range rawAction.Changes {
-		initChange, ok := WorkChanges[rawChange.Change]
+		initChange, ok := WorkChangers[rawChange.Change]
 		if !ok {
 			return fmt.Errorf("Rev: invalid change %q", rawChange.Change)
 		}

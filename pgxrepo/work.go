@@ -39,6 +39,44 @@ func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work]
 	}
 }
 
+func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange, error) {
+	q := `
+		select c.rev_id, r.created_at, r.user_id, row_to_json(u) as user, c.diff
+		from bbl_changes c
+		left join bbl_revs r on r.id = c.rev_id
+		left join bbl_users_view u on u.id = r.user_id
+		where c.work_id = $1
+		order by c.id desc;`
+
+	var changes []bbl.WorkChange
+
+	rows, err := r.conn.Query(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c bbl.WorkChange
+		var rawUser json.RawMessage
+		var rawDiff json.RawMessage
+		err := rows.Scan(&c.RevID, &c.CreatedAt, &c.UserID, &rawUser, &rawDiff)
+		if err != nil {
+			return nil, err
+		}
+		if rawUser != nil {
+			if err := json.Unmarshal(rawUser, &c.User); err != nil {
+				return nil, err
+			}
+		}
+		if err := json.Unmarshal(rawDiff, &c.Diff); err != nil {
+			return nil, err
+		}
+	}
+
+	return changes, nil
+}
+
 func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {

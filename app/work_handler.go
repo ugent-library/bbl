@@ -581,7 +581,7 @@ LINES:
 
 		action := actions[len(actions)-1]
 
-		initChange, ok := bbl.WorkChanges[changeName]
+		initChange, ok := bbl.WorkChangers[changeName]
 		if !ok {
 			args.Errors = append(args.Errors, fmt.Sprintf("unknown change %s at line %d", changeName, lineIndex+1))
 			continue

@@ -4,15 +4,15 @@ import (
 	"slices"
 )
 
-var WorkChanges = map[string]func() WorkChange{
-	"set_kind":           func() WorkChange { return &WorkSetKind{} },
-	"set_identifier":     func() WorkChange { return &WorkSetIdentifier{} },
-	"set_classification": func() WorkChange { return &WorkSetClassification{} },
-	"add_keyword":        func() WorkChange { return &WorkAddKeyword{} },
-	"remove_keyword":     func() WorkChange { return &WorkRemoveKeyword{} },
+var WorkChangers = map[string]func() WorkChanger{
+	"set_kind":           func() WorkChanger { return &WorkSetKind{} },
+	"set_identifier":     func() WorkChanger { return &WorkSetIdentifier{} },
+	"set_classification": func() WorkChanger { return &WorkSetClassification{} },
+	"add_keyword":        func() WorkChanger { return &WorkAddKeyword{} },
+	"remove_keyword":     func() WorkChanger { return &WorkRemoveKeyword{} },
 }
 
-type WorkChange interface {
+type WorkChanger interface {
 	UnmarshalArgs([]string) error
 	Apply(*Work) error
 }

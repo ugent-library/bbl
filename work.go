@@ -3,6 +3,7 @@ package bbl
 import (
 	"encoding/json"
 	"slices"
+	"time"
 )
 
 const (
@@ -102,6 +103,14 @@ type WorkRel struct {
 	Kind   string `json:"kind"`
 	WorkID string `json:"work_id"`
 	Work   *Work  `json:"work,omitempty"`
+}
+
+type WorkChange struct {
+	RevID     string    `json:"rev_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UserID    string    `json:"user_id,omitempty"`
+	User      *User     `json:"user,omitempty"`
+	Diff      WorkDiff  `json:"diff"`
 }
 
 type WorkDiff struct {
