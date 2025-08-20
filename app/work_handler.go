@@ -112,6 +112,7 @@ func (h *WorkHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
 	r.Handle("/works/batch/edit", b.BindFunc(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
 	r.Handle("/works/batch", b.BindFunc(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
 	r.Handle("/works/{id}", workBinder.With(RequireCanViewWork).BindFunc(h.Show)).Methods("GET").Name("work")
+	r.Handle("/works/{id}/_changes", workBinder.BindFunc(h.Changes)).Methods("GET").Name("work_changes")
 	r.Handle("/works/{id}/edit", workBinder.With(RequireCanEditWork).BindFunc(h.Edit)).Methods("GET").Name("edit_work")
 	r.Handle("/works/{id}", workStateBinder.BindFunc(h.Update)).Methods("POST").Name("update_work")
 }
@@ -519,6 +520,14 @@ func (h *WorkHandler) refreshForm(w http.ResponseWriter, r *http.Request, c *Wor
 	}
 
 	return workviews.RefreshForm(c.ViewCtx(), c.Work, state).Render(r.Context(), w)
+}
+
+func (h *WorkHandler) Changes(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	changes, err := h.repo.GetWorkChanges(r.Context(), c.Work.ID)
+	if err != nil {
+		return err
+	}
+	return workviews.Changes(c.ViewCtx(), c.Work, changes).Render(r.Context(), w)
 }
 
 func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
