@@ -36,10 +36,10 @@ func (r *Repo) GetWorkRepresentation(ctx context.Context, id, scheme string) (*b
 
 	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&repr.Record, &repr.UpdatedAt)
 	if err == pgx.ErrNoRows {
-		return nil, bbl.ErrNotFound
+		return nil, fmt.Errorf("GetWorkRepresentation: %w", bbl.ErrNotFound)
 	}
 	if err != nil {
-		err = fmt.Errorf("GetWorkRepresentation: %w", err)
+		return nil, fmt.Errorf("GetWorkRepresentation: %w", err)
 	}
 
 	return &repr, nil

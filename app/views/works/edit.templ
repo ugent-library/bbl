@@ -60,17 +60,26 @@ templ Edit(c views.Ctx, rec *bbl.Work, state string) {
 						@Form(c, rec, state)
 					</div>
 				</div>
+				<div id="work-messages"></div>
+				<div id="work-changes"></div>
+				<div id="work-info"></div>
 				<div class="c-sub-sidebar c-sub-sidebar--small bg-light">
 					<div class="c-sub-sidebar__content">
 						<div class="d-flex justify-content-center py-3">
-							<nav class="nav nav-sidebar flex-column" data-sidebar-menu="">
-								<button class="nav-link my-2" type="button" data-target="#work-messages">
+							<nav class="nav nav-sidebar flex-column">
+								<button class="nav-link my-2" type="button">
 									<i class="if if-message"></i>
 								</button>
-								<button class="nav-link my-2" type="button" data-target="#work-changes">
+								<button
+									class="nav-link my-2"
+									type="button"
+									hx-get={ c.SafeRoute("work_changes", "id", rec.ID) }
+									hx-trigger="click once"
+									hx-target="#work-changes"
+								>
 									<i class="if if-time"></i>
 								</button>
-								<button class="nav-link my-2" type="button" data-target="#work-info">
+								<button class="nav-link my-2" type="button">
 									<i class="if if-info-circle"></i>
 								</button>
 							</nav>

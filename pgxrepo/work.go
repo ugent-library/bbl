@@ -72,6 +72,7 @@ func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange,
 		if err := json.Unmarshal(rawDiff, &c.Diff); err != nil {
 			return nil, err
 		}
+		changes = append(changes, c)
 	}
 
 	return changes, nil
