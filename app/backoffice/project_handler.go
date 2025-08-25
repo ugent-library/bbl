@@ -1,8 +1,9 @@
-package app
+package backoffice
 
 import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/pgxrepo"
 )
@@ -19,5 +20,5 @@ func NewProjectHandler(repo *pgxrepo.Repo, index bbl.Index) *ProjectHandler {
 	}
 }
 
-func (h *ProjectHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+func (h *ProjectHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 }

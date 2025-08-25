@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"golang.org/x/sync/errgroup"
@@ -60,7 +61,7 @@ var startCmd = &cobra.Command{
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
 
-		handler, err := app.New(&app.Config{
+		handler, err := app.New(&ctx.Config{
 			Env:              config.Env,
 			BaseURL:          config.BaseURL,
 			Logger:           logger,

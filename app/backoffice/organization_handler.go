@@ -1,8 +1,9 @@
-package app
+package backoffice
 
 import (
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/pgxrepo"
 )
@@ -19,5 +20,5 @@ func NewOrganizationHandler(repo *pgxrepo.Repo, index bbl.Index) *OrganizationHa
 	}
 }
 
-func (h *OrganizationHandler) AddRoutes(router *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+func (h *OrganizationHandler) AddRoutes(router *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 }

@@ -1,4 +1,4 @@
-package app
+package backoffice
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/s3store"
 )
@@ -21,11 +22,11 @@ func NewFileHandler(store *s3store.Store) *FileHandler {
 	}
 }
 
-func (h *FileHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+func (h *FileHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 	r.Handle("/files/upload_url", b.BindFunc(h.CreateUploadURL)).Methods("POST").Name("create_file_upload_url")
 }
 
-func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	w.Header().Set("Content-Type", "application/json")
 
 	req := struct {

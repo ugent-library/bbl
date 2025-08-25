@@ -1,4 +1,4 @@
-package app
+package backoffice
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/app/views"
 	workviews "github.com/ugent-library/bbl/app/views/works"
 	"github.com/ugent-library/bbl/bind"
@@ -23,7 +24,7 @@ import (
 )
 
 type WorkCtx struct {
-	*AppCtx
+	*ctx.Ctx
 	Work *bbl.Work
 }
 
@@ -57,15 +58,15 @@ func NewWorkHandler(repo *pgxrepo.Repo, index bbl.Index) *WorkHandler {
 	}
 }
 
-func (h *WorkHandler) bindWork(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+func (h *WorkHandler) WorkBinder(r *http.Request, c *ctx.Ctx) (*WorkCtx, error) {
 	work, err := h.repo.GetWork(r.Context(), mux.Vars(r)["id"])
 	if err != nil {
 		return nil, err
 	}
-	return &WorkCtx{AppCtx: c, Work: work}, nil
+	return &WorkCtx{Ctx: c, Work: work}, nil
 }
 
-func (h *WorkHandler) bindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error) {
+func (h *WorkHandler) WorkStateBinder(r *http.Request, c *ctx.Ctx) (*WorkCtx, error) {
 	var recState string
 	var rec bbl.Work
 	if err := bind.Request(r).Form().String("work.state", &recState).Err(); err != nil {
@@ -80,13 +81,13 @@ func (h *WorkHandler) bindWorkState(r *http.Request, c *AppCtx) (*WorkCtx, error
 	if err := bindWorkForm(r, &rec); err != nil {
 		return nil, err
 	}
-	return &WorkCtx{AppCtx: c, Work: &rec}, nil
+	return &WorkCtx{Ctx: c, Work: &rec}, nil
 }
 
-func (h *WorkHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
-	searchBinder := bind.Derive(b, BindSearch)
-	workBinder := bind.Derive(b, h.bindWork)
-	workStateBinder := bind.Derive(b, h.bindWorkState)
+func (h *WorkHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+	searchBinder := bind.Derive(b, SearchBinder)
+	workBinder := bind.Derive(b, h.WorkBinder)
+	workStateBinder := bind.Derive(b, h.WorkStateBinder)
 
 	r.Handle("/works", searchBinder.BindFunc(h.Search)).Methods("GET").Name("works")
 	r.Handle("/works/export", searchBinder.BindFunc(h.Export)).Methods("POST").Name("export_works")
@@ -179,7 +180,7 @@ func (h *WorkHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) e
 	return workviews.Show(c.ViewCtx(), c.Work).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *WorkHandler) New(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	rec := &bbl.Work{
 		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?
 		Kind:        bbl.WorkKinds[0],
@@ -296,7 +297,7 @@ func (h *WorkHandler) RemoveIdentifier(w http.ResponseWriter, r *http.Request, c
 	return h.refreshForm(w, r, c)
 }
 
-func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *WorkHandler) SuggestContributor(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	var query string
 	var action string
 	var idx int
@@ -530,11 +531,11 @@ func (h *WorkHandler) Changes(w http.ResponseWriter, r *http.Request, c *WorkCtx
 	return workviews.Changes(c.ViewCtx(), c.Work, changes).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *WorkHandler) BatchEdit(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	return workviews.BatchEdit(c.ViewCtx(), workviews.BatchEditArgs{}).Render(r.Context(), w)
 }
 
-func (h *WorkHandler) BatchUpdate(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *WorkHandler) BatchUpdate(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	args := workviews.BatchEditArgs{}
 	args.Value = strings.ReplaceAll(strings.TrimSpace(r.FormValue("changes")), "\r\n", "\n")
 

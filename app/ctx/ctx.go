@@ -1,8 +1,9 @@
-package app
+package ctx
 
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -17,6 +18,8 @@ import (
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/i18n"
 	"github.com/ugent-library/bbl/muxurl"
+	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/s3store"
 	"github.com/ugent-library/crypt"
 )
 
@@ -24,8 +27,8 @@ const (
 	sessionCookieName = "bbl.session"
 )
 
-func RequireUser(next bind.Handler[*AppCtx]) bind.Handler[*AppCtx] {
-	return bind.HandlerFunc[*AppCtx](func(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func RequireUser(next bind.Handler[*Ctx]) bind.Handler[*Ctx] {
+	return bind.HandlerFunc[*Ctx](func(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 		if c.User != nil {
 			return next.ServeHTTP(w, r, c)
 		}
@@ -38,7 +41,22 @@ type SessionCookie struct {
 	UserID string `json:"u"`
 }
 
-type AppCtx struct {
+type Config struct {
+	Env              string
+	BaseURL          string
+	Logger           *slog.Logger
+	Repo             *pgxrepo.Repo
+	Index            bbl.Index
+	Store            *s3store.Store
+	Hub              *catbird.Hub
+	Secret           []byte
+	HashSecret       []byte
+	AuthIssuerURL    string
+	AuthClientID     string
+	AuthClientSecret string
+}
+
+type Ctx struct {
 	router       *mux.Router
 	Hub          *catbird.Hub
 	topics       []string
@@ -52,7 +70,7 @@ type AppCtx struct {
 	User      *bbl.User
 }
 
-func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) func(r *http.Request) (*AppCtx, error) {
+func Binder(config *Config, router *mux.Router, assets map[string]string) func(r *http.Request) (*Ctx, error) {
 	cookies := securecookie.New(config.HashSecret, config.Secret)
 	cookies.SetSerializer(securecookie.JSONEncoder{})
 
@@ -64,8 +82,8 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) fu
 
 	crypter := crypt.New(config.Secret)
 
-	return func(r *http.Request) (*AppCtx, error) {
-		c := &AppCtx{
+	return func(r *http.Request) (*Ctx, error) {
+		c := &Ctx{
 			Crypt:        crypter,
 			URL:          r.URL,
 			RouteName:    mux.CurrentRoute(r).GetName(),
@@ -97,7 +115,7 @@ func BindAppCtx(config *Config, router *mux.Router, assets map[string]string) fu
 	}
 }
 
-func (c *AppCtx) ViewCtx() views.Ctx {
+func (c *Ctx) ViewCtx() views.Ctx {
 	return views.Ctx{
 		URL:       c.URL,
 		RouteName: c.RouteName,
@@ -109,7 +127,7 @@ func (c *AppCtx) ViewCtx() views.Ctx {
 	}
 }
 
-func (c *AppCtx) AssetPath(asset string) string {
+func (c *Ctx) AssetPath(asset string) string {
 	a, ok := c.assets[asset]
 	if !ok {
 		panic(fmt.Errorf("asset '%s' not found in manifest", asset))
@@ -117,13 +135,13 @@ func (c *AppCtx) AssetPath(asset string) string {
 	return a
 }
 
-func (c *AppCtx) AddTopic(topic string) {
+func (c *Ctx) AddTopic(topic string) {
 	if !slices.Contains(c.topics, topic) {
 		c.topics = append(c.topics, topic)
 	}
 }
 
-func (c *AppCtx) SSEPath() string {
+func (c *Ctx) SSEPath() string {
 	token, err := c.EncryptValue(c.topics)
 	if err != nil {
 		panic(err)
@@ -131,11 +149,11 @@ func (c *AppCtx) SSEPath() string {
 	return c.Route("sse", "token", token).String()
 }
 
-func (c *AppCtx) Route(name string, params ...any) *url.URL {
+func (c *Ctx) Route(name string, params ...any) *url.URL {
 	return muxurl.New(c.router, name, params...)
 }
 
-func (c *AppCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {
+func (c *Ctx) SetUser(w http.ResponseWriter, user *bbl.User) error {
 	val := &SessionCookie{
 		UserID: user.ID,
 	}
@@ -149,12 +167,12 @@ func (c *AppCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {
 	return nil
 }
 
-func (c *AppCtx) ClearUser(w http.ResponseWriter) {
+func (c *Ctx) ClearUser(w http.ResponseWriter) {
 	c.User = nil
 	c.ClearCookie(w, sessionCookieName)
 }
 
-func (c *AppCtx) GetCookie(r *http.Request, name string, val any) error {
+func (c *Ctx) GetCookie(r *http.Request, name string, val any) error {
 	cookie, err := r.Cookie(name)
 	if err != nil {
 		return fmt.Errorf("can't get cookie %s: %w", name, err)
@@ -165,7 +183,7 @@ func (c *AppCtx) GetCookie(r *http.Request, name string, val any) error {
 	return nil
 }
 
-func (c *AppCtx) SetCookie(w http.ResponseWriter, name string, val any, ttl time.Duration) error {
+func (c *Ctx) SetCookie(w http.ResponseWriter, name string, val any, ttl time.Duration) error {
 	v, err := c.secureCookie.Encode(name, val)
 	if err != nil {
 		return fmt.Errorf("can't encode cookie %s: %w", name, err)
@@ -184,7 +202,7 @@ func (c *AppCtx) SetCookie(w http.ResponseWriter, name string, val any, ttl time
 	return nil
 }
 
-func (c *AppCtx) ClearCookie(w http.ResponseWriter, name string) {
+func (c *Ctx) ClearCookie(w http.ResponseWriter, name string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    "",

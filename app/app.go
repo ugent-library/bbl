@@ -1,45 +1,25 @@
 package app
 
 import (
-	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	sloghttp "github.com/samber/slog-http"
 
-	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/backoffice"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/bind"
-	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
-	"github.com/ugent-library/bbl/pgxrepo"
-	"github.com/ugent-library/bbl/s3store"
-	"github.com/ugent-library/oidc"
 )
 
 //go:embed static
 var staticFS embed.FS
 
-type Config struct {
-	Env              string
-	BaseURL          string
-	Logger           *slog.Logger
-	Repo             *pgxrepo.Repo
-	Index            bbl.Index
-	Store            *s3store.Store
-	Hub              *catbird.Hub
-	Secret           []byte
-	HashSecret       []byte
-	AuthIssuerURL    string
-	AuthClientID     string
-	AuthClientSecret string
-}
-
-func New(config *Config) (http.Handler, error) {
+func New(config *ctx.Config) (http.Handler, error) {
 	router := mux.NewRouter()
 	router.Use(sloghttp.Recovery)
 	router.Use(sloghttp.NewWithConfig(config.Logger.WithGroup("http"), sloghttp.Config{
@@ -48,19 +28,6 @@ func New(config *Config) (http.Handler, error) {
 
 	// static files
 	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFS))).Methods("GET")
-
-	// openapi
-	// apiServer, err := openapi.NewServer(openapi.NewService(
-	// 	config.Repo,
-	// 	config.Queue,
-	// 	config.Index,
-	// ))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// router.HandleFunc("/api/v1/openapi.yaml", openapi.SpecHandler).Methods("GET")
-	// router.HandleFunc("/api/v1/docs", openapi.DocsHandler("/api/v1/openapi.yaml")).Methods("GET")
-	// router.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", apiServer))
 
 	// oai provider
 	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
@@ -87,33 +54,12 @@ func New(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	appCtx := bind.New(BindAppCtx(config, router, assets))
-	loggedInCtx := appCtx.With(RequireUser)
+	b := bind.New(ctx.Binder(config, router, assets))
 
-	router.Handle("/", appCtx.BindFunc(HomeHandler)).Methods("GET").Name("home")
-
-	router.Handle("/sse", loggedInCtx.BindFunc(SSEHandler)).Methods("GET").Name("sse")
-
-	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
-		IssuerURL:        config.AuthIssuerURL,
-		ClientID:         config.AuthClientID,
-		ClientSecret:     config.AuthClientSecret,
-		RedirectURL:      config.BaseURL + "/auth/callback",
-		CookieInsecure:   config.Env == "development",
-		CookiePrefix:     "bbl.oidc.",
-		CookieHashSecret: config.HashSecret,
-		CookieSecret:     config.Secret,
-	})
+	err = backoffice.AddRoutes(router, b, config)
 	if err != nil {
 		return nil, err
 	}
-
-	NewAuthHandler(config.Repo, authProvider).AddRoutes(router, appCtx)
-	NewOrganizationHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
-	NewPersonHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
-	NewProjectHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
-	NewWorkHandler(config.Repo, config.Index).AddRoutes(router, loggedInCtx)
-	NewFileHandler(config.Store).AddRoutes(router, loggedInCtx)
 
 	return router, nil
 }

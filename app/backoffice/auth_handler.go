@@ -1,4 +1,4 @@
-package app
+package backoffice
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/tidwall/gjson"
+	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/pgxrepo"
 )
@@ -27,17 +28,17 @@ func NewAuthHandler(repo *pgxrepo.Repo, provider AuthProvider) *AuthHandler {
 	}
 }
 
-func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*AppCtx]) {
+func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 	r.Handle("/login", b.BindFunc(h.Login)).Methods("GET").Name("login")
 	r.Handle("/auth/callback", b.BindFunc(h.AuthCallback)).Methods("GET")
 	r.Handle("/logout", b.BindFunc(h.Logout)).Methods("GET").Name("logout")
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	return h.provider.BeginAuth(w, r)
 }
 
-func (h *AuthHandler) AuthCallback(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *AuthHandler) AuthCallback(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	var claims json.RawMessage
 
 	if err := h.provider.CompleteAuth(w, r, &claims); err != nil {
@@ -60,7 +61,7 @@ func (h *AuthHandler) AuthCallback(w http.ResponseWriter, r *http.Request, c *Ap
 	return nil
 }
 
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request, c *AppCtx) error {
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	c.ClearUser(w)
 	http.Redirect(w, r, c.Route("home").String(), http.StatusFound)
 	return nil
