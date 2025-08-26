@@ -1,21 +1,27 @@
 // Make button toolbar a construct, like in Bootstrap 3
 // If we don't make this a construct, it will lead to poor inconsistent code
 .btn-group {
-  .btn {
-    background-color: white;
-    border: 1px solid $border;
-    color: $gray-600;
+  &:not(:has(.dropdown-toggle-split)) {
+    .btn {
+      background-color: white;
+      border: 1px solid $border;
+      color: $gray-600;
 
-    &:hover &:focus {
+      &:hover &:focus {
+        background-color: $light-blue !important;
+        box-shadow: none !important;
+      }
+    }
+
+    .active {
       background-color: $light-blue !important;
+      color: $blue !important;
       box-shadow: none !important;
+      border: 1px solid $blue !important;
     }
   }
 
-  .active {
-    background-color: $light-blue !important;
-    color: $blue !important;
-    box-shadow: none !important;
-    border: 1px solid $blue !important;
+  .dropdown-toggle-split {
+    flex-grow: 0;
   }
 }

@@ -2,6 +2,9 @@
   Additions to bootstrap/modal
    ========================================================================== */
 
+$bc-modal-header-height: 6.4rem !default;
+$bc-modal-header-large-height: 8rem !default;
+
 /* Headers/footer
    ========================================================================== */
 
@@ -13,10 +16,14 @@
 }
 
 .modal-header {
-  height: 6.4rem;
+  height: $bc-modal-header-height;
   display: flex;
   align-items: center;
   padding: 0 1.6rem;
+}
+
+.modal-header--large {
+  height: $bc-modal-header-large-height;
 }
 
 .modal-footer > * {
@@ -54,4 +61,15 @@
 .modal-header,
 .modal-footer {
   flex: 0 0 auto;
+}
+
+
+.modal-fullscreen.modal-fullscreen--no-padding {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+
+  .modal-content {
+    border-radius: 0;
+  }
 }

@@ -31,11 +31,11 @@ func AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx], config *ctx.Confi
 	r.Handle("/", b.BindFunc(HomeHandler)).Methods("GET").Name("home")
 	r.Handle("/sse", requireUser.BindFunc(SSEHandler)).Methods("GET").Name("sse")
 	NewAuthHandler(config.Repo, authProvider).AddRoutes(r, b)
-	NewOrganizationHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewPersonHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewProjectHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewWorkHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewFileHandler(config.Store).AddRoutes(r, requireUser)
+	NewOrganizationsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
+	NewPeopleHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
+	NewProjectsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
+	NewWorksHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
+	NewFilesHandler(config.Store).AddRoutes(r, requireUser)
 
 	return nil
 }

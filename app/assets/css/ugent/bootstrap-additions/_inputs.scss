@@ -6,10 +6,11 @@
 .custom-switch {
   min-height: 2.4rem;
 
-  & + .custom-switch {
+  &+.custom-switch {
     margin-top: 1.2rem;
   }
 }
+
 .custom-switch .form-check-label::before {
   height: 2.4rem;
   top: 0;
@@ -23,12 +24,12 @@
   background-color: $white;
 }
 
-.custom-switch .form-check-input:checked ~ .form-check-label::after {
+.custom-switch .form-check-input:checked~.form-check-label::after {
   transform: translateX(1.6rem);
 }
 
-.form-check-input[disabled] ~ .form-check-label::before,
-.form-check-input:disabled ~ .form-check-label::before {
+.form-check-input[disabled]~.form-check-label::before,
+.form-check-input:disabled~.form-check-label::before {
   background-color: $gray-100 !important;
 }
 
@@ -55,4 +56,46 @@
 .form-check-reverse .form-check-label::before {
   right: 0;
   left: auto;
+}
+
+form-check-md-reverse {
+  @include media-breakpoint-down(md) {
+    padding-left: 0;
+
+    .form-check-label::after,
+    .form-check-label::before {
+      right: 0;
+      left: auto;
+    }
+  }
+}
+
+
+.input-group-sm-responsive {
+  @include media-breakpoint-down(sm) {
+    flex-direction: column;
+
+    // First child
+    &:not(.has-validation)> :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating),
+    &:not(.has-validation)>.dropdown-toggle:nth-last-child(n+3),
+    &:not(.has-validation)>.form-floating:not(:last-child)>.form-control,
+    &:not(.has-validation)>.form-floating:not(:last-child)>.form-select {
+      width: 100%;
+      border-top-right-radius: $btn-border-radius;
+      border-bottom-left-radius: 0;
+    }
+
+    // Last child
+    & > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+      width: 100%;
+      border-bottom-right-radius: $btn-border-radius;
+      border-bottom-left-radius: $btn-border-radius;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      margin-left: 0;
+      margin-top: -1px;
+
+    }
+  }
+
 }

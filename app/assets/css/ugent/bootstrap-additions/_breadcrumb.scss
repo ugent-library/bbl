@@ -35,3 +35,34 @@
     text-decoration: underline;
   }
 }
+
+.breadcrumb--display {
+  flex-wrap: wrap;
+  height: auto;
+  gap: 1.2rem;
+  padding-top: 4.8rem;
+
+  .breadcrumb-item {
+    font-size: 1.4rem;
+    line-height: 160%;
+    font-weight: 400;
+    color: $text-muted;
+    padding: 0;
+  }
+
+  .breadcrumb-item a:hover {
+    color: $text;
+  }
+
+  .breadcrumb-item + .breadcrumb-item::before {
+    content: "";
+    height: auto;
+    padding: 0;
+  }
+
+  .breadcrumb-item:not(.active)::after {
+    content: "/";
+    height: auto;
+    padding-left: 1.2rem;
+  }
+}

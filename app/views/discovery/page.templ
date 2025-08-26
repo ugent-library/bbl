@@ -1,0 +1,21 @@
+package discovery
+
+import "github.com/ugent-library/bbl/app/views"
+
+templ Page(c views.Ctx, title string) {
+	<!DOCTYPE html>
+	<html class="u-maximize-height" dir="ltr" lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<link rel="stylesheet" href={ c.AssetPath("/css/app.css") }/>
+			<link rel="icon" href={ c.AssetPath("/images/ugent/favicon.ico") }/>
+			<title>{ title }</title>
+		</head>
+		<body>
+			{ children... }
+			<script type="application/javascript" src={ c.AssetPath("/js/app.js") }></script>
+		</body>
+	</html>
+}

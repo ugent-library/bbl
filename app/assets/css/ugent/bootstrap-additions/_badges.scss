@@ -61,6 +61,12 @@
   height: 2.8rem;
 }
 
+.badge-xl {
+  height: 3.2rem;
+  font-size: 1.4rem;
+  padding: 0.3rem 1.6rem;
+}
+
 // badge-type
 
 .badge-circle {
@@ -196,4 +202,9 @@ a.badge-secondary {
 .badge-outline-dark {
   color: $dark;
   border: 1px solid $dark;
+}
+
+.badge-outline-light {
+  color: $light;
+  border: 1px solid $light;
 }

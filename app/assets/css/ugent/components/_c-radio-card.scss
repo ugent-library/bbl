@@ -3,29 +3,34 @@
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
-  padding: 1.2rem 1.6rem;
   margin: 0;
   font-weight: normal;
+  padding: 0 1.6rem;
 
   &:hover,
   &:focus {
     border-color: $blue;
     box-shadow: 0 0 0 3px $light-blue;
   }
-
-  .form-check-label {
-    height: 2.2rem;
-  }
 }
 
-.c-radio-card--selected {
+.c-radio-card .form-check {
+  width: 100%;
+}
+
+.c-radio-card:has(input[type="radio"]:checked) {
   border-color: $blue;
   box-shadow: 0 0 0 3px $light-blue;
   background-color: $gray-25;
 }
 
-.c-radio-card__radio {
-  margin-right: 1.1rem;
+.c-radio-card_radio {
+  margin: 1.6rem 0;
+}
+
+.c-radio-card_content {
+  padding: 1.2rem 0 1.2rem 0.8rem;
+  width: 100%;
 }
 
 .c-radio-card + .c-radio-card {

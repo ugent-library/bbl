@@ -151,3 +151,55 @@
   background-color: transparent;
   border: 1px dashed $gray-300;
 }
+
+.card.card-responsive {
+  @include media-breakpoint-down(sm) {
+    border: 0;
+    border-radius: 0;
+
+    .card-img-top {
+      border-radius: 0;
+    }
+
+    .card-body {
+      padding:0;
+    }
+  }
+}
+
+a.card--display:hover,
+.card:has(.stretched-link):hover {
+  border-color: $primary;
+}
+
+.cards-wrapper {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+
+.card-img-3x4 {
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  width: 100%;
+  height: auto;
+  object-position: center;
+}
+
+// Carousel card styling for uniform appearance
+.carousel .card {
+  width: 280px;
+  flex-shrink: 0;
+
+  .card-img-top {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+}

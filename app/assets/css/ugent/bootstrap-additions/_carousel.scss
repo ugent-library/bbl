@@ -14,3 +14,54 @@
   padding: 0 3.2rem;
   min-height: 20rem;
 }
+
+// Custom grid carousel
+
+.carousel-card {
+  width: 100vw;
+  max-width: 100%;
+  padding: 0 .5rem;
+  box-sizing: border-box;
+}
+
+.js-carousel {
+  .carousel-inner {
+    overflow: visible;
+  }
+}
+
+.js-carousel-control-prev,
+.js-carousel-control-next {
+  z-index: 1;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  box-shadow: $box-shadow-sm;
+}
+
+.js-carousel-control-prev {
+  left: 1rem;
+}
+
+.js-carousel-control-next {
+  right: 1rem;
+}
+
+@include media-breakpoint-up(md) {
+  .carousel-card {
+    width: 50%;
+  }
+}
+
+@include media-breakpoint-up(lg) {
+  .carousel-card {
+    width: 33.33%;
+  }
+}
+
+@include media-breakpoint-up(xl) {
+  .carousel-card {
+    width: 25%;
+  }
+}

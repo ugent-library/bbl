@@ -8,17 +8,17 @@ import (
 	"github.com/ugent-library/bbl/pgxrepo"
 )
 
-type PersonHandler struct {
+type PeopleHandler struct {
 	repo  *pgxrepo.Repo
 	index bbl.Index
 }
 
-func NewPersonHandler(repo *pgxrepo.Repo, index bbl.Index) *PersonHandler {
-	return &PersonHandler{
+func NewPeopleHandler(repo *pgxrepo.Repo, index bbl.Index) *PeopleHandler {
+	return &PeopleHandler{
 		repo:  repo,
 		index: index,
 	}
 }
 
-func (h *PersonHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *PeopleHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 }

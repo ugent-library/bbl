@@ -8,7 +8,7 @@
 $c-sidebar-width: 8.8rem !default;
 $c-sidebar-width-mobile: 5.6rem !default;
 $c-sidebar-background-color: $blue !default;
-$c-sidebar-color: rgba($white, 0.5) !default;
+$c-sidebar-color: rgba($white, 0.7) !default;
 $c-sidebar-active-background-color: $dark-blue !default;
 $c-sidebar-active-color: $white !default;
 $c-sidebar-hover-background-color: $dark-blue !default;
@@ -41,6 +41,17 @@ $c-sidebar-hover-color: rgba($white, 0.5) !default;
   .c-sidebar__menu .c-sidebar__item a:hover,
   .c-sidebar__menu .c-sidebar__item a:focus {
     background: $dark-gray;
+  }
+}
+
+.c-sidebar--green {
+  background: $green-600;
+
+  .c-sidebar__menu .c-sidebar__item--active a,
+  .c-sidebar__menu .c-sidebar__item a:hover,
+  .c-sidebar__menu .c-sidebar__item a:focus {
+    background: $green-700;
+    color: white !important;
   }
 }
 

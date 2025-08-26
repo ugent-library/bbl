@@ -1,3 +1,15 @@
+// TODO: Keep this part
+
+.toast-header {
+  color: $text;
+
+  i {
+    margin-right: 1.5rem;
+  }
+}
+
+// TODO: Remove this part when weeded out all the improper use of toasts in Biblio, Deliver and depot management
+
 .toast {
   position: relative;
   flex-basis: 0;

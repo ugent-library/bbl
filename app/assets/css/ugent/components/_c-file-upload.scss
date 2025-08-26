@@ -45,6 +45,10 @@
   transition: border-color 0.3s;
 }
 
+.c-file-upload.is-invalid .c-file-upload__content {
+  border-color: $danger;
+}
+
 /* Sizes */
 
 .c-file-upload.c-file-upload--small {

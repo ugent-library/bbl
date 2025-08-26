@@ -1,0 +1,19 @@
+package works
+
+import (
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/app/views/discovery"
+)
+
+templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
+	@discovery.Page(c, "Works") {
+		<ul class="list-group list-group-flush">
+			for _, hit := range hits.Hits {
+				<li class="list-group-item">
+					<span class="list-group-item-title">{ hit.Rec.Title() }</span>
+				</li>
+			}
+		</ul>
+	}
+}

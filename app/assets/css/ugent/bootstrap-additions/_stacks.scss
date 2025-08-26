@@ -27,16 +27,3 @@
     gap: 1.2rem;
   }
 }
-
-.hstack-xl-responsive {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  align-self: stretch;
-
-  @include media-breakpoint-down(xl) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.2rem;
-  }
-}

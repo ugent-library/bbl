@@ -11,6 +11,7 @@ import (
 
 	"github.com/ugent-library/bbl/app/backoffice"
 	"github.com/ugent-library/bbl/app/ctx"
+	"github.com/ugent-library/bbl/app/discovery"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
@@ -57,6 +58,11 @@ func New(config *ctx.Config) (http.Handler, error) {
 	b := bind.New(ctx.Binder(config, router, assets))
 
 	err = backoffice.AddRoutes(router, b, config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = discovery.AddRoutes(router, b, config)
 	if err != nil {
 		return nil, err
 	}

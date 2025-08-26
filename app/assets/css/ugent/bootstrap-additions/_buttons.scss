@@ -14,14 +14,36 @@
   .if {
     position: relative;
     top: 1.5px;
-    font-size: 2rem;
+    font-size: 1.8rem;
     line-height: 1;
+  }
+}
+
+.btn-lg-responsive {
+  @include media-breakpoint-down(lg) {
+    .btn-text {
+      display: none;
+    }
+  }
+}
+
+.btn-lg-only-responsive {
+  @include media-breakpoint-down(xl) {
+    .btn-text {
+      display: none;
+    }
+  }
+
+  @include media-breakpoint-down(lg) {
+    .btn-text {
+      display: inline-block;
+    }
   }
 }
 
 .if + .btn-text,
 .btn-text + .if {
-  margin-left: 0.4rem;
+  margin-left: 0.2rem;
 }
 
 .btn:not(.btn-icon-only):not(.btn-link-p-0):not(.btn-sm):not(.btn-tertiary)
@@ -41,6 +63,12 @@
 .btn-link-p-0 {
   margin-left: 0;
 }
+
+.btn-link--no-padding {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 // Skins
 
 .btn-warning {
@@ -153,6 +181,14 @@
   }
 }
 
+.btn-link-light {
+  color: $white;
+  &:hover,
+  &:focus {
+    color: $gray-50;
+  }
+}
+
 .btn-dark {
   background-color: mix($dark-gray, $white, 80%);
   &:hover,
@@ -160,6 +196,7 @@
     background-color: mix($dark-gray, $white, 75%);
   }
 }
+
 
 // Icon only button
 
@@ -173,8 +210,73 @@
   min-height: 3.2rem;
 }
 
-// Small buttons
+// Large buttons
 
+.btn-lg {
+  line-height: 1.5;
+  font-size: 1.6rem;
+  min-height: 4rem;
+  gap: 1rem;
+
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+
+  &::not(.btn-link--no-padding) {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .if {
+    font-size: 2.4rem;
+    top: 0;
+  }
+}
+
+.btn-lg.btn-icon-only {
+  width: 4rem;
+  height: 4rem;
+  min-width: 4rem;
+  min-height: 4rem;
+}
+
+.btn-xl {
+  line-height: 1.5;
+  font-size: 1.6rem;
+  min-height: 4.8rem;
+  padding-top: 1.2rem;
+  padding-bottom: 1.2rem;
+
+  &::not(.btn-link--no-padding) {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .if {
+    font-size: 2.4rem;
+    top: 0;
+  }
+
+ .if + .btn-text,
+  .btn-text + .if {
+    margin-left: 1rem;
+  }
+
+  @include media-breakpoint-down(sm) {
+    &:not(.btn-icon-only) {
+      padding: 0.8rem 1.6rem;
+    }
+    min-height: 4rem;
+  }
+}
+
+.btn-xl.btn-icon-only {
+  width: 4.8rem;
+  height: 4.8rem;
+  min-width: 4.8rem;
+  min-height: 4.8rem;
+}
+
+// Small buttons
 .btn-sm {
   line-height: 1.5;
   font-size: 1.2rem;
@@ -185,6 +287,34 @@
 }
 
 .btn-sm.btn-icon-only {
+  width: 2.8rem;
+  height: 2.8rem;
+  min-width: 2.8rem;
+  min-height: 2.8rem;
+}
+
+// Extra small buttons
+
+.btn-xs {
+  line-height: 1.2;
+  font-size: 1.2rem;
+  padding: 0.2rem 0.5rem;
+  align-items: center;
+  justify-content: center;
+
+  .if {
+    font-size: 1.4rem;
+    padding-left: 0.5rem;
+    top: 0;
+  }
+}
+
+.nav .btn-xs {
+  margin-top: -3px;
+  margin-left: 1.5rem;
+}
+
+.btn-xs.btn-icon-only {
   width: 2.8rem;
   height: 2.8rem;
   min-width: 2.8rem;
@@ -310,12 +440,14 @@
 .btn-info {
   --bs-btn-color: #fff;
   --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
 }
 
 .btn-secondary,
 .btn-light {
   --bs-btn-color: #{$gray-700};
   --bs-btn-hover-color: #{$gray-800};
+  --bs-btn-focus-color: #{$gray-800};
 }
 
 .btn[data-bs-toggle="collapse"][aria-expanded="true"] .if-chevron-down,

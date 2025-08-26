@@ -1,0 +1,43 @@
+@font-face {
+  font-family: 'panno-text';
+  src: url('../fonts/panno-text/ugentpannotext-normal-web.eot'); /* IE9 Compat Modes */
+  src: url('../fonts/panno-text/ugentpannotext-normal-web.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('../fonts/panno-text/ugentpannotext-normal-web.woff') format('woff'), /* Modern Browsers */
+       url('../fonts/panno-text/ugentpannotext-normal-web.ttf') format('truetype'); /* Safari, Android, iOS */
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'panno-text';
+  src: url('../fonts/panno-text/ugentpannotext-medium-web.eot');
+  src: url('../fonts/panno-text/ugentpannotext-medium-web.eot?#iefix') format('embedded-opentype'),
+       url('../fonts/panno-text/ugentpannotext-medium-web.woff') format('woff'),
+       url('../fonts/panno-text/ugentpannotext-medium-web.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'panno-text';
+  src: url('../fonts/panno-text/ugentpannotext-semibold-web.eot');
+  src: url('../fonts/panno-text/ugentpannotext-semibold-web.eot?#iefix') format('embedded-opentype'),
+       url('../fonts/panno-text/ugentpannotext-semibold-web.woff') format('woff'),
+       url('../fonts/panno-text/ugentpannotext-semibold-web.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'panno-text';
+  src: url('../fonts/panno-text/ugentpannotext-semilight-web.eot');
+  src: url('../fonts/panno-text/ugentpannotext-semilight-web.eot?#iefix') format('embedded-opentype'),
+       url('../fonts/panno-text/ugentpannotext-semilight-web.woff') format('woff'),
+       url('../fonts/panno-text/ugentpannotext-semilight-web.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}

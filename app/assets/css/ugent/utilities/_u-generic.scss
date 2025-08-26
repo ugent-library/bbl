@@ -66,8 +66,12 @@
   z-index: auto;
 }
 
-.u-max-w-720 {
+.u-max-w-72 {
   max-width: 72rem;
+}
+
+.u-max-w-90 {
+  max-width: 90rem;
 }
 
 .u-smooth-scroll {
@@ -88,4 +92,20 @@
 
 .u-min-w-auto {
   min-width: auto;
+}
+
+.u-max-h-25 {
+  max-height: 25rem;
+}
+
+.u-max-h-45 {
+  max-height: 45rem;
+}
+
+.u-object-position-bottom-center {
+  object-position: bottom center;
+}
+
+.u-max-w-xxl {
+  max-width: 137.6rem;
 }

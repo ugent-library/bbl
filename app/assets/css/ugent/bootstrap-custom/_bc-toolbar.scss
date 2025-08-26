@@ -1,10 +1,10 @@
 /* ==========================================================================
-bc-toolbar
-Toolbar
-========================================================================== */
+  bc-toolbar
+  Toolbar
+   ========================================================================== */
 
 /* Variables
-========================================================================== */
+   ========================================================================== */
 
 $bc-toolbar-sm-height: 4.8rem !default;
 $bc-toolbar-height: 5.6rem !default;
@@ -41,7 +41,7 @@ $bc-toolbar-height: 5.6rem !default;
 }
 
 /* Bordered variants
-  ========================================================================== */
+   ========================================================================== */
 
 .bc-toolbar--bordered-top {
   border-top: 0.1rem solid $border;
@@ -188,15 +188,12 @@ $bc-toolbar-height: 5.6rem !default;
 .bc-toolbar-lg-responsive {
   @include media-breakpoint-down(lg) {
     height: auto;
-    flex-direction: column;
+    flex-direction: column-reverse;
     padding: 0.8rem 0;
+
     .bc-toolbar-left,
     .bc-toolbar-right {
       width: 100%;
-    }
-
-    .bc-toolbar-right {
-      justify-content: flex-start;
     }
   }
 }
@@ -204,16 +201,49 @@ $bc-toolbar-height: 5.6rem !default;
 .bc-toolbar-md-responsive {
   @include media-breakpoint-down(md) {
     height: auto;
-    flex-direction: column;
+    flex-direction: column-reverse;
     padding: 0.8rem 0;
 
     .bc-toolbar-left,
     .bc-toolbar-right {
       width: 100%;
     }
+  }
+}
 
+.bc-toolbar-sm-responsive {
+  @include media-breakpoint-down(sm) {
+    height: auto;
+    flex-direction: column-reverse;
+    padding: 0.8rem 0;
+
+    .bc-toolbar-left,
     .bc-toolbar-right {
-      justify-content: flex-start;
+      width: 100%;
     }
   }
+}
+
+
+.bc-toolbar-responsive-simple {
+  @include media-breakpoint-down(lg) {
+    height: auto;
+    flex-direction: column;
+    padding: 1.6rem 0;
+    gap: 2.4rem;
+    align-items: start;
+
+    .bc-toolbar-left,
+    .bc-toolbar-right {
+      align-items: start;
+      justify-content: start;
+      width: 100%;
+      gap: 2rem;
+    }
+
+    .bc-toolbar-item + .bc-toolbar-item {
+      padding-left: 0;
+    }
+  }
+
 }

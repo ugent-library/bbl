@@ -14,7 +14,7 @@ $c-sub-sidebar-hover-background-color: $gray-100 !default;
 $c-sub-sidebar-hover-color: $text !default;
 
 /* Component
-    ========================================================================== */
+   ========================================================================== */
 
 .c-sub-sidebar-responsive-wrapper {
   display: flex;
@@ -43,12 +43,32 @@ $c-sub-sidebar-hover-color: $text !default;
   background: $gray-25;
 }
 
+.c-sub-sidebar--medium {
+  width: 28rem;
+  min-width: 28rem;
+}
+
 .c-sub-sidebar--large {
   width: 32rem;
   min-width: 32rem;
 }
 
+.c-sub-sidebar--xlarge {
+  width: 40rem;
+  min-width: 40rem;
+}
+
+.c-sub-sidebar--extralarge {
+  width: 48rem;
+  min-width: 48rem;
+}
+
 .c-sub-sidebar--small {
+  width: 5.6rem;
+  min-width: 5.6rem;
+}
+
+.c-sub-sidebar--icons {
   width: 5.6rem;
   min-width: 5.6rem;
 }

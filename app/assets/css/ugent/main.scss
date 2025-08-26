@@ -4,6 +4,7 @@
 @import "_icon-font";
 @import "_icon-font-additions";
 @import "_br-variables-override";
+@import "_fonts.scss";
 
 /* Bootstrap upgrade (todo organise into file)
    ========================================================================== */
@@ -13,8 +14,7 @@
 
 // Optional variable overrides here
 $custom-color: #1e64c8;
-$custom-theme-colors: (
-  "custom": $custom-color,
+$custom-theme-colors: ("custom": $custom-color,
 );
 
 // Variables come next
@@ -195,7 +195,7 @@ ol {
   }
 }
 
-.ratio > * {
+.ratio>* {
   position: absolute;
   object-fit: cover;
   top: 0;
@@ -204,10 +204,250 @@ ol {
   height: 100%;
 }
 
-.ratio-21x9 {
+/*
+.ratio-16x9 {
   --bs-aspect-ratio: 42.8571428571%;
+}*/
+
+.facets {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  column-gap: 0;
+  row-gap: 4px;
+
+  .facet-title {
+    @extend .c-label;
+
+    grid-column: 1 / -1;
+
+    &:not(:first-child) {
+      margin-top: 10px;
+    }
+  }
+
+  .facet-check {
+    grid-column: 1 / 1;
+    margin-right: 6px;
+  }
+
+  .facet-count {
+    @extend .text-end;
+    @extend .text-muted;
+    @extend .small;
+  }
+
+  .facet-help {
+    @extend .text-muted;
+    @extend .text-truncate;
+    @extend .small;
+
+    grid-column: 2 / -1;
+    margin-top: -6px;
+  }
+
+  .facet-separator {
+    grid-column: 1 / -1;
+  }
 }
 
 .shame-sequence {
   display: none;
+}
+
+
+/* Hour list
+   ========================================================================== */
+.c-hour-list {
+  padding: 0;
+
+  li {
+    list-style-type: none;
+  }
+
+  .c-hour-list-item {
+    display: flex;
+    gap: 1.6rem;
+    color: $text-muted;
+    padding: 1.2rem 0.4rem;
+
+
+    @include media-breakpoint-up(sm) {
+      padding: 1.2rem 1.2rem;
+    }
+
+    @include media-breakpoint-up(lg) {
+      padding: 1.6rem 1.2rem;
+    }
+  }
+
+  .c-hour-list-item+.c-hour-list-item {
+    border-top: 1px solid $border;
+  }
+
+  .c-hour-list-header {
+    padding: 1.2rem 0.4rem;
+    border-bottom: 2px solid $border;
+
+    @include media-breakpoint-up(sm) {
+      padding: 0.8rem 1.2rem;
+    }
+
+  }
+
+  .c-hour-list-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    flex-grow: 1;
+
+    @include media-breakpoint-up(sm) {
+      flex-direction: row;
+    }
+  }
+
+  .c-hour-list-item-day {
+    width: 100px;
+  }
+
+  .c-hour-list-item-hours {
+    display: flex;
+    align-items: center;
+  }
+
+  .c-hour-list-item.current {
+    color: $text;
+  }
+
+  .c-hour-list-item.active {
+    color: $header;
+    background-color: $gray-50;
+  }
+}
+
+
+/* Hero
+   ========================================================================== */
+.c-hero {
+  background-image: url("../images/hero-image.jpg");
+  background-size: cover;
+  padding: 9.6rem 4.8rem;
+  min-height: 72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @include media-breakpoint-down(lg) {
+    padding: 7.2rem 1.6rem;
+    min-height: 56rem;
+  }
+
+  @include media-breakpoint-down(md) {
+    padding: 4.8rem 1.6rem;
+    min-height: 56rem;
+  }
+}
+
+.c-hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4.8rem;
+  overflow: hidden;
+  max-width: 90rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+
+/* Status dot
+   ========================================================================== */
+
+.c-status-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  display: block;
+  border-radius: 100%;
+}
+
+.c-status-dot--warning {
+  background: $warning;
+}
+
+.c-status-dot--success {
+  background: $success;
+}
+
+.c-status-dot--danger {
+  background: $danger;
+}
+
+/* Socials
+   ========================================================================== */
+.c-socials {
+  display: flex;
+  gap: 1.6rem;
+  list-style-type: none;
+  padding: 0;
+}
+
+/* Footer
+   ========================================================================== */
+
+.c-footer {
+  min-height: 8rem;
+  border-top: 1px solid $border;
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 0;
+}
+
+/* Footer
+   ========================================================================== */
+
+.c-global-banner {
+  background: $primary;
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+  min-height: 4.8rem;
+  padding: 1.2rem 1.6rem;
+
+  @include media-breakpoint-down(sm) {
+    flex-direction: column;
+    align-items: start;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+
+    .btn {
+      align-self: start;
+    }
+  }
+
+  @include media-breakpoint-up(sm) {
+    padding-left: 2.4rem;
+    padding-right: 2.4rem;
+  }
+
+  @include media-breakpoint-up(md) {
+    padding-left: 3.2rem;
+    padding-right: 3.2rem;
+  }
+
+  .c-global-banner__title {
+    color: #FFF;
+    font-weight: 500;
+    font-size: 1.4rem;
+  }
+
+  .c-global-banner__content {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    flex-wrap: wrap;
+
+    > * {
+      color: #FFF;
+    }
+  }
+
 }
