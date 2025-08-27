@@ -31,46 +31,59 @@ func Page(c views.Ctx, title string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html class=\"u-maximize-height\" dir=\"ltr\" lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><link rel=\"stylesheet\" href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html dir=\"ltr\" lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var2 templ.SafeURL
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(c.AssetPath("/css/app.css"))
+		var templ_7745c5c3_Var2 string
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 12, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 11, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><link rel=\"icon\" href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"stylesheet\" href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 templ.SafeURL
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(c.AssetPath("/images/ugent/favicon.ico"))
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(c.AssetPath("/css/app.css"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 13, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 12, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><link rel=\"icon\" href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(title)
+		var templ_7745c5c3_Var4 templ.SafeURL
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(c.AssetPath("/images/ugent/favicon.ico"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 14, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 13, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</title></head><body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></head><body><div class=\"d-flex flex-column min-vh-100 c-body-large\"><div class=\"c-global-banner c-body\"><div class=\"c-global-banner__content\"><div class=\"d-inline-flex flex-wrap align-items-baseline gap-5\"><span class=\"badge badge-lg rounded-pill badge-outline-light flex-shrink-0\">Nieuw</span><h4 class=\"c-global-banner__title\">Volledig vernieuwde website en bibliotheekdiensten</h4></div><p>Er zijn veel bijkomende diensten, zoals het gelijktijdig zoeken in bibliotheekcollecties en databanken.</p></div><a class=\"btn btn-link btn-link-light btn-link--no-padding\" href=\"#\"><span>Meer info</span> <i class=\"if if-arrow-right\"></i></a></div><header><!-- Lib header--><div class=\"bc-navbar bc-navbar--small bc-navbar--bordered-bottom bc-navbar--white bc-navbar--xlarge shadow-sm px-5 px-md-6\"><!-- Left--><div class=\"bc-toolbar h-auto\"><div class=\"bc-toolbar-left\"><!-- Mobile menu (hidden on desktop)--><div class=\"bc-toolbar-item d-md-none\"><button class=\"btn btn-link btn-icon-only btn-lg\" data-bs-toggle=\"modal\" data-bs-target=\"#mobileNav\"><i class=\"if if-menu\"></i></button></div><div class=\"bc-toolbar-item\"><a href=\"#\"><img src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.AssetPath("/images/ugent/logo-ugent-boekentoren-color.svg"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 44, Col: 82}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" alt=\"Ghent University Library\" height=\"35\"></a></div><!-- Desktop menu (hidden on mobile)--><div class=\"bc-toolbar-item d-none d-md-flex\"><nav><ul class=\"nav nav-display\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Home</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Bibliotheken</a></li><li class=\"nav-item active\"><a class=\"nav-link\" href=\"#\">Collecties</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Diensten</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Info</a></li></ul></nav></div></div><!-- Right--><div class=\"bc-toolbar-right\"><div class=\"bc-toolbar-item\"><ul class=\"nav nav-display\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\"><i class=\"if if-search\"></i> <span class=\"d-none d-lg-flex\">Zoeken in collectie</span></a></li><li class=\"nav-item d-none d-lg-flex\"><a class=\"nav-link\" href=\"#\">Mijn bibliotheek</a></li><li class=\"nav-item\"><!-- Desktop language switcher (dropdown)--><div class=\"dropdown d-none d-lg-flex\"><button class=\"nav-link dropdown-toggle\" type=\"button\" data-bs-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\"><i class=\"if if-global\"></i> <span>NL</span></button><div class=\"dropdown-menu\"><a class=\"dropdown-item\" href=\"#\">Nederlands</a> <a class=\"dropdown-item active\" href=\"#\">English</a></div></div><!-- Mobile language switcher (modal)--><button class=\"nav-link d-lg-none\" data-bs-toggle=\"modal\" data-bs-target=\"#mobileLanguageSwitcher\"><span>NL</span></button></li></ul></div></div></div></div><!-- Mobile menu expanded (overlay)--><div class=\"modal\" id=\"mobileNav\" tabindex=\"-1\" role=\"dialog\"><div class=\"modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen modal-fullscreen--no-padding\" role=\"document\"><div class=\"modal-content\"><div class=\"modal-header h-auto border-bottom-0 mt-7 px-4\"><div class=\"bc-toolbar h-auto\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><button class=\"btn btn-link btn-xl\" type=\"button\" data-bs-dismiss=\"modal\" aria-label=\"Close\"><i class=\"if if-close\"></i></button></div></div></div></div><div class=\"modal-body p-5\"><nav aria-label=\"breadcrumb\"><ul class=\"nav nav-display-mobile\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Home</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Bibliotheken</a></li><li class=\"nav-item active\"><a class=\"nav-link\" href=\"#\">Collecties</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Diensten</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Info</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"#\">Mijn bibliotheek</a></li></ul></nav></div></div></div></div><!-- Language switcher expanded (overlay)--><div class=\"modal\" id=\"mobileLanguageSwitcher\" tabindex=\"-1\" role=\"dialog\"><div class=\"modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen modal-fullscreen--no-padding\" role=\"document\"><div class=\"modal-content\"><div class=\"modal-header h-auto border-bottom-0 mt-7 px-4\"><div class=\"bc-toolbar h-auto\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><button class=\"btn btn-link btn-xl\" type=\"button\" data-bs-dismiss=\"modal\" aria-label=\"Close\"><i class=\"if if-close\"></i></button></div></div></div></div><div class=\"modal-body p-5\"><nav aria-label=\"breadcrumb\"><ul class=\"nav nav-display-mobile\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Nederlands</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">English</a></li></ul></nav></div></div></div></div></header><main class=\"bg-white flex-grow-1\"><div class=\"c-display-container\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -78,20 +91,33 @@ func Page(c views.Ctx, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<script type=\"application/javascript\" src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></main><footer><div class=\"py-9 border-top\"><div class=\"c-display-container\"><div class=\"container\"><div class=\"row row-cols-1 row-cols-md-2 row-cols-lg-4 g-9\"><div class=\"col\"><a href=\"ugent.be\" target=\"_blank\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.AssetPath("/js/app.js"))
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.AssetPath("/images/ugent/logo-ugent.svg"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 18, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 190, Col: 65}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" alt=\"Ghent University\" height=\"80\"></a></div><div class=\"col\"><nav><h4 class=\"nav-title\">Online diensten</h4><ul class=\"nav nav-doormat\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Scanaanvraag</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Digitale reproductie</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Reserveren en verlengen</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Ontlenen bij andere bibliotheek</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Bruikleenaanvraag erfgoedcollecties</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Open data</a></li></ul></nav></div><div class=\"col\"><nav><h4 class=\"nav-title\">Diensten in de bibliotheek</h4><ul class=\"nav nav-doormat\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Inschrijven</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Inkijken</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Ontlenen</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Studieplekken</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Groepswerkplekken</a></li></ul></nav></div><div class=\"col\"><div class=\"mb-6\"><h4 class=\"nav-title\">Contact</h4><div class=\"d-flex align-items-center gap-3\"><div class=\"c-status-dot c-status-dot--danger\"></div><span class=\"text-muted\">Live chat offline</span></div></div><nav><ul class=\"nav nav-doormat\"><li class=\"nav-item\"><a class=\"c-link c-link--no-underline\" href=\"mailto:libservice@ugent.be\">libservice@ugent.be</a></li><li class=\"nav-item\"><span>+32 9 264 94 55</span></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Adressen &amp; Openingsuren</a></li></ul></nav></div></div></div></div></div><div class=\"c-footer\"><div class=\"c-display-container\"><div class=\"bc-toolbar bc-toolbar-responsive-simple c-body\"><div class=\"bc-toolbar-left\"><div class=\"bc-toolbar-item\"><div class=\"d-flex align-items-center gap-3\"><div class=\"c-status-dot c-status-dot--danger\"></div><span class=\"text-muted\">Je bent niet verbonden met het UGent netwerk</span></div></div></div><div class=\"bc-toolbar-right flex-column flex-lg-row gap-4\"><div class=\"bc-toolbar-item\"><ul class=\"nav nav-footer\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Privacy</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Disclaimer</a></li><li class=\"nav-item\"><a class=\"nav-link\" href=\"/\">Cookies</a></li></ul></div><div class=\"bc-toolbar-item\"><p class=\"text-muted\">2025 Universiteitsbibliotheek Gent</p></div></div></div></div></div></footer></div><script type=\"application/javascript\" src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.AssetPath("/js/app.js"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/discovery/page.templ`, Line: 300, Col: 72}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

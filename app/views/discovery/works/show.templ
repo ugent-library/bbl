@@ -3,11 +3,11 @@ package works
 import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
-	"github.com/ugent-library/bbl/app/views/backoffice"
+	"github.com/ugent-library/bbl/app/views/discovery"
 )
 
 templ Show(c views.Ctx, rec *bbl.Work) {
-	@backoffice.Page(c, "Work") {
+	@discovery.Page(c, "Work") {
 		{ rec.Title() }
 	}
 }

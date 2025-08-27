@@ -11,7 +11,9 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 		<ul class="list-group list-group-flush">
 			for _, hit := range hits.Hits {
 				<li class="list-group-item">
-					<span class="list-group-item-title">{ hit.Rec.Title() }</span>
+					<a href={ c.SafeRoute("discovery_work", "id", hit.Rec.ID) }>
+						<span class="list-group-item-title">{ hit.Rec.Title() }</span>
+					</a>
 				</li>
 			}
 		</ul>

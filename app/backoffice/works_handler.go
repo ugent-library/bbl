@@ -28,15 +28,6 @@ type WorkCtx struct {
 	Work *bbl.Work
 }
 
-func RequireCanViewWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
-	return bind.HandlerFunc[*WorkCtx](func(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-		if can.ViewWork(c.User, c.Work) {
-			return next.ServeHTTP(w, r, c)
-		}
-		return httperror.Forbidden
-	})
-}
-
 func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
 	return bind.HandlerFunc[*WorkCtx](func(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 		if can.EditWork(c.User, c.Work) {
@@ -112,7 +103,6 @@ func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx])
 	r.Handle("/works", workStateBinder.BindFunc(h.Create)).Methods("POST").Name("create_work")
 	r.Handle("/works/batch/edit", b.BindFunc(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
 	r.Handle("/works/batch", b.BindFunc(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
-	r.Handle("/works/{id}", workBinder.With(RequireCanViewWork).BindFunc(h.Show)).Methods("GET").Name("work")
 	r.Handle("/works/{id}/_changes", workBinder.BindFunc(h.Changes)).Methods("GET").Name("work_changes")
 	r.Handle("/works/{id}/edit", workBinder.With(RequireCanEditWork).BindFunc(h.Edit)).Methods("GET").Name("edit_work")
 	r.Handle("/works/{id}", workStateBinder.BindFunc(h.Update)).Methods("POST").Name("update_work")
@@ -174,10 +164,6 @@ func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchC
 		Text:         "You will be notified when your export is ready.",
 		DismissAfter: 5 * time.Second,
 	}))
-}
-
-func (h *WorksHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
-	return works.Show(c.ViewCtx(), c.Work).Render(r.Context(), w)
 }
 
 func (h *WorksHandler) New(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {

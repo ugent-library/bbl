@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,6 +14,11 @@ import (
 type SearchWorksCtx struct {
 	*ctx.Ctx
 	Opts *bbl.SearchOpts
+}
+
+type WorkCtx struct {
+	*ctx.Ctx
+	Work *bbl.Work
 }
 
 func SearchWorksBinder(r *http.Request, c *ctx.Ctx) (*SearchWorksCtx, error) {
@@ -43,7 +49,7 @@ func SearchWorksBinder(r *http.Request, c *ctx.Ctx) (*SearchWorksCtx, error) {
 
 	searchCtx.Opts.AddFilters(bbl.Terms("status", "public"))
 
-	return searchCtx, b.Err()
+	return searchCtx, errors.New("STOOOOOOOOP")
 }
 
 type WorksHandler struct {
@@ -58,8 +64,19 @@ func NewWorksHandler(index bbl.Index) *WorksHandler {
 
 func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
 	searchBinder := bind.Derive(b, SearchWorksBinder)
+	workBinder := bind.Derive(b, h.WorkBinder)
 
 	r.Handle("/works", searchBinder.BindFunc(h.Search)).Methods("GET").Name("discovery_works")
+	r.Handle("/works/{id}", workBinder.BindFunc(h.Show)).Methods("GET").Name("discovery_work")
+
+}
+
+func (h *WorksHandler) WorkBinder(r *http.Request, c *ctx.Ctx) (*WorkCtx, error) {
+	work, err := h.index.Works().Get(r.Context(), mux.Vars(r)["id"])
+	if err != nil {
+		return nil, err
+	}
+	return &WorkCtx{Ctx: c, Work: work}, nil
 }
 
 func (h *WorksHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchWorksCtx) error {
@@ -69,4 +86,8 @@ func (h *WorksHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchW
 	}
 
 	return works.Search(c.ViewCtx(), hits).Render(r.Context(), w)
+}
+
+func (h *WorksHandler) Show(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
+	return works.Show(c.ViewCtx(), c.Work).Render(r.Context(), w)
 }

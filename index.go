@@ -19,6 +19,7 @@ type Index interface {
 
 type RecIndex[T Rec] interface {
 	Add(context.Context, T) error
+	Get(context.Context, string) (T, error)
 	Search(context.Context, *SearchOpts) (*RecHits[T], error)
 	NewSwitcher(context.Context) (RecIndexSwitcher[T], error)
 }

@@ -170,6 +170,32 @@ func (idx *recIndex[T]) Add(ctx context.Context, rec T) error {
 	return nil
 }
 
+// TODO ErrNotFound
+func (idx *recIndex[T]) Get(ctx context.Context, id string) (T, error) {
+	var src struct {
+		Rec T `json:"rec"`
+	}
+
+	res, err := idx.client.Document.Get(ctx, opensearchapi.DocumentGetReq{
+		Index:      idx.alias,
+		DocumentID: id,
+		Params: opensearchapi.DocumentGetParams{
+			SourceIncludes: []string{"rec"},
+		},
+	})
+
+	if err != nil {
+		if res.Inspect().Response.StatusCode == 404 {
+			return src.Rec, bbl.ErrNotFound
+		}
+		return src.Rec, err
+	}
+
+	err = json.Unmarshal(res.Source, &src)
+
+	return src.Rec, err
+}
+
 func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.RecHits[T], error) {
 	query := `{
 		"bool": {
@@ -248,6 +274,9 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 					if tf, ok := filter.(*bbl.TermsFilter); ok {
 						if tf.Field == key {
 							jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
+							if err != nil {
+								return nil, err
+							}
 							break
 						}
 					}
@@ -255,6 +284,9 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 			}
 
 			facets, err = sjson.SetRaw(facets, key, jFacet)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		aggs = `
