@@ -1,25 +1,31 @@
 # bbl
 
-## goals of this experiment
+## improvements compared to the old biblio ecosystem
 
-In no particular order:
+* combines the whole biblio ecosystem in one small binary (authorities, backoffice, discovery, oai, api's, ...)
+* split generic (bbl) and ugent specific parts (biblio)
+* rich and consistent database model for all entities and their relations (works, work representations, files, projects, organizations, people, users)
+* work types, fields used are configurable
+* detailed change history for all entities
+* handle duplicate people records robustly
+* job engine for long running or recurring tasks (gathering candidate works, large exports, ...)
+* remove limits on import, export, upload and download sizes
+* direct to s3 uploads and downloads
+* seamless index switching
+* own query language
+* avoid deep paging with cursors/search after
+* push notifications to users and api's
 
-* define an easy to use data access and mesaging layer √
-* define a model structure that avoids the duplication we have now √
-* land on better administrative and public api's (with openapi)
-* generate/run public discovery website from the same codebase that runs the backoffice
-* better search, own query language
-* (re)index pipeline √
-* runtime index switching √
-* use opensearch versioning √
-* avoid deep paging √
-* split people and users
-* api user permissions (jwt)
-* store affiliation duration
-* configure http caching correctly
-* representations/citations table √
-* integrate oai √
-* integrate citeproc
-* maintain fewer support libraries
-* strongly typed translations
-* key rotation
+## support libraries developed
+
+* bind
+* catbird
+* vo
+* tonga
+* oaipmh
+* opensearchswitcher
+* muxurl
+
+## to be decided
+
+* support resumable file uploads and side loading via tus.io

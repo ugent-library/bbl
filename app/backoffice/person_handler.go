@@ -20,5 +20,5 @@ func NewPeopleHandler(repo *pgxrepo.Repo, index bbl.Index) *PeopleHandler {
 	}
 }
 
-func (h *PeopleHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *PeopleHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 }

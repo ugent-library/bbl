@@ -7,7 +7,7 @@ services:
       PORT: 3350
       CLIENT_ID: bbl
       CLIENT_SECRET: bbl
-      REDIRECT_URI: http://localhost:3000/auth/callback
+      REDIRECT_URI: http://localhost:3000/backoffice/auth/callback
 
   postgres:
     image: postgres:16-alpine

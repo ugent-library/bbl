@@ -75,7 +75,7 @@ func (h *WorksHandler) WorkStateBinder(r *http.Request, c *ctx.Ctx) (*WorkCtx, e
 	return &WorkCtx{Ctx: c, Work: &rec}, nil
 }
 
-func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 	searchBinder := bind.Derive(b, SearchBinder)
 	workBinder := bind.Derive(b, h.WorkBinder)
 	workStateBinder := bind.Derive(b, h.WorkStateBinder)

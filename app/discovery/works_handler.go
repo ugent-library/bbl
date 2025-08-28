@@ -62,7 +62,7 @@ func NewWorksHandler(index bbl.Index) *WorksHandler {
 	}
 }
 
-func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 	searchBinder := bind.Derive(b, SearchWorksBinder)
 	workBinder := bind.Derive(b, h.WorkBinder)
 

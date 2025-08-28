@@ -28,7 +28,7 @@ func NewAuthHandler(repo *pgxrepo.Repo, provider AuthProvider) *AuthHandler {
 	}
 }
 
-func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 	r.Handle("/login", b.BindFunc(h.Login)).Methods("GET").Name("login")
 	r.Handle("/auth/callback", b.BindFunc(h.AuthCallback)).Methods("GET")
 	r.Handle("/logout", b.BindFunc(h.Logout)).Methods("GET").Name("logout")

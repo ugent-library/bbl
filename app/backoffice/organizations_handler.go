@@ -20,5 +20,5 @@ func NewOrganizationsHandler(repo *pgxrepo.Repo, index bbl.Index) *Organizations
 	}
 }
 
-func (h *OrganizationsHandler) AddRoutes(router *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *OrganizationsHandler) AddRoutes(router *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 }

@@ -20,5 +20,5 @@ func NewProjectsHandler(repo *pgxrepo.Repo, index bbl.Index) *ProjectsHandler {
 	}
 }
 
-func (h *ProjectsHandler) AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx]) {
+func (h *ProjectsHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/ugent-library/oidc"
 )
 
-func AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx], config *ctx.Config) error {
+func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) error {
 	r = r.PathPrefix("/backoffice/").Subrouter()
 
 	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{

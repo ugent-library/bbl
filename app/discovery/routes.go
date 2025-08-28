@@ -6,7 +6,7 @@ import (
 	"github.com/ugent-library/bbl/bind"
 )
 
-func AddRoutes(r *mux.Router, b *bind.HandlerBinder[*ctx.Ctx], config *ctx.Config) error {
+func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) error {
 	NewWorksHandler(config.Index).AddRoutes(r, b)
 
 	return nil
