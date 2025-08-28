@@ -29,3 +29,10 @@
 ## to be decided
 
 * support resumable file uploads and side loading via tus.io
+
+## dependencies
+
+* postgres
+* opensearch
+* s3 compatible store
+* oidc provider
