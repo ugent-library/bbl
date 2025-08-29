@@ -28,6 +28,47 @@ type WorkCtx struct {
 	Work *bbl.Work
 }
 
+type SearchWorksCtx struct {
+	*ctx.Ctx
+	Scope string
+	Opts  *bbl.SearchOpts
+}
+
+func SearchWorksBinder(r *http.Request, c *ctx.Ctx) (*SearchWorksCtx, error) {
+	searchCtx := &SearchWorksCtx{
+		Ctx: c,
+		Opts: &bbl.SearchOpts{
+			Size:   20,
+			Facets: []string{"kind", "status"},
+		},
+	}
+	if can.Curate(c.User) {
+		searchCtx.Scope = "curator"
+	} else {
+		searchCtx.Scope = "contributor"
+	}
+
+	b := bind.Request(r).
+		Form().
+		Vacuum().
+		String("scope", &searchCtx.Scope).
+		String("q", &searchCtx.Opts.Query).
+		Int("size", &searchCtx.Opts.Size).
+		Int("from", &searchCtx.Opts.From).
+		String("cursor", &searchCtx.Opts.Cursor)
+	if err := b.Err(); err != nil {
+		return searchCtx, err
+	}
+
+	for _, field := range searchCtx.Opts.Facets {
+		if b.Has(field) {
+			searchCtx.Opts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
+		}
+	}
+
+	return searchCtx, b.Err()
+}
+
 func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
 	return bind.HandlerFunc[*WorkCtx](func(w http.ResponseWriter, r *http.Request, c *WorkCtx) error {
 		if can.EditWork(c.User, c.Work) {
@@ -76,39 +117,39 @@ func (h *WorksHandler) WorkStateBinder(r *http.Request, c *ctx.Ctx) (*WorkCtx, e
 }
 
 func (h *WorksHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
-	searchBinder := bind.Derive(b, SearchBinder)
+	searchBinder := bind.Derive(b, SearchWorksBinder)
 	workBinder := bind.Derive(b, h.WorkBinder)
 	workStateBinder := bind.Derive(b, h.WorkStateBinder)
 
-	r.Handle("/works", searchBinder.BindFunc(h.Search)).Methods("GET").Name("works")
-	r.Handle("/works/export", searchBinder.BindFunc(h.Export)).Methods("POST").Name("export_works")
-	r.Handle("/works/new", b.BindFunc(h.New)).Methods("GET").Name("new_work")
-	r.Handle("/works/_change_kind", workStateBinder.BindFunc(h.ChangeKind)).Methods("POST").Name("work_change_kind")
-	r.Handle("/works/_add_identifier", workStateBinder.BindFunc(h.AddIdentifier)).Methods("POST").Name("work_add_identifier")
-	r.Handle("/works/_remove_identifier", workStateBinder.BindFunc(h.RemoveIdentifier)).Methods("POST").Name("work_remove_identifier")
-	r.Handle("/works/_suggest_contributor", b.BindFunc(h.SuggestContributor)).Methods("GET").Name("work_suggest_contributor")
-	r.Handle("/works/_add_contributor", workStateBinder.BindFunc(h.AddContributor)).Methods("POST").Name("work_add_contributor")
-	r.Handle("/works/_edit_contributor", workStateBinder.BindFunc(h.EditContributor)).Methods("POST").Name("work_edit_contributor")
-	r.Handle("/works/_remove_contributor", workStateBinder.BindFunc(h.RemoveContributor)).Methods("POST").Name("work_remove_contributor")
-	r.Handle("/works/_add_files", workStateBinder.BindFunc(h.AddFiles)).Methods("POST").Name("work_add_files")
-	r.Handle("/works/_remove_file", workStateBinder.BindFunc(h.RemoveFile)).Methods("POST").Name("work_remove_file")
-	r.Handle("/works/_add_title", workStateBinder.BindFunc(h.AddTitle)).Methods("POST").Name("work_add_title")
-	r.Handle("/works/_remove_title", workStateBinder.BindFunc(h.RemoveTitle)).Methods("POST").Name("work_remove_title")
-	r.Handle("/works/_add_abstract", workStateBinder.BindFunc(h.AddAbstract)).Methods("POST").Name("work_add_abstract")
-	r.Handle("/works/_edit_abstract", workStateBinder.BindFunc(h.EditAbstract)).Methods("POST").Name("work_edit_abstract")
-	r.Handle("/works/_remove_abstract", workStateBinder.BindFunc(h.RemoveAbstract)).Methods("POST").Name("work_remove_abstract")
-	r.Handle("/works/_add_lay_summary", workStateBinder.BindFunc(h.AddLaySummary)).Methods("POST").Name("work_add_lay_summary")
-	r.Handle("/works/_edit_lay_summary", workStateBinder.BindFunc(h.EditLaySummary)).Methods("POST").Name("work_edit_lay_summary")
-	r.Handle("/works/_remove_lay_summary", workStateBinder.BindFunc(h.RemoveLaySummary)).Methods("POST").Name("work_remove_lay_summary")
-	r.Handle("/works", workStateBinder.BindFunc(h.Create)).Methods("POST").Name("create_work")
-	r.Handle("/works/batch/edit", b.BindFunc(h.BatchEdit)).Methods("GET").Name("batch_edit_works")
-	r.Handle("/works/batch", b.BindFunc(h.BatchUpdate)).Methods("POST").Name("batch_update_works")
-	r.Handle("/works/{id}/_changes", workBinder.BindFunc(h.Changes)).Methods("GET").Name("work_changes")
-	r.Handle("/works/{id}/edit", workBinder.With(RequireCanEditWork).BindFunc(h.Edit)).Methods("GET").Name("edit_work")
-	r.Handle("/works/{id}", workStateBinder.BindFunc(h.Update)).Methods("POST").Name("update_work")
+	r.Handle("/works", searchBinder.BindFunc(h.Search)).Methods("GET").Name("backoffice_works")
+	r.Handle("/works/export", searchBinder.BindFunc(h.Export)).Methods("POST").Name("backoffice_export_works")
+	r.Handle("/works/new", b.BindFunc(h.New)).Methods("GET").Name("backoffice_new_work")
+	r.Handle("/works/_change_kind", workStateBinder.BindFunc(h.ChangeKind)).Methods("POST").Name("backoffice_work_change_kind")
+	r.Handle("/works/_add_identifier", workStateBinder.BindFunc(h.AddIdentifier)).Methods("POST").Name("backoffice_work_add_identifier")
+	r.Handle("/works/_remove_identifier", workStateBinder.BindFunc(h.RemoveIdentifier)).Methods("POST").Name("backoffice_work_remove_identifier")
+	r.Handle("/works/_suggest_contributor", b.BindFunc(h.SuggestContributor)).Methods("GET").Name("backoffice_work_suggest_contributor")
+	r.Handle("/works/_add_contributor", workStateBinder.BindFunc(h.AddContributor)).Methods("POST").Name("backoffice_work_add_contributor")
+	r.Handle("/works/_edit_contributor", workStateBinder.BindFunc(h.EditContributor)).Methods("POST").Name("backoffice_work_edit_contributor")
+	r.Handle("/works/_remove_contributor", workStateBinder.BindFunc(h.RemoveContributor)).Methods("POST").Name("backoffice_work_remove_contributor")
+	r.Handle("/works/_add_files", workStateBinder.BindFunc(h.AddFiles)).Methods("POST").Name("backoffice_work_add_files")
+	r.Handle("/works/_remove_file", workStateBinder.BindFunc(h.RemoveFile)).Methods("POST").Name("backoffice_work_remove_file")
+	r.Handle("/works/_add_title", workStateBinder.BindFunc(h.AddTitle)).Methods("POST").Name("backoffice_work_add_title")
+	r.Handle("/works/_remove_title", workStateBinder.BindFunc(h.RemoveTitle)).Methods("POST").Name("backoffice_work_remove_title")
+	r.Handle("/works/_add_abstract", workStateBinder.BindFunc(h.AddAbstract)).Methods("POST").Name("backoffice_work_add_abstract")
+	r.Handle("/works/_edit_abstract", workStateBinder.BindFunc(h.EditAbstract)).Methods("POST").Name("backoffice_work_edit_abstract")
+	r.Handle("/works/_remove_abstract", workStateBinder.BindFunc(h.RemoveAbstract)).Methods("POST").Name("backoffice_work_remove_abstract")
+	r.Handle("/works/_add_lay_summary", workStateBinder.BindFunc(h.AddLaySummary)).Methods("POST").Name("backoffice_work_add_lay_summary")
+	r.Handle("/works/_edit_lay_summary", workStateBinder.BindFunc(h.EditLaySummary)).Methods("POST").Name("backoffice_work_edit_lay_summary")
+	r.Handle("/works/_remove_lay_summary", workStateBinder.BindFunc(h.RemoveLaySummary)).Methods("POST").Name("backoffice_work_remove_lay_summary")
+	r.Handle("/works", workStateBinder.BindFunc(h.Create)).Methods("POST").Name("backoffice_create_work")
+	r.Handle("/works/batch/edit", b.BindFunc(h.BatchEdit)).Methods("GET").Name("backoffice_batch_edit_works")
+	r.Handle("/works/batch", b.BindFunc(h.BatchUpdate)).Methods("POST").Name("backoffice_batch_update_works")
+	r.Handle("/works/{id}/_changes", workBinder.BindFunc(h.Changes)).Methods("GET").Name("backoffice_work_changes")
+	r.Handle("/works/{id}/edit", workBinder.With(RequireCanEditWork).BindFunc(h.Edit)).Methods("GET").Name("backoffice_edit_work")
+	r.Handle("/works/{id}", workStateBinder.BindFunc(h.Update)).Methods("POST").Name("backoffice_update_work")
 }
 
-func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchCtx) error {
+func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchWorksCtx) error {
 	switch c.Scope {
 	case "curator":
 		if !can.Curate(c.User) {
@@ -128,7 +169,7 @@ func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchCtx) error {
 	return nil
 }
 
-func (h *WorksHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+func (h *WorksHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchWorksCtx) error {
 	if err := h.setSearchScope(r.Context(), c); err != nil {
 		return err
 	}
@@ -141,7 +182,7 @@ func (h *WorksHandler) Search(w http.ResponseWriter, r *http.Request, c *SearchC
 	return works.Search(c.ViewCtx(), c.Scope, hits).Render(r.Context(), w)
 }
 
-func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchCtx) error {
+func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchWorksCtx) error {
 	if err := h.setSearchScope(r.Context(), c); err != nil {
 		return err
 	}

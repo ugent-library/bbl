@@ -16,10 +16,10 @@ type organizationDoc struct {
 
 func organizationToDoc(rec *bbl.Organization) any {
 	doc := organizationDoc{
-		Completion: make([]string, len(rec.Attrs.Names)),
+		Completion: make([]string, len(rec.Names)),
 		Rec:        rec,
 	}
-	for i, text := range rec.Attrs.Names {
+	for i, text := range rec.Names {
 		doc.Completion[i] = text.Val
 	}
 	return &doc

@@ -28,8 +28,8 @@ func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) erro
 
 	requireUser := b.With(ctx.RequireUser)
 
-	r.Handle("/", b.BindFunc(HomeHandler)).Methods("GET").Name("home")
-	r.Handle("/sse", requireUser.BindFunc(SSEHandler)).Methods("GET").Name("sse")
+	r.Handle("/", b.BindFunc(HomeHandler)).Methods("GET").Name("backoffice_home")
+	r.Handle("/sse", requireUser.BindFunc(SSEHandler)).Methods("GET").Name("backoffice_sse")
 	NewAuthHandler(config.Repo, authProvider).AddRoutes(r, b)
 	NewOrganizationsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
 	NewPeopleHandler(config.Repo, config.Index).AddRoutes(r, requireUser)

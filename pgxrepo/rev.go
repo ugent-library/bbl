@@ -53,7 +53,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			diff := a.Organization.Diff(&bbl.Organization{})
 
-			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
+			jsonAttrs, err := json.Marshal(a.Organization.OrganizationAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -119,7 +119,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				continue
 			}
 
-			jsonAttrs, err := json.Marshal(a.Organization.Attrs)
+			jsonAttrs, err := json.Marshal(a.Organization.OrganizationAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}

@@ -59,9 +59,9 @@ func BatchEdit(c views.Ctx, args BatchEditArgs) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 templ.SafeURL
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(c.SafeRoute("batch_update_works"))
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(c.SafeRoute("backoffice_batch_update_works"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/batch_edit.templ`, Line: 40, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/batch_edit.templ`, Line: 40, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {

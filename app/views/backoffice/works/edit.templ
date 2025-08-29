@@ -74,7 +74,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, state string) {
 								<button
 									class="nav-link my-2"
 									type="button"
-									hx-get={ c.SafeRoute("work_changes", "id", rec.ID) }
+									hx-get={ c.SafeRoute("backoffice_work_changes", "id", rec.ID) }
 									hx-trigger="click once"
 									hx-target="#work-changes"
 								>
@@ -113,9 +113,9 @@ templ FormButtons(c views.Ctx, rec *bbl.Work) {
 		<button
 			class="btn btn-outline-secondary"
 			if rec.ID == "" {
-				hx-post={ c.Route("create_work").String() }
+				hx-post={ c.Route("backoffice_create_work").String() }
 			} else {
-				hx-post={ c.Route("update_work", "id", rec.ID).String() }
+				hx-post={ c.Route("backoffice_update_work", "id", rec.ID).String() }
 			}
 			hx-include="#work-form [name*='work.']"
 			hx-target="#work-form"
@@ -184,7 +184,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								<select
 									class="form-select w-100"
 									name="kind"
-									hx-post={ c.Route("work_change_kind").String() }
+									hx-post={ c.Route("backoffice_work_change_kind").String() }
 								>
 									for _, kind := range bbl.WorkKinds {
 										<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
@@ -199,7 +199,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 									<select
 										class="form-select w-100"
 										name="subkind"
-										hx-post={ c.Route("work_change_kind").String() }
+										hx-post={ c.Route("backoffice_work_change_kind").String() }
 									>
 										<option></option>
 										for _, kind := range subKinds {
@@ -237,8 +237,8 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Titles.Required,
 							},
 							Attrs:     rec.Titles,
-							AddURL:    c.Route("work_add_title").String(),
-							RemoveURL: c.Route("work_remove_title").String(),
+							AddURL:    c.Route("backoffice_work_add_title").String(),
+							RemoveURL: c.Route("backoffice_work_remove_title").String(),
 						})
 					}
 					if rec.Profile.Abstracts != nil {
@@ -249,9 +249,9 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 							PluralLabel: c.Loc.Get("abstracts"),
 							Title:       c.Loc.Get("Abstract"),
 							PluralTitle: c.Loc.Get("Abstracts"),
-							AddURL:      c.Route("work_add_abstract").String(),
-							EditURL:     c.Route("work_edit_abstract").String(),
-							RemoveURL:   c.Route("work_remove_abstract").String(),
+							AddURL:      c.Route("backoffice_work_add_abstract").String(),
+							EditURL:     c.Route("backoffice_work_edit_abstract").String(),
+							RemoveURL:   c.Route("backoffice_work_remove_abstract").String(),
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
@@ -262,9 +262,9 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 							PluralLabel: c.Loc.Get("lay summaries"),
 							Title:       c.Loc.Get("Lay summary"),
 							PluralTitle: c.Loc.Get("Lay summaries"),
-							AddURL:      c.Route("work_add_lay_summary").String(),
-							EditURL:     c.Route("work_edit_lay_summary").String(),
-							RemoveURL:   c.Route("work_remove_lay_summary").String(),
+							AddURL:      c.Route("backoffice_work_add_lay_summary").String(),
+							EditURL:     c.Route("backoffice_work_edit_lay_summary").String(),
+							RemoveURL:   c.Route("backoffice_work_remove_lay_summary").String(),
 						})
 					}
 					if rec.Profile.Keywords != nil {
@@ -513,8 +513,8 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 							},
 							Attrs:     rec.Identifiers,
 							Schemes:   rec.Profile.IdentifierSchemes,
-							AddURL:    c.Route("work_add_identifier").String(),
-							RemoveURL: c.Route("work_remove_identifier").String(),
+							AddURL:    c.Route("backoffice_work_add_identifier").String(),
+							RemoveURL: c.Route("backoffice_work_remove_identifier").String(),
 						})
 					</div>
 				</div>
@@ -693,7 +693,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 								class="form-control"
 								type="search"
 								name="q"
-								hx-get={ c.Route("work_suggest_contributor").String() }
+								hx-get={ c.Route("backoffice_work_suggest_contributor").String() }
 								hx-vals={ fmt.Sprintf(`{"action": "add", "idx": %d}`, len(rec.Contributors)) }
 								hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
 								hx-target="#work-contributor-suggestions"
@@ -765,7 +765,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 												class="form-control"
 												type="search"
 												name="q"
-												hx-get={ c.Route("work_suggest_contributor").String() }
+												hx-get={ c.Route("backoffice_work_suggest_contributor").String() }
 												hx-vals={ fmt.Sprintf(`{"action": "edit", "idx": %d}`, i) }
 												hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
 												hx-target={ fmt.Sprintf("#work-contributor-suggestions-%d", i) }
@@ -828,7 +828,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 										<button
 											class="btn btn-tertiary btn-lg-only-responsive"
 											type="button"
-											hx-post={ c.Route("work_remove_contributor").String() }
+											hx-post={ c.Route("backoffice_work_remove_contributor").String() }
 											hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 										>
 											<i class="if if-delete"></i>
@@ -866,9 +866,9 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action
 							type="button"
 							data-bs-dismiss="modal"
 							if action == "add" {
-								hx-post={ c.Route("work_add_contributor").String() }
+								hx-post={ c.Route("backoffice_work_add_contributor").String() }
 							} else {
-								hx-post={ c.Route("work_edit_contributor").String() }
+								hx-post={ c.Route("backoffice_work_edit_contributor").String() }
 							}
 							hx-vals={ fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID) }
 							hx-include="#work-form [name*='work.'], closest .modal"
@@ -927,7 +927,7 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 								<button
 									class="btn btn-tertiary btn-lg-only-responsive"
 									type="button"
-									hx-post={ c.Route("work_remove_file").String() }
+									hx-post={ c.Route("backoffice_work_remove_file").String() }
 									hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
 								>
 									<i class="if if-delete"></i>
@@ -942,8 +942,8 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 	</ul>
 	<div
 		data-uppy
-		data-uppy-presign-url={ c.Route("create_file_upload_url").String() }
-		hx-post={ c.Route("work_add_files").String() }
+		data-uppy-presign-url={ c.Route("backoffice_create_file_upload_url").String() }
+		hx-post={ c.Route("backoffice_work_add_files").String() }
 		hx-include="#work-form [name*='work.'], [data-uppy] [name='files']"
 		hx-trigger="files-added"
 	>

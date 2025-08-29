@@ -29,9 +29,9 @@ func NewAuthHandler(repo *pgxrepo.Repo, provider AuthProvider) *AuthHandler {
 }
 
 func (h *AuthHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
-	r.Handle("/login", b.BindFunc(h.Login)).Methods("GET").Name("login")
+	r.Handle("/login", b.BindFunc(h.Login)).Methods("GET").Name("backoffice_login")
 	r.Handle("/auth/callback", b.BindFunc(h.AuthCallback)).Methods("GET")
-	r.Handle("/logout", b.BindFunc(h.Logout)).Methods("GET").Name("logout")
+	r.Handle("/logout", b.BindFunc(h.Logout)).Methods("GET").Name("backoffice_logout")
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
@@ -56,13 +56,13 @@ func (h *AuthHandler) AuthCallback(w http.ResponseWriter, r *http.Request, c *ct
 		return err
 	}
 
-	http.Redirect(w, r, c.Route("home").String(), http.StatusFound)
+	http.Redirect(w, r, c.Route("backoffice_home").String(), http.StatusFound)
 
 	return nil
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	c.ClearUser(w)
-	http.Redirect(w, r, c.Route("home").String(), http.StatusFound)
+	http.Redirect(w, r, c.Route("backoffice_home").String(), http.StatusFound)
 	return nil
 }

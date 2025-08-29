@@ -115,7 +115,7 @@ func scanOrganization(row pgx.Row) (*bbl.Organization, error) {
 			return nil, err
 		}
 	}
-	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+	if err := json.Unmarshal(rawAttrs, &rec.OrganizationAttrs); err != nil {
 		return nil, err
 	}
 	if rawIdentifiers != nil {

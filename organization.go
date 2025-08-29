@@ -9,7 +9,7 @@ type Organization struct {
 	Kind        string            `json:"kind"`
 	Identifiers []Code            `json:"identifiers,omitempty"`
 	Rels        []OrganizationRel `json:"rels,omitempty"`
-	Attrs       OrganizationAttrs `json:"attrs"`
+	OrganizationAttrs
 }
 
 type OrganizationAttrs struct {
@@ -34,8 +34,8 @@ func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
 		changes["identifiers"] = rec.Identifiers
 	}
-	if !slices.Equal(rec.Attrs.Names, rec2.Attrs.Names) {
-		changes["names"] = rec.Attrs.Names
+	if !slices.Equal(rec.Names, rec2.Names) {
+		changes["names"] = rec.Names
 	}
 	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 OrganizationRel) bool {
 		return r1.Kind == r2.Kind && r1.OrganizationID == r2.OrganizationID
@@ -43,4 +43,11 @@ func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 		changes["rels"] = rec.Rels
 	}
 	return changes
+}
+
+func (rec *Organization) Name() string {
+	if len(rec.Names) > 0 {
+		return rec.Names[0].Val
+	}
+	return ""
 }

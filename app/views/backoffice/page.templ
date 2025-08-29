@@ -28,13 +28,13 @@ templ Page(c views.Ctx, title string) {
 								<nav aria-label="breadcrumb">
 									<ol class="breadcrumb">
 										<li class="breadcrumb-item">
-											<a href={ c.SafeRoute("home") }>
+											<a href={ c.SafeRoute("backoffice_home") }>
 												<img class="c-logo d-none d-xl-inline-block" src={ c.AssetPath("/images/ugent/ghent-university-library-logo.svg") } alt="Ghent University Library"/>
 												<img class="c-logo d-inline-block d-xl-none" src={ c.AssetPath("/images/ugent/ghent-university-library-mark.svg") } alt="Ghent University Library"/>
 											</a>
 										</li>
 										<li class="breadcrumb-item">
-											<a href={ c.SafeRoute("home") }>
+											<a href={ c.SafeRoute("backoffice_home") }>
 												<i class="if if-book if--small me-3"></i>
 												<span class="breadcrumb-text">Biblio</span>
 											</a>
@@ -67,13 +67,13 @@ templ Page(c views.Ctx, title string) {
 														</div>
 													</div>
 													<hr class="dropdown-divider"/>
-													<a class="dropdown-item" href={ c.SafeRoute("logout") }>
+													<a class="dropdown-item" href={ c.SafeRoute("backoffice_logout") }>
 														<i class="if if-log-out"></i> Sign out
 													</a>
 												</div>
 											</div>
 										} else {
-											<a class="btn btn-link btn-sm ms-4" href={ c.SafeRoute("login") }>
+											<a class="btn btn-link btn-sm ms-4" href={ c.SafeRoute("backoffice_login") }>
 												<i class="if if-arrow-right ms-0"></i> <span class="btn-text me-2">Sign in</span>
 											</a>
 										}
@@ -90,12 +90,20 @@ templ Page(c views.Ctx, title string) {
 						<div class="c-sidebar__menu">
 							<nav>
 								<ul class="c-sidebar-menu">
-									<li class="c-sidebar__item c-sidebar__item--active">
-										<a href={ c.SafeRoute("works") }>
+									<li class="c-sidebar__item">
+										<a href={ c.SafeRoute("backoffice_works") }>
 											<span class="c-sidebar__icon">
 												<i class="if if-article"></i>
 											</span>
 											<span class="c-sidebar__label">Works</span>
+										</a>
+									</li>
+									<li class="c-sidebar__item">
+										<a href={ c.SafeRoute("backoffice_organizations") }>
+											<span class="c-sidebar__icon">
+												<i class="if if-article"></i>
+											</span>
+											<span class="c-sidebar__label">Organizations</span>
 										</a>
 									</li>
 								</ul>

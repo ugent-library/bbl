@@ -32,7 +32,7 @@ func RequireUser(next bind.Handler[*Ctx]) bind.Handler[*Ctx] {
 		if c.User != nil {
 			return next.ServeHTTP(w, r, c)
 		}
-		http.Redirect(w, r, c.Route("login").String(), http.StatusFound)
+		http.Redirect(w, r, c.Route("backoffice_login").String(), http.StatusFound)
 		return nil
 	})
 }
@@ -146,7 +146,7 @@ func (c *Ctx) SSEPath() string {
 	if err != nil {
 		panic(err)
 	}
-	return c.Route("sse", "token", token).String()
+	return c.Route("backoffice_sse", "token", token).String()
 }
 
 func (c *Ctx) Route(name string, params ...any) *url.URL {

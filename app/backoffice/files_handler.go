@@ -23,7 +23,7 @@ func NewFilesHandler(store *s3store.Store) *FilesHandler {
 }
 
 func (h *FilesHandler) AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx]) {
-	r.Handle("/files/upload_url", b.BindFunc(h.CreateUploadURL)).Methods("POST").Name("create_file_upload_url")
+	r.Handle("/files/upload_url", b.BindFunc(h.CreateUploadURL)).Methods("POST").Name("backoffice_create_file_upload_url")
 }
 
 func (h *FilesHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
