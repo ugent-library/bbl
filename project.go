@@ -32,3 +32,10 @@ func (rec *Project) Diff(rec2 *Project) map[string]any {
 	}
 	return changes
 }
+
+func (rec *Project) GetName() string {
+	if len(rec.Names) > 0 {
+		return rec.Names[0].Val
+	}
+	return ""
+}

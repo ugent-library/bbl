@@ -1,0 +1,127 @@
+package projects
+
+import (
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/app/views/backoffice"
+	"github.com/ugent-library/bbl/pagination"
+)
+
+templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Project]) {
+	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
+	@backoffice.Page(c, "Overview works") {
+		<div class="w-100 u-scroll-wrapper">
+			<div class="bg-white">
+				<div class="bc-navbar bc-navbar--bordered-bottom bc-navbar--white bc-navbar--auto">
+					<div class="bc-toolbar h-auto py-4">
+						<div class="bc-toolbar-left">
+							<div class="bc-toolbar-item">
+								<h2 class="bc-toolbar-title">
+									Overview projects
+								</h2>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="u-scroll-wrapper__body p-6">
+				<form id="projects-search-form" class="mb-4" action={ c.SafeRoute("backoffice_projects") } method="GET">
+					<div class="row">
+						<div class="col">
+							<div class="input-group flex-nowrap">
+								<label class="visually-hidden" for="search">Search</label>
+								<input class="form-control" type="search" name="q" placeholder="Search..." value={ hits.Opts.Query }/>
+								<button class="btn btn-outline-primary" type="submit">
+									<i class="if if-search"></i>
+									<div class="btn-text">Search</div>
+								</button>
+							</div>
+						</div>
+					</div>
+				</form>
+				<div class="card">
+					<div class="card-header fw-normal">
+						<div class="bc-toolbar">
+							<div class="bc-toolbar-left">
+								<div class="bc-toolbar-item">
+									<nav>
+										@views.Pagination(c, pager, "projects-search-form")
+									</nav>
+								</div>
+								<div class="bc-toolbar-item">
+									<span class="text-muted c-body-small">{ views.PaginationCount(c, pager) }</span>
+								</div>
+							</div>
+						</div>
+					</div>
+					<ul class="list-group list-group-flush">
+						for _, hit := range hits.Hits {
+							<li class="list-group-item">
+								<div class="w-100">
+									<div class="hstack-md-responsive align-items-start gap-3 w-100">
+										<div class="vstack gap-5">
+											<div class="vstack gap-2">
+												<h4 class="mb-0">
+													<span class="list-group-item-title">{ hit.Rec.GetName() }</span>
+												</h4>
+											</div>
+											<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
+												<ul class="c-meta-list c-meta-list-inline c-body-small">
+													<li class="c-meta-item">
+														Created { c.FormatTime(hit.Rec.CreatedAt) }
+														if u := hit.Rec.CreatedBy; u != nil {
+															by { u.Name }.
+														} else {
+															by System.
+														}
+													</li>
+													<li class="c-meta-item">
+														Edited { c.FormatTime(hit.Rec.UpdatedAt) }
+														if u := hit.Rec.UpdatedBy; u != nil {
+															by { u.Name }.
+														} else {
+															by System.
+														}
+													</li>
+												</ul>
+											</div>
+										</div>
+										<div class="c-button-toolbar">
+											<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-undefined" aria-expanded="false" aria-controls="collapse-undefined">
+												<i class="if if-info-circle"></i>
+												<span class="btn-text d-md-none d-xl-inline-block">More info</span>
+												<span class="visually-hidden">Get more info about this record.</span>
+											</button>
+											<div class="dropdown">
+												<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+													<i class="if if-more"></i>
+													<span class="btn-text d-md-none d-xl-inline-block">Actions</span>
+													<span class="visually-hidden">Show more actions for this record</span>
+												</button>
+												<div class="dropdown-menu"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</li>
+						}
+					</ul>
+					<div class="card-footer">
+						<div class="bc-toolbar">
+							<div class="bc-toolbar-left">
+								<div class="bc-toolbar-item">
+									<nav>
+										@views.Pagination(c, pager, "projects-search-form")
+									</nav>
+								</div>
+								<div class="bc-toolbar-item">
+									<span class="text-muted c-body-small">{ views.PaginationCount(c, pager) }</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
