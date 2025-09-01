@@ -106,6 +106,14 @@ templ Page(c views.Ctx, title string) {
 											<span class="c-sidebar__label">Organizations</span>
 										</a>
 									</li>
+									<li class="c-sidebar__item">
+										<a href={ c.SafeRoute("backoffice_people") }>
+											<span class="c-sidebar__icon">
+												<i class="if if-article"></i>
+											</span>
+											<span class="c-sidebar__label">People</span>
+										</a>
+									</li>
 								</ul>
 							</nav>
 						</div>

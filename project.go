@@ -6,8 +6,8 @@ import (
 
 type Project struct {
 	RecHeader
-	Identifiers []Code       `json:"identifiers,omitempty"`
-	Attrs       ProjectAttrs `json:"attrs"`
+	Identifiers []Code `json:"identifiers,omitempty"`
+	ProjectAttrs
 }
 
 type ProjectAttrs struct {
@@ -24,11 +24,11 @@ func (rec *Project) Diff(rec2 *Project) map[string]any {
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
 		changes["identifiers"] = rec.Identifiers
 	}
-	if !slices.Equal(rec.Attrs.Names, rec2.Attrs.Names) {
-		changes["names"] = rec.Attrs.Names
+	if !slices.Equal(rec.Names, rec2.Names) {
+		changes["names"] = rec.Names
 	}
-	if !slices.Equal(rec.Attrs.Abstracts, rec2.Attrs.Abstracts) {
-		changes["abstracts"] = rec.Attrs.Abstracts
+	if !slices.Equal(rec.Abstracts, rec2.Abstracts) {
+		changes["abstracts"] = rec.Abstracts
 	}
 	return changes
 }

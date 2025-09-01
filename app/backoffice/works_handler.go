@@ -365,7 +365,7 @@ func (h *WorksHandler) AddContributor(w http.ResponseWriter, r *http.Request, c 
 
 	c.Work.Contributors = slices.Grow(c.Work.Contributors, 1)
 	c.Work.Contributors = slices.Insert(c.Work.Contributors, idx, bbl.WorkContributor{
-		Attrs: bbl.WorkContributorAttrs{
+		WorkContributorAttrs: bbl.WorkContributorAttrs{
 			CreditRoles: creditRoles,
 		},
 		PersonID: personID,
@@ -394,7 +394,7 @@ func (h *WorksHandler) EditContributor(w http.ResponseWriter, r *http.Request, c
 	}
 
 	c.Work.Contributors[idx] = bbl.WorkContributor{
-		Attrs: bbl.WorkContributorAttrs{
+		WorkContributorAttrs: bbl.WorkContributorAttrs{
 			CreditRoles: creditRoles,
 		},
 		PersonID: personID,

@@ -175,7 +175,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 													</span>
 												</div>
 												<h4 class="mb-0">
-													<span class="list-group-item-title">{ hit.Rec.Title() }</span>
+													<span class="list-group-item-title">{ hit.Rec.GetTitle() }</span>
 												</h4>
 												<ul class="c-meta-list c-meta-list-inline">
 													if hit.Rec.PublicationYear != "" {

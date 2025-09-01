@@ -778,7 +778,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 											<label class="col-form-label">Credit role</label>
 											<select class="form-control" name="credit_roles" multiple>
 												for _, role := range bbl.CreditRoles {
-													<option value={ role } selected?={ slices.Contains(con.Attrs.CreditRoles, role) }>{ role }</option>
+													<option value={ role } selected?={ slices.Contains(con.CreditRoles, role) }>{ role }</option>
 												}
 											</select>
 										</div>
@@ -806,7 +806,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 												<i class="if if-ghent-university if--small if--muted"></i>
 												<span class="text-muted">UGent</span>
 											</li>
-											for _, role := range con.Attrs.CreditRoles {
+											for _, role := range con.CreditRoles {
 												<li class="c-meta-item">
 													<span class="text-muted">{ role }</span>
 												</li>
@@ -856,7 +856,7 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action
 								<i class="if if-ghent-university"></i>
 							</div>
 							<div class="bc-avatar-text">
-								<h4>{ hit.Rec.Attrs.Name }</h4>
+								<h4>{ hit.Rec.Name }</h4>
 							</div>
 						</div>
 					</div>

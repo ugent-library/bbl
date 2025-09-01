@@ -16,10 +16,10 @@ type projectDoc struct {
 
 func projectToDoc(rec *bbl.Project) any {
 	doc := projectDoc{
-		Completion: make([]string, len(rec.Attrs.Names)),
+		Completion: make([]string, len(rec.Names)),
 		Rec:        rec,
 	}
-	for i, text := range rec.Attrs.Names {
+	for i, text := range rec.Names {
 		doc.Completion[i] = text.Val
 	}
 	return &doc

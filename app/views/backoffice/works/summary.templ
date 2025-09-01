@@ -6,7 +6,7 @@ import (
 )
 
 templ SummaryCite(c views.Ctx, rec *bbl.Work) {
-	if title := rec.Title(); title != "" {
+	if title := rec.GetTitle(); title != "" {
 		{ title }
 	}
 }

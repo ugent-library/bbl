@@ -69,9 +69,9 @@ type WorkAttrs struct {
 }
 
 type WorkContributor struct {
-	Attrs    WorkContributorAttrs `json:"attrs"`
-	PersonID string               `json:"person_id,omitempty"`
-	Person   *Person              `json:"person,omitempty"`
+	PersonID string  `json:"person_id,omitempty"`
+	Person   *Person `json:"person,omitempty"`
+	WorkContributorAttrs
 }
 
 type WorkContributorAttrs struct {
@@ -83,11 +83,11 @@ type WorkContributorAttrs struct {
 }
 
 func (c *WorkContributor) GetName() string {
-	if c.Attrs.Name != "" {
-		return c.Attrs.Name
+	if c.Name != "" {
+		return c.Name
 	}
 	if c.Person != nil {
-		return c.Person.Attrs.Name
+		return c.Person.Name
 	}
 	return ""
 }
@@ -181,11 +181,11 @@ func (rec *Work) Diff(rec2 *Work) *WorkDiff {
 	}
 	if !slices.EqualFunc(rec.Contributors, rec2.Contributors, func(c1, c2 WorkContributor) bool {
 		return c1.PersonID == c2.PersonID &&
-			slices.Equal(c1.Attrs.CreditRoles, c2.Attrs.CreditRoles) &&
-			c1.Attrs.Name == c2.Attrs.Name &&
-			c1.Attrs.GivenName == c2.Attrs.GivenName &&
-			c1.Attrs.MiddleName == c2.Attrs.MiddleName &&
-			c1.Attrs.FamilyName == c2.Attrs.FamilyName
+			slices.Equal(c1.CreditRoles, c2.CreditRoles) &&
+			c1.Name == c2.Name &&
+			c1.GivenName == c2.GivenName &&
+			c1.MiddleName == c2.MiddleName &&
+			c1.FamilyName == c2.FamilyName
 	}) {
 		diff.Contributors = &rec.Contributors
 	}
@@ -264,7 +264,7 @@ func (rec *Work) Diff(rec2 *Work) *WorkDiff {
 	return diff
 }
 
-func (rec *Work) Title() string {
+func (rec *Work) GetTitle() string {
 	if len(rec.Titles) > 0 {
 		return rec.Titles[0].Val
 	}
@@ -274,7 +274,7 @@ func (rec *Work) Title() string {
 func (rec *Work) ContributorsWithCreditRole(role string) []WorkContributor {
 	var s []WorkContributor
 	for _, con := range rec.Contributors {
-		if slices.Contains(con.Attrs.CreditRoles, role) {
+		if slices.Contains(con.CreditRoles, role) {
 			s = append(s, con)
 		}
 	}

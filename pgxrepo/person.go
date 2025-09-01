@@ -137,7 +137,7 @@ func scanPerson(row pgx.Row) (*bbl.Person, error) {
 			return nil, err
 		}
 	}
-	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+	if err := json.Unmarshal(rawAttrs, &rec.PersonAttrs); err != nil {
 		return nil, err
 	}
 	if rawIdentifiers != nil {

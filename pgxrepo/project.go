@@ -108,7 +108,7 @@ func scanProject(row pgx.Row) (*bbl.Project, error) {
 			return nil, err
 		}
 	}
-	if err := json.Unmarshal(rawAttrs, &rec.Attrs); err != nil {
+	if err := json.Unmarshal(rawAttrs, &rec.ProjectAttrs); err != nil {
 		return nil, err
 	}
 	if rawIdentifiers != nil {

@@ -8,6 +8,6 @@ import (
 
 templ Show(c views.Ctx, rec *bbl.Work) {
 	@discovery.Page(c, "Work") {
-		{ rec.Title() }
+		{ rec.GetTitle() }
 	}
 }

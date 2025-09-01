@@ -6,8 +6,8 @@ import (
 
 type Person struct {
 	RecHeader
-	Identifiers []Code      `json:"identifiers,omitempty"`
-	Attrs       PersonAttrs `json:"attrs"`
+	Identifiers []Code `json:"identifiers,omitempty"`
+	PersonAttrs
 }
 
 type PersonAttrs struct {
@@ -26,17 +26,17 @@ func (rec *Person) Diff(rec2 *Person) map[string]any {
 	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
 		changes["identifiers"] = rec.Identifiers
 	}
-	if rec.Attrs.Name != rec2.Attrs.Name {
-		changes["name"] = rec.Attrs.Name
+	if rec.Name != rec2.Name {
+		changes["name"] = rec.Name
 	}
-	if rec.Attrs.GivenName != rec2.Attrs.GivenName {
-		changes["given_name"] = rec.Attrs.GivenName
+	if rec.GivenName != rec2.GivenName {
+		changes["given_name"] = rec.GivenName
 	}
-	if rec.Attrs.MiddleName != rec2.Attrs.MiddleName {
-		changes["middle_name"] = rec.Attrs.MiddleName
+	if rec.MiddleName != rec2.MiddleName {
+		changes["middle_name"] = rec.MiddleName
 	}
-	if rec.Attrs.FamilyName != rec2.Attrs.FamilyName {
-		changes["family_name"] = rec.Attrs.FamilyName
+	if rec.FamilyName != rec2.FamilyName {
+		changes["family_name"] = rec.FamilyName
 	}
 	return changes
 }

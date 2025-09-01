@@ -31,7 +31,7 @@ func (e *Exporter) Add(rec *bbl.Work) error {
 		rec.ID,
 		rec.Kind,
 		rec.Subkind,
-		rec.Title(),
+		rec.GetTitle(),
 	})
 }
 

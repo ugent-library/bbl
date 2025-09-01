@@ -16,7 +16,7 @@ type personDoc struct {
 
 func personToDoc(rec *bbl.Person) any {
 	doc := personDoc{
-		Completion: []string{rec.Attrs.Name},
+		Completion: []string{rec.Name},
 		Rec:        rec,
 	}
 	return &doc

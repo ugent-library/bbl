@@ -1,4 +1,4 @@
-package organizations
+package people
 
 import (
 	"github.com/ugent-library/bbl"
@@ -7,7 +7,7 @@ import (
 	"github.com/ugent-library/bbl/pagination"
 )
 
-templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
+templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
 	@backoffice.Page(c, "Overview works") {
 		<div class="w-100 u-scroll-wrapper">
@@ -17,7 +17,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 						<div class="bc-toolbar-left">
 							<div class="bc-toolbar-item">
 								<h2 class="bc-toolbar-title">
-									Overview organizations
+									Overview people
 								</h2>
 							</div>
 						</div>
@@ -25,7 +25,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="organization-search-form" class="mb-4" action={ c.SafeRoute("backoffice_organizations") } method="GET">
+				<form id="people-search-form" class="mb-4" action={ c.SafeRoute("backoffice_people") } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">
@@ -45,7 +45,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c, pager, "organization-search-form")
+										@views.Pagination(c, pager, "people-search-form")
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">
@@ -61,11 +61,8 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 									<div class="hstack-md-responsive align-items-start gap-3 w-100">
 										<div class="vstack gap-5">
 											<div class="vstack gap-2">
-												<div class="d-inline-flex align-items-center flex-wrap">
-													<span class="c-subline text-nowrap me-2 pe-3 my-2 border-end">{ hit.Rec.Kind }</span>
-												</div>
 												<h4 class="mb-0">
-													<span class="list-group-item-title">{ hit.Rec.GetName() }</span>
+													<span class="list-group-item-title">{ hit.Rec.Name }</span>
 												</h4>
 											</div>
 											<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
@@ -114,7 +111,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 							<div class="bc-toolbar-left">
 								<div class="bc-toolbar-item">
 									<nav>
-										@views.Pagination(c, pager, "organization-search-form")
+										@views.Pagination(c, pager, "people-search-form")
 									</nav>
 								</div>
 								<div class="bc-toolbar-item">

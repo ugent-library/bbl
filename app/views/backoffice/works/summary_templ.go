@@ -34,7 +34,7 @@ func SummaryCite(c views.Ctx, rec *bbl.Work) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if title := rec.Title(); title != "" {
+		if title := rec.GetTitle(); title != "" {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {

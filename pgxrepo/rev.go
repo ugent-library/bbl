@@ -195,7 +195,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			diff := a.Person.Diff(&bbl.Person{})
 
-			jsonAttrs, err := json.Marshal(a.Person.Attrs)
+			jsonAttrs, err := json.Marshal(a.Person.PersonAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -250,7 +250,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				continue
 			}
 
-			jsonAttrs, err := json.Marshal(a.Person.Attrs)
+			jsonAttrs, err := json.Marshal(a.Person.PersonAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -297,7 +297,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			diff := a.Project.Diff(&bbl.Project{})
 
-			jsonAttrs, err := json.Marshal(a.Project.Attrs)
+			jsonAttrs, err := json.Marshal(a.Project.ProjectAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -352,7 +352,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				continue
 			}
 
-			jsonAttrs, err := json.Marshal(a.Project.Attrs)
+			jsonAttrs, err := json.Marshal(a.Project.ProjectAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
@@ -440,7 +440,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				)
 			}
 			for i, con := range a.Work.Contributors {
-				jsonAttrs, err := json.Marshal(con.Attrs)
+				jsonAttrs, err := json.Marshal(con.WorkContributorAttrs)
 				if err != nil {
 					return fmt.Errorf("AddRev: %w", err)
 				}
@@ -667,7 +667,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 			)
 		}
 		for i, con := range rec.Contributors {
-			jsonAttrs, err := json.Marshal(con.Attrs)
+			jsonAttrs, err := json.Marshal(con.WorkContributorAttrs)
 			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}

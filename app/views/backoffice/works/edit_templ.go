@@ -1410,7 +1410,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if slices.Contains(con.Attrs.CreditRoles, role) {
+					if slices.Contains(con.CreditRoles, role) {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, " selected")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -1423,7 +1423,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					var templ_7745c5c3_Var52 string
 					templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 781, Col: 101}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 781, Col: 95}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 					if templ_7745c5c3_Err != nil {
@@ -1490,7 +1490,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, role := range con.Attrs.CreditRoles {
+				for _, role := range con.CreditRoles {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "<li class=\"c-meta-item\"><span class=\"text-muted\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -1593,9 +1593,9 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var62 string
-			templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Attrs.Name)
+			templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 859, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 859, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 			if templ_7745c5c3_Err != nil {

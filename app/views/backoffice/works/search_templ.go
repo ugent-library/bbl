@@ -432,9 +432,9 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var28 string
-				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Title())
+				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.GetTitle())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/search.templ`, Line: 178, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/search.templ`, Line: 178, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {

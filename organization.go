@@ -45,7 +45,7 @@ func (rec *Organization) Diff(rec2 *Organization) map[string]any {
 	return changes
 }
 
-func (rec *Organization) Name() string {
+func (rec *Organization) GetName() string {
 	if len(rec.Names) > 0 {
 		return rec.Names[0].Val
 	}
