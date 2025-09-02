@@ -62,7 +62,7 @@ func SearchWorksBinder(r *http.Request, c *ctx.Ctx) (*SearchWorksCtx, error) {
 
 	for _, field := range searchCtx.Opts.Facets {
 		if b.Has(field) {
-			searchCtx.Opts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
+			searchCtx.Opts.AddTermsFilter(field, b.GetAll(field)...)
 		}
 	}
 
@@ -156,13 +156,13 @@ func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchWorksCtx) er
 			return httperror.Forbidden
 		}
 	case "creator":
-		c.Opts.AddFilters(bbl.Terms("creator", c.User.ID))
+		c.Opts.AddTermsFilter("creator", c.User.ID)
 	case "contributor":
 		personIDs, err := h.repo.GetPeopleIDsByIdentifiers(ctx, c.User.Identifiers)
 		if err != nil {
 			return err
 		}
-		c.Opts.AddFilters(bbl.Terms("contributor", personIDs...))
+		c.Opts.AddTermsFilter("contributor", personIDs...)
 	default:
 		return httperror.BadRequest
 	}

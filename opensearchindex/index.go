@@ -217,32 +217,8 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 		sort = `[{"_score": "desc"}, {"_id": "asc"}]`
 	}
 
-	// TODO make recursive
-	if opts.Filter != nil {
-		for _, filter := range opts.Filter.Filters {
-			switch f := filter.(type) {
-			case *bbl.AndClause:
-				// TODO
-			case *bbl.OrClause:
-				// TODO
-			case *bbl.TermsFilter:
-				indexField, ok := idx.termsFilters[f.Field]
-				if !ok {
-					return nil, fmt.Errorf("unknown terms filter %s", f.Field)
-				}
-				jFilter, err := sjson.Set(``, "terms."+indexField, f.Terms)
-				if err != nil {
-					return nil, err
-				}
-				q, err := sjson.SetRaw(query, "bool.filter.-1", jFilter)
-				if err != nil {
-					return nil, err
-				}
-				query = q
-			}
-		}
-
-		jFilter, err := generateFilter(opts.Filter.Filters, idx.termsFilters)
+	if opts.QueryFilter != nil {
+		jFilter, err := generateAndFilter(opts.QueryFilter.And, idx.termsFilters)
 		if err != nil {
 			return nil, err
 		}
@@ -269,16 +245,14 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 			}
 
 			// the facet filter is the query except the terms filter matching the facet
-			if opts.Filter != nil {
-				for i, filter := range opts.Filter.Filters {
-					if tf, ok := filter.(*bbl.TermsFilter); ok {
-						if tf.Field == key {
-							jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
-							if err != nil {
-								return nil, err
-							}
-							break
+			if opts.QueryFilter != nil {
+				for i, f := range opts.QueryFilter.And {
+					if f.Terms != nil && f.Terms.Field == key {
+						jFacet, err = sjson.Delete(jFacet, "filter.bool.filter."+fmt.Sprint(i))
+						if err != nil {
+							return nil, err
 						}
+						break
 					}
 				}
 			}
@@ -369,38 +343,20 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 	return hits, nil
 }
 
-func generateFilter(filters []bbl.Filter, termsFilters map[string]string) (string, error) {
+func generateAndFilter(filters []*bbl.AndFilter, termsFilters map[string]string) (string, error) {
 	jFilters := `[]`
 
 	for _, filter := range filters {
 		var jFilter string
 		var err error
 
-		switch f := filter.(type) {
-		case *bbl.AndClause:
-			jClauses, err := generateFilter(f.Filters, termsFilters)
+		if filter.Or != nil {
+			jFilter, err = generateOrFilter(filter.Or, termsFilters)
 			if err != nil {
 				return jFilters, err
 			}
-			jFilter, err = sjson.SetRaw(``, "bool.must", jClauses)
-			if err != nil {
-				return jFilters, err
-			}
-		case *bbl.OrClause:
-			jClauses, err := generateFilter(f.Filters, termsFilters)
-			if err != nil {
-				return jFilters, err
-			}
-			jFilter, err = sjson.SetRaw(``, "bool.should", jClauses)
-			if err != nil {
-				return jFilters, err
-			}
-		case *bbl.TermsFilter:
-			docField, ok := termsFilters[f.Field]
-			if !ok {
-				return jFilters, fmt.Errorf("unknown terms filter %s", f.Field)
-			}
-			jFilter, err = sjson.Set(``, "terms."+docField, f.Terms)
+		} else if filter.Terms != nil {
+			jFilter, err = generateTermsFilter(filter.Terms, termsFilters)
 			if err != nil {
 				return jFilters, err
 			}
@@ -412,5 +368,41 @@ func generateFilter(filters []bbl.Filter, termsFilters map[string]string) (strin
 		}
 	}
 
-	return jFilters, nil
+	return sjson.SetRaw(``, "bool.must", jFilters)
+}
+
+func generateOrFilter(filters []*bbl.OrFilter, termsFilters map[string]string) (string, error) {
+	jFilters := `[]`
+
+	for _, filter := range filters {
+		var jFilter string
+		var err error
+
+		if filter.And != nil {
+			jFilter, err = generateAndFilter(filter.And, termsFilters)
+			if err != nil {
+				return jFilters, err
+			}
+		} else if filter.Terms != nil {
+			jFilter, err = generateTermsFilter(filter.Terms, termsFilters)
+			if err != nil {
+				return jFilters, err
+			}
+		}
+
+		jFilters, err = sjson.SetRaw(jFilters, "-1", jFilter)
+		if err != nil {
+			return jFilters, err
+		}
+	}
+
+	return sjson.SetRaw(``, "bool.should", jFilters)
+}
+
+func generateTermsFilter(filter *bbl.TermsFilter, termsFilters map[string]string) (string, error) {
+	docField, ok := termsFilters[filter.Field]
+	if !ok {
+		return "", fmt.Errorf("unknown terms filter %s", filter.Field)
+	}
+	return sjson.Set(``, "terms."+docField, filter.Terms)
 }

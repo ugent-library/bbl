@@ -284,7 +284,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if hits.Opts.HasFacetTerm(f.Name, v.Val) {
+					if hits.Opts.QueryFilter.HasTerm(f.Name, v.Val) {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, " checked")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err

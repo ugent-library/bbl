@@ -96,6 +96,7 @@ require (
 )
 
 require (
+	github.com/alecthomas/participle/v2 v2.1.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.4
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.18.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.0

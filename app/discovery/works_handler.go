@@ -1,7 +1,6 @@
 package discovery
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -43,13 +42,13 @@ func SearchWorksBinder(r *http.Request, c *ctx.Ctx) (*SearchWorksCtx, error) {
 
 	for _, field := range searchCtx.Opts.Facets {
 		if b.Has(field) {
-			searchCtx.Opts.AddFilters(bbl.Terms(field, b.GetAll(field)...))
+			searchCtx.Opts.AddTermsFilter(field, b.GetAll(field)...)
 		}
 	}
 
-	searchCtx.Opts.AddFilters(bbl.Terms("status", "public"))
+	searchCtx.Opts.AddTermsFilter("status", "public")
 
-	return searchCtx, errors.New("STOOOOOOOOP")
+	return searchCtx, nil
 }
 
 type WorksHandler struct {
