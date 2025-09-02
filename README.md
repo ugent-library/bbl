@@ -15,6 +15,9 @@
 * own query language
 * avoid deep paging with cursors/search after
 * push notifications to users and api's
+* semantic search (TODO)
+* use the ORCID v3 api (TODO)
+* ORCID sync (TODO)
 
 ## support libraries developed
 
