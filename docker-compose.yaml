@@ -116,6 +116,11 @@ services:
       timeout: 20s
       retries: 5
 
+  citeproc:
+    image: ugentlib/citeproc-server:latest
+    ports:
+      - 8085:8085
+
 volumes:
   postgres-data:
     driver: local

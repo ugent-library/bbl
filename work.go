@@ -271,7 +271,16 @@ func (rec *Work) GetTitle() string {
 	return ""
 }
 
-func (rec *Work) ContributorsWithCreditRole(role string) []WorkContributor {
+func (rec *Work) GetIdentifierWithScheme(scheme string) string {
+	for _, c := range rec.Identifiers {
+		if c.Scheme == scheme {
+			return c.Val
+		}
+	}
+	return ""
+}
+
+func (rec *Work) GetContributorsWithCreditRole(role string) []WorkContributor {
 	var s []WorkContributor
 	for _, con := range rec.Contributors {
 		if slices.Contains(con.CreditRoles, role) {
@@ -281,10 +290,10 @@ func (rec *Work) ContributorsWithCreditRole(role string) []WorkContributor {
 	return s
 }
 
-func (rec *Work) Authors() []WorkContributor {
-	return rec.ContributorsWithCreditRole(AuthorCreditRole)
+func (rec *Work) GetAuthors() []WorkContributor {
+	return rec.GetContributorsWithCreditRole(AuthorCreditRole)
 }
 
-func (rec *Work) Supervisors() []WorkContributor {
-	return rec.ContributorsWithCreditRole(SupervisorCreditRole)
+func (rec *Work) GetSupervisors() []WorkContributor {
+	return rec.GetContributorsWithCreditRole(SupervisorCreditRole)
 }

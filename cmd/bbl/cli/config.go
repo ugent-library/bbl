@@ -23,6 +23,7 @@ type Config struct {
 		ClientID     string `mapstructure:"client_id"`
 		ClientSecret string `mapstructure:"client_secret"`
 	} `mapstructure:"oidc"`
-	Secret     string `mapstructure:"secret"`
-	HashSecret string `mapstructure:"hash_secret"`
+	CiteprocURL string `mapstructure:"citeproc_url"`
+	Secret      string `mapstructure:"secret"`
+	HashSecret  string `mapstructure:"hash_secret"`
 }

@@ -204,13 +204,13 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 													}
 												</ul>
 												<div class="c-author-list">
-													for _, c := range hit.Rec.Authors() {
+													for _, c := range hit.Rec.GetAuthors() {
 														<div class="c-author">
 															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
 															<span>{ c.GetName() }</span>
 														</div>
 													}
-													for _, c := range hit.Rec.Supervisors() {
+													for _, c := range hit.Rec.GetSupervisors() {
 														<div class="c-author fst-italic">supervised by</div>
 														<div class="c-author">
 															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>

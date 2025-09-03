@@ -17,19 +17,12 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/catbird"
-	"github.com/ugent-library/bbl/csv"
 	"github.com/ugent-library/bbl/jobs"
-	"github.com/ugent-library/bbl/oaidc"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
 	"github.com/ugent-library/bbl/workers"
 )
-
-func init() {
-	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
-	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
-}
 
 func newLogger(w io.Writer) *slog.Logger {
 	if config.Env == "development" {

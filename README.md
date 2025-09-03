@@ -19,6 +19,10 @@
 * use the ORCID v3 api (TODO)
 * ORCID sync (TODO)
 
+## to be decided
+
+* resumable file uploads and side loading via tus.io
+
 ## support libraries developed
 
 * bind
@@ -28,10 +32,6 @@
 * oaipmh
 * opensearchswitcher
 * muxurl
-
-## to be decided
-
-* support resumable file uploads and side loading via tus.io
 
 ## dependencies
 

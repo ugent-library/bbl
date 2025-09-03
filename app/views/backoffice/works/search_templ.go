@@ -562,7 +562,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, c := range hit.Rec.Authors() {
+				for _, c := range hit.Rec.GetAuthors() {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -581,7 +581,7 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 						return templ_7745c5c3_Err
 					}
 				}
-				for _, c := range hit.Rec.Supervisors() {
+				for _, c := range hit.Rec.GetSupervisors() {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "<div class=\"c-author fst-italic\">supervised by</div><div class=\"c-author\"><i class=\"if if-ghent-university\" data-bs-toggle=\"tooltip\" title=\"UGent author\" data-bs-placement=\"bottom\"></i> <span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

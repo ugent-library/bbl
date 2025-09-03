@@ -28,7 +28,7 @@ func (w *AddWorkRepresentations) Work(ctx context.Context, job *river.Job[jobs.A
 		return err
 	}
 	// TODO schemes hardcoded for now
-	for _, scheme := range []string{"oai_dc"} {
+	for _, scheme := range []string{"oai_dc", "mla"} {
 		b, err := bbl.EncodeWork(rec, scheme)
 		if err != nil {
 			return err
