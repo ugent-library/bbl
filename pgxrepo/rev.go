@@ -446,9 +446,9 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 
 				batch.Queue(`
-				insert into bbl_work_contributors (id, work_id, attrs, person_id, idx)
-				values ($1, $2, $3, $4, $5);`,
-					bbl.NewID(), a.Work.ID, jsonAttrs, con.PersonID, i,
+				insert into bbl_work_contributors (work_id, idx, attrs, person_id)
+				values ($1, $2, $3, nullif($4, '')::uuid);`,
+					a.Work.ID, i, jsonAttrs, con.PersonID,
 				)
 			}
 			for i, f := range a.Work.Files {
@@ -677,14 +677,14 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 				batch.Queue(`
 					update bbl_work_contributors
 					set attrs = $3,
-						person_id = $4
+						person_id = nullif($4, '')::uuid
 					where work_id = $1 and idx = $2;`,
 					rec.ID, i, jsonAttrs, con.PersonID,
 				)
 			} else {
 				batch.Queue(`
 					insert into bbl_work_contributors (work_id, idx, attrs, person_id)
-					values ($1, $2, $3, $4);`,
+					values ($1, $2, $3, nullif($4, '')::uuid);`,
 					rec.ID, i, jsonAttrs, con.PersonID,
 				)
 			}

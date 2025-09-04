@@ -6,8 +6,8 @@ import (
 
 type Project struct {
 	RecHeader
-	Identifiers []Code `json:"identifiers,omitempty"`
-	ProjectAttrs
+	Identifiers  []Code `json:"identifiers,omitempty"`
+	ProjectAttrs `json:"attrs"`
 }
 
 type ProjectAttrs struct {

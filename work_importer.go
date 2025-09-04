@@ -25,5 +25,11 @@ func ImportWork(source, id string) (*Work, error) {
 	if !ok {
 		return nil, fmt.Errorf("ImportWork: unknown importer %q", source)
 	}
-	return importer.Get(id)
+	rec, err := importer.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	rec.ID = NewID()
+	rec.Status = DraftStatus
+	return rec, nil
 }

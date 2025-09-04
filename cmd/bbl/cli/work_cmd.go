@@ -26,6 +26,7 @@ func init() {
 	searchWorksCmd.Flags().IntVar(&searchOpts.From, "from", 0, "")
 	searchWorksCmd.Flags().StringVar(&searchOpts.Cursor, "cursor", "", "")
 	worksCmd.AddCommand(reindexWorksCmd)
+	worksCmd.AddCommand(importWorkCmd)
 	worksCmd.AddCommand(importWorkSourceCmd)
 }
 
@@ -121,6 +122,41 @@ var searchWorksCmd = &cobra.Command{
 	},
 }
 
+var importWorkCmd = &cobra.Command{
+	Use:   "import",
+	Short: "import work from source",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// TODO check importer exists
+
+		logger := newLogger(cmd.OutOrStdout())
+
+		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+
+		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		if err != nil {
+			return err
+		}
+
+		res, err := riverClient.Insert(cmd.Context(), jobs.ImportWork{Source: args[0], ID: args[1]}, nil)
+		if err != nil {
+			return err
+		}
+
+		if res.UniqueSkippedAsDuplicate {
+			logger.Info("import is already running")
+		} else {
+			logger.Info("started importer", "job", res.Job.ID)
+		}
+
+		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+	},
+}
+
 var importWorkSourceCmd = &cobra.Command{
 	Use:   "import-source",
 	Short: "import works from source",
@@ -149,9 +185,9 @@ var importWorkSourceCmd = &cobra.Command{
 		}
 
 		if res.UniqueSkippedAsDuplicate {
-			logger.Info("source imoport is already running")
+			logger.Info("source import is already running")
 		} else {
-			logger.Info("started source imoporter", "job", res.Job.ID)
+			logger.Info("started source importer", "job", res.Job.ID)
 		}
 
 		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)

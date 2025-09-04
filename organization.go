@@ -6,10 +6,10 @@ import (
 
 type Organization struct {
 	RecHeader
-	Kind        string            `json:"kind"`
-	Identifiers []Code            `json:"identifiers,omitempty"`
-	Rels        []OrganizationRel `json:"rels,omitempty"`
-	OrganizationAttrs
+	Kind              string            `json:"kind"`
+	Identifiers       []Code            `json:"identifiers,omitempty"`
+	Rels              []OrganizationRel `json:"rels,omitempty"`
+	OrganizationAttrs `json:"attrs"`
 }
 
 type OrganizationAttrs struct {

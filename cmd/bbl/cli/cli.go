@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/arxiv"
 	"github.com/ugent-library/bbl/csl"
 	"github.com/ugent-library/bbl/csv"
 	"github.com/ugent-library/bbl/oaidc"
@@ -48,6 +49,8 @@ func RunWithContext(ctx context.Context) error {
 
 	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
 	bbl.RegisterWorkEncoder("mla", csl.NewWorkEncoder(config.CiteprocURL, "mla"))
+
+	bbl.RegisterWorkImporter("arxiv", arxiv.NewWorkImporter())
 
 	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
 

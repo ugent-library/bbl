@@ -73,6 +73,7 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 	river.AddWorker(w, workers.NewIndexWork(repo, index))
 	river.AddWorker(w, workers.NewReindexWorks(repo, index))
 	river.AddWorker(w, workers.NewExportWorks(index, store, hub))
+	river.AddWorker(w, workers.NewImportWork(repo))
 	river.AddWorker(w, workers.NewImportWorkSource(repo))
 
 	periodicJobs := []*river.PeriodicJob{

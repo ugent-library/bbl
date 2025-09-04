@@ -41,7 +41,7 @@ type Work struct {
 	Rels         []WorkRel         `json:"rels,omitempty"`
 	Status       string            `json:"status"`
 	Subkind      string            `json:"subkind,omitempty"`
-	WorkAttrs
+	WorkAttrs    `json:"attrs"`
 }
 
 type WorkAttrs struct {
@@ -71,9 +71,9 @@ type WorkAttrs struct {
 }
 
 type WorkContributor struct {
-	PersonID string  `json:"person_id,omitempty"`
-	Person   *Person `json:"person,omitempty"`
-	WorkContributorAttrs
+	PersonID             string  `json:"person_id,omitempty"`
+	Person               *Person `json:"person,omitempty"`
+	WorkContributorAttrs `json:"attrs"`
 }
 
 type WorkContributorAttrs struct {

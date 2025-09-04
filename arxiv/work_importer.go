@@ -87,16 +87,18 @@ func (wi *WorkImporter) Get(id string) (*bbl.Work, error) {
 	rec := &bbl.Work{
 		Kind:    "journal_article",
 		Subkind: "original",
-		Status:  bbl.DraftStatus,
 		Identifiers: []bbl.Code{
 			{Scheme: "arxiv", Val: id},
-			{Scheme: "doi", Val: f.Entry.DOI},
 		},
 		WorkAttrs: bbl.WorkAttrs{
 			Titles:            []bbl.Text{{Lang: "und", Val: f.Entry.Title}},
 			JournalTitle:      f.Entry.JournalRef,
 			PublicationStatus: "unpublished",
 		},
+	}
+
+	if f.Entry.DOI != "" {
+		rec.Identifiers = append(rec.Identifiers, bbl.Code{Scheme: "doi", Val: f.Entry.DOI})
 	}
 
 	if f.Entry.Summary != "" {
