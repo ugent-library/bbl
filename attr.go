@@ -45,6 +45,11 @@ func (e Extent) String() string {
 	return e.Start + "-" + e.End
 }
 
+type Note struct {
+	Kind string `json:"kind,omitempty"`
+	Val  string `json:"val"`
+}
+
 func IsZero[T comparable](t T) bool {
 	var tt T
 	return t == tt

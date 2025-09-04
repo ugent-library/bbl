@@ -24,7 +24,7 @@ func NewWorkEncoder(citeprocURL, style string) bbl.WorkEncoder {
 			return nil, err
 		}
 
-		req, err := http.NewRequest("POST", citeprocURL+"?style="+style, b)
+		req, err := http.NewRequest(http.MethodPost, citeprocURL+"?style="+style, b)
 		if err != nil {
 			return nil, err
 		}

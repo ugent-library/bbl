@@ -57,8 +57,10 @@ type WorkAttrs struct {
 	JournalTitle        string     `json:"journal_title,omitempty"`
 	Keywords            []string   `json:"keywords,omitempty"`
 	LaySummaries        []Text     `json:"lay_summaries,omitempty"`
+	Notes               []Note     `json:"notes,omitempty"`
 	Pages               Extent     `json:"pages,omitzero"`
 	PlaceOfPublication  string     `json:"place_of_publication,omitempty"`
+	PublicationStatus   string     `json:"publication_status,omitempty"`
 	PublicationYear     string     `json:"publication_year,omitempty"`
 	Publisher           string     `json:"publisher,omitempty"`
 	ReportNumber        string     `json:"report_number,omitempty"`
@@ -130,9 +132,11 @@ type WorkDiff struct {
 	Keywords            *[]string          `json:"keywords,omitempty"`
 	Kind                *string            `json:"kind,omitempty"`
 	LaySummaries        *[]Text            `json:"lay_summaries,omitempty"`
+	Notes               *[]Note            `json:"notes,omitempty"`
 	Pages               *Extent            `json:"pages,omitempty"`
 	Permissions         *[]Permission      `json:"permissions,omitempty"` // TODO should we include this in changes?
 	PlaceOfPublication  *string            `json:"place_of_publication,omitempty"`
+	PublicationStatus   *string            `json:"publication_status,omitempty"` // TODO enum
 	PublicationYear     *string            `json:"publication_year,omitempty"`
 	Publisher           *string            `json:"publisher,omitempty"`
 	Rels                *[]WorkRel         `json:"rels,omitempty"`
@@ -219,6 +223,9 @@ func (rec *Work) Diff(rec2 *Work) *WorkDiff {
 	if !slices.Equal(rec.LaySummaries, rec2.LaySummaries) {
 		diff.LaySummaries = &rec.LaySummaries
 	}
+	if !slices.Equal(rec.Notes, rec2.Notes) {
+		diff.Notes = &rec.Notes
+	}
 	if rec.Pages != rec2.Pages {
 		diff.Pages = &rec.Pages
 	}
@@ -227,6 +234,9 @@ func (rec *Work) Diff(rec2 *Work) *WorkDiff {
 	}
 	if rec.PlaceOfPublication != rec2.PlaceOfPublication {
 		diff.PlaceOfPublication = &rec.PlaceOfPublication
+	}
+	if rec.PublicationStatus != rec2.PublicationStatus {
+		diff.PublicationStatus = &rec.PublicationStatus
 	}
 	if rec.PublicationYear != rec2.PublicationYear {
 		diff.PublicationYear = &rec.PublicationYear
