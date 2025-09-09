@@ -262,7 +262,6 @@ button.nav-link {
 
   .nav-link {
     color: $primary;
-    text-decoration: underline;
     font-size: 1.4rem;
     padding: 0.4rem 0;
     line-height: 2rem;
@@ -271,5 +270,6 @@ button.nav-link {
 
   .nav-link:hover {
     color: $dark-blue;
+    text-decoration: underline;
   }
 }

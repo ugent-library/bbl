@@ -364,6 +364,7 @@ ol {
 .c-status-dot {
   width: 0.8rem;
   height: 0.8rem;
+  flex: none;
   display: block;
   border-radius: 100%;
 }
@@ -450,4 +451,35 @@ ol {
     }
   }
 
+}
+
+/* quick-links
+  ========================================================================== */
+
+.quick-links {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.quick-links li {
+  position: relative;
+  padding-left: 2.4rem;
+}
+
+.quick-links li::before {
+  content: '';
+  position: absolute;
+  left: -0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.4rem;
+  height: 2.4rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231e64c8'%3E%3Cpath d='M12.1717 12.0005L9.34326 9.17203L10.7575 7.75781L15.0001 12.0005L10.7575 16.2431L9.34326 14.8289L12.1717 12.0005Z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: block;
 }
