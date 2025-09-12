@@ -21,11 +21,14 @@ import (
 var staticFS embed.FS
 
 func New(config *ctx.Config) (http.Handler, error) {
+	csrfProtection := http.NewCrossOriginProtection()
+
 	router := mux.NewRouter()
 	router.Use(sloghttp.Recovery)
 	router.Use(sloghttp.NewWithConfig(config.Logger.WithGroup("http"), sloghttp.Config{
 		WithRequestID: true,
 	}))
+	router.Use(csrfProtection.Handler)
 
 	// static files
 	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFS))).Methods("GET")
