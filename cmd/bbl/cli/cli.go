@@ -49,9 +49,7 @@ func RunWithContext(ctx context.Context) error {
 
 	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
 	bbl.RegisterWorkEncoder("mla", csl.NewWorkEncoder(config.CiteprocURL, "mla"))
-
 	bbl.RegisterWorkImporter("arxiv", arxiv.NewWorkImporter())
-
 	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
 
 	if err := fang.Execute(ctx, rootCmd); err != nil {

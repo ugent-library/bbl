@@ -12,14 +12,15 @@ const (
 )
 
 type User struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	Name        string    `json:"name"`
-	Identifiers []Code    `json:"identifiers,omitempty"`
-	Role        string    `json:"role"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id,omitempty"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	Name         string    `json:"name"`
+	Identifiers  []Code    `json:"identifiers,omitempty"`
+	Role         string    `json:"role"`
+	CreatedAt    time.Time `json:"created_at,omitzero"`
+	UpdatedAt    time.Time `json:"updated_at,omitzero"`
+	DeactivateAt time.Time `json:"deactivate_at,omitzero"`
 }
 
 type Permission struct {

@@ -88,9 +88,6 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 
 	for name := range bbl.WorkSources() {
 		ws := bbl.GetWorkSource(name)
-		if err := ws.Init(); err != nil {
-			return nil, err
-		}
 		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
 			river.PeriodicInterval(ws.Interval()),
 			func() (river.JobArgs, *river.InsertOpts) {

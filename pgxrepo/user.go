@@ -78,6 +78,7 @@ const userCols = `
 	u.role,
 	u.created_at,
 	u.updated_at,
+	u.deactivate_at,
 	u.identifiers
 `
 
@@ -85,7 +86,7 @@ func scanUser(row pgx.Row) (*bbl.User, error) {
 	var rec bbl.User
 	var rawIdentifiers json.RawMessage
 
-	if err := row.Scan(&rec.ID, &rec.Username, &rec.Email, &rec.Name, &rec.Role, &rec.CreatedAt, &rec.UpdatedAt, &rawIdentifiers); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Username, &rec.Email, &rec.Name, &rec.Role, &rec.CreatedAt, &rec.UpdatedAt, &rec.DeactivateAt, &rawIdentifiers); err != nil {
 		return nil, err
 	}
 

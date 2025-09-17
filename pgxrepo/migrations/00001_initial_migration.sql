@@ -9,7 +9,8 @@ create table bbl_users (
   name text not null,
   role text not null,
   created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp()
+  updated_at timestamptz not null default transaction_timestamp(),
+  deactivate_at timestamptz
 );
 
 create table bbl_user_identifiers (

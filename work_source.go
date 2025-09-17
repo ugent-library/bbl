@@ -8,10 +8,9 @@ import (
 )
 
 type WorkSource interface {
-	Init() error
 	Interval() time.Duration
 	MatchIdentifierScheme() string
-	Iter(context.Context) iter.Seq2[*Work, error]
+	Iter(context.Context) (iter.Seq[*Work], func() error)
 }
 
 var workSources = map[string]WorkSource{}

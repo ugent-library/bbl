@@ -7,10 +7,8 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 	"github.com/ugent-library/bbl"
 )
@@ -24,27 +22,26 @@ type WorkSource struct {
 	client   *http.Client
 }
 
-func (ws *WorkSource) Init() error {
-	v := viper.New()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.BindEnv("plato.url")
-	v.BindEnv("plato.username")
-	v.BindEnv("plato.password")
+type Config struct {
+	URL      string
+	Username string
+	Password string
+}
 
-	ws.username = v.GetString("plato.username")
-	ws.password = v.GetString("plato.password")
-
-	u, err := url.ParseRequestURI(v.GetString("plato.url"))
+func New(c Config) (*WorkSource, error) {
+	u, err := url.ParseRequestURI(c.URL)
 	if err != nil {
-		return err
-	}
-	ws.url = u
-
-	ws.client = &http.Client{
-		Timeout: 30 * time.Second,
+		return nil, err
 	}
 
-	return nil
+	return &WorkSource{
+		url:      u,
+		username: c.Username,
+		password: c.Password,
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}, nil
 }
 
 func (ws *WorkSource) Interval() time.Duration {
