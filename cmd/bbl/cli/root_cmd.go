@@ -32,7 +32,7 @@ func reportJobProgress(ctx context.Context, riverClient *river.Client[pgx.Tx], j
 			logger.Info("job progress", "job", j.ID, "state", j.State)
 		}
 
-		if j.State == rivertype.JobStateCompleted {
+		if j.State == rivertype.JobStateCompleted || j.State == rivertype.JobStateCancelled || j.State == rivertype.JobStateDiscarded {
 			return nil
 		}
 	}

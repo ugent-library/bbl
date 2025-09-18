@@ -22,10 +22,10 @@ func NewImportWorkSource(repo *pgxrepo.Repo) *ImportWorkSource {
 
 func (w *ImportWorkSource) Work(ctx context.Context, job *river.Job[jobs.ImportWorkSource]) error {
 	ws := bbl.GetWorkSource(job.Args.Name)
-	for rec, err := range ws.Iter(ctx) {
-		if err != nil {
-			return err
-		}
+
+	seq, finish := ws.Iter(ctx)
+
+	for rec := range seq {
 		dup := false
 		for _, iden := range rec.Identifiers {
 			if iden.Scheme == ws.MatchIdentifierScheme() {
@@ -43,5 +43,6 @@ func (w *ImportWorkSource) Work(ctx context.Context, job *river.Job[jobs.ImportW
 			}
 		}
 	}
-	return nil
+
+	return finish()
 }

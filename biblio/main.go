@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,6 +18,8 @@ func main() {
 	v.BindEnv("ldap.url")
 	v.BindEnv("ldap.username")
 	v.BindEnv("ldap.password")
+	v.BindEnv("ldap.base")
+	v.BindEnv("ldap.filter")
 	v.BindEnv("plato.url")
 	v.BindEnv("plato.username")
 	v.BindEnv("plato.password")
@@ -25,17 +28,40 @@ func main() {
 		URL:      v.GetString("ldap.url"),
 		Username: v.GetString("ldap.username"),
 		Password: v.GetString("ldap.password"),
-		Filter:   "(|(objectclass=ugentEmployee)(objectclass=uzEmployee)(objectclass=ugentFormerEmployee)(objectclass=ugentSenior)(objectclass=ugentStudent)(objectclass=ugentUCTStudent)(objectclass=ugentExCoStudent)(objectclass=ugentFormerStudent)(ugentextcategorycode=alum))",
+		Base:     v.GetString("ldap.base"),
+		Filter:   v.GetString("ldap.filter"),
 		Attrs: []string{
 			"displayName",
 			"mail",
+			"ugentIDs",
 			"ugentPersonID",
 			"uid",
 		},
-		MatchIdentifierScheme: "ugentPersonID",
+		MatchIdentifierScheme: "ugent_person_id",
 		MappingFunc: func(m map[string][]string) (*bbl.User, error) {
-			user := &bbl.User{}
-			return user, nil
+			rec := &bbl.User{
+				DeactivateAt: time.Now().Add(time.Hour * 24 * 30),
+			}
+
+			if vals := m["ugentPersonID"]; len(vals) != 0 {
+				ident := bbl.Code{Scheme: "ugent_person_id", Val: vals[0]}
+				rec.ID = ident.String()
+				rec.Identifiers = append(rec.Identifiers, ident)
+			}
+			for _, val := range m["ugentIDs"] {
+				rec.Identifiers = append(rec.Identifiers, bbl.Code{Scheme: "ugent_id", Val: val})
+			}
+			if vals := m["uid"]; len(vals) != 0 {
+				rec.Username = vals[0]
+			}
+			if vals := m["displayName"]; len(vals) != 0 {
+				rec.Name = vals[0]
+			}
+			if vals := m["mail"]; len(vals) != 0 {
+				rec.Email = vals[0]
+			}
+
+			return rec, nil
 		},
 	})
 	cobra.CheckErr(err)
@@ -47,7 +73,7 @@ func main() {
 	})
 	cobra.CheckErr(err)
 
-	bbl.RegisterUserSource("ldap", ldapUserSource)
+	bbl.RegisterUserSource("ugent_ldap", ldapUserSource)
 	bbl.RegisterWorkSource("plato", platoWorkSource)
 
 	cli.Run()

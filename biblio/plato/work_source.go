@@ -49,11 +49,15 @@ func (ws *WorkSource) Interval() time.Duration {
 }
 
 func (ws *WorkSource) MatchIdentifierScheme() string {
-	return "plato"
+	return "plato_id"
 }
 
-func (ws *WorkSource) Iter(ctx context.Context) iter.Seq2[*bbl.Work, error] {
-	return func(yield func(*bbl.Work, error) bool) {
+func (ws *WorkSource) Iter(ctx context.Context) (iter.Seq[*bbl.Work], func() error) {
+	var iterErr error
+
+	finish := func() error { return iterErr }
+
+	seq := func(yield func(*bbl.Work) bool) {
 		for from := 1; ; from += count {
 			u := *ws.url
 			q := u.Query()
@@ -63,30 +67,35 @@ func (ws *WorkSource) Iter(ctx context.Context) iter.Seq2[*bbl.Work, error] {
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 			if err != nil {
-				yield(nil, err)
-				return
+				iterErr = err
+				break
 			}
 			req.SetBasicAuth(ws.username, ws.password)
 			res, err := ws.client.Do(req)
 			if err != nil {
-				yield(nil, err)
+				iterErr = err
 				return
 			}
 			if res.StatusCode < 200 || res.StatusCode >= 400 {
-				yield(nil, fmt.Errorf("GET %q: %s", u.String(), res.Status))
+				iterErr = fmt.Errorf("GET %q: %s", u.String(), res.Status)
 				return
 			}
 
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
-				yield(nil, err)
+				iterErr = err
 				return
 			}
 
 			list := gjson.GetBytes(body, "list").Array()
 
 			for _, data := range list {
-				if !yield(mapWork(data)) {
+				rec, err := mapWork(data)
+				if err != nil {
+					iterErr = err
+					return
+				}
+				if !yield(rec) {
 					return
 				}
 			}
@@ -96,6 +105,8 @@ func (ws *WorkSource) Iter(ctx context.Context) iter.Seq2[*bbl.Work, error] {
 			}
 		}
 	}
+
+	return seq, finish
 }
 
 func mapWork(res gjson.Result) (*bbl.Work, error) {
@@ -105,11 +116,11 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 		Kind:   "dissertation",
 		Status: bbl.SuggestionStatus,
 		Identifiers: []bbl.Code{
-			{Scheme: "plato", Val: platoID},
+			{Scheme: "plato_id", Val: platoID},
 		},
 		WorkAttrs: bbl.WorkAttrs{
 			Classifications: []bbl.Code{
-				{Scheme: "ugent_classification", Val: "U"},
+				{Scheme: "ugent", Val: "U"},
 			},
 			PlaceOfPublication: "Ghent, Belgium",
 		},

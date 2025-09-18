@@ -63,6 +63,7 @@ func newInsertOnlyRiverClient(logger *slog.Logger, conn *pgxpool.Pool) (*river.C
 func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo, index bbl.Index, store *s3store.Store, hub *catbird.Hub) (*river.Client[pgx.Tx], error) {
 	w := river.NewWorkers()
 	river.AddWorker(w, workers.NewQueueGc(repo.Queue()))
+	river.AddWorker(w, workers.NewImportUserSource(repo))
 	river.AddWorker(w, workers.NewIndexPerson(repo, index))
 	river.AddWorker(w, workers.NewReindexPeople(repo, index))
 	river.AddWorker(w, workers.NewIndexOrganization(repo, index))
@@ -84,6 +85,17 @@ func newRiverClient(logger *slog.Logger, conn *pgxpool.Pool, repo *pgxrepo.Repo,
 			},
 			&river.PeriodicJobOpts{RunOnStart: true},
 		),
+	}
+
+	for name := range bbl.UserSources() {
+		us := bbl.GetUserSource(name)
+		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
+			river.PeriodicInterval(us.Interval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.ImportUserSource{Name: name}, nil
+			},
+			&river.PeriodicJobOpts{RunOnStart: false},
+		))
 	}
 
 	for name := range bbl.WorkSources() {

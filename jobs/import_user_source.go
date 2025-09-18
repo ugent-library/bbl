@@ -5,13 +5,13 @@ import (
 	"github.com/riverqueue/river/rivertype"
 )
 
-type ImportWorkSource struct { // TODO rename ImportWorkCandidates?
+type ImportUserSource struct {
 	Name string `json:"name"`
 }
 
-func (ImportWorkSource) Kind() string { return "import_work_source" }
+func (ImportUserSource) Kind() string { return "import_user_source" }
 
-func (ImportWorkSource) InsertOpts() river.InsertOpts {
+func (ImportUserSource) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		MaxAttempts: 1,
 		UniqueOpts: river.UniqueOpts{
