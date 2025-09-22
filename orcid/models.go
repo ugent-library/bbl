@@ -924,11 +924,11 @@ type WorkTitle struct {
 type xsdDateTime time.Time
 
 func (t *xsdDateTime) UnmarshalText(text []byte) error {
-	return _unmarshalTime(text, (*time.Time)(t), "2006-01-02T15:04:05.999999999")
+	return unmarshalTime(text, (*time.Time)(t), "2006-01-02T15:04:05.999999999")
 }
 
 func (t xsdDateTime) MarshalText() ([]byte, error) {
-	return _marshalTime((time.Time)(t), "2006-01-02T15:04:05.999999999")
+	return marshalTime((time.Time)(t), "2006-01-02T15:04:05.999999999")
 }
 
 func (t xsdDateTime) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
@@ -950,7 +950,7 @@ func (t xsdDateTime) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 	return xml.Attr{Name: name, Value: string(m)}, err
 }
 
-func _unmarshalTime(text []byte, t *time.Time, format string) (err error) {
+func unmarshalTime(text []byte, t *time.Time, format string) (err error) {
 	s := string(bytes.TrimSpace(text))
 	*t, err = time.Parse(format, s)
 	if _, ok := err.(*time.ParseError); ok {
@@ -959,6 +959,6 @@ func _unmarshalTime(text []byte, t *time.Time, format string) (err error) {
 	return err
 }
 
-func _marshalTime(t time.Time, format string) ([]byte, error) {
+func marshalTime(t time.Time, format string) ([]byte, error) {
 	return []byte(t.Format(format + "Z07:00")), nil
 }
