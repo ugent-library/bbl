@@ -2,7 +2,6 @@ package workers
 
 import (
 	"context"
-	"log"
 
 	"github.com/riverqueue/river"
 	"github.com/ugent-library/bbl"
@@ -30,7 +29,6 @@ func (w *ImportUserSource) Work(ctx context.Context, job *river.Job[jobs.ImportU
 		if err := w.repo.SaveUser(ctx, rec); err != nil {
 			return err
 		}
-		log.Printf("import user %s", rec.ID) // TODO remove this
 	}
 
 	return finish()
