@@ -53,6 +53,17 @@ type Emails struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+type Keyword struct {
+	ElementSummary
+	Content string `xml:"http://www.orcid.org/ns/keyword content"`
+}
+
+type Keywords struct {
+	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Keyword          []Keyword `xml:"http://www.orcid.org/ns/keyword keyword,omitempty"`
+	Path             string    `xml:"path,attr,omitempty"`
+}
+
 type OrcidId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
