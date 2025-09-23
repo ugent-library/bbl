@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type Biography struct {
+	CreatedDate      *DateTime `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
+	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Content          string    `xml:"http://www.orcid.org/ns/personal-details content"`
+	Visibility       string    `xml:"visibility,attr,omitempty"`
+	Path             string    `xml:"path,attr,omitempty"`
+}
+
 type ClientId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
@@ -158,15 +166,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // type Amount struct {
 // 	Value        string `xml:",chardata"`
 // 	CurrencyCode string `xml:"currency-code,attr"`
-// }
-
-// // Description of the researcher's professional career.
-// type Biography struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/personal-details created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/personal-details last-modified-date,omitempty"`
-// 	Content          string `xml:"http://www.orcid.org/ns/common content"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
 // }
 
 // // Utilitary schema that allow the creation of multiple works in a single request
