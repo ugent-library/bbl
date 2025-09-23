@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type Address struct {
+	ElementSummary
+	Country string `xml:"http://www.orcid.org/ns/address country"`
+}
+
+type Addresses struct {
+	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Address          []Address `xml:"http://www.orcid.org/ns/address address,omitempty"`
+	Path             string    `xml:"path,attr,omitempty"`
+}
+
 type Biography struct {
 	CreatedDate      *DateTime `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`

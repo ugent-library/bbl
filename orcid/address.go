@@ -1,10 +1,7 @@
 package orcid
 
-// func (c *Client) Address(id string) (*Addresses, *http.Response, error) {
-// 	data := &Addresses{}
-// 	res, err := c.get(id+"/address", data)
-// 	if err != nil {
-// 		return nil, res, err
-// 	}
-// 	return data, res, nil
-// }
+func (c *Client) Address(id string) (*Addresses, []byte, error) {
+	data := &Addresses{}
+	b, err := c.get(id+"/address", data)
+	return data, b, err
+}
