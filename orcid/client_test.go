@@ -1,19 +1,34 @@
 package orcid
 
 import (
-	"log"
+	"encoding/json"
 	"net/http"
 	"os"
 	"testing"
 )
 
 func newTestClient() *Client {
-	log.Printf("Using ORCID_TEST_CLIENT_ID=%s", os.Getenv("ORCID_TEST_CLIENT_ID"))
 	return NewClient(Config{
 		ClientID:     os.Getenv("ORCID_TEST_CLIENT_ID"),
 		ClientSecret: os.Getenv("ORCID_TEST_CLIENT_SECRET"),
 		Sandbox:      true,
 	})
+}
+
+func testGet(t *testing.T, data any, body []byte, err error) {
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if data == nil {
+		t.Error("expected non-nil data")
+	}
+	if body == nil {
+		t.Error("expected non-nil body")
+	}
+
+	j, _ := json.MarshalIndent(data, "", "  ")
+	t.Logf("body: %s", body)
+	t.Logf("data: %s", j)
 }
 
 func TestNewClient_Defaults(t *testing.T) {

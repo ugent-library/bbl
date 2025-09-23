@@ -1,12 +1,7 @@
 package orcid
 
-import "net/http"
-
-func (c *Client) Emails(id string) (*Emails, *http.Response, error) {
+func (c *Client) Emails(id string) (*Emails, []byte, error) {
 	data := &Emails{}
-	res, err := c.get(id+"/email", data)
-	if err != nil {
-		return nil, res, err
-	}
-	return data, res, nil
+	b, err := c.get(id+"/email", data)
+	return data, b, err
 }

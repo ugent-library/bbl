@@ -101,21 +101,18 @@ func NewMemberClient(cfg Config) *MemberClient {
 	return &MemberClient{newClient(MemberUrl, cfg)}
 }
 
-func (c *Client) get(path string, data any) (*http.Response, error) {
+func (c *Client) get(path string, data any) ([]byte, error) {
 	req, err := c.newRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.do(req, data)
-	if err != nil {
-		return res, err
-	}
-	if res.StatusCode == 404 {
+	status, b, err := c.do(req, data)
+	if status == 404 {
 		err = ErrNotFound
-	} else if res.StatusCode != 200 {
+	} else if status != 200 {
 		err = fmt.Errorf("orcid: couldn't get %s", path)
 	}
-	return res, err
+	return b, err
 }
 
 // func (c *MemberClient) add(path string, body any) (int, *http.Response, error) {
@@ -198,21 +195,22 @@ func (c *Client) newRequest(method, path string, body any) (*http.Request, error
 	return req, nil
 }
 
-func (c *Client) do(req *http.Request, data any) (*http.Response, error) {
+func (c *Client) do(req *http.Request, data any) (int, []byte, error) {
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return res.StatusCode, nil, err
 	}
 	if data != nil {
 		b, err := io.ReadAll(res.Body)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read orcid response: %s", err)
+			return res.StatusCode, nil, fmt.Errorf("orcid: cannot read response: %w", err)
 		}
 		if err = xml.Unmarshal(b, data); err != nil {
-			return nil, fmt.Errorf("cannot decode orcid response: %s [response: %s]", err, b)
+			return res.StatusCode, b, fmt.Errorf("orcid: cannot decode response: %w", err)
 		}
+		return res.StatusCode, b, nil
 	}
-	return res, err
+	return res.StatusCode, nil, nil
 }
 
 func IsID(id string) bool {

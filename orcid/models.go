@@ -23,7 +23,7 @@ type ElementSummary struct {
 
 type Email struct {
 	ElementSummary
-	Email    string `xml:"http://www.orcid.org/ns/common email"`
+	Email    string `xml:"http://www.orcid.org/ns/email email"`
 	Primary  bool   `xml:"primary,attr"`
 	Verified bool   `xml:"verified,attr"`
 }
