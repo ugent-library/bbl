@@ -16,6 +16,24 @@ type Addresses struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+// TODO unfinished
+type AffiliationGroup struct {
+	LastModifiedDate  *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds       ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
+	EmploymentSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
+}
+
+type AffiliationSummary struct {
+	ElementSummary
+	DepartmentName string       `xml:"http://www.orcid.org/ns/common department-name,omitempty"`
+	RoleTitle      string       `xml:"http://www.orcid.org/ns/common role-title,omitempty"`
+	StartDate      *FuzzyDate   `xml:"http://www.orcid.org/ns/common start-date,omitempty"`
+	EndDate        *FuzzyDate   `xml:"http://www.orcid.org/ns/common end-date,omitempty"`
+	Organization   Organization `xml:"http://www.orcid.org/ns/common organization"`
+	Url            string       `xml:"http://www.orcid.org/ns/common url,omitempty"`
+	ExternalIds    *ExternalIds `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
+}
+
 type Biography struct {
 	CreatedDate      *DateTime `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
@@ -28,6 +46,11 @@ type ClientId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
 	Host string `xml:"http://www.orcid.org/ns/common host,omitempty"`
+}
+
+type DisambiguatedOrganization struct {
+	DisambiguatedOrganizationIdentifier string `xml:"http://www.orcid.org/ns/common disambiguated-organization-identifier"`
+	DisambiguationSource                string `xml:"http://www.orcid.org/ns/common disambiguation-source"`
 }
 
 type ElementSummary struct {
@@ -51,6 +74,12 @@ type Emails struct {
 	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	Email            []Email   `xml:"http://www.orcid.org/ns/email email,omitempty"`
 	Path             string    `xml:"path,attr,omitempty"`
+}
+
+type Employments struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
 }
 
 type ExternalId struct {
@@ -88,6 +117,18 @@ type OrcidId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
 	Host string `xml:"http://www.orcid.org/ns/common host,omitempty"`
+}
+
+type Organization struct {
+	Name                      string                     `xml:"http://www.orcid.org/ns/common name"`
+	Address                   OrganizationAddress        `xml:"http://www.orcid.org/ns/common address"`
+	DisambiguatedOrganization *DisambiguatedOrganization `xml:"http://www.orcid.org/ns/common disambiguated-organization,omitempty"`
+}
+
+type OrganizationAddress struct {
+	City    string `xml:"http://www.orcid.org/ns/common city"`
+	Region  string `xml:"http://www.orcid.org/ns/common region,omitempty"`
+	Country string `xml:"http://www.orcid.org/ns/common country"`
 }
 
 type Source struct {
@@ -214,35 +255,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Path             string       `xml:"path,attr,omitempty"`
 // }
 
-// type AffiliationGroup struct {
-// 	LastModifiedDate       string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	ExternalIds            string   `xml:"http://www.orcid.org/ns/activities external-ids"`
-// 	DistinctionSummary     []string `xml:"http://www.orcid.org/ns/activities distinction-summary,omitempty"`
-// 	InvitedPositionSummary []string `xml:"http://www.orcid.org/ns/activities invited-position-summary,omitempty"`
-// 	EducationSummary       []string `xml:"http://www.orcid.org/ns/activities education-summary,omitempty"`
-// 	EmploymentSummary      []string `xml:"http://www.orcid.org/ns/activities employment-summary,omitempty"`
-// 	MembershipSummary      []string `xml:"http://www.orcid.org/ns/activities membership-summary,omitempty"`
-// 	QualificationSummary   []string `xml:"http://www.orcid.org/ns/activities qualification-summary,omitempty"`
-// 	ServiceSummary         []string `xml:"http://www.orcid.org/ns/activities service-summary,omitempty"`
-// }
-
-// type AffiliationSummary struct {
-// 	CreatedDate      string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string       `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	DepartmentName   string       `xml:"http://www.orcid.org/ns/common department-name,omitempty"`
-// 	RoleTitle        string       `xml:"http://www.orcid.org/ns/common role-title,omitempty"`
-// 	StartDate        string       `xml:"http://www.orcid.org/ns/common start-date,omitempty"`
-// 	EndDate          string       `xml:"http://www.orcid.org/ns/common end-date,omitempty"`
-// 	Organization     Organization `xml:"http://www.orcid.org/ns/common organization,omitempty"`
-// 	Url              string       `xml:"http://www.orcid.org/ns/common url,omitempty"`
-// 	ExternalIds      string       `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
-// 	PutCode          int          `xml:"put-code,attr,omitempty"`
-// 	Visibility       string       `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string       `xml:"display-index,attr,omitempty"`
-// 	Path             string       `xml:"path,attr,omitempty"`
-// }
-
 // // The funding amount.
 // type Amount struct {
 // 	Value        string `xml:",chardata"`
@@ -307,15 +319,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 // type CreditName struct {
 // 	Value string `xml:",chardata"`
-// }
-
-// A reference to a disambiguated version the
-// organization to which the researcher or contributor is affiliated.
-// The list of disambiguated organizations come from ORCID partners
-// such as Ringgold, ISNI and FundRef.
-// type DisambiguatedOrganization struct {
-// 	DisambiguatedOrganizationIdentifier string `xml:"http://www.orcid.org/ns/common disambiguated-organization-identifier"`
-// 	DisambiguationSource                string `xml:"http://www.orcid.org/ns/common disambiguation-source"`
 // }
 
 // type Distinctions struct {
@@ -400,11 +403,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	overlay.T = (*T)(t)
 // 	overlay.Type = (*string)(&overlay.T.Type)
 // 	return d.DecodeElement(&overlay, &start)
-// }
-
-// type Employments struct {
-// 	Count      int      `xml:"http://www.orcid.org/ns/summary count"`
-// 	Employment []string `xml:"http://www.orcid.org/ns/summary employment"`
 // }
 
 // A single expanded search result when performing a
@@ -582,25 +580,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	CreditName       string `xml:"http://www.orcid.org/ns/personal-details credit-name,omitempty"`
 // 	Visibility       string `xml:"visibility,attr,omitempty"`
 // 	Path             string `xml:"path,attr,omitempty"`
-// }
-
-// A reference to an organization. An organization should
-// contain a disambiguated organization, which uniquely identifies the
-// organization. While the schema does not enforce the presence of a
-// disambiguated organization, it is only optional for peer review
-// convening organizations. A disambiguated organization is mandatory in
-// all other cases where organization is required in the schema.
-// type Organization struct {
-// 	Name                      string                    `xml:"http://www.orcid.org/ns/common name"`
-// 	Address                   OrganizationAddress       `xml:"http://www.orcid.org/ns/common address"`
-// 	DisambiguatedOrganization DisambiguatedOrganization `xml:"http://www.orcid.org/ns/common disambiguated-organization,omitempty"`
-// }
-
-// // Container for organization location information
-// type OrganizationAddress struct {
-// 	City    string `xml:"http://www.orcid.org/ns/common city,omitempty"`
-// 	Region  string `xml:"http://www.orcid.org/ns/common region,omitempty"`
-// 	Country string `xml:"http://www.orcid.org/ns/common country,omitempty"`
 // }
 
 // type OtherName struct {
