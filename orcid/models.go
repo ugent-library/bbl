@@ -20,9 +20,11 @@ type Addresses struct {
 type AffiliationGroup struct {
 	LastModifiedDate   *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	ExternalIds        ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
-	EmploymentSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
-	EducationSummary   []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
 	DistinctionSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/distinction distinction-summary,omitempty"`
+	EducationSummary   []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
+	EmploymentSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
+	MembershipSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/membership membership-summary,omitempty"`
+	ServiceSummary     []AffiliationSummary `xml:"http://www.orcid.org/ns/service service-summary,omitempty"`
 }
 
 type AffiliationSummary struct {
@@ -127,6 +129,12 @@ type Keywords struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+type Memberships struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
+}
+
 type OrcidId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
@@ -143,6 +151,12 @@ type OrganizationAddress struct {
 	City    string `xml:"http://www.orcid.org/ns/common city"`
 	Region  string `xml:"http://www.orcid.org/ns/common region,omitempty"`
 	Country string `xml:"http://www.orcid.org/ns/common country"`
+}
+
+type Services struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
 }
 
 type Source struct {
@@ -324,12 +338,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Value string `xml:",chardata"`
 // }
 
-// type Distinctions struct {
-// 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	AffiliationGroup []string `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
-// 	Path             string   `xml:"path,attr,omitempty"`
-// }
-
 // type EducationQualification struct {
 // 	PutCode          int64  `xml:"http://www.orcid.org/ns/summary put-code"`
 // 	Type             string `xml:"http://www.orcid.org/ns/summary type"`
@@ -486,12 +494,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	LastModifiedDate string    `xml:"http://www.orcid.org/ns/keyword last-modified-date,omitempty"`
 // 	Keyword          []Keyword `xml:"http://www.orcid.org/ns/keyword keyword,omitempty"`
 // 	Path             string    `xml:"path,attr,omitempty"`
-// }
-
-// type Memberships struct {
-// 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	AffiliationGroup []string `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
-// 	Path             string   `xml:"path,attr,omitempty"`
 // }
 
 // // Container for the researcher's first and last name.
@@ -758,12 +760,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // type Search struct {
 // 	Result   []Result `xml:"http://www.orcid.org/ns/search result,omitempty"`
 // 	NumFound int      `xml:"num-found,attr,omitempty"`
-// }
-
-// type Services struct {
-// 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	AffiliationGroup []string `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
-// 	Path             string   `xml:"path,attr,omitempty"`
 // }
 
 // // Container for peer-review subject name.
