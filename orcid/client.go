@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 
 	"golang.org/x/oauth2"
@@ -101,116 +102,58 @@ func NewMemberClient(cfg Config) *MemberClient {
 	return &MemberClient{newClient(MemberUrl, cfg)}
 }
 
-func (c *Client) get(path string, data any) ([]byte, error) {
-	req, err := c.newRequest("GET", path, nil)
-	if err != nil {
-		return nil, err
-	}
-	status, b, err := c.do(req, data)
-	if status == 404 {
-		err = ErrNotFound
-	} else if status != 200 {
-		err = fmt.Errorf("orcid: couldn't get %s", path)
-	}
-	return b, err
+func (c *Client) get(ctx context.Context, path string, params url.Values, resData any) ([]byte, error) {
+	return c.request(ctx, "GET", path, params, nil, resData)
 }
 
-// func (c *MemberClient) add(path string, body any) (int, *http.Response, error) {
-// 	req, err := c.newRequest("POST", path, body)
-// 	if err != nil {
-// 		return 0, nil, err
-// 	}
-// 	res, err := c.do(req, nil)
-// 	if err != nil {
-// 		return 0, res, err
-// 	}
-// 	if res.StatusCode == 409 {
-// 		return 0, res, ErrDuplicate
-// 	}
-// 	if res.StatusCode != 201 {
-// 		err = fmt.Errorf("couldn't add %s", path)
-// 		return 0, res, err
-// 	}
-// 	loc, err := res.Location()
-// 	if err != nil {
-// 		return 0, res, err
-// 	}
-// 	r := regexp.MustCompile("([^/]+)$")
-// 	match := r.FindString(loc.String())
-// 	putCode, err := strconv.Atoi(match)
-// 	return putCode, res, err
-// }
-
-// func (c *MemberClient) update(path string, body, data any) (*http.Response, error) {
-// 	req, err := c.newRequest("PUT", path, body)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	res, err := c.do(req, data)
-// 	if err != nil {
-// 		return res, err
-// 	}
-// 	if res.StatusCode != 200 {
-// 		err = fmt.Errorf("couldn't update %s", path)
-// 		return res, err
-// 	}
-// 	return res, err
-// }
-
-// func (c *Client) delete(path string) (bool, *http.Response, error) {
-// 	var ok bool
-// 	req, err := c.newRequest("DELETE", path, nil)
-// 	if err != nil {
-// 		return ok, nil, err
-// 	}
-// 	res, err := c.do(req, nil)
-// 	if err != nil {
-// 		return false, res, err
-// 	}
-// 	if res.StatusCode == 204 {
-// 		ok = true
-// 	}
-// 	return ok, res, err
-// }
-
-func (c *Client) newRequest(method, path string, body any) (*http.Request, error) {
+func (c *Client) request(ctx context.Context, method, path string, params url.Values, reqData, resData any) ([]byte, error) {
 	u := c.baseURL + "/" + path
+
 	var buf io.ReadWriter
-	if body != nil {
+
+	if reqData != nil {
 		buf = &bytes.Buffer{}
-		err := xml.NewEncoder(buf).Encode(body)
+		err := xml.NewEncoder(buf).Encode(reqData)
 		if err != nil {
 			return nil, err
 		}
 	}
-	req, err := http.NewRequest(method, u, buf)
+
+	req, err := http.NewRequestWithContext(ctx, method, u, buf)
 	if err != nil {
-		return req, err
+		return nil, err
 	}
-	if body != nil {
+
+	if params != nil {
+		req.URL.RawQuery = params.Encode()
+	}
+
+	if reqData != nil {
 		req.Header.Set("Content-Type", ContentType)
 	}
 	req.Header.Set("Accept", ContentType)
 
-	return req, nil
-}
-
-func (c *Client) do(req *http.Request, data any) (int, []byte, error) {
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return res.StatusCode, nil, err
+		return nil, err
 	}
-	if data != nil {
-		b, err := io.ReadAll(res.Body)
-		if err != nil {
-			return res.StatusCode, nil, fmt.Errorf("orcid: cannot read response: %w", err)
-		}
-		if err = xml.Unmarshal(b, data); err != nil {
-			return res.StatusCode, b, fmt.Errorf("orcid: cannot decode response: %w", err)
-		}
-		return res.StatusCode, b, nil
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("orcid: cannot read response: %w", err)
 	}
-	return res.StatusCode, nil, nil
+
+	if res.StatusCode < 200 || res.StatusCode >= 400 {
+		return b, fmt.Errorf("orcid: http error %d", res.StatusCode)
+	}
+
+	if resData != nil {
+		if err = xml.Unmarshal(b, resData); err != nil {
+			return b, fmt.Errorf("orcid: cannot decode response: %w", err)
+		}
+	}
+
+	return b, nil
 }
 
 func IsID(id string) bool {

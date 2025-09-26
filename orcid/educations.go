@@ -1,7 +1,9 @@
 package orcid
 
-func (c *Client) Educations(id string) (*Educations, []byte, error) {
-	data := &Educations{}
-	b, err := c.get(id+"/educations", data)
+import "context"
+
+func (c *Client) Educations(ctx context.Context, id string) (*Affiliations, []byte, error) {
+	data := &Affiliations{}
+	b, err := c.get(ctx, id+"/educations", nil, data)
 	return data, b, err
 }

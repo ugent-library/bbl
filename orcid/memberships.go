@@ -1,7 +1,9 @@
 package orcid
 
-func (c *Client) Memberships(id string) (*Memberships, []byte, error) {
-	data := &Memberships{}
-	b, err := c.get(id+"/memberships", data)
+import "context"
+
+func (c *Client) Memberships(ctx context.Context, id string) (*Affiliations, []byte, error) {
+	data := &Affiliations{}
+	b, err := c.get(ctx, id+"/memberships", nil, data)
 	return data, b, err
 }
