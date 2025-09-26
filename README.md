@@ -32,6 +32,7 @@
 * oaipmh
 * opensearchswitcher
 * muxurl
+* httperr
 
 ## dependencies
 

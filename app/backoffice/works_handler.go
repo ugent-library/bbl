@@ -17,10 +17,10 @@ import (
 	"github.com/ugent-library/bbl/app/views/backoffice/works"
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
+	"github.com/ugent-library/bbl/httperr"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/htmx"
-	"github.com/ugent-library/httperror"
 )
 
 type WorkCtx struct {
@@ -74,7 +74,7 @@ func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
 		if can.EditWork(c.User, c.Work) {
 			return next.ServeHTTP(w, r, c)
 		}
-		return httperror.Forbidden
+		return httperr.Forbidden
 	})
 }
 
@@ -153,7 +153,7 @@ func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchWorksCtx) er
 	switch c.Scope {
 	case "curator":
 		if !can.Curate(c.User) {
-			return httperror.Forbidden
+			return httperr.Forbidden
 		}
 	case "creator":
 		c.Opts.AddTermsFilter("creator", c.User.ID)
@@ -164,7 +164,7 @@ func (h *WorksHandler) setSearchScope(ctx context.Context, c *SearchWorksCtx) er
 		}
 		c.Opts.AddTermsFilter("contributor", personIDs...)
 	default:
-		return httperror.BadRequest
+		return httperr.BadRequest
 	}
 	return nil
 }
