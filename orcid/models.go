@@ -18,10 +18,11 @@ type Addresses struct {
 
 // TODO unfinished
 type AffiliationGroup struct {
-	LastModifiedDate  *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	ExternalIds       ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
-	EmploymentSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
-	EducationSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
+	LastModifiedDate   *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds        ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
+	EmploymentSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
+	EducationSummary   []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
+	DistinctionSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/distinction distinction-summary,omitempty"`
 }
 
 type AffiliationSummary struct {
@@ -52,6 +53,12 @@ type ClientId struct {
 type DisambiguatedOrganization struct {
 	DisambiguatedOrganizationIdentifier string `xml:"http://www.orcid.org/ns/common disambiguated-organization-identifier"`
 	DisambiguationSource                string `xml:"http://www.orcid.org/ns/common disambiguation-source"`
+}
+
+type Distinctions struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
 }
 
 type Educations struct {

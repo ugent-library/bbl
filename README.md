@@ -27,7 +27,7 @@
 
 * bind
 * catbird
-* vo
+* orcid
 * tonga
 * oaipmh
 * opensearchswitcher
