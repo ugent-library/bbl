@@ -18,13 +18,14 @@ type Addresses struct {
 
 // TODO unfinished
 type AffiliationGroup struct {
-	LastModifiedDate   *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	ExternalIds        ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
-	DistinctionSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/distinction distinction-summary,omitempty"`
-	EducationSummary   []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
-	EmploymentSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
-	MembershipSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/membership membership-summary,omitempty"`
-	ServiceSummary     []AffiliationSummary `xml:"http://www.orcid.org/ns/service service-summary,omitempty"`
+	LastModifiedDate     *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds          ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
+	DistinctionSummary   []AffiliationSummary `xml:"http://www.orcid.org/ns/distinction distinction-summary,omitempty"`
+	EducationSummary     []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
+	EmploymentSummary    []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
+	MembershipSummary    []AffiliationSummary `xml:"http://www.orcid.org/ns/membership membership-summary,omitempty"`
+	QualificationSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/qualification qualification-summary,omitempty"`
+	ServiceSummary       []AffiliationSummary `xml:"http://www.orcid.org/ns/service service-summary,omitempty"`
 }
 
 type AffiliationSummary struct {
@@ -151,6 +152,12 @@ type OrganizationAddress struct {
 	City    string `xml:"http://www.orcid.org/ns/common city"`
 	Region  string `xml:"http://www.orcid.org/ns/common region,omitempty"`
 	Country string `xml:"http://www.orcid.org/ns/common country"`
+}
+
+type Qualifications struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
 }
 
 type Services struct {
@@ -633,12 +640,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	StartDate   string                `xml:"http://www.orcid.org/ns/research-resource start-date,omitempty"`
 // 	EndDate     string                `xml:"http://www.orcid.org/ns/research-resource end-date,omitempty"`
 // 	Url         string                `xml:"http://www.orcid.org/ns/research-resource url,omitempty"`
-// }
-
-// type Qualifications struct {
-// 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	AffiliationGroup []string `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
-// 	Path             string   `xml:"path,attr,omitempty"`
 // }
 
 // // The container element for a researcher or
