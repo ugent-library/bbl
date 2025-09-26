@@ -21,6 +21,7 @@ type AffiliationGroup struct {
 	LastModifiedDate  *DateTime            `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	ExternalIds       ExternalIds          `xml:"http://www.orcid.org/ns/common external-ids"`
 	EmploymentSummary []AffiliationSummary `xml:"http://www.orcid.org/ns/employment employment-summary,omitempty"`
+	EducationSummary  []AffiliationSummary `xml:"http://www.orcid.org/ns/education education-summary,omitempty"`
 }
 
 type AffiliationSummary struct {
@@ -51,6 +52,12 @@ type ClientId struct {
 type DisambiguatedOrganization struct {
 	DisambiguatedOrganizationIdentifier string `xml:"http://www.orcid.org/ns/common disambiguated-organization-identifier"`
 	DisambiguationSource                string `xml:"http://www.orcid.org/ns/common disambiguation-source"`
+}
+
+type Educations struct {
+	LastModifiedDate *DateTime          `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	AffiliationGroup []AffiliationGroup `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
+	Path             string             `xml:"path,attr,omitempty"`
 }
 
 type ElementSummary struct {
@@ -276,17 +283,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	CitationValue string `xml:"http://www.orcid.org/ns/work citation-value"`
 // }
 
-// func (t *Citation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T Citation
-// 	var overlay struct {
-// 		*T
-// 		Citationtype *string `xml:"http://www.orcid.org/ns/work citation-type,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.Citationtype = (*string)(&overlay.T.CitationType)
-// 	return d.DecodeElement(&overlay, &start)
-// }
-
 // A collaborator or other contributor to a work or
 // other orcid-activity
 // type Contributor struct {
@@ -343,39 +339,11 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	EducationQualification []string `xml:"http://www.orcid.org/ns/summary education-qualification"`
 // }
 
-// type Educations struct {
-// 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
-// 	AffiliationGroup []string `xml:"http://www.orcid.org/ns/activities affiliation-group,omitempty"`
-// 	Path             string   `xml:"path,attr,omitempty"`
-// }
-
 // type EmailDomain struct {
 // 	Value            string    `xml:"http://www.orcid.org/ns/common value"`
 // 	VerificationDate time.Time `xml:"http://www.orcid.org/ns/summary verification-date,omitempty"`
 // 	CreatedDate      string    `xml:"http://www.orcid.org/ns/summary created-date,omitempty"`
 // 	LastModifiedDate string    `xml:"http://www.orcid.org/ns/summary last-modified-date,omitempty"`
-// }
-
-// func (t *EmailDomain) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-// 	type T EmailDomain
-// 	var layout struct {
-// 		*T
-// 		VerificationDate *xsdDateTime `xml:"http://www.orcid.org/ns/summary verification-date,omitempty"`
-// 	}
-// 	layout.T = (*T)(t)
-// 	layout.VerificationDate = (*xsdDateTime)(&layout.T.VerificationDate)
-// 	return e.EncodeElement(layout, start)
-// }
-
-// func (t *EmailDomain) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T EmailDomain
-// 	var overlay struct {
-// 		*T
-// 		VerificationDate *xsdDateTime `xml:"http://www.orcid.org/ns/summary verification-date,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.VerificationDate = (*xsdDateTime)(&overlay.T.VerificationDate)
-// 	return d.DecodeElement(&overlay, &start)
 // }
 
 // type EmailDomains struct {
@@ -392,17 +360,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	StartDate        string `xml:"http://www.orcid.org/ns/summary start-date,omitempty"`
 // 	EndDate          string `xml:"http://www.orcid.org/ns/summary end-date,omitempty"`
 // 	Validated        bool   `xml:"http://www.orcid.org/ns/summary validated"`
-// }
-
-// func (t *Employment) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T Employment
-// 	var overlay struct {
-// 		*T
-// 		Type *string `xml:"http://www.orcid.org/ns/summary type,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.Type = (*string)(&overlay.T.Type)
-// 	return d.DecodeElement(&overlay, &start)
 // }
 
 // A single expanded search result when performing a
@@ -424,17 +381,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // type ExpandedSearch struct {
 // 	ExpandedResult []ExpandedResult `xml:"http://www.orcid.org/ns/expanded-search expanded-result,omitempty"`
 // 	NumFound       int              `xml:"num-found,attr,omitempty"`
-// }
-
-// func (t *ExpandedSearch) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T ExpandedSearch
-// 	var overlay struct {
-// 		*T
-// 		NumFound *int `xml:"num-found,attr,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.NumFound = (*int)(&overlay.T.NumFound)
-// 	return d.DecodeElement(&overlay, &start)
 // }
 
 // type Funding struct {
@@ -504,36 +450,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	VerifiedEmail        bool      `xml:"http://www.orcid.org/ns/history verified-email"`
 // 	VerifiedPrimaryEmail bool      `xml:"http://www.orcid.org/ns/history verified-primary-email"`
 // 	Visibility           string    `xml:"visibility,attr,omitempty"`
-// }
-
-// func (t *History) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-// 	type T History
-// 	var layout struct {
-// 		*T
-// 		CompletionDate   *xsdDateTime `xml:"http://www.orcid.org/ns/history completion-date,omitempty"`
-// 		SubmissionDate   *xsdDateTime `xml:"http://www.orcid.org/ns/history submission-date,omitempty"`
-// 		DeactivationDate *xsdDateTime `xml:"http://www.orcid.org/ns/history deactivation-date,omitempty"`
-// 	}
-// 	layout.T = (*T)(t)
-// 	layout.CompletionDate = (*xsdDateTime)(&layout.T.CompletionDate)
-// 	layout.SubmissionDate = (*xsdDateTime)(&layout.T.SubmissionDate)
-// 	layout.DeactivationDate = (*xsdDateTime)(&layout.T.DeactivationDate)
-// 	return e.EncodeElement(layout, start)
-// }
-
-// func (t *History) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T History
-// 	var overlay struct {
-// 		*T
-// 		CompletionDate   *xsdDateTime `xml:"http://www.orcid.org/ns/history completion-date,omitempty"`
-// 		SubmissionDate   *xsdDateTime `xml:"http://www.orcid.org/ns/history submission-date,omitempty"`
-// 		DeactivationDate *xsdDateTime `xml:"http://www.orcid.org/ns/history deactivation-date,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.CompletionDate = (*xsdDateTime)(&overlay.T.CompletionDate)
-// 	overlay.SubmissionDate = (*xsdDateTime)(&overlay.T.SubmissionDate)
-// 	overlay.DeactivationDate = (*xsdDateTime)(&overlay.T.DeactivationDate)
-// 	return d.DecodeElement(&overlay, &start)
 // }
 
 // Container for host and proposal organisations
@@ -835,17 +751,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // type Search struct {
 // 	Result   []Result `xml:"http://www.orcid.org/ns/search result,omitempty"`
 // 	NumFound int      `xml:"num-found,attr,omitempty"`
-// }
-
-// func (t *Search) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-// 	type T Search
-// 	var overlay struct {
-// 		*T
-// 		NumFound *int `xml:"num-found,attr,omitempty"`
-// 	}
-// 	overlay.T = (*T)(t)
-// 	overlay.NumFound = (*int)(&overlay.T.NumFound)
-// 	return d.DecodeElement(&overlay, &start)
 // }
 
 // type Services struct {
