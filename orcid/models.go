@@ -97,6 +97,12 @@ type ExternalId struct {
 	ExternalIdRelationship    string          `xml:"http://www.orcid.org/ns/common external-id-relationship,omitempty"`
 }
 
+type ExternalIdentifiers struct {
+	LastModifiedDate   *DateTime    `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIdentifier []ExternalId `xml:"http://www.orcid.org/external-identifier external-identifier,omitempty"`
+	Path               string       `xml:"path,attr,omitempty"`
+}
+
 type ExternalIds struct {
 	ExternalId []ExternalId `xml:"http://www.orcid.org/ns/common external-id,omitempty"`
 }
@@ -134,6 +140,17 @@ type OrganizationAddress struct {
 	City    string `xml:"http://www.orcid.org/ns/common city"`
 	Region  string `xml:"http://www.orcid.org/ns/common region,omitempty"`
 	Country string `xml:"http://www.orcid.org/ns/common country"`
+}
+
+type OtherName struct {
+	ElementSummary
+	Content string `xml:"http://www.orcid.org/ns/other-name content"`
+}
+
+type OtherNames struct {
+	LastModifiedDate *DateTime   `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	OtherName        []OtherName `xml:"http://www.orcid.org/ns/other-name other-name,omitempty"`
+	Path             string      `xml:"path,attr,omitempty"`
 }
 
 type Result struct {
@@ -487,24 +504,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Path             string `xml:"path,attr,omitempty"`
 // }
 
-// type OtherName struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Content          string `xml:"http://www.orcid.org/ns/common content"`
-// 	PutCode          int    `xml:"put-code,attr,omitempty"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string `xml:"display-index,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
-// }
-
-// // Container for other names.
-// type OtherNames struct {
-// 	LastModifiedDate string      `xml:"http://www.orcid.org/ns/other-name last-modified-date,omitempty"`
-// 	OtherName        []OtherName `xml:"http://www.orcid.org/ns/other-name other-name,omitempty"`
-// 	Path             string      `xml:"path,attr,omitempty"`
-// }
-
 // type PeerReview struct {
 // 	CreatedDate               string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 // 	LastModifiedDate          string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
@@ -773,8 +772,4 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	ExternalIdValue string `xml:"http://www.orcid.org/ns/common external-id-value,omitempty"`
 // 	ExternalIdUrl   string `xml:"http://www.orcid.org/ns/summary external-id-url,omitempty"`
 // 	Validated       bool   `xml:"http://www.orcid.org/ns/summary validated"`
-// }
-
-// type ExternalIdentifiers struct {
-// 	ExternalIdentifier []string `xml:"http://www.orcid.org/ns/summary external-identifier"`
 // }

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"regexp"
 
+	"github.com/ugent-library/bbl/httperr"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 )
@@ -144,7 +145,7 @@ func (c *Client) request(ctx context.Context, method, path string, params url.Va
 	}
 
 	if res.StatusCode < 200 || res.StatusCode >= 400 {
-		return b, fmt.Errorf("orcid: http error %d", res.StatusCode)
+		return b, fmt.Errorf("orcid: %w", httperr.New(res.StatusCode))
 	}
 
 	if resData != nil {
