@@ -124,6 +124,16 @@ type Keywords struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+type Name struct {
+	CreatedDate      *DateTime `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
+	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	GivenNames       string    `xml:"http://www.orcid.org/ns/personal-details given-names,omitempty"`
+	FamilyName       string    `xml:"http://www.orcid.org/ns/personal-details family-name,omitempty"`
+	CreditName       string    `xml:"http://www.orcid.org/ns/personal-details credit-name,omitempty"`
+	Visibility       string    `xml:"visibility,attr,omitempty"`
+	Path             string    `xml:"path,attr,omitempty"`
+}
+
 type OrcidId struct {
 	Uri  string `xml:"http://www.orcid.org/ns/common uri,omitempty"`
 	Path string `xml:"http://www.orcid.org/ns/common path,omitempty"`
@@ -151,6 +161,39 @@ type OtherNames struct {
 	LastModifiedDate *DateTime   `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	OtherName        []OtherName `xml:"http://www.orcid.org/ns/other-name other-name,omitempty"`
 	Path             string      `xml:"path,attr,omitempty"`
+}
+
+type Person struct {
+	LastModifiedDate    *DateTime           `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Name                Name                `xml:"http://www.orcid.org/ns/person name,omitempty"`
+	OtherNames          OtherNames          `xml:"http://www.orcid.org/ns/other-name other-names,omitempty"`
+	Biography           Biography           `xml:"http://www.orcid.org/ns/person biography,omitempty"`
+	ResearcherUrls      ResearcherUrls      `xml:"http://www.orcid.org/ns/researcher-url researcher-urls,omitempty"`
+	Emails              Emails              `xml:"http://www.orcid.org/ns/email emails"`
+	Addresses           Addresses           `xml:"http://www.orcid.org/ns/address addresses,omitempty"`
+	Keywords            Keywords            `xml:"http://www.orcid.org/ns/keyword keywords,omitempty"`
+	ExternalIdentifiers ExternalIdentifiers `xml:"http://www.orcid.org/ns/external-identifier external-identifiers,omitempty"`
+	Path                string              `xml:"path,attr,omitempty"`
+}
+
+type PersonalDetails struct {
+	LastModifiedDate *DateTime  `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Name             Name       `xml:"http://www.orcid.org/ns/personal-details name,omitempty"`
+	OtherNames       OtherNames `xml:"http://www.orcid.org/ns/other-name other-names,omitempty"`
+	Biography        Biography  `xml:"http://www.orcid.org/ns/personal-details biography,omitempty"`
+	Path             string     `xml:"path,attr,omitempty"`
+}
+
+type ResearcherUrl struct {
+	ElementSummary
+	UrlName string `xml:"http://www.orcid.org/ns/researcher-url url-name,omitempty"`
+	Url     string `xml:"http://www.orcid.org/ns/researcher-url url"`
+}
+
+type ResearcherUrls struct {
+	LastModifiedDate *DateTime       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ResearcherUrl    []ResearcherUrl `xml:"http://www.orcid.org/ns/researcher-url researcher-url,omitempty"`
+	Path             string          `xml:"path,attr,omitempty"`
 }
 
 type Result struct {
@@ -337,10 +380,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Visibility string `xml:"visibility,attr,omitempty"`
 // }
 
-// type CreditName struct {
-// 	Value string `xml:",chardata"`
-// }
-
 // type EducationQualification struct {
 // 	PutCode          int64  `xml:"http://www.orcid.org/ns/summary put-code"`
 // 	Type             string `xml:"http://www.orcid.org/ns/summary type"`
@@ -475,35 +514,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Organization []string `xml:"http://www.orcid.org/ns/research-resource organization"`
 // }
 
-// type Keyword struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Content          string `xml:"http://www.orcid.org/ns/common content"`
-// 	PutCode          int    `xml:"put-code,attr,omitempty"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string `xml:"display-index,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
-// }
-
-// // Keyworks container
-// type Keywords struct {
-// 	LastModifiedDate string    `xml:"http://www.orcid.org/ns/keyword last-modified-date,omitempty"`
-// 	Keyword          []Keyword `xml:"http://www.orcid.org/ns/keyword keyword,omitempty"`
-// 	Path             string    `xml:"path,attr,omitempty"`
-// }
-
-// // Container for the researcher's first and last name.
-// type Name struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/personal-details created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/personal-details last-modified-date,omitempty"`
-// 	GivenNames       string `xml:"http://www.orcid.org/ns/personal-details given-names,omitempty"`
-// 	FamilyName       string `xml:"http://www.orcid.org/ns/personal-details family-name,omitempty"`
-// 	CreditName       string `xml:"http://www.orcid.org/ns/personal-details credit-name,omitempty"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
-// }
-
 // type PeerReview struct {
 // 	CreatedDate               string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 // 	LastModifiedDate          string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
@@ -559,27 +569,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Visibility            string       `xml:"visibility,attr,omitempty"`
 // 	DisplayIndex          string       `xml:"display-index,attr,omitempty"`
 // 	Path                  string       `xml:"path,attr,omitempty"`
-// }
-
-// type Person struct {
-// 	LastModifiedDate    string    `xml:"http://www.orcid.org/ns/person last-modified-date,omitempty"`
-// 	Name                Name      `xml:"http://www.orcid.org/ns/personal-details name,omitempty"`
-// 	OtherNames          string    `xml:"http://www.orcid.org/ns/person other-names,omitempty"`
-// 	Biography           Biography `xml:"http://www.orcid.org/ns/personal-details biography,omitempty"`
-// 	ResearcherUrls      string    `xml:"http://www.orcid.org/ns/person researcher-urls,omitempty"`
-// 	Emails              string    `xml:"http://www.orcid.org/ns/person emails"`
-// 	Addresses           string    `xml:"http://www.orcid.org/ns/person addresses,omitempty"`
-// 	Keywords            string    `xml:"http://www.orcid.org/ns/person keywords,omitempty"`
-// 	ExternalIdentifiers string    `xml:"http://www.orcid.org/ns/person external-identifiers,omitempty"`
-// 	Path                string    `xml:"path,attr,omitempty"`
-// }
-
-// type PersonalDetails struct {
-// 	LastModifiedDate string    `xml:"http://www.orcid.org/ns/personal-details last-modified-date,omitempty"`
-// 	Name             Name      `xml:"http://www.orcid.org/ns/personal-details name,omitempty"`
-// 	OtherNames       string    `xml:"http://www.orcid.org/ns/personal-details other-names,omitempty"`
-// 	Biography        Biography `xml:"http://www.orcid.org/ns/personal-details biography,omitempty"`
-// 	Path             string    `xml:"path,attr,omitempty"`
 // }
 
 // // Preferences set by the researcher or contributor.
@@ -646,25 +635,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	EducationQualifications string `xml:"http://www.orcid.org/ns/summary education-qualifications,omitempty"`
 // 	ResearchResources       string `xml:"http://www.orcid.org/ns/summary research-resources,omitempty"`
 // 	EmailDomains            string `xml:"http://www.orcid.org/ns/summary email-domains,omitempty"`
-// }
-
-// type ResearcherUrl struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	UrlName          string `xml:"http://www.orcid.org/ns/common url-name,omitempty"`
-// 	Url              string `xml:"http://www.orcid.org/ns/common url"`
-// 	PutCode          int    `xml:"put-code,attr,omitempty"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string `xml:"display-index,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
-// }
-
-// // Container for URLs of websites about or related to the researcher.
-// type ResearcherUrls struct {
-// 	LastModifiedDate string          `xml:"http://www.orcid.org/ns/researcher-url last-modified-date,omitempty"`
-// 	ResearcherUrl    []ResearcherUrl `xml:"http://www.orcid.org/ns/researcher-url researcher-url,omitempty"`
-// 	Path             string          `xml:"path,attr,omitempty"`
 // }
 
 // type ResearchResource struct {
