@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type ActivitiesGroup struct {
+	LastModifiedDate *DateTime     `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds      ExternalIds   `xml:"http://www.orcid.org/ns/common external-ids"`
+	WorkSummary      []WorkSummary `xml:"http://www.orcid.org/ns/work work-summary,omitempty"`
+}
+
 type Address struct {
 	ElementSummary
 	Country string `xml:"http://www.orcid.org/ns/address country"`
@@ -45,12 +51,27 @@ type AffiliationSummary struct {
 	ExternalIds    *ExternalIds `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
 }
 
+type Amount struct {
+	Value        string `xml:",chardata"`
+	CurrencyCode string `xml:"currency-code,attr"`
+}
+
 type Biography struct {
 	CreatedDate      *DateTime `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 	LastModifiedDate *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	Content          string    `xml:"http://www.orcid.org/ns/personal-details content"`
 	Visibility       string    `xml:"visibility,attr,omitempty"`
 	Path             string    `xml:"path,attr,omitempty"`
+}
+
+type Bulk struct {
+	Work  []Work  `xml:"http://www.orcid.org/ns/work work,omitempty"`
+	Error []Error `xml:"http://www.orcid.org/ns/bulk error,omitempty"`
+}
+
+type Citation struct {
+	CitationType  string `xml:"http://www.orcid.org/ns/work citation-type"`
+	CitationValue string `xml:"http://www.orcid.org/ns/work citation-value"`
 }
 
 type ClientId struct {
@@ -87,6 +108,14 @@ type Emails struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+type Error struct {
+	ResponseCode     int    `xml:"http://www.orcid.org/ns/error response-code"`
+	DeveloperMessage string `xml:"http://www.orcid.org/ns/error developer-message"`
+	UserMessage      string `xml:"http://www.orcid.org/ns/error user-message,omitempty"`
+	ErrorCode        int    `xml:"http://www.orcid.org/ns/error error-code,omitempty"`
+	MoreInfo         string `xml:"http://www.orcid.org/ns/error more-info,omitempty"`
+}
+
 type ExternalId struct {
 	ElementSummary
 	ExternalIdType            string          `xml:"http://www.orcid.org/ns/common external-id-type"`
@@ -107,10 +136,69 @@ type ExternalIds struct {
 	ExternalId []ExternalId `xml:"http://www.orcid.org/ns/common external-id,omitempty"`
 }
 
+type Funding struct {
+	ElementSummary
+	Type                    string               `xml:"http://www.orcid.org/ns/funding type"`
+	OrganizationDefinedType string               `xml:"http://www.orcid.org/ns/funding organization-defined-type,omitempty"`
+	Title                   FundingTitle         `xml:"http://www.orcid.org/ns/funding title"`
+	ShortDescription        string               `xml:"http://www.orcid.org/ns/funding short-description,omitempty"`
+	Amount                  *Amount              `xml:"http://www.orcid.org/ns/funding amount,omitempty"`
+	Url                     string               `xml:"http://www.orcid.org/ns/common url,omitempty"`
+	StartDate               *FuzzyDate           `xml:"http://www.orcid.org/ns/common start-date,omitempty"`
+	EndDate                 *FuzzyDate           `xml:"http://www.orcid.org/ns/common end-date,omitempty"`
+	ExternalIds             *ExternalIds         `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
+	Organization            Organization         `xml:"http://www.orcid.org/ns/common organization"`
+	Contributors            *FundingContributors `xml:"http://www.orcid.org/ns/funding contributors,omitempty"`
+}
+
+type FundingContributor struct {
+	ContributorOrcId      *OrcidId                      `xml:"http://www.orcid.org/ns/common contributor-orcid,omitempty"`
+	CreditName            string                        `xml:"http://www.orcid.org/ns/funding credit-name,omitempty"`
+	ContributorEmail      string                        `xml:"http://www.orcid.org/ns/funding contributor-email,omitempty"`
+	ContributorAttributes *FundingContributorAttributes `xml:"http://www.orcid.org/ns/funding contributor-attributes,omitempty"`
+}
+
+type FundingContributorAttributes struct {
+	ContributorRole string `xml:"http://www.orcid.org/ns/funding contributor-role,omitempty"`
+}
+
+type FundingContributors struct {
+	FundingContributor []FundingContributor `xml:"http://www.orcid.org/ns/funding contributor,omitempty"`
+}
+
+type FundingSummary struct {
+	ElementSummary
+	Title        FundingTitle `xml:"http://www.orcid.org/ns/funding title"`
+	ExternalIds  *ExternalIds `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
+	Url          string       `xml:"http://www.orcid.org/ns/common url,omitempty"`
+	Type         string       `xml:"http://www.orcid.org/ns/funding type"`
+	StartDate    *FuzzyDate   `xml:"http://www.orcid.org/ns/common start-date,omitempty"`
+	EndDate      *FuzzyDate   `xml:"http://www.orcid.org/ns/common end-date,omitempty"`
+	Organization Organization `xml:"http://www.orcid.org/ns/common organization"`
+}
+
+type FundingTitle struct {
+	Title           string `xml:"http://www.orcid.org/ns/common title"`
+	TranslatedTitle string `xml:"http://www.orcid.org/ns/common translated-title,omitempty"`
+}
+
 type FuzzyDate struct {
 	Year  int `xml:"http://www.orcid.org/ns/common year"`
 	Month int `xml:"http://www.orcid.org/ns/common month,omitempty"`
 	Day   int `xml:"http://www.orcid.org/ns/common day,omitempty"`
+}
+
+type History struct {
+	CreationMethod       string    `xml:"http://www.orcid.org/ns/history creation-method,omitempty"`
+	CompletionDate       *DateTime `xml:"http://www.orcid.org/ns/history completion-date,omitempty"`
+	SubmissionDate       *DateTime `xml:"http://www.orcid.org/ns/history submission-date,omitempty"`
+	LastModifiedDate     *DateTime `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Claimed              bool      `xml:"http://www.orcid.org/ns/history claimed"`
+	Source               *Source   `xml:"http://www.orcid.org/ns/common source,omitempty"`
+	DeactivationDate     *DateTime `xml:"http://www.orcid.org/ns/history deactivation-date,omitempty"`
+	VerifiedEmail        bool      `xml:"http://www.orcid.org/ns/history verified-email"`
+	VerifiedPrimaryEmail bool      `xml:"http://www.orcid.org/ns/history verified-primary-email"`
+	Visibility           string    `xml:"visibility,attr,omitempty"`
 }
 
 type Keyword struct {
@@ -225,16 +313,41 @@ type TransientString struct {
 	Transient bool   `xml:"transient,attr"`
 }
 
-type WorkGroup struct {
-	LastModifiedDate *DateTime     `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	ExternalIds      ExternalIds   `xml:"http://www.orcid.org/ns/common external-ids"`
-	WorkSummary      []WorkSummary `xml:"http://www.orcid.org/ns/work work-summary,omitempty"`
+type Work struct {
+	ElementSummary
+	Title            WorkTitle         `xml:"http://www.orcid.org/ns/work title"`
+	JournalTitle     string            `xml:"http://www.orcid.org/ns/work journal-title,omitempty"`
+	ShortDescription string            `xml:"http://www.orcid.org/ns/work short-description,omitempty"`
+	Citation         *Citation         `xml:"http://www.orcid.org/ns/work citation,omitempty"`
+	Type             string            `xml:"http://www.orcid.org/ns/work type"`
+	PublicationDate  *FuzzyDate        `xml:"http://www.orcid.org/ns/work publication-date,omitempty"`
+	ExternalIds      *ExternalIds      `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
+	Url              string            `xml:"http://www.orcid.org/ns/common url,omitempty"`
+	Contributors     *WorkContributors `xml:"http://www.orcid.org/ns/work contributors,omitempty"`
+	LanguageCode     string            `xml:"http://www.orcid.org/ns/common language-code,omitempty"`
+	Country          string            `xml:"http://www.orcid.org/ns/common country,omitempty"`
+}
+
+type WorkContributor struct {
+	ContributorOrcId      *OrcidId                   `xml:"http://www.orcid.org/ns/common contributor-orcid,omitempty"`
+	CreditName            string                     `xml:"http://www.orcid.org/ns/work credit-name,omitempty"`
+	ContributorEmail      string                     `xml:"http://www.orcid.org/ns/work contributor-email,omitempty"`
+	ContributorAttributes *WorkContributorAttributes `xml:"http://www.orcid.org/ns/work contributor-attributes,omitempty"`
+}
+
+type WorkContributorAttributes struct {
+	ContributorSequence string `xml:"http://www.orcid.org/ns/work contributor-sequence,omitempty"`
+	ContributorRole     string `xml:"http://www.orcid.org/ns/work contributor-role,omitempty"`
+}
+
+type WorkContributors struct {
+	Contributor []WorkContributor `xml:"http://www.orcid.org/ns/work contributor,omitempty"`
 }
 
 type Works struct {
-	LastModifiedDate *DateTime   `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	Group            []WorkGroup `xml:"http://www.orcid.org/ns/activities group,omitempty"`
-	Path             string      `xml:"path,attr,omitempty"`
+	LastModifiedDate *DateTime         `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Group            []ActivitiesGroup `xml:"http://www.orcid.org/ns/activities group,omitempty"`
+	Path             string            `xml:"path,attr,omitempty"`
 }
 
 type WorkSummary struct {
@@ -295,23 +408,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Path              string            `xml:"path,attr,omitempty"`
 // }
 
-// type Address struct {
-// 	CreatedDate      string `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Country          string `xml:"http://www.orcid.org/ns/common country"`
-// 	PutCode          int    `xml:"put-code,attr,omitempty"`
-// 	Visibility       string `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string `xml:"display-index,attr,omitempty"`
-// 	Path             string `xml:"path,attr,omitempty"`
-// }
-
-// type Addresses struct {
-// 	LastModifiedDate string    `xml:"http://www.orcid.org/ns/address last-modified-date,omitempty"`
-// 	Address          []Address `xml:"http://www.orcid.org/ns/address address,omitempty"`
-// 	Path             string    `xml:"path,attr,omitempty"`
-// }
-
 // type Affiliation struct {
 // 	CreatedDate      string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
 // 	LastModifiedDate string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
@@ -327,48 +423,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Visibility       string       `xml:"visibility,attr,omitempty"`
 // 	DisplayIndex     string       `xml:"display-index,attr,omitempty"`
 // 	Path             string       `xml:"path,attr,omitempty"`
-// }
-
-// // The funding amount.
-// type Amount struct {
-// 	Value        string `xml:",chardata"`
-// 	CurrencyCode string `xml:"currency-code,attr"`
-// }
-
-// // Utilitary schema that allow the creation of multiple works in a single request
-// type Bulk struct {
-// 	Work  string `xml:"http://www.orcid.org/ns/bulk work,omitempty"`
-// 	Error string `xml:"http://www.orcid.org/ns/bulk error,omitempty"`
-// }
-
-// // Container for a work citation. Citations may be
-// // fielded (e.g., RIS, BibTeX - preferred citation type), or may be
-// // textual (APA, MLA, Chicago, etc.) The required work-citation-type
-// // element indicates the format of the citation.
-// type Citation struct {
-// 	CitationType  string `xml:"http://www.orcid.org/ns/work citation-type,omitempty"`
-// 	CitationValue string `xml:"http://www.orcid.org/ns/work citation-value"`
-// }
-
-// A collaborator or other contributor to a work or
-// other orcid-activity
-// type Contributor struct {
-// 	ContributorOrcId      string                `xml:"http://www.orcid.org/ns/work contributor-orcid,omitempty"`
-// 	CreditName            string                `xml:"http://www.orcid.org/ns/common credit-name,omitempty"`
-// 	ContributorEmail      string                `xml:"http://www.orcid.org/ns/work contributor-email,omitempty"`
-// 	ContributorAttributes ContributorAttributes `xml:"http://www.orcid.org/ns/work contributor-attributes,omitempty"`
-// }
-
-// // Provides detail of the nature of the contribution
-// // by the collaborator or other contirbutor.
-// type ContributorAttributes struct {
-// 	ContributorSequence string `xml:"http://www.orcid.org/ns/work contributor-sequence,omitempty"`
-// 	ContributorRole     string `xml:"http://www.orcid.org/ns/common contributor-role,omitempty"`
-// }
-
-// // Container for the contributors of a funding.
-// type Contributors struct {
-// 	Contributor []Contributor `xml:"http://www.orcid.org/ns/funding contributor,omitempty"`
 // }
 
 // // Country represented by its ISO 3611 code. The
@@ -440,27 +494,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	NumFound       int              `xml:"num-found,attr,omitempty"`
 // }
 
-// type Funding struct {
-// 	CreatedDate             string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate        string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source                  string       `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Type                    string       `xml:"http://www.orcid.org/ns/funding type"`
-// 	OrganizationDefinedType string       `xml:"http://www.orcid.org/ns/common organization-defined-type,omitempty"`
-// 	Title                   FundingTitle `xml:"http://www.orcid.org/ns/funding title,omitempty"`
-// 	ShortDescription        string       `xml:"http://www.orcid.org/ns/common short-description,omitempty"`
-// 	Amount                  Amount       `xml:"http://www.orcid.org/ns/common amount,omitempty"`
-// 	Url                     string       `xml:"http://www.orcid.org/ns/funding url,omitempty"`
-// 	StartDate               string       `xml:"http://www.orcid.org/ns/funding start-date,omitempty"`
-// 	EndDate                 string       `xml:"http://www.orcid.org/ns/funding end-date,omitempty"`
-// 	ExternalIds             string       `xml:"http://www.orcid.org/ns/funding external-ids,omitempty"`
-// 	Contributors            Contributors `xml:"http://www.orcid.org/ns/funding contributors,omitempty"`
-// 	Organization            string       `xml:"http://www.orcid.org/ns/funding organization"`
-// 	PutCode                 int          `xml:"put-code,attr,omitempty"`
-// 	Visibility              string       `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex            string       `xml:"display-index,attr,omitempty"`
-// 	Path                    string       `xml:"path,attr,omitempty"`
-// }
-
 // type FundingGroup struct {
 // 	LastModifiedDate string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
 // 	ExternalIds      string   `xml:"http://www.orcid.org/ns/activities external-ids"`
@@ -470,43 +503,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // type Fundings struct {
 // 	SelfAssertedCount int `xml:"http://www.orcid.org/ns/summary self-asserted-count"`
 // 	ValidatedCount    int `xml:"http://www.orcid.org/ns/summary validated-count"`
-// }
-
-// type FundingSummary struct {
-// 	CreatedDate      string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string       `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Title            FundingTitle `xml:"http://www.orcid.org/ns/funding title"`
-// 	ExternalIds      string       `xml:"http://www.orcid.org/ns/funding external-ids,omitempty"`
-// 	Url              string       `xml:"http://www.orcid.org/ns/funding url,omitempty"`
-// 	Type             string       `xml:"http://www.orcid.org/ns/funding type"`
-// 	StartDate        string       `xml:"http://www.orcid.org/ns/funding start-date,omitempty"`
-// 	EndDate          string       `xml:"http://www.orcid.org/ns/funding end-date,omitempty"`
-// 	Organization     string       `xml:"http://www.orcid.org/ns/funding organization"`
-// 	PutCode          int          `xml:"put-code,attr,omitempty"`
-// 	Visibility       string       `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string       `xml:"display-index,attr,omitempty"`
-// 	Path             string       `xml:"path,attr,omitempty"`
-// }
-
-// // Container for titles of the funding.
-// type FundingTitle struct {
-// 	Title           string `xml:"http://www.orcid.org/ns/funding title"`
-// 	TranslatedTitle string `xml:"http://www.orcid.org/ns/funding translated-title,omitempty"`
-// }
-
-// The history of the researcher's ORCID record
-// type History struct {
-// 	CreationMethod       string    `xml:"http://www.orcid.org/ns/history creation-method,omitempty"`
-// 	CompletionDate       time.Time `xml:"http://www.orcid.org/ns/history completion-date,omitempty"`
-// 	SubmissionDate       time.Time `xml:"http://www.orcid.org/ns/history submission-date,omitempty"`
-// 	LastModifiedDate     string    `xml:"http://www.orcid.org/ns/history last-modified-date,omitempty"`
-// 	Claimed              bool      `xml:"http://www.orcid.org/ns/history claimed,omitempty"`
-// 	Source               string    `xml:"http://www.orcid.org/ns/history source,omitempty"`
-// 	DeactivationDate     time.Time `xml:"http://www.orcid.org/ns/history deactivation-date,omitempty"`
-// 	VerifiedEmail        bool      `xml:"http://www.orcid.org/ns/history verified-email"`
-// 	VerifiedPrimaryEmail bool      `xml:"http://www.orcid.org/ns/history verified-primary-email"`
-// 	Visibility           string    `xml:"visibility,attr,omitempty"`
 // }
 
 // Container for host and proposal organisations
@@ -696,50 +692,4 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Title           string `xml:"http://www.orcid.org/ns/peer-review title"`
 // 	Subtitle        string `xml:"http://www.orcid.org/ns/peer-review subtitle,omitempty"`
 // 	TranslatedTitle string `xml:"http://www.orcid.org/ns/peer-review translated-title,omitempty"`
-// }
-
-// // The main title of the work or funding translated
-// // into another language. The translated language will be included in
-// // the <language-code> attribute.
-// type TranslatedTitle struct {
-// 	Value        string `xml:",chardata"`
-// 	LanguageCode string `xml:"language-code,attr"`
-// }
-
-// // A work is any research output that the researcher produced or contributed to
-// // * The put-code attribute is used only when reading this
-// // element. When updating the item, the put-code attribute must be
-// // included to indicate the specific record to be updated.
-// type Work struct {
-// 	CreatedDate      string           `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate string           `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source           string           `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	Title            WorkTitle        `xml:"http://www.orcid.org/ns/work title"`
-// 	JournalTitle     string           `xml:"http://www.orcid.org/ns/common journal-title,omitempty"`
-// 	ShortDescription string           `xml:"http://www.orcid.org/ns/common short-description,omitempty"`
-// 	Citation         Citation         `xml:"http://www.orcid.org/ns/work citation,omitempty"`
-// 	Type             string           `xml:"http://www.orcid.org/ns/work type"`
-// 	PublicationDate  string           `xml:"http://www.orcid.org/ns/work publication-date,omitempty"`
-// 	ExternalIds      string           `xml:"http://www.orcid.org/ns/work external-ids,omitempty"`
-// 	Url              string           `xml:"http://www.orcid.org/ns/work url,omitempty"`
-// 	Contributors     WorkContributors `xml:"http://www.orcid.org/ns/work contributors,omitempty"`
-// 	LanguageCode     string           `xml:"http://www.orcid.org/ns/work language-code,omitempty"`
-// 	Country          string           `xml:"http://www.orcid.org/ns/work country,omitempty"`
-// 	PutCode          int              `xml:"put-code,attr,omitempty"`
-// 	Visibility       string           `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex     string           `xml:"display-index,attr,omitempty"`
-// 	Path             string           `xml:"path,attr,omitempty"`
-// }
-
-// // Container for the contributors of a Work.
-// type WorkContributors struct {
-// 	Contributor []Contributor `xml:"http://www.orcid.org/ns/work contributor,omitempty"`
-// }
-
-// type ExternalIdentifier struct {
-// 	PutCode         int64  `xml:"http://www.orcid.org/ns/summary put-code"`
-// 	ExternalIdType  string `xml:"http://www.orcid.org/ns/common external-id-type"`
-// 	ExternalIdValue string `xml:"http://www.orcid.org/ns/common external-id-value,omitempty"`
-// 	ExternalIdUrl   string `xml:"http://www.orcid.org/ns/summary external-id-url,omitempty"`
-// 	Validated       bool   `xml:"http://www.orcid.org/ns/summary validated"`
 // }
