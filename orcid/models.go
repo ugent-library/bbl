@@ -5,6 +5,22 @@ import (
 	"time"
 )
 
+type ActivitiesSummary struct {
+	LastModifiedDate  *DateTime          `xml:"last-modified-date,omitempty"`
+	Distinctions      *Affiliations      `xml:"distinctions,omitempty"`
+	Educations        *Affiliations      `xml:"educations,omitempty"`
+	Employments       *Affiliations      `xml:"employments,omitempty"`
+	Fundings          *Fundings          `xml:"fundings,omitempty"`
+	InvitedPositions  *Affiliations      `xml:"invited-positions,omitempty"`
+	Memberships       *Affiliations      `xml:"memberships,omitempty"`
+	PeerReviews       *PeerReviews       `xml:"peer-reviews,omitempty"`
+	Qualifications    *Affiliations      `xml:"qualifications,omitempty"`
+	ResearchResources *ResearchResources `xml:"research-resources,omitempty"`
+	Services          *Affiliations      `xml:"services,omitempty"`
+	Works             *Works             `xml:"works,omitempty"`
+	Path              string             `xml:"path,attr,omitempty"`
+}
+
 type Address struct {
 	ElementSummary
 	Country string `xml:"country"`
@@ -17,15 +33,16 @@ type Addresses struct {
 }
 
 type AffiliationGroup struct {
-	LastModifiedDate       *DateTime            `xml:"last-modified-date,omitempty"`
-	ExternalIds            ExternalIds          `xml:"external-ids"`
-	DistinctionSummary     []AffiliationSummary `xml:"distinction-summary,omitempty"`
-	EducationSummary       []AffiliationSummary `xml:"education-summary,omitempty"`
-	EmploymentSummary      []AffiliationSummary `xml:"employment-summary,omitempty"`
-	InvitedPositionSummary []AffiliationSummary `xml:"invited-position-summary,omitempty"`
-	MembershipSummary      []AffiliationSummary `xml:"membership-summary,omitempty"`
-	QualificationSummary   []AffiliationSummary `xml:"qualification-summary,omitempty"`
-	ServiceSummary         []AffiliationSummary `xml:"service-summary,omitempty"`
+	LastModifiedDate        *DateTime                 `xml:"last-modified-date,omitempty"`
+	ExternalIds             ExternalIds               `xml:"external-ids"`
+	DistinctionSummary      []AffiliationSummary      `xml:"distinction-summary,omitempty"`
+	EducationSummary        []AffiliationSummary      `xml:"education-summary,omitempty"`
+	EmploymentSummary       []AffiliationSummary      `xml:"employment-summary,omitempty"`
+	InvitedPositionSummary  []AffiliationSummary      `xml:"invited-position-summary,omitempty"`
+	MembershipSummary       []AffiliationSummary      `xml:"membership-summary,omitempty"`
+	QualificationSummary    []AffiliationSummary      `xml:"qualification-summary,omitempty"`
+	ResearchResourceSummary []ResearchResourceSummary `xml:"research-resource-summary,omitempty"`
+	ServiceSummary          []AffiliationSummary      `xml:"service-summary,omitempty"`
 }
 
 type Affiliations struct {
@@ -160,6 +177,18 @@ type FundingContributors struct {
 	FundingContributor []FundingContributor `xml:"contributor,omitempty"`
 }
 
+type FundingGroup struct {
+	LastModifiedDate *DateTime        `xml:"last-modified-date,omitempty"`
+	ExternalIds      ExternalIds      `xml:"external-ids"`
+	FundingSummary   []FundingSummary `xml:"funding-summary,omitempty"`
+}
+
+type Fundings struct {
+	LastModifiedDate *DateTime      `xml:"last-modified-date,omitempty"`
+	Group            []FundingGroup `xml:"group,omitempty"`
+	Path             string         `xml:"path,attr,omitempty"`
+}
+
 type FundingSummary struct {
 	ElementSummary
 	Title        FundingTitle `xml:"title"`
@@ -193,6 +222,10 @@ type History struct {
 	VerifiedEmail        bool      `xml:"verified-email"`
 	VerifiedPrimaryEmail bool      `xml:"verified-primary-email"`
 	Visibility           string    `xml:"visibility,attr,omitempty"`
+}
+
+type Hosts struct {
+	Organization []Organization `xml:"organization"`
 }
 
 type Keyword struct {
@@ -305,6 +338,56 @@ type PersonalDetails struct {
 	Path             string     `xml:"path,attr,omitempty"`
 }
 
+type Preferences struct {
+	Locale string `xml:"locale"`
+}
+
+type Proposal struct {
+	Title       ResearchResourceTitle `xml:"title"`
+	Hosts       Hosts                 `xml:"hosts"`
+	ExternalIds ExternalIds           `xml:"external-ids"`
+	StartDate   *FuzzyDate            `xml:"start-date,omitempty"`
+	EndDate     *FuzzyDate            `xml:"end-date,omitempty"`
+	Url         string                `xml:"url,omitempty"`
+}
+
+type Record struct {
+	ActivitiesSummary *ActivitiesSummary `xml:"activities-summary,omitempty"`
+	History           *History           `xml:"history,omitempty"`
+	OrcidIdentifier   *OrcidId           `xml:"orcid-identifier,omitempty"`
+	Path              string             `xml:"path,attr,omitempty"`
+	Person            *Person            `xml:"person,omitempty"`
+	Preferences       *Preferences       `xml:"preferences,omitempty"`
+}
+
+type ResearchResource struct {
+	ElementSummary
+	Proposal      *Proposal      `xml:"proposal"`
+	ResourceItems *ResourceItems `xml:"resource-items,omitempty"`
+}
+
+type ResearchResourceGroup struct {
+	LastModifiedDate        *DateTime                 `xml:"last-modified-date,omitempty"`
+	ExternalIds             ExternalIds               `xml:"external-ids"`
+	ResearchResourceSummary []ResearchResourceSummary `xml:"research-resource-summary,omitempty"`
+}
+
+type ResearchResources struct {
+	LastModifiedDate *DateTime               `xml:"last-modified-date,omitempty"`
+	Group            []ResearchResourceGroup `xml:"group,omitempty"`
+	Path             string                  `xml:"path,attr,omitempty"`
+}
+
+type ResearchResourceSummary struct {
+	ElementSummary
+	Proposal *Proposal `xml:"proposal"`
+}
+
+type ResearchResourceTitle struct {
+	Title           string `xml:"title"`
+	TranslatedTitle string `xml:"translated-title,omitempty"`
+}
+
 type ResearcherUrl struct {
 	ElementSummary
 	UrlName string `xml:"url-name,omitempty"`
@@ -315,6 +398,18 @@ type ResearcherUrls struct {
 	LastModifiedDate *DateTime       `xml:"last-modified-date,omitempty"`
 	ResearcherUrl    []ResearcherUrl `xml:"researcher-url,omitempty"`
 	Path             string          `xml:"path,attr,omitempty"`
+}
+
+type ResourceItem struct {
+	ResourceName string      `xml:"resource-name"`
+	ResourceType string      `xml:"resource-type"`
+	Hosts        Hosts       `xml:"hosts"`
+	ExternalIds  ExternalIds `xml:"external-ids"`
+	Url          string      `xml:"url,omitempty"`
+}
+
+type ResourceItems struct {
+	ResourceItem []ResourceItem `xml:"resource-item"`
 }
 
 type Result struct {
