@@ -6,6 +6,14 @@ import (
 
 type Errors []*Error
 
+// Error returns an error or nil.
+func (errs Errors) ToError() error {
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
+}
+
 // Error returns a string representation of an Errors.
 func (errs Errors) Error() string {
 	msg := ""
@@ -42,18 +50,18 @@ func (v *Validator) Add(errs ...*Error) *Validator {
 	return v
 }
 
-func (v *Validator) In(namespace string) *Builder {
-	return &Builder{validator: v, path: namespace, namespace: namespace}
+func (v *Validator) In(key string) *Builder {
+	return &Builder{validator: v, path: key, namespace: key}
 }
 
 func (v *Validator) Index(i int) *Builder {
 	return &Builder{validator: v, path: fmt.Sprintf("[%d]", i)}
 }
 
-// Get fetches an Error by key or return nil if the key is not found.
-func (v *Validator) Get(key string) *Error {
+// Get fetches an Error by path or return nil if the key is not found.
+func (v *Validator) Get(path string) *Error {
 	for _, e := range v.errors {
-		if e.Key == key {
+		if e.Path == path {
 			return e
 		}
 	}
@@ -65,21 +73,17 @@ func (v *Validator) Valid() bool {
 	return len(v.errors) == 0
 }
 
-// Validate returns the errors or nil.
+// Validate returns the errors.
 func (v *Validator) Validate() Errors {
-	if len(v.errors) > 0 {
-		return v.errors
-	}
-	return nil
+	return v.errors
 }
 
 type Error struct {
-	Key       string
-	Namespace string
-	Path      string
-	Rule      string
-	Params    []any
-	Message   string
+	Namespace string `json:"namespace,omitempty"`
+	Path      string `json:"path"`
+	Rule      string `json:"rule"`
+	Params    []any  `json:"params,omitempty"`
+	Message   string `json:"message"`
 }
 
 // NewError constructs a new validation error. key represents the field or value
@@ -87,7 +91,6 @@ type Error struct {
 // key, it could be a JSON pointer or the name of a (nested) form field.
 func NewError(key, rule string, params ...any) *Error {
 	return &Error{
-		Key:    key,
 		Path:   key,
 		Rule:   rule,
 		Params: params,
@@ -127,48 +130,47 @@ func (e *Error) Error() string {
 	return msg
 }
 
-func (e *Error) NamespacedKey() string {
-	if e.Namespace != "" {
-		return e.Namespace + "." + e.Key
-	}
-	return e.Key
-}
-
 type Builder struct {
 	validator *Validator
 	namespace string
 	path      string
 }
 
-func (w *Builder) In(namespace string) *Builder {
-	return &Builder{
-		validator: w.validator,
-		namespace: w.namespace + "." + namespace,
-		path:      w.path + "." + namespace,
+func (b Builder) In(key string) Builder {
+	return Builder{
+		validator: b.validator,
+		namespace: join(b.namespace, key),
+		path:      join(b.path, key),
 	}
 }
 
-func (w *Builder) Index(i int) *Builder {
-	return &Builder{
-		validator: w.validator,
-		namespace: w.namespace,
-		path:      w.path + fmt.Sprintf("[%d]", i),
+func (b Builder) Index(i int) Builder {
+	return Builder{
+		validator: b.validator,
+		namespace: b.namespace,
+		path:      b.path + fmt.Sprintf("[%d]", i),
 	}
 }
 
-func (w *Builder) Add(errs ...*Error) *Builder {
-	if w.path != "" {
+func (b Builder) Add(errs ...*Error) Builder {
+	if b.path != "" {
 		for _, err := range errs {
 			if !err.Valid() {
-				if err.Namespace != "" {
-					err.Namespace = w.namespace + "." + err.Namespace
-				} else {
-					err.Namespace = w.namespace
-				}
-				err.Path = w.path + "." + err.Path
+				err.Namespace = join(b.namespace, err.Namespace)
+				err.Path = join(b.path, err.Path)
 			}
 		}
 	}
-	w.validator.Add(errs...)
-	return w
+	b.validator.Add(errs...)
+	return b
+}
+
+func join(p1, p2 string) string {
+	if p1 != "" && p2 != "" {
+		return p1 + "." + p2
+	}
+	if p1 != "" {
+		return p1
+	}
+	return p2
 }

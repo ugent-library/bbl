@@ -26,6 +26,7 @@
 ## support libraries developed
 
 * bind
+* vo
 * catbird
 * orcid
 * tonga

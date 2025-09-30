@@ -9,6 +9,7 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/vo"
 )
 
 var workFormat string
@@ -28,6 +29,8 @@ func init() {
 	worksCmd.AddCommand(reindexWorksCmd)
 	worksCmd.AddCommand(importWorkCmd)
 	worksCmd.AddCommand(importWorkSourceCmd)
+	worksCmd.AddCommand(importWorkCmd)
+	worksCmd.AddCommand(validateWorkCmd)
 }
 
 var workCmd = &cobra.Command{
@@ -54,6 +57,11 @@ var workCmd = &cobra.Command{
 		b, err := bbl.EncodeWork(rec, workFormat)
 		if err != nil {
 			return err
+		}
+
+		// JSON can be pretty printed
+		if args[0] == "json" {
+			return writeJSON(cmd, b)
 		}
 
 		_, err = cmd.OutOrStdout().Write(b)
@@ -197,6 +205,7 @@ var importWorkSourceCmd = &cobra.Command{
 var reindexWorksCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex works job",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := newLogger(cmd.OutOrStdout())
 
@@ -223,5 +232,26 @@ var reindexWorksCmd = &cobra.Command{
 		}
 
 		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+	},
+}
+
+var validateWorkCmd = &cobra.Command{
+	Use:   "validate",
+	Short: "Validate work",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dec := json.NewDecoder(cmd.InOrStdin())
+		var rec bbl.Work
+		if err := dec.Decode(&rec); err != nil {
+			return err
+		}
+		if err := bbl.LoadWorkProfile(&rec); err != nil {
+			return err
+		}
+		err := rec.Validate()
+		if _, ok := err.(vo.Errors); ok {
+			err = writeData(cmd, err)
+		}
+		return err
 	},
 }

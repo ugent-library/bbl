@@ -1,6 +1,8 @@
 package bbl
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	AdminRole   = "admin"
@@ -10,6 +12,17 @@ const (
 	ViewPermission = "view"
 	EditPermission = "edit"
 )
+
+var UserRoles = []string{
+	AdminRole,
+	CuratorRole,
+	UserRole,
+}
+
+var UserPermissions = []string{
+	ViewPermission,
+	EditPermission,
+}
 
 type User struct {
 	ID           string    `json:"id,omitempty"`
@@ -26,4 +39,23 @@ type User struct {
 type Permission struct {
 	UserID string `json:"user_id"`
 	Kind   string `json:"kind"`
+}
+
+func (rec *User) Validate() error {
+	return nil
+	// v := valgo.New()
+	// v.Is(
+	// 	valgo.String(rec.Username, "username").Not().Blank(),
+	// 	valgo.String(rec.Username, "email").Not().Blank(),
+	// 	valgo.String(rec.Name, "name").Not().Blank(),
+	// 	valgo.String(rec.Name, "name").Not().Blank(),
+	// 	valgo.String(rec.Role, "role").InSlice(UserRoles),
+	// )
+	// for i, ident := range rec.Identifiers {
+	// 	v.InRow("identifiers", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// return v.ToError()
 }

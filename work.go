@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"slices"
 	"time"
+
+	"github.com/ugent-library/bbl/vo"
 )
 
 const (
@@ -150,7 +152,88 @@ type WorkDiff struct {
 }
 
 func (rec *Work) Validate() error {
-	return nil
+	v := vo.New(
+		vo.OneOf("status", rec.Status, WorkStatuses),
+	)
+
+	for i, code := range rec.Classifications {
+		v.In("classifications").Index(i).Add(
+			vo.OneOf("scheme", code.Scheme, rec.Profile.ClassificationSchemes),
+			vo.NotBlank("val", code.Val),
+		)
+	}
+
+	for i, code := range rec.Identifiers {
+		v.In("identifiers").Index(i).Add(
+			vo.OneOf("scheme", code.Scheme, rec.Profile.IdentifierSchemes),
+			vo.NotBlank("val", code.Val),
+		)
+	}
+
+	for i, contrib := range rec.Contributors {
+		b := v.In("contributors").Index(i)
+		if contrib.PersonID == "" {
+			b.Add(vo.NotBlank("name", contrib.Name))
+		}
+
+		for j, role := range contrib.CreditRoles {
+			b.In("credit_roles").Index(j).Add(
+				vo.OneOf("", role, CreditRoles),
+			)
+		}
+	}
+
+	return v.Validate().ToError()
+
+	// v := valgo.New()
+	// v.Is(
+	// 	valgo.String(rec.Kind, "kind").Not().Blank().InSlice(WorkKinds),
+	// 	valgo.String(rec.Status, "status").Not().Blank().InSlice(WorkStatuses),
+	// )
+	// for i, ident := range rec.Classifications {
+	// 	v.InRow("classifications", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank().InSlice(rec.Profile.ClassificationSchemes),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// for i, contrib := range rec.Contributors {
+	// 	if contrib.PersonID == "" {
+	// 		v.InRow("contributors", i, valgo.Is(
+	// 			valgo.String(contrib.Name, "name").Not().Blank(),
+	// 		).Do(func(v *valgo.Validation) {
+	// 			for j, role := range contrib.CreditRoles {
+	// 				v.InCell("credit_roles", j, valgo.Is(
+	// 					valgo.String(role, "role").Not().Blank().InSlice(CreditRoles),
+	// 				))
+	// 			}
+	// 		}))
+	// 	}
+	// }
+	// for i, ident := range rec.Identifiers {
+	// 	v.InRow("identifiers", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank().InSlice(rec.Profile.IdentifierSchemes),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// for i, text := range rec.Abstracts {
+	// 	v.InRow("abstracts", i, v.Is(
+	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
+	// 		valgo.String(text.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// for i, text := range rec.LaySummaries {
+	// 	v.InRow("lay_summaries", i, v.Is(
+	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
+	// 		valgo.String(text.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// for i, text := range rec.Titles {
+	// 	v.InRow("titles", i, v.Is(
+	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
+	// 		valgo.String(text.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// return v.ToError()
 }
 
 func (rec *Work) Clone() (*Work, error) {

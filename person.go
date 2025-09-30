@@ -19,6 +19,17 @@ type PersonAttrs struct {
 
 func (rec *Person) Validate() error {
 	return nil
+	// v := valgo.New()
+	// v.Is(
+	// 	valgo.String(rec.Name, "name").Not().Blank(),
+	// )
+	// for i, ident := range rec.Identifiers {
+	// 	v.InRow("identifiers", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// return v.ToError()
 }
 
 func (rec *Person) Diff(rec2 *Person) map[string]any {

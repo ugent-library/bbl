@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/fang"
@@ -16,7 +17,7 @@ import (
 
 var config Config
 
-func RunWithContext(ctx context.Context) error {
+func RunWithContext(ctx context.Context) {
 	v := viper.New()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.SetEnvPrefix("bbl")
@@ -44,7 +45,7 @@ func RunWithContext(ctx context.Context) error {
 	v.BindEnv("hash_secret")
 
 	if err := v.Unmarshal(&config); err != nil {
-		return err
+		cobra.CheckErr(err)
 	}
 
 	bbl.RegisterWorkEncoder("oai_dc", oaidc.EncodeWork)
@@ -53,12 +54,10 @@ func RunWithContext(ctx context.Context) error {
 	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
 
 	if err := fang.Execute(ctx, rootCmd); err != nil {
-		return err
+		os.Exit(1)
 	}
-
-	return nil
 }
 
 func Run() {
-	cobra.CheckErr(RunWithContext(context.Background()))
+	RunWithContext(context.Background())
 }

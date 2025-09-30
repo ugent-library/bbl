@@ -11,3 +11,11 @@ func TestFundings(t *testing.T) {
 
 	testGet(t, data, body, err)
 }
+
+func TestFunding(t *testing.T) {
+	c := newTestClient()
+
+	data, body, err := c.Funding(t.Context(), "0000-0003-4791-9455", "18514")
+
+	testGet(t, data, body, err)
+}

@@ -17,6 +17,17 @@ type ProjectAttrs struct {
 
 func (rec *Project) Validate() error {
 	return nil
+	// v := valgo.New()
+	// v.Is(
+	// 	valgo.Number(len(rec.Names), "names").Not().Zero(),
+	// )
+	// for i, ident := range rec.Identifiers {
+	// 	v.InRow("identifiers", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// return v.ToError()
 }
 
 func (rec *Project) Diff(rec2 *Project) map[string]any {

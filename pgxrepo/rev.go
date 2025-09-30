@@ -391,9 +391,6 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if a.Work.ID == "" {
 				a.Work.ID = bbl.NewID()
 			}
-			if a.Work.Status == "" {
-				a.Work.Status = "draft"
-			}
 
 			if err := lookupWorkContributors(ctx, tx, a.Work.Contributors); err != nil {
 				return fmt.Errorf("AddRev: %w", err)

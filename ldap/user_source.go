@@ -10,12 +10,7 @@ import (
 )
 
 type UserSource struct {
-	conn                  *ldap.Conn
-	base                  string
-	filter                string
-	attrs                 []string
-	mappingFunc           func(map[string][]string) (*bbl.User, error)
-	matchIdentifierScheme string
+	config Config
 }
 
 type Config struct {
@@ -29,24 +24,9 @@ type Config struct {
 	MatchIdentifierScheme string
 }
 
-// TODO conn.Close()
 func New(c Config) (*UserSource, error) {
-	conn, err := ldap.DialURL(c.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = conn.Bind(c.Username, c.Password); err != nil {
-		return nil, err
-	}
-
 	return &UserSource{
-		conn:                  conn,
-		base:                  c.Base,
-		filter:                c.Filter,
-		attrs:                 c.Attrs,
-		matchIdentifierScheme: c.MatchIdentifierScheme,
-		mappingFunc:           c.MappingFunc,
+		config: c,
 	}, nil
 }
 
@@ -55,7 +35,7 @@ func (us *UserSource) Interval() time.Duration {
 }
 
 func (us *UserSource) MatchIdentifierScheme() string {
-	return us.matchIdentifierScheme
+	return us.config.MatchIdentifierScheme
 }
 
 func (us *UserSource) Iter(ctx context.Context) (iter.Seq[*bbl.User], func() error) {
@@ -64,33 +44,45 @@ func (us *UserSource) Iter(ctx context.Context) (iter.Seq[*bbl.User], func() err
 	finish := func() error { return iterErr }
 
 	seq := func(yield func(*bbl.User) bool) {
+		conn, err := ldap.DialURL(us.config.URL)
+		if err != nil {
+			iterErr = err
+			return
+		}
+		defer conn.Close()
+
+		if err = conn.Bind(us.config.Username, us.config.Password); err != nil {
+			iterErr = err
+			return
+		}
+
 		req := ldap.NewSearchRequest(
-			us.base,
+			us.config.Base,
 			ldap.ScopeSingleLevel,
 			ldap.NeverDerefAliases,
 			0, 0, false,
-			us.filter,
-			us.attrs,
+			us.config.Filter,
+			us.config.Attrs,
 			[]ldap.Control{},
 		)
 
-		res := us.conn.SearchAsync(ctx, req, 2000)
+		res := conn.SearchAsync(ctx, req, 2000)
 
 		for res.Next() {
 			entry := res.Entry()
 			attrs := make(map[string][]string)
 
-			for _, attr := range us.attrs {
+			for _, attr := range us.config.Attrs {
 				attrs[attr] = entry.GetAttributeValues(attr)
 			}
 
-			user, err := us.mappingFunc(attrs)
+			user, err := us.config.MappingFunc(attrs)
 			if err != nil {
 				iterErr = err
-				break
+				return
 			}
 			if !yield(user) {
-				break
+				return
 			}
 		}
 	}

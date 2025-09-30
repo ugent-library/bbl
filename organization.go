@@ -24,6 +24,24 @@ type OrganizationRel struct {
 
 func (rec *Organization) Validate() error {
 	return nil
+	// v := valgo.New()
+	// v.Is(
+	// 	valgo.String(rec.Kind, "kind").Not().Blank(),
+	// 	valgo.Number(len(rec.Names), "names").Not().Zero(),
+	// )
+	// for i, ident := range rec.Identifiers {
+	// 	v.InRow("identifiers", i, v.Is(
+	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
+	// 		valgo.String(ident.Val, "val").Not().Blank(),
+	// 	))
+	// }
+	// for i, rel := range rec.Rels {
+	// 	v.InRow("rels", i, v.Is(
+	// 		valgo.String(rel.Kind, "kind").Not().Blank(),
+	// 		valgo.String(rel.OrganizationID, "organization_id").Not().Blank(),
+	// 	))
+	// }
+	// return v.ToError()
 }
 
 func (rec *Organization) Diff(rec2 *Organization) map[string]any {

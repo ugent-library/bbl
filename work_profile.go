@@ -43,6 +43,7 @@ type WorkProfile struct {
 	ClassificationSchemes []string `json:"-"`
 }
 
+// TODO return validation error?
 func LoadWorkProfile(rec *Work) error {
 	if subKinds, ok := WorkProfiles[rec.Kind]; ok {
 		if !ok {

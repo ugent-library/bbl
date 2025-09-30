@@ -43,6 +43,10 @@ func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User]
 
 // TODO handle NULL deactivate_at
 func (r *Repo) SaveUser(ctx context.Context, rec *bbl.User) error {
+	if err := rec.Validate(); err != nil {
+		return fmt.Errorf("SaveUser: %w", err)
+	}
+
 	tx, err := r.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("SaveUser: %s", err)
