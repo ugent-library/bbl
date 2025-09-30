@@ -32,6 +32,17 @@ type Addresses struct {
 	Path             string    `xml:"path,attr,omitempty"`
 }
 
+type Affiliation struct {
+	ElementSummary
+	DepartmentName string       `xml:"department-name,omitempty"`
+	RoleTitle      string       `xml:"role-title,omitempty"`
+	StartDate      *FuzzyDate   `xml:"start-date,omitempty"`
+	EndDate        *FuzzyDate   `xml:"end-date,omitempty"`
+	Organization   Organization `xml:"organization"`
+	Url            string       `xml:"url,omitempty"`
+	ExternalIds    *ExternalIds `xml:"external-ids,omitempty"`
+}
+
 type AffiliationGroup struct {
 	LastModifiedDate        *DateTime                 `xml:"last-modified-date,omitempty"`
 	ExternalIds             ExternalIds               `xml:"external-ids"`
@@ -51,16 +62,7 @@ type Affiliations struct {
 	Path             string             `xml:"path,attr,omitempty"`
 }
 
-type AffiliationSummary struct {
-	ElementSummary
-	DepartmentName string       `xml:"department-name,omitempty"`
-	RoleTitle      string       `xml:"role-title,omitempty"`
-	StartDate      *FuzzyDate   `xml:"start-date,omitempty"`
-	EndDate        *FuzzyDate   `xml:"end-date,omitempty"`
-	Organization   Organization `xml:"organization"`
-	Url            string       `xml:"url,omitempty"`
-	ExternalIds    *ExternalIds `xml:"external-ids,omitempty"`
-}
+type AffiliationSummary Affiliation
 
 type Amount struct {
 	Value        string `xml:",chardata"`
@@ -127,7 +129,7 @@ type Error struct {
 	MoreInfo         string `xml:"more-info,omitempty"`
 }
 
-type ExternalId struct {
+type ExternalIdentifier struct {
 	ElementSummary
 	ExternalIdType            string          `xml:"external-id-type"`
 	ExternalIdValue           string          `xml:"external-id-value"`
@@ -138,13 +140,13 @@ type ExternalId struct {
 }
 
 type ExternalIdentifiers struct {
-	LastModifiedDate   *DateTime    `xml:"last-modified-date,omitempty"`
-	ExternalIdentifier []ExternalId `xml:"external-identifier,omitempty"`
-	Path               string       `xml:"path,attr,omitempty"`
+	LastModifiedDate   *DateTime            `xml:"last-modified-date,omitempty"`
+	ExternalIdentifier []ExternalIdentifier `xml:"external-identifier,omitempty"`
+	Path               string               `xml:"path,attr,omitempty"`
 }
 
 type ExternalIds struct {
-	ExternalId []ExternalId `xml:"external-id,omitempty"`
+	ExternalId []ExternalIdentifier `xml:"external-id,omitempty"`
 }
 
 type Funding struct {
@@ -280,18 +282,18 @@ type OtherNames struct {
 
 type PeerReview struct {
 	ElementSummary
-	ReviewerRole              string       `xml:"reviewer-role"`
-	ReviewIdentifiers         ExternalIds  `xml:"review-identifiers"`
-	ReviewUrl                 string       `xml:"review-url,omitempty"`
-	ReviewType                string       `xml:"review-type"`
-	ReviewCompletionDate      FuzzyDate    `xml:"review-completion-date"`
-	ReviewGroupId             string       `xml:"review-group-id"`
-	SubjectExternalIdentifier *ExternalId  `xml:"subject-external-identifier,omitempty"`
-	SubjectContainerName      string       `xml:"subject-container-name,omitempty"`
-	SubjectType               string       `xml:"subject-type,omitempty"`
-	SubjectName               *SubjectName `xml:"subject-name,omitempty"`
-	SubjectUrl                string       `xml:"subject-url,omitempty"`
-	ConveningOrganization     Organization `xml:"convening-organization"`
+	ReviewerRole              string              `xml:"reviewer-role"`
+	ReviewIdentifiers         ExternalIds         `xml:"review-identifiers"`
+	ReviewUrl                 string              `xml:"review-url,omitempty"`
+	ReviewType                string              `xml:"review-type"`
+	ReviewCompletionDate      FuzzyDate           `xml:"review-completion-date"`
+	ReviewGroupId             string              `xml:"review-group-id"`
+	SubjectExternalIdentifier *ExternalIdentifier `xml:"subject-external-identifier,omitempty"`
+	SubjectContainerName      string              `xml:"subject-container-name,omitempty"`
+	SubjectType               string              `xml:"subject-type,omitempty"`
+	SubjectName               *SubjectName        `xml:"subject-name,omitempty"`
+	SubjectUrl                string              `xml:"subject-url,omitempty"`
+	ConveningOrganization     Organization        `xml:"convening-organization"`
 }
 
 type PeerReviewGroup struct {

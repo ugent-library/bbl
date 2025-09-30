@@ -7,3 +7,9 @@ func (c *Client) ExternalIdentifiers(ctx context.Context, id string) (*ExternalI
 	b, err := c.get(ctx, id+"/external-identifiers", nil, data)
 	return data, b, err
 }
+
+func (c *Client) ExternalIdentifier(ctx context.Context, id, putCode string) (*ExternalIdentifier, []byte, error) {
+	data := &ExternalIdentifier{}
+	b, err := c.get(ctx, id+"/external-identifiers/"+putCode, nil, data)
+	return data, b, err
+}
