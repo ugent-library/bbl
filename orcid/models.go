@@ -5,12 +5,6 @@ import (
 	"time"
 )
 
-type ActivitiesGroup struct {
-	LastModifiedDate *DateTime     `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	ExternalIds      ExternalIds   `xml:"http://www.orcid.org/ns/common external-ids"`
-	WorkSummary      []WorkSummary `xml:"http://www.orcid.org/ns/work work-summary,omitempty"`
-}
-
 type Address struct {
 	ElementSummary
 	Country string `xml:"http://www.orcid.org/ns/address country"`
@@ -251,6 +245,45 @@ type OtherNames struct {
 	Path             string      `xml:"path,attr,omitempty"`
 }
 
+type PeerReview struct {
+	ElementSummary
+	ReviewerRole              string       `xml:"http://www.orcid.org/ns/peer-review reviewer-role"`
+	ReviewIdentifiers         ExternalIds  `xml:"http://www.orcid.org/ns/peer-review review-identifiers"`
+	ReviewUrl                 string       `xml:"http://www.orcid.org/ns/peer-review review-url,omitempty"`
+	ReviewType                string       `xml:"http://www.orcid.org/ns/peer-review review-type"`
+	ReviewCompletionDate      FuzzyDate    `xml:"http://www.orcid.org/ns/peer-review review-completion-date"`
+	ReviewGroupId             string       `xml:"http://www.orcid.org/ns/peer-review review-group-id"`
+	SubjectExternalIdentifier *ExternalId  `xml:"http://www.orcid.org/ns/peer-review subject-external-identifier,omitempty"`
+	SubjectContainerName      string       `xml:"http://www.orcid.org/ns/peer-review subject-container-name,omitempty"`
+	SubjectType               string       `xml:"http://www.orcid.org/ns/peer-review subject-type,omitempty"`
+	SubjectName               *SubjectName `xml:"http://www.orcid.org/ns/peer-review subject-name,omitempty"`
+	SubjectUrl                string       `xml:"http://www.orcid.org/ns/peer-review subject-url,omitempty"`
+	ConveningOrganization     Organization `xml:"http://www.orcid.org/ns/peer-review convening-organization"`
+}
+
+type PeerReviewGroup struct {
+	LastModifiedDate  *DateTime           `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds       ExternalIds         `xml:"http://www.orcid.org/ns/common external-ids"`
+	PeerReviewSummary []PeerReviewSummary `xml:"http://www.orcid.org/ns/peer-review peer-review-summary,omitempty"`
+}
+
+type PeerReviews struct {
+	LastModifiedDate *DateTime         `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Group            []PeerReviewGroup `xml:"http://www.orcid.org/ns/activities group,omitempty"`
+	Path             string            `xml:"path,attr,omitempty"`
+}
+
+type PeerReviewSummary struct {
+	ElementSummary
+	ReviewerRole          string       `xml:"http://www.orcid.org/ns/peer-review reviewer-role"`
+	ExternalIds           *ExternalIds `xml:"http://www.orcid.org/ns/common external-ids,omitempty"`
+	ReviewUrl             string       `xml:"http://www.orcid.org/ns/peer-review review-url,omitempty"`
+	ReviewType            string       `xml:"http://www.orcid.org/ns/peer-review review-type"`
+	CompletionDate        FuzzyDate    `xml:"http://www.orcid.org/ns/peer-review completion-date"`
+	ReviewGroupId         string       `xml:"http://www.orcid.org/ns/peer-review review-group-id"`
+	ConveningOrganization Organization `xml:"http://www.orcid.org/ns/peer-review convening-organization"`
+}
+
 type Person struct {
 	LastModifiedDate    *DateTime           `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
 	Name                Name                `xml:"http://www.orcid.org/ns/person name,omitempty"`
@@ -302,6 +335,12 @@ type Source struct {
 	AssertionOriginName     string    `xml:"http://www.orcid.org/ns/common assertion-origin-name,omitempty"`
 }
 
+type SubjectName struct {
+	Title           string `xml:"http://www.orcid.org/ns/common title"`
+	Subtitle        string `xml:"http://www.orcid.org/ns/common subtitle,omitempty"`
+	TranslatedTitle string `xml:"http://www.orcid.org/ns/common translated-title,omitempty"`
+}
+
 type TransientError struct {
 	ErrorCode    string `xml:"http://www.orcid.org/ns/common error-code,omitempty"`
 	ErrorMessage string `xml:"http://www.orcid.org/ns/common error-message,omitempty"`
@@ -344,10 +383,16 @@ type WorkContributors struct {
 	Contributor []WorkContributor `xml:"http://www.orcid.org/ns/work contributor,omitempty"`
 }
 
+type WorkGroup struct {
+	LastModifiedDate *DateTime     `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	ExternalIds      ExternalIds   `xml:"http://www.orcid.org/ns/common external-ids"`
+	WorkSummary      []WorkSummary `xml:"http://www.orcid.org/ns/work work-summary,omitempty"`
+}
+
 type Works struct {
-	LastModifiedDate *DateTime         `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-	Group            []ActivitiesGroup `xml:"http://www.orcid.org/ns/activities group,omitempty"`
-	Path             string            `xml:"path,attr,omitempty"`
+	LastModifiedDate *DateTime   `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
+	Group            []WorkGroup `xml:"http://www.orcid.org/ns/activities group,omitempty"`
+	Path             string      `xml:"path,attr,omitempty"`
 }
 
 type WorkSummary struct {
@@ -510,28 +555,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	Organization []string `xml:"http://www.orcid.org/ns/research-resource organization"`
 // }
 
-// type PeerReview struct {
-// 	CreatedDate               string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate          string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source                    string       `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	ReviewerRole              string       `xml:"http://www.orcid.org/ns/peer-review reviewer-role"`
-// 	ReviewIdentifiers         ExternalIds  `xml:"http://www.orcid.org/ns/common review-identifiers"`
-// 	ReviewUrl                 string       `xml:"http://www.orcid.org/ns/common review-url,omitempty"`
-// 	ReviewType                string       `xml:"http://www.orcid.org/ns/peer-review review-type"`
-// 	ReviewCompletionDate      FuzzyDate    `xml:"http://www.orcid.org/ns/common review-completion-date"`
-// 	ReviewGroupId             string       `xml:"http://www.orcid.org/ns/common review-group-id"`
-// 	SubjectExternalIdentifier ExternalId   `xml:"http://www.orcid.org/ns/common subject-external-identifier,omitempty"`
-// 	SubjectContainerName      string       `xml:"http://www.orcid.org/ns/common subject-container-name,omitempty"`
-// 	SubjectType               string       `xml:"http://www.orcid.org/ns/peer-review subject-type,omitempty"`
-// 	SubjectName               SubjectName  `xml:"http://www.orcid.org/ns/peer-review subject-name,omitempty"`
-// 	SubjectUrl                string       `xml:"http://www.orcid.org/ns/common subject-url,omitempty"`
-// 	ConveningOrganization     Organization `xml:"http://www.orcid.org/ns/common convening-organization"`
-// 	PutCode                   int          `xml:"put-code,attr,omitempty"`
-// 	Visibility                string       `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex              string       `xml:"display-index,attr,omitempty"`
-// 	Path                      string       `xml:"path,attr,omitempty"`
-// }
-
 // type PeerReviewDuplicates struct {
 // 	LastModifiedDate  string   `xml:"http://www.orcid.org/ns/activities last-modified-date,omitempty"`
 // 	ExternalIds       string   `xml:"http://www.orcid.org/ns/activities external-ids"`
@@ -548,23 +571,6 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // 	PeerReviewPublicationGrants int `xml:"http://www.orcid.org/ns/summary peer-review-publication-grants"`
 // 	SelfAssertedCount           int `xml:"http://www.orcid.org/ns/summary self-asserted-count,omitempty"`
 // 	Total                       int `xml:"http://www.orcid.org/ns/summary total"`
-// }
-
-// type PeerReviewSummary struct {
-// 	CreatedDate           string       `xml:"http://www.orcid.org/ns/common created-date,omitempty"`
-// 	LastModifiedDate      string       `xml:"http://www.orcid.org/ns/common last-modified-date,omitempty"`
-// 	Source                string       `xml:"http://www.orcid.org/ns/common source,omitempty"`
-// 	ReviewerRole          string       `xml:"http://www.orcid.org/ns/peer-review reviewer-role"`
-// 	ExternalIds           string       `xml:"http://www.orcid.org/ns/peer-review external-ids,omitempty"`
-// 	ReviewUrl             string       `xml:"http://www.orcid.org/ns/common review-url,omitempty"`
-// 	ReviewType            string       `xml:"http://www.orcid.org/ns/peer-review review-type"`
-// 	CompletionDate        FuzzyDate    `xml:"http://www.orcid.org/ns/common completion-date"`
-// 	ReviewGroupId         string       `xml:"http://www.orcid.org/ns/common review-group-id"`
-// 	ConveningOrganization Organization `xml:"http://www.orcid.org/ns/common convening-organization"`
-// 	PutCode               int          `xml:"put-code,attr,omitempty"`
-// 	Visibility            string       `xml:"visibility,attr,omitempty"`
-// 	DisplayIndex          string       `xml:"display-index,attr,omitempty"`
-// 	Path                  string       `xml:"path,attr,omitempty"`
 // }
 
 // // Preferences set by the researcher or contributor.
@@ -685,11 +691,4 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // // Container for resources
 // type ResourceItems struct {
 // 	ResourceItem []ResourceItem `xml:"http://www.orcid.org/ns/research-resource resource-item"`
-// }
-
-// // Container for peer-review subject name.
-// type SubjectName struct {
-// 	Title           string `xml:"http://www.orcid.org/ns/peer-review title"`
-// 	Subtitle        string `xml:"http://www.orcid.org/ns/peer-review subtitle,omitempty"`
-// 	TranslatedTitle string `xml:"http://www.orcid.org/ns/peer-review translated-title,omitempty"`
 // }
