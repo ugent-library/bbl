@@ -3,7 +3,7 @@ package bbl
 import (
 	"slices"
 
-	"github.com/ugent-library/bbl/vo"
+	"github.com/ugent-library/vo"
 )
 
 type Project struct {

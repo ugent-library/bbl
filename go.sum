@@ -260,6 +260,8 @@ github.com/ugent-library/oidc v0.1.0 h1:MEXXUBcWEH+5RbPyUYEx7eONbhKm7/mydiwzCSNz
 github.com/ugent-library/oidc v0.1.0/go.mod h1:oSHG0rvTDa6hJKCyow+xK1Mmf/yKfjJh3ab3m/8O0WI=
 github.com/ugent-library/tonga v0.0.0-20250416071751-ab5c715b2347 h1:7vRq/oGQR7zv07BKUtxuVWlqnrD/7dELcnmtluWQUcE=
 github.com/ugent-library/tonga v0.0.0-20250416071751-ab5c715b2347/go.mod h1:0WGGuq4ADvw3Hs8yk7Beg4YYeZ8evd0vATtBetxMoOk=
+github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9 h1:p4/0jkoNswAuP0PwVK1dk1jSxKRMWokw3+/AXEotMHI=
+github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9/go.mod h1:ehatrr6iUxTAcf7qYtZkyLKPKwE3mt/Lrk2svjXbkTY=
 github.com/wI2L/jsondiff v0.7.0 h1:1lH1G37GhBPqCfp/lrs91rf/2j3DktX6qYAKZkLuCQQ=
 github.com/wI2L/jsondiff v0.7.0/go.mod h1:KAEIojdQq66oJiHhDyQez2x+sRit0vIzC9KeK0yizxM=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=

@@ -1,6 +1,6 @@
 module github.com/ugent-library/bbl
 
-go 1.24.2
+go 1.25.1
 
 require (
 	github.com/a-h/templ v0.3.943
@@ -13,6 +13,7 @@ require (
 	github.com/riverqueue/river v0.25.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.25.0
 	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9
+	github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
 )
 

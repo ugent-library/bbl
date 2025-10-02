@@ -3,7 +3,7 @@ package bbl
 import (
 	"time"
 
-	"github.com/ugent-library/bbl/vo"
+	"github.com/ugent-library/vo"
 )
 
 const (

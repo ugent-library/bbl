@@ -9,7 +9,7 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
-	"github.com/ugent-library/bbl/vo"
+	"github.com/ugent-library/vo"
 )
 
 var workFormat string
