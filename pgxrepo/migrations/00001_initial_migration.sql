@@ -236,6 +236,24 @@ create table bbl_work_projects (
 create index on bbl_work_projects (work_id); -- TODO probably not needed
 create index on bbl_work_projects (project_id);
 
+create table bbl_sets (
+  id uuid primary key,
+  name text not null unique,
+  description text,
+  public boolean not null default false
+);
+
+create index on bbl_sets (public);
+
+create table bbl_set_works (
+  set_id uuid not null references bbl_sets (id) on delete cascade,
+  work_id uuid not null references bbl_works (id) on delete cascade,
+  primary key (set_id, work_id)
+);
+
+create index on bbl_set_works (set_id); -- TODO probably not needed
+create index on bbl_set_works (work_id);
+
 create table bbl_revs (
   id uuid primary key,
   created_at timestamptz not null default transaction_timestamp(),
@@ -269,11 +287,13 @@ create index on bbl_changes (work_id) where work_id is not null;
 
 drop table bbl_changes cascade;
 drop table bbl_revs cascade;
-drop table bbl_person_organizations cascade;
+drop table bbl_set_works cascade;
+drop table bbl_sets cascade;
 drop table bbl_work_files cascade;
 drop table bbl_work_contributors cascade;
 drop table bbl_work_organizations cascade;
 drop table bbl_work_projects cascade;
+drop table bbl_person_organizations cascade;
 drop table bbl_organization_identifiers cascade;
 drop table bbl_organization_rels cascade;
 drop table bbl_organizations cascade;
