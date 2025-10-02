@@ -183,57 +183,28 @@ func (rec *Work) Validate() error {
 		}
 	}
 
-	return v.Validate().ToError()
+	for i, text := range rec.Abstracts {
+		v.In("abstracts").Index(i).Add(
+			vo.ISO639_2("lang", text.Lang),
+			vo.NotBlank("val", text.Val),
+		)
+	}
 
-	// v := valgo.New()
-	// v.Is(
-	// 	valgo.String(rec.Kind, "kind").Not().Blank().InSlice(WorkKinds),
-	// 	valgo.String(rec.Status, "status").Not().Blank().InSlice(WorkStatuses),
-	// )
-	// for i, ident := range rec.Classifications {
-	// 	v.InRow("classifications", i, v.Is(
-	// 		valgo.String(ident.Scheme, "scheme").Not().Blank().InSlice(rec.Profile.ClassificationSchemes),
-	// 		valgo.String(ident.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// for i, contrib := range rec.Contributors {
-	// 	if contrib.PersonID == "" {
-	// 		v.InRow("contributors", i, valgo.Is(
-	// 			valgo.String(contrib.Name, "name").Not().Blank(),
-	// 		).Do(func(v *valgo.Validation) {
-	// 			for j, role := range contrib.CreditRoles {
-	// 				v.InCell("credit_roles", j, valgo.Is(
-	// 					valgo.String(role, "role").Not().Blank().InSlice(CreditRoles),
-	// 				))
-	// 			}
-	// 		}))
-	// 	}
-	// }
-	// for i, ident := range rec.Identifiers {
-	// 	v.InRow("identifiers", i, v.Is(
-	// 		valgo.String(ident.Scheme, "scheme").Not().Blank().InSlice(rec.Profile.IdentifierSchemes),
-	// 		valgo.String(ident.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// for i, text := range rec.Abstracts {
-	// 	v.InRow("abstracts", i, v.Is(
-	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
-	// 		valgo.String(text.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// for i, text := range rec.LaySummaries {
-	// 	v.InRow("lay_summaries", i, v.Is(
-	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
-	// 		valgo.String(text.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// for i, text := range rec.Titles {
-	// 	v.InRow("titles", i, v.Is(
-	// 		valgo.String(text.Lang, "lang").Not().Blank().InSlice(Langs),
-	// 		valgo.String(text.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// return v.ToError()
+	for i, text := range rec.LaySummaries {
+		v.In("lay_summaries").Index(i).Add(
+			vo.ISO639_2("lang", text.Lang),
+			vo.NotBlank("val", text.Val),
+		)
+	}
+
+	for i, text := range rec.Titles {
+		v.In("titles").Index(i).Add(
+			vo.ISO639_2("lang", text.Lang),
+			vo.NotBlank("val", text.Val),
+		)
+	}
+
+	return v.Validate().ToError()
 }
 
 func (rec *Work) Clone() (*Work, error) {

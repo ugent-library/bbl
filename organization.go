@@ -2,6 +2,8 @@ package bbl
 
 import (
 	"slices"
+
+	"github.com/ugent-library/bbl/vo"
 )
 
 type Organization struct {
@@ -23,25 +25,26 @@ type OrganizationRel struct {
 }
 
 func (rec *Organization) Validate() error {
-	return nil
-	// v := valgo.New()
-	// v.Is(
-	// 	valgo.String(rec.Kind, "kind").Not().Blank(),
-	// 	valgo.Number(len(rec.Names), "names").Not().Zero(),
-	// )
-	// for i, ident := range rec.Identifiers {
-	// 	v.InRow("identifiers", i, v.Is(
-	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
-	// 		valgo.String(ident.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// for i, rel := range rec.Rels {
-	// 	v.InRow("rels", i, v.Is(
-	// 		valgo.String(rel.Kind, "kind").Not().Blank(),
-	// 		valgo.String(rel.OrganizationID, "organization_id").Not().Blank(),
-	// 	))
-	// }
-	// return v.ToError()
+	v := vo.New(
+		vo.NotBlank("kind", rec.Kind),
+		vo.NotEmpty("names", rec.Names),
+	)
+
+	for i, ident := range rec.Identifiers {
+		v.In("identifiers").Index(i).Add(
+			vo.NotBlank("scheme", ident.Scheme),
+			vo.NotBlank("val", ident.Val),
+		)
+	}
+
+	for i, text := range rec.Names {
+		v.In("names").Index(i).Add(
+			vo.ISO639_2("lang", text.Lang),
+			vo.NotBlank("val", text.Val),
+		)
+	}
+
+	return v.Validate().ToError()
 }
 
 func (rec *Organization) Diff(rec2 *Organization) map[string]any {

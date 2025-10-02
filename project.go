@@ -2,6 +2,8 @@ package bbl
 
 import (
 	"slices"
+
+	"github.com/ugent-library/bbl/vo"
 )
 
 type Project struct {
@@ -16,18 +18,25 @@ type ProjectAttrs struct {
 }
 
 func (rec *Project) Validate() error {
-	return nil
-	// v := valgo.New()
-	// v.Is(
-	// 	valgo.Number(len(rec.Names), "names").Not().Zero(),
-	// )
-	// for i, ident := range rec.Identifiers {
-	// 	v.InRow("identifiers", i, v.Is(
-	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
-	// 		valgo.String(ident.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// return v.ToError()
+	v := vo.New(
+		vo.NotEmpty("names", rec.Names),
+	)
+
+	for i, ident := range rec.Identifiers {
+		v.In("identifiers").Index(i).Add(
+			vo.NotBlank("scheme", ident.Scheme),
+			vo.NotBlank("val", ident.Val),
+		)
+	}
+
+	for i, text := range rec.Names {
+		v.In("names").Index(i).Add(
+			vo.ISO639_2("lang", text.Lang),
+			vo.NotBlank("val", text.Val),
+		)
+	}
+
+	return v.Validate().ToError()
 }
 
 func (rec *Project) Diff(rec2 *Project) map[string]any {

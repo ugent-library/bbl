@@ -2,6 +2,8 @@ package bbl
 
 import (
 	"slices"
+
+	"github.com/ugent-library/bbl/vo"
 )
 
 type Person struct {
@@ -18,18 +20,18 @@ type PersonAttrs struct {
 }
 
 func (rec *Person) Validate() error {
-	return nil
-	// v := valgo.New()
-	// v.Is(
-	// 	valgo.String(rec.Name, "name").Not().Blank(),
-	// )
-	// for i, ident := range rec.Identifiers {
-	// 	v.InRow("identifiers", i, v.Is(
-	// 		valgo.String(ident.Scheme, "scheme").Not().Blank(),
-	// 		valgo.String(ident.Val, "val").Not().Blank(),
-	// 	))
-	// }
-	// return v.ToError()
+	v := vo.New(
+		vo.NotBlank("name", rec.Name),
+	)
+
+	for i, ident := range rec.Identifiers {
+		v.In("identifiers").Index(i).Add(
+			vo.NotBlank("scheme", ident.Scheme),
+			vo.NotBlank("val", ident.Val),
+		)
+	}
+
+	return v.Validate().ToError()
 }
 
 func (rec *Person) Diff(rec2 *Person) map[string]any {
