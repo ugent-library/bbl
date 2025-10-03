@@ -1,6 +1,6 @@
 -- +goose up
 
-create extension if not exists citext;
+create extension if not exists citext; -- TODO use collation instead
 
 create table bbl_users (
   id uuid primary key,
@@ -283,8 +283,19 @@ create index on bbl_changes (person_id) where person_id is not null;
 create index on bbl_changes (project_id) where project_id is not null;
 create index on bbl_changes (work_id) where work_id is not null;
 
+create table bbl_messages (
+    id bigint primary key generated always as identity,
+    topic text not null,
+    payload jsonb not null,
+    created_at timestamptz not null default clock_timestamp(),
+    deliver_at timestamptz not null default clock_timestamp()
+);
+
+create index on bbl_messages (deliver_at);
+
 -- +goose down
 
+drop table bbl_messages cascade;
 drop table bbl_changes cascade;
 drop table bbl_revs cascade;
 drop table bbl_set_works cascade;

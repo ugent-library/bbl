@@ -93,6 +93,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if err := mq.Send(ctx, "organization.create", a.Organization.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
+			if err := enqueueMessage(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
 		case *bbl.UpdateOrganization:
 			currentRec, err := getOrganization(ctx, tx, a.Organization.ID)
 			if err != nil {
@@ -141,7 +145,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
 			}
 
 			if _, ok := diff["rels"]; ok {
@@ -181,6 +185,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexOrganization{ID: a.Organization.ID}})
 
 			if err := mq.Send(ctx, "organization.update", a.Organization.ID, tonga.SendOpts{}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			if err := enqueueMessage(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreatePerson:
@@ -228,6 +236,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if err := mq.Send(ctx, "person.create", a.Person.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
+			if err := enqueueMessage(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
 		case *bbl.UpdatePerson:
 			currentRec, err := getPerson(ctx, tx, a.Person.ID)
 			if err != nil {
@@ -271,7 +283,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
 			}
 
 			batch.Queue(`
@@ -283,6 +295,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexPerson{ID: a.Person.ID}})
 
 			if err := mq.Send(ctx, "person.update", a.Person.ID, tonga.SendOpts{}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			if err := enqueueMessage(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateProject:
@@ -330,6 +346,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if err := mq.Send(ctx, "project.create", a.Project.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
+			if err := enqueueMessage(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
 		case *bbl.UpdateProject:
 			currentRec, err := getProject(ctx, tx, a.Project.ID)
 			if err != nil {
@@ -375,7 +395,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
 			}
 
 			batch.Queue(`
@@ -385,6 +405,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if err := mq.Send(ctx, "project.update", a.Project.ID, tonga.SendOpts{}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
+			if err := enqueueMessage(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateWork:
@@ -476,6 +500,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if err := mq.Send(ctx, "work.create", a.Work.ID, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+
+			if err := enqueueMessage(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.Work.ID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
 		case *bbl.UpdateWork:
 			currentRec, err := getWork(ctx, tx, a.Work.ID)
 			if err != nil {
@@ -489,6 +517,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, a.Work, currentRec); err != nil {
 				return err
+			}
+
+			if err := enqueueMessage(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.Work.ID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.ChangeWork:
 			currentRec, err := getWork(ctx, tx, a.WorkID)
@@ -509,6 +541,10 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, rec, currentRec); err != nil {
 				return err
+			}
+
+			if err := enqueueMessage(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.WorkID, Rev: revID}); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
 			}
 		default:
 			return errors.New("AddRev: unknown action")
@@ -568,7 +604,7 @@ func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []bb
 	return nil
 }
 
-func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
+func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
 	if len(old) > len(new) {
 		batch.Queue(`
 			delete from bbl_`+name+`_identifiers
@@ -652,7 +688,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 	}
 
 	if diff.Identifiers != nil {
-		queueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
+		enqueueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
 	}
 
 	if diff.Contributors != nil {

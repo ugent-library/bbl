@@ -210,6 +210,7 @@ func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchW
 func (h *WorksHandler) New(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	rec := &bbl.Work{
 		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?
+		Status:      bbl.DraftStatus,
 		Kind:        bbl.WorkKinds[0],
 	}
 
@@ -251,7 +252,7 @@ func (h *WorksHandler) Create(w http.ResponseWriter, r *http.Request, c *WorkCtx
 	}
 	c.Work = rec
 
-	htmx.PushURL(w, c.Route("edit_work", "id", rec.ID).String())
+	htmx.PushURL(w, c.Route("backoffice_edit_work", "id", rec.ID).String())
 
 	return h.refreshForm(w, r, c)
 }

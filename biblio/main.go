@@ -40,6 +40,7 @@ func main() {
 		MatchIdentifierScheme: "ugent_person_id",
 		MappingFunc: func(m map[string][]string) (*bbl.User, error) {
 			rec := &bbl.User{
+				Role:         bbl.UserRole,
 				DeactivateAt: time.Now().Add(time.Hour * 24 * 30),
 			}
 

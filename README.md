@@ -29,7 +29,6 @@
 * vo
 * catbird
 * orcid
-* tonga
 * oaipmh
 * opensearchswitcher
 * muxurl
