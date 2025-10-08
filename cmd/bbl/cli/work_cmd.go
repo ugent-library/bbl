@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/workflows"
 	"github.com/ugent-library/vo"
 )
 
@@ -137,7 +138,8 @@ var importWorkCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO check importer exists
 
-		logger := newLogger(cmd.OutOrStdout())
+		source := args[0]
+		id := args[1]
 
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -145,23 +147,29 @@ var importWorkCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ImportWork{Source: args[0], ID: args[1]}, nil)
+		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
 			return err
 		}
 
-		if res.UniqueSkippedAsDuplicate {
-			logger.Info("import is already running")
-		} else {
-			logger.Info("started importer", "job", res.Job.ID)
+		task := workflows.ImportWork(hatchetClient, repo)
+
+		res, err := task.Run(cmd.Context(), workflows.ImportWorkInput{Source: source, ID: id})
+		if err != nil {
+			return err
 		}
 
-		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+		out := workflows.ImportWorkOutput{}
+		if err := res.Into(&out); err != nil {
+			return err
+		}
+
+		return writeData(cmd, out)
 	},
 }
 
@@ -170,11 +178,11 @@ var importWorkSourceCmd = &cobra.Command{
 	Short: "import works from source",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if bbl.GetWorkSource(args[0]) == nil {
-			return fmt.Errorf("unknown source %s", args[0])
-		}
+		source := args[0]
 
-		logger := newLogger(cmd.OutOrStdout())
+		if bbl.GetWorkSource(source) == nil {
+			return fmt.Errorf("unknown source %s", source)
+		}
 
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -182,23 +190,29 @@ var importWorkSourceCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ImportWorkSource{Name: args[0]}, nil)
+		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
 			return err
 		}
 
-		if res.UniqueSkippedAsDuplicate {
-			logger.Info("source import is already running")
-		} else {
-			logger.Info("started source importer", "job", res.Job.ID)
+		task := workflows.ImportWorkSource(hatchetClient, repo)
+
+		res, err := task.Run(cmd.Context(), workflows.ImportWorkSourceInput{Source: source})
+		if err != nil {
+			return err
 		}
 
-		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+		out := workflows.ImportWorkSourceOutput{}
+		if err := res.Into(&out); err != nil {
+			return err
+		}
+
+		return writeData(cmd, out)
 	},
 }
 
@@ -207,31 +221,40 @@ var reindexWorksCmd = &cobra.Command{
 	Short: "Start reindex works job",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := newLogger(cmd.OutOrStdout())
-
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
 		}
 		defer conn.Close()
 
-		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexWorks{}, nil)
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}
 
-		if res.UniqueSkippedAsDuplicate {
-			logger.Info("works reindexer is already running")
-		} else {
-			logger.Info("started works reindexer", "job", res.Job.ID)
+		hatchetClient, err := hatchet.NewClient()
+		if err != nil {
+			return err
 		}
 
-		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+		task := workflows.ReindexWorks(hatchetClient, repo, index)
+
+		res, err := task.Run(cmd.Context(), workflows.ReindexWorksInput{})
+		if err != nil {
+			return err
+		}
+
+		out := workflows.ReindexWorksOutput{}
+		if err := res.Into(&out); err != nil {
+			return err
+		}
+
+		return writeData(cmd, out)
 	},
 }
 

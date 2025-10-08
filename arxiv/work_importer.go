@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/ugent-library/bbl"
@@ -97,6 +96,10 @@ func (wi *WorkImporter) Get(id string) (*bbl.Work, error) {
 		},
 	}
 
+	if err := bbl.LoadWorkProfile(rec); err != nil {
+		return nil, err
+	}
+
 	if f.Entry.DOI != "" {
 		rec.Identifiers = append(rec.Identifiers, bbl.Code{Scheme: "doi", Val: f.Entry.DOI})
 	}
@@ -116,17 +119,18 @@ func (wi *WorkImporter) Get(id string) (*bbl.Work, error) {
 	}
 
 	for _, a := range f.Entry.Author {
-		nameParts := strings.Split(a.Name, " ")
-		firstName := nameParts[0]
-		lastName := nameParts[0]
-		if len(nameParts) > 1 {
-			lastName = strings.Join(nameParts[1:], " ")
-		}
+		// nameParts := strings.Split(a.Name, " ")
+		// firstName := nameParts[0]
+		// lastName := nameParts[0]
+		// if len(nameParts) > 1 {
+		// 	lastName = strings.Join(nameParts[1:], " ")
+		// }
 		rec.Contributors = append(rec.Contributors, bbl.WorkContributor{
 			WorkContributorAttrs: bbl.WorkContributorAttrs{
 				CreditRoles: []string{bbl.AuthorCreditRole},
-				GivenName:   firstName,
-				FamilyName:  lastName,
+				Name:        a.Name,
+				// GivenName:   firstName,
+				// FamilyName:  lastName,
 			},
 		})
 	}

@@ -1,6 +1,6 @@
 live/server:
 	@go tool wgo \
-	-file=.go -file=.templ -file=.po -file app/static/manifest.json -xfile=_templ.go \
+	-file=.go -file=.templ -file=.po -file work_profiles.json -file app/static/manifest.json -xfile=_templ.go \
 	-xdir=app/assets -xdir=app/node_modules \
 	go tool templ generate :: go run biblio/main.go start
 

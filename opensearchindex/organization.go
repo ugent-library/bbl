@@ -22,6 +22,9 @@ func organizationToDoc(rec *bbl.Organization) any {
 	for i, text := range rec.Names {
 		doc.Completion[i] = text.Val
 	}
+	for _, iden := range rec.Identifiers {
+		doc.Completion = append(doc.Completion, iden.Val)
+	}
 	return &doc
 }
 

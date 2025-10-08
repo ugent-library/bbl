@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/workflows"
 )
 
 func init() {
@@ -38,8 +39,7 @@ var userCmd = &cobra.Command{
 			return err
 		}
 
-		enc := json.NewEncoder(cmd.OutOrStdout())
-		return enc.Encode(rec)
+		return writeData(cmd, rec)
 	},
 }
 
@@ -76,11 +76,11 @@ var importUserSourceCmd = &cobra.Command{
 	Short: "import users from source",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if bbl.GetUserSource(args[0]) == nil {
-			return fmt.Errorf("unknown source %s", args[0])
-		}
+		source := args[0]
 
-		logger := newLogger(cmd.OutOrStdout())
+		if bbl.GetUserSource(source) == nil {
+			return fmt.Errorf("unknown source %s", source)
+		}
 
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
@@ -88,22 +88,28 @@ var importUserSourceCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ImportUserSource{Name: args[0]}, nil)
+		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
 			return err
 		}
 
-		if res.UniqueSkippedAsDuplicate {
-			logger.Info("source import is already running")
-		} else {
-			logger.Info("started source importer", "job", res.Job.ID)
+		task := workflows.ImportUserSource(hatchetClient, repo)
+
+		res, err := task.Run(cmd.Context(), workflows.ImportUserSourceInput{Source: source})
+		if err != nil {
+			return err
 		}
 
-		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+		out := workflows.ImportUserSourceOutput{}
+		if err := res.Into(&out); err != nil {
+			return err
+		}
+
+		return writeData(cmd, out)
 	},
 }

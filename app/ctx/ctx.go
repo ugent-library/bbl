@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/leonelquinteros/gotext"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
@@ -54,6 +55,7 @@ type Config struct {
 	AuthIssuerURL    string
 	AuthClientID     string
 	AuthClientSecret string
+	ExportWorksTask  *hatchet.StandaloneTask
 }
 
 type Ctx struct {

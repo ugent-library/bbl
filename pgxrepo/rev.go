@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/riverqueue/river"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/tonga"
 )
 
@@ -24,8 +22,6 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	defer tx.Rollback(ctx)
 
 	mq := tonga.New(tx)
-
-	riverJobs := []river.InsertManyParams{}
 
 	batch := &pgx.Batch{}
 
@@ -88,9 +84,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexOrganization{ID: a.Organization.ID}})
-
-			if err := mq.Send(ctx, "organization.create", a.Organization.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateOrganization:
@@ -141,7 +135,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
 			}
 
 			if _, ok := diff["rels"]; ok {
@@ -178,9 +172,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexOrganization{ID: a.Organization.ID}})
-
-			if err := mq.Send(ctx, "organization.update", a.Organization.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreatePerson:
@@ -223,9 +215,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Person.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexPerson{ID: a.Person.ID}})
-
-			if err := mq.Send(ctx, "person.create", a.Person.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdatePerson:
@@ -271,7 +261,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
 			}
 
 			batch.Queue(`
@@ -280,9 +270,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Person.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexPerson{ID: a.Person.ID}})
-
-			if err := mq.Send(ctx, "person.update", a.Person.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateProject:
@@ -325,9 +313,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
-
-			if err := mq.Send(ctx, "project.create", a.Project.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateProject:
@@ -372,10 +358,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				a.Project.ID, jsonAttrs, rev.UserID,
 			)
 
-			riverJobs = append(riverJobs, river.InsertManyParams{Args: jobs.IndexProject{ID: a.Project.ID}})
-
 			if _, ok := diff["identifiers"]; ok {
-				queueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
+				enqueueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
 			}
 
 			batch.Queue(`
@@ -384,7 +368,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 
-			if err := mq.Send(ctx, "project.update", a.Project.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateWork:
@@ -468,12 +452,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Work.ID, jsonDiff,
 			)
 
-			riverJobs = append(riverJobs,
-				river.InsertManyParams{Args: jobs.IndexWork{ID: a.Work.ID}},
-				river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: a.Work.ID}},
-			)
-
-			if err := mq.Send(ctx, "work.create", a.Work.ID, tonga.SendOpts{}); err != nil {
+			if err := tonga.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.Work.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateWork:
@@ -487,7 +466,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Work.Version, currentRec.Version)
 			}
 
-			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, a.Work, currentRec); err != nil {
+			if err := updateWork(ctx, tx, batch, mq, revID, rev.UserID, a.Work, currentRec); err != nil {
 				return err
 			}
 		case *bbl.ChangeWork:
@@ -507,7 +486,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 			}
 
-			if err := updateWork(ctx, tx, batch, mq, &riverJobs, revID, rev.UserID, rec, currentRec); err != nil {
+			if err := updateWork(ctx, tx, batch, mq, revID, rev.UserID, rec, currentRec); err != nil {
 				return err
 			}
 		default:
@@ -526,13 +505,6 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 	if err := res.Close(); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
-	}
-
-	if len(riverJobs) > 0 {
-		_, err := r.riverClient.InsertManyTx(ctx, tx, riverJobs)
-		if err != nil {
-			return fmt.Errorf("AddRev: %w", err)
-		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -568,7 +540,7 @@ func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []bb
 	return nil
 }
 
-func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
+func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
 	if len(old) > len(new) {
 		batch.Queue(`
 			delete from bbl_`+name+`_identifiers
@@ -597,7 +569,7 @@ func queueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new [
 	}
 }
 
-func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Client, riverJobs *[]river.InsertManyParams, revID, userID string, rec, currentRec *bbl.Work) error {
+func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Client, revID, userID string, rec, currentRec *bbl.Work) error {
 	if err := lookupWorkContributors(ctx, tx, rec.Contributors); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
@@ -652,7 +624,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 	}
 
 	if diff.Identifiers != nil {
-		queueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
+		enqueueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
 	}
 
 	if diff.Contributors != nil {
@@ -752,13 +724,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		revID, rec.ID, jsonDiff,
 	)
 
-	// TODO ugly
-	*riverJobs = append(*riverJobs,
-		river.InsertManyParams{Args: jobs.IndexWork{ID: rec.ID}},
-		river.InsertManyParams{Args: jobs.AddWorkRepresentations{ID: rec.ID}},
-	)
-
-	if err := mq.Send(ctx, "work.update", rec.ID, tonga.SendOpts{}); err != nil {
+	if err := tonga.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
 

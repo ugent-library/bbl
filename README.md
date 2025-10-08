@@ -28,8 +28,8 @@
 * bind
 * vo
 * catbird
-* orcid
 * tonga
+* orcid
 * oaipmh
 * opensearchswitcher
 * muxurl

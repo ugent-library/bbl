@@ -3,10 +3,11 @@ package cli
 import (
 	"encoding/json"
 
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/workflows"
 )
 
 func init() {
@@ -41,8 +42,7 @@ var organizationCmd = &cobra.Command{
 			return err
 		}
 
-		enc := json.NewEncoder(cmd.OutOrStdout())
-		return enc.Encode(rec)
+		return writeData(cmd, rec)
 	},
 }
 
@@ -78,31 +78,40 @@ var reindexOrganizationsCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex organizations job",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := newLogger(cmd.OutOrStdout())
-
 		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
 		if err != nil {
 			return err
 		}
 		defer conn.Close()
 
-		riverClient, err := newInsertOnlyRiverClient(logger, conn)
+		repo, err := pgxrepo.New(cmd.Context(), conn)
 		if err != nil {
 			return err
 		}
 
-		res, err := riverClient.Insert(cmd.Context(), jobs.ReindexOrganizations{}, nil)
+		index, err := newIndex(cmd.Context())
 		if err != nil {
 			return err
 		}
 
-		if res.UniqueSkippedAsDuplicate {
-			logger.Info("organizations reindexer is already running")
-		} else {
-			logger.Info("started organizations reindexer", "job", res.Job.ID)
+		hatchetClient, err := hatchet.NewClient()
+		if err != nil {
+			return err
 		}
 
-		return reportJobProgress(cmd.Context(), riverClient, res.Job.ID, logger)
+		task := workflows.ReindexOrganizations(hatchetClient, repo, index)
+
+		res, err := task.Run(cmd.Context(), workflows.ReindexOrganizationsInput{})
+		if err != nil {
+			return err
+		}
+
+		out := workflows.ReindexOrganizationsOutput{}
+		if err := res.Into(&out); err != nil {
+			return err
+		}
+
+		return writeData(cmd, out)
 	},
 }
 

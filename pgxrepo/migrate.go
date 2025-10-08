@@ -7,7 +7,6 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	_ "github.com/ugent-library/bbl/pgxrepo/migrations"
 )
 
 //go:embed migrations/*.sql

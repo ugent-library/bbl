@@ -24,9 +24,10 @@ services:
       - 3351:3351
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bbl -d bbl"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
@@ -41,14 +42,17 @@ services:
       - 3372:3372
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3371/minio/health/live"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   mc:
     image: minio/mc
     depends_on:
       - minio
+      # minio:
+      #   condition: service_healthy
     restart: on-failure
     entrypoint:
       - sh
@@ -83,9 +87,10 @@ services:
       - 3353:9600 # performance analyzer
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cat/health?v || exit 1"]
-      interval: 20s
-      timeout: 20s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
   opensearch-node2:
     image: opensearchproject/opensearch:2.19.1
@@ -112,9 +117,55 @@ services:
       - 9600
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cat/health?v || exit 1"]
-      interval: 20s
-      timeout: 20s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
+
+  hatchet-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - hatchet-postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DATABASE: hatchet
+      POSTGRES_USER: hatchet
+      POSTGRES_PASSWORD: hatchet
+      PGPORT: 3354
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - 3354:3354
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hatchet -d hatchet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  hatchet:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-lite:latest
+    ports:
+      - 8888:8888
+      - 7077:7077
+    depends_on:
+      hatchet-postgres:
+        condition: service_healthy
+    environment:
+      # Refer to https://docs.hatchet.run/self-hosting/configuration-options
+      # for a list of all supported environment variables
+      DATABASE_URL: "postgresql://hatchet:hatchet@hatchet-postgres:3354/hatchet?sslmode=disable"
+      SERVER_AUTH_COOKIE_DOMAIN: localhost
+      SERVER_AUTH_COOKIE_INSECURE: t
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_INSECURE: t
+      SERVER_GRPC_BROADCAST_ADDRESS: localhost:7077
+      SERVER_GRPC_PORT: "7077"
+      SERVER_URL: http://localhost:8888
+      SERVER_AUTH_SET_EMAIL_VERIFIED: t
+      SERVER_DEFAULT_ENGINE_VERSION: V1
+      SERVER_INTERNAL_CLIENT_INTERNAL_GRPC_BROADCAST_ADDRESS: localhost:7077
+    volumes:
+      - hatchet-data:/config
 
   citeproc:
     image: ugentlib/citeproc-server:latest
@@ -129,4 +180,8 @@ volumes:
   opensearch-data1:
     driver: local
   opensearch-data2:
+    driver: local
+  hatchet-data:
+    driver: local
+  hatchet-postgres-data:
     driver: local

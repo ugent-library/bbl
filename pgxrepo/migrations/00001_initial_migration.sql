@@ -1,6 +1,6 @@
 -- +goose up
 
-create extension if not exists citext;
+create extension if not exists citext; -- TODO use collation instead
 
 create table bbl_users (
   id uuid primary key,

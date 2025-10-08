@@ -60,6 +60,15 @@ func New(config *ctx.Config) (http.Handler, error) {
 
 	b := bind.New(ctx.Binder(config, router, assets))
 
+	b.OnBindError(func(w http.ResponseWriter, r *http.Request, err error) {
+		config.Logger.Error(err.Error())
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	})
+	b.OnError(func(w http.ResponseWriter, r *http.Request, c *ctx.Ctx, err error) {
+		config.Logger.Error(err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	})
+
 	err = backoffice.AddRoutes(router, b, config)
 	if err != nil {
 		return nil, err

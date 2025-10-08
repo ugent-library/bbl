@@ -125,6 +125,9 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 			PlaceOfPublication: "Ghent, Belgium",
 		},
 	}
+	if err := bbl.LoadWorkProfile(rec); err != nil {
+		return nil, err
+	}
 
 	if v := res.Get("titel.eng").String(); v != "" {
 		rec.Titles = append(rec.Titles, bbl.Text{Lang: "eng", Val: v})

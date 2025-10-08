@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/app/views"
@@ -18,8 +19,8 @@ import (
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/httperr"
-	"github.com/ugent-library/bbl/jobs"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/workflows"
 	"github.com/ugent-library/htmx"
 )
 
@@ -79,14 +80,16 @@ func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
 }
 
 type WorksHandler struct {
-	repo  *pgxrepo.Repo
-	index bbl.Index
+	repo            *pgxrepo.Repo
+	index           bbl.Index
+	exportWorksTask *hatchet.StandaloneTask
 }
 
-func NewWorksHandler(repo *pgxrepo.Repo, index bbl.Index) *WorksHandler {
+func NewWorksHandler(repo *pgxrepo.Repo, index bbl.Index, exportWorksTask *hatchet.StandaloneTask) *WorksHandler {
 	return &WorksHandler{
-		repo:  repo,
-		index: index,
+		repo:            repo,
+		index:           index,
+		exportWorksTask: exportWorksTask,
 	}
 }
 
@@ -194,7 +197,12 @@ func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchW
 	c.Opts.Facets = nil
 	format := r.FormValue("format")
 
-	_, err := h.repo.AddJob(r.Context(), jobs.ExportWorks{UserID: c.User.ID, Opts: c.Opts, Format: format})
+	// TODO do something with ref
+	_, err := h.exportWorksTask.RunNoWait(r.Context(), workflows.ExportWorksInput{
+		UserID: c.User.ID,
+		Opts:   c.Opts,
+		Format: format,
+	})
 	if err != nil {
 		return err
 	}
@@ -210,11 +218,8 @@ func (h *WorksHandler) Export(w http.ResponseWriter, r *http.Request, c *SearchW
 func (h *WorksHandler) New(w http.ResponseWriter, r *http.Request, c *ctx.Ctx) error {
 	rec := &bbl.Work{
 		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?
+		Status:      bbl.DraftStatus,
 		Kind:        bbl.WorkKinds[0],
-	}
-
-	if err := bbl.LoadWorkProfile(rec); err != nil {
-		return err
 	}
 
 	// TODO this is repeated in refreshForm
@@ -251,7 +256,7 @@ func (h *WorksHandler) Create(w http.ResponseWriter, r *http.Request, c *WorkCtx
 	}
 	c.Work = rec
 
-	htmx.PushURL(w, c.Route("edit_work", "id", rec.ID).String())
+	htmx.PushURL(w, c.Route("backoffice_edit_work", "id", rec.ID).String())
 
 	return h.refreshForm(w, r, c)
 }

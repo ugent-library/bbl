@@ -38,6 +38,9 @@
                         "scheme": "issn"
                     },
                     {
+                        "scheme": "arxiv"
+                    },
+                    {
                         "scheme": "wos_id"
                     }
                 ]
@@ -77,5 +80,37 @@
                 }
             }
         ]
+    },
+    {
+        "kind": "dissertation",
+        "profile": {
+            "classifications": {
+                "schemes": [
+                    {
+                        "scheme": "ugent"
+                    }
+                ]
+            },
+            "identifiers": {
+                "schemes": [
+                    {
+                        "scheme": "isbn"
+                    },
+                    {
+                        "scheme": "plato_id"
+                    }
+                ]
+            },
+            "contributors": {},
+            "abstracts": {},
+            "titles": {
+                "required": true
+            },
+            "lay_summaries": {},
+            "keywords": {},
+            "publication_year": {
+                "required": true
+            }
+        }
     }
 ]

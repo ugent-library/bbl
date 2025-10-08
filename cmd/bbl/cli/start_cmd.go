@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,11 +13,15 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
 	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/workflows"
 	"golang.org/x/sync/errgroup"
+
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 )
 
 func init() {
@@ -53,10 +58,19 @@ var startCmd = &cobra.Command{
 
 		hub := catbird.NewHub(conn, catbird.HubOpts{})
 
-		riverClient, err := newRiverClient(logger, conn, repo, index, store, hub)
+		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
 			return err
 		}
+
+		addWorkRepresentationsTask := workflows.AddWorkRepresentations(hatchetClient, repo, index)
+		exportWorksTask := workflows.ExportWorks(hatchetClient, store, index, hub)
+		importUserSourceTask := workflows.ImportUserSource(hatchetClient, repo)
+		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
+		importWorkTask := workflows.ImportWork(hatchetClient, repo)
+		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
+		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
+		tongaGCTask := workflows.TongaGC(hatchetClient, repo.Tonga)
 
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
@@ -74,6 +88,7 @@ var startCmd = &cobra.Command{
 			AuthIssuerURL:    config.OIDC.IssuerURL,
 			AuthClientID:     config.OIDC.ClientID,
 			AuthClientSecret: config.OIDC.ClientSecret,
+			ExportWorksTask:  exportWorksTask, // TOOD how best to pass tasks to handlers?
 		})
 		if err != nil {
 			return err
@@ -122,45 +137,116 @@ var startCmd = &cobra.Command{
 			return err
 		})
 
+		// Run outbox reader
+		// TODO split off command?
+		// TODO use long polling / cdc
+		// TODO max attempts / dead letter box
+		// TODO log instead of returning where appropriate
+		// TODO check if latest rev?
 		group.Go(func() error {
-			if err := riverClient.Start(groupCtx); err != nil {
-				return err
+			n := 100
+			hideFor := 10 * time.Second
+
+			for {
+				select {
+				case <-groupCtx.Done():
+					return nil
+				default:
+					msgs, err := repo.Tonga.Read(groupCtx, bbl.OutboxQueue, n, hideFor)
+					if err != nil {
+						return err
+					}
+
+					for _, msg := range msgs {
+						switch msg.Topic {
+						case bbl.OrganizationChangedTopic:
+							var payload bbl.RecordChangedPayload
+							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+								return err
+							}
+							rec, err := repo.GetOrganization(groupCtx, payload.ID)
+							if err != nil {
+								return err
+							}
+							if err := index.Organizations().Add(groupCtx, rec); err != nil {
+								return err
+							}
+						case bbl.PersonChangedTopic:
+							var payload bbl.RecordChangedPayload
+							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+								return err
+							}
+							rec, err := repo.GetPerson(groupCtx, payload.ID)
+							if err != nil {
+								return err
+							}
+							if err := index.People().Add(groupCtx, rec); err != nil {
+								return err
+							}
+						case bbl.ProjectChangedTopic:
+							var payload bbl.RecordChangedPayload
+							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+								return err
+							}
+							rec, err := repo.GetProject(groupCtx, payload.ID)
+							if err != nil {
+								return err
+							}
+							if err := index.Projects().Add(groupCtx, rec); err != nil {
+								return err
+							}
+						case bbl.WorkChangedTopic:
+							var payload bbl.RecordChangedPayload
+							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+								return err
+							}
+							rec, err := repo.GetWork(groupCtx, payload.ID)
+							if err != nil {
+								return err
+							}
+							if err := index.Works().Add(groupCtx, rec); err != nil {
+								return err
+							}
+						}
+
+						if err := hatchetClient.Events().Push(groupCtx, msg.Topic, msg.Payload); err != nil {
+							return err
+						}
+
+						if _, err := repo.Tonga.Delete(groupCtx, bbl.OutboxQueue, msg.ID); err != nil {
+							return err
+						}
+					}
+
+					if len(msgs) < n {
+						time.Sleep(500 * time.Millisecond)
+					}
+				}
 			}
 
-			logger.Info("started workers")
-
-			<-riverClient.Stopped()
-			return nil
 		})
 
+		// Run Hatchet worker
 		group.Go(func() error {
-			<-groupCtx.Done()
-
-			logger.Info("gracefully stopping workers")
-
-			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
-			defer timeoutRelease()
-
-			err := riverClient.Stop(timeoutCtx)
-			if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
-				return err
+			logger.Info("starting hatchet worker")
+			worker, err := hatchetClient.NewWorker("worker", hatchet.WithWorkflows(
+				addWorkRepresentationsTask,
+				exportWorksTask,
+				importUserSourceTask,
+				importWorkSourceTask,
+				importWorkTask,
+				reindexOrganizationsTask,
+				reindexPeopleTask,
+				tongaGCTask,
+			))
+			if err != nil {
+				return fmt.Errorf("failed to create hatchet worker: %w", err)
 			}
-			if err == nil {
-				logger.Info("gracefully stopped workers")
-				return nil
+			err = worker.StartBlocking(groupCtx)
+			if err != nil {
+				return fmt.Errorf("failed to start hatchet worker: %w", err)
 			}
-
-			logger.Info("hard stopping workers")
-
-			hardTimeoutCtx, hardTimeoutRelease := context.WithTimeout(cmd.Context(), 10*time.Second)
-			defer hardTimeoutRelease()
-
-			err = riverClient.StopAndCancel(hardTimeoutCtx)
-			if err != nil && errors.Is(err, context.DeadlineExceeded) {
-				logger.Info("hard stopped workers")
-				return nil
-			}
-			return err
+			return nil
 		})
 
 		if err := group.Wait(); err != nil {

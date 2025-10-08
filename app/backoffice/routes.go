@@ -34,7 +34,7 @@ func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) erro
 	NewOrganizationsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
 	NewPeopleHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
 	NewProjectsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewWorksHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
+	NewWorksHandler(config.Repo, config.Index, config.ExportWorksTask).AddRoutes(r, requireUser)
 	NewFilesHandler(config.Store).AddRoutes(r, requireUser)
 
 	return nil

@@ -19,6 +19,9 @@ func personToDoc(rec *bbl.Person) any {
 		Completion: []string{rec.Name},
 		Rec:        rec,
 	}
+	for _, iden := range rec.Identifiers {
+		doc.Completion = append(doc.Completion, iden.Val)
+	}
 	return &doc
 }
 
