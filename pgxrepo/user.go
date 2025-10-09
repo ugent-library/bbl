@@ -120,7 +120,7 @@ func (r *Repo) SaveUser(ctx context.Context, rec *bbl.User) error {
 	return nil
 }
 
-func getUser(ctx context.Context, conn pgxConn, id string) (*bbl.User, error) {
+func getUser(ctx context.Context, conn Conn, id string) (*bbl.User, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		switch scheme {

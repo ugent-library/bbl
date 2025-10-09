@@ -39,7 +39,7 @@ func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*b
 	}
 }
 
-func getOrganization(ctx context.Context, conn pgxConn, id string) (*bbl.Organization, error) {
+func getOrganization(ctx context.Context, conn Conn, id string) (*bbl.Organization, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `

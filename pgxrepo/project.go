@@ -39,7 +39,7 @@ func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Pr
 	}
 }
 
-func getProject(ctx context.Context, conn pgxConn, id string) (*bbl.Project, error) {
+func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `

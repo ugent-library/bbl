@@ -514,7 +514,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	return nil
 }
 
-func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []bbl.OrganizationRel) error {
+func lookupOrganizationRels(ctx context.Context, conn Conn, rels []bbl.OrganizationRel) error {
 	for i, rel := range rels {
 		if scheme, val, ok := strings.Cut(rel.OrganizationID, ":"); ok {
 			id, err := getIDByIdentifier(ctx, conn, "organization", scheme, val)
@@ -527,7 +527,7 @@ func lookupOrganizationRels(ctx context.Context, conn pgxConn, rels []bbl.Organi
 	return nil
 }
 
-func lookupWorkContributors(ctx context.Context, conn pgxConn, contributors []bbl.WorkContributor) error {
+func lookupWorkContributors(ctx context.Context, conn Conn, contributors []bbl.WorkContributor) error {
 	for i, con := range contributors {
 		if scheme, val, ok := strings.Cut(con.PersonID, ":"); ok {
 			id, err := getIDByIdentifier(ctx, conn, "person", scheme, val)
@@ -731,7 +731,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 	return nil
 }
 
-func getIDByIdentifier(ctx context.Context, conn pgxConn, name, scheme, val string) (string, error) {
+func getIDByIdentifier(ctx context.Context, conn Conn, name, scheme, val string) (string, error) {
 	q := `
 		select ` + name + `_id
 		from bbl_` + name + `_identifiers

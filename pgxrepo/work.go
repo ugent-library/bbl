@@ -78,7 +78,7 @@ func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange,
 	return changes, nil
 }
 
-func getWork(ctx context.Context, conn pgxConn, id string) (*bbl.Work, error) {
+func getWork(ctx context.Context, conn Conn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `

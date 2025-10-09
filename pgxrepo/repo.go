@@ -5,24 +5,23 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/tonga"
 )
 
-type pgxConn interface {
+type Conn interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
-	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 	Query(ctx context.Context, sql string, optionsAndArgs ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, optionsAndArgs ...any) pgx.Row
 }
 
 type Repo struct {
-	conn  *pgxpool.Pool
+	conn  Conn
 	Tonga *tonga.Client
 }
 
-func New(ctx context.Context, conn *pgxpool.Pool) (*Repo, error) {
+func New(ctx context.Context, conn Conn) (*Repo, error) {
 	tongaClient := tonga.New(conn)
 
 	err := tongaClient.CreateQueue(ctx, bbl.OutboxQueue, []string{

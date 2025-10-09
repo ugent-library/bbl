@@ -66,7 +66,7 @@ func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.
 	return ids, nil
 }
 
-func getPerson(ctx context.Context, conn pgxConn, id string) (*bbl.Person, error) {
+func getPerson(ctx context.Context, conn Conn, id string) (*bbl.Person, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
