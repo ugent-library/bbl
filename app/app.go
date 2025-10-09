@@ -1,14 +1,18 @@
 package app
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/gorilla/mux"
 	sloghttp "github.com/samber/slog-http"
 
+	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/backoffice"
 	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/app/discovery"
@@ -58,7 +62,9 @@ func New(config *ctx.Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	b := bind.New(ctx.Binder(config, router, assets))
+	binder := ctx.Binder(config, router, assets)
+
+	b := bind.New(binder)
 
 	b.OnBindError(func(w http.ResponseWriter, r *http.Request, err error) {
 		config.Logger.Error(err.Error())
@@ -69,7 +75,7 @@ func New(config *ctx.Config) (http.Handler, error) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	})
 
-	err = backoffice.AddRoutes(router, b, config)
+	err = backoffice.AddRoutes(router, binder, b, config)
 	if err != nil {
 		return nil, err
 	}
@@ -94,3 +100,109 @@ func parseManifest() (map[string]string, error) {
 
 	return assets, nil
 }
+
+type chain []func(http.Handler) http.Handler
+
+func (c chain) thenFunc(h http.HandlerFunc) http.Handler {
+	return c.then(h)
+}
+
+func (c chain) then(h http.Handler) http.Handler {
+	for _, mw := range slices.Backward(c) {
+		h = mw(h)
+	}
+	return h
+}
+
+type handlerCtx interface {
+	HandleError(http.ResponseWriter, *http.Request, error)
+}
+
+func with[T handlerCtx](getCtx func(*http.Request) (T, error), h func(http.ResponseWriter, *http.Request, T) error) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := getCtx(r)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		if err = h(w, r, c); err != nil {
+			c.HandleError(w, r, err)
+		}
+	})
+}
+
+type ctxKey string
+
+func (c ctxKey) String() string {
+	return string(c)
+}
+
+func getCtx[T handlerCtx](r *http.Request, key ctxKey) (T, error) {
+	v := r.Context().Value(key)
+	c, ok := v.(T)
+	if !ok {
+		var t T
+		return t, fmt.Errorf("getCtx %s: expected %T but got %T", key, t, v)
+	}
+	return c, nil
+}
+
+func setCtx[T handlerCtx](key ctxKey, newCtx func(r *http.Request) (T, error)) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c, _ := newCtx(r) // TODO handle error
+			r = r.WithContext(context.WithValue(r.Context(), key, c))
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+const appCtxKey = "appCtx"
+
+func getAppCtx(r *http.Request) (*appCtx, error) {
+	return getCtx[*appCtx](r, appCtxKey)
+}
+
+type appCtx struct {
+	User *bbl.User
+}
+
+func (c *appCtx) HandleError(w http.ResponseWriter, r *http.Request, err error) {
+}
+
+type App struct {
+	logger  *slog.Logger
+	handler http.Handler
+}
+
+func NewApp(
+	logger *slog.Logger,
+) (*App, error) {
+	mux := http.NewServeMux()
+
+	baseChain := chain{
+		sloghttp.Recovery,
+		sloghttp.NewWithConfig(logger.WithGroup("http"), sloghttp.Config{
+			WithRequestID: true,
+		}),
+		http.NewCrossOriginProtection().Handler,
+	}
+
+	handler := baseChain.then(mux)
+
+	app := &App{
+		logger:  logger,
+		handler: handler,
+	}
+
+	return app, nil
+}
+
+// func SearchWorks(mux *http.ServeMux) {
+// 	mux.Handle("GET /backoffice/works", with(newSearchWorksCtx, func(w http.ResponseWriter, r *http.Request, c *searchWorksCtx) error {
+// 		if err := c.RequireUser(); err != nil {
+// 			return err
+// 		}
+// 		return nil
+// 	}))
+// }

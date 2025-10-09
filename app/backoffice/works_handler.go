@@ -80,12 +80,18 @@ func RequireCanEditWork(next bind.Handler[*WorkCtx]) bind.Handler[*WorkCtx] {
 }
 
 type WorksHandler struct {
+	newCtx          func(*http.Request) (*ctx.Ctx, error)
 	repo            *pgxrepo.Repo
 	index           bbl.Index
 	exportWorksTask *hatchet.StandaloneTask
 }
 
-func NewWorksHandler(repo *pgxrepo.Repo, index bbl.Index, exportWorksTask *hatchet.StandaloneTask) *WorksHandler {
+func NewWorksHandler(
+	binder func(*http.Request) (*ctx.Ctx, error),
+	repo *pgxrepo.Repo,
+	index bbl.Index,
+	exportWorksTask *hatchet.StandaloneTask,
+) *WorksHandler {
 	return &WorksHandler{
 		repo:            repo,
 		index:           index,

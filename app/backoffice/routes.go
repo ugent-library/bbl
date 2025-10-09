@@ -2,6 +2,7 @@ package backoffice
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/ugent-library/bbl/app/ctx"
@@ -9,7 +10,7 @@ import (
 	"github.com/ugent-library/oidc"
 )
 
-func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) error {
+func AddRoutes(r *mux.Router, binder func(*http.Request) (*ctx.Ctx, error), b *bind.Binder[*ctx.Ctx], config *ctx.Config) error {
 	r = r.PathPrefix("/backoffice/").Subrouter()
 
 	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
@@ -34,7 +35,7 @@ func AddRoutes(r *mux.Router, b *bind.Binder[*ctx.Ctx], config *ctx.Config) erro
 	NewOrganizationsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
 	NewPeopleHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
 	NewProjectsHandler(config.Repo, config.Index).AddRoutes(r, requireUser)
-	NewWorksHandler(config.Repo, config.Index, config.ExportWorksTask).AddRoutes(r, requireUser)
+	NewWorksHandler(binder, config.Repo, config.Index, config.ExportWorksTask).AddRoutes(r, requireUser)
 	NewFilesHandler(config.Store).AddRoutes(r, requireUser)
 
 	return nil
