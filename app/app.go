@@ -4,89 +4,102 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
+	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/leonelquinteros/gotext"
 	sloghttp "github.com/samber/slog-http"
 
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/backoffice"
-	"github.com/ugent-library/bbl/app/ctx"
-	"github.com/ugent-library/bbl/app/discovery"
-	"github.com/ugent-library/bbl/bind"
-	"github.com/ugent-library/bbl/oaipmh"
-	"github.com/ugent-library/bbl/oaiservice"
+	"github.com/ugent-library/bbl/app/urls"
+	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/catbird"
+	"github.com/ugent-library/bbl/i18n"
+	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl/s3store"
+	"github.com/ugent-library/crypt"
+	"github.com/ugent-library/oidc"
+)
+
+const (
+	sessionCookieName = "bbl.session"
 )
 
 //go:embed static
 var staticFS embed.FS
 
-func New(config *ctx.Config) (http.Handler, error) {
-	csrfProtection := http.NewCrossOriginProtection()
-
-	router := mux.NewRouter()
-	router.Use(sloghttp.Recovery)
-	router.Use(sloghttp.NewWithConfig(config.Logger.WithGroup("http"), sloghttp.Config{
-		WithRequestID: true,
-	}))
-	router.Use(csrfProtection.Handler)
-
-	// static files
-	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFS))).Methods("GET")
-
-	// oai provider
-	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
-		RepositoryName: "Ghent University Institutional Archive",
-		BaseURL:        "http://localhost:3000/oai",
-		AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
-		DeletedRecord:  "persistent",
-		Granularity:    "YYYY-MM-DDThh:mm:ssZ",
-		// StyleSheet:     "/oai.xsl",
-		Backend: oaiservice.New(config.Repo),
-		ErrorHandler: func(err error) { // TODO
-			config.Logger.Error("oai error", "error", err)
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	router.Handle("/oai", oaiProvider).Methods("GET")
-
-	// ui
-	assets, err := parseManifest()
-	if err != nil {
-		return nil, err
-	}
-
-	binder := ctx.Binder(config, router, assets)
-
-	b := bind.New(binder)
-
-	b.OnBindError(func(w http.ResponseWriter, r *http.Request, err error) {
-		config.Logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-	})
-	b.OnError(func(w http.ResponseWriter, r *http.Request, c *ctx.Ctx, err error) {
-		config.Logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	})
-
-	err = backoffice.AddRoutes(router, binder, b, config)
-	if err != nil {
-		return nil, err
-	}
-
-	err = discovery.AddRoutes(router, b, config)
-	if err != nil {
-		return nil, err
-	}
-
-	return router, nil
+type SessionCookie struct {
+	UserID string `json:"u"`
 }
+
+type AuthProvider interface {
+	BeginAuth(http.ResponseWriter, *http.Request) error
+	CompleteAuth(http.ResponseWriter, *http.Request, any) error
+}
+
+// func New(config *ctx.Config) (http.Handler, error) {
+// 	csrfProtection := http.NewCrossOriginProtection()
+
+// 	router := mux.NewRouter()
+// 	router.Use(sloghttp.Recovery)
+// 	router.Use(sloghttp.NewWithConfig(config.Logger.WithGroup("http"), sloghttp.Config{
+// 		WithRequestID: true,
+// 	}))
+// 	router.Use(csrfProtection.Handler)
+
+// 	// static files
+// 	router.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticFS))).Methods("GET")
+
+// 	// oai provider
+// 	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
+// 		RepositoryName: "Ghent University Institutional Archive",
+// 		BaseURL:        "http://localhost:3000/oai",
+// 		AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
+// 		DeletedRecord:  "persistent",
+// 		Granularity:    "YYYY-MM-DDThh:mm:ssZ",
+// 		// StyleSheet:     "/oai.xsl",
+// 		Backend: oaiservice.New(config.Repo),
+// 		ErrorHandler: func(err error) { // TODO
+// 			config.Logger.Error("oai error", "error", err)
+// 		},
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	router.Handle("/oai", oaiProvider).Methods("GET")
+
+// 	// ui
+// 	assets, err := parseManifest()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	binder := ctx.Binder(config, router, assets)
+
+// 	b := bind.New(binder)
+
+// 	b.OnBindError(func(w http.ResponseWriter, r *http.Request, err error) {
+// 		config.Logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+// 	})
+// 	b.OnError(func(w http.ResponseWriter, r *http.Request, c *ctx.Ctx, err error) {
+// 		config.Logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 	})
+
+// 	err = backoffice.AddRoutes(router, binder, b, config)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return router, nil
+// }
 
 func parseManifest() (map[string]string, error) {
 	manifest, err := staticFS.ReadFile("static/manifest.json")
@@ -103,9 +116,13 @@ func parseManifest() (map[string]string, error) {
 
 type chain []func(http.Handler) http.Handler
 
-func (c chain) thenFunc(h http.HandlerFunc) http.Handler {
-	return c.then(h)
+func (c chain) with(mw ...func(http.Handler) http.Handler) chain {
+	return append(c, mw...)
 }
+
+// func (c chain) thenFunc(h http.HandlerFunc) http.Handler {
+// 	return c.then(h)
+// }
 
 func (c chain) then(h http.Handler) http.Handler {
 	for _, mw := range slices.Backward(c) {
@@ -118,7 +135,7 @@ type handlerCtx interface {
 	HandleError(http.ResponseWriter, *http.Request, error)
 }
 
-func with[T handlerCtx](getCtx func(*http.Request) (T, error), h func(http.ResponseWriter, *http.Request, T) error) http.Handler {
+func wrap[T handlerCtx](getCtx func(*http.Request) (T, error), h func(http.ResponseWriter, *http.Request, T) error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := getCtx(r)
 		if err != nil {
@@ -157,52 +174,260 @@ func setCtx[T handlerCtx](key ctxKey, newCtx func(r *http.Request) (T, error)) f
 	}
 }
 
-const appCtxKey = "appCtx"
+const appCtxKey ctxKey = "appCtx"
 
 func getAppCtx(r *http.Request) (*appCtx, error) {
 	return getCtx[*appCtx](r, appCtxKey)
 }
 
 type appCtx struct {
-	User *bbl.User
+	insecure bool
+	assets   map[string]string
+	crypt    *crypt.Crypt
+	cookies  *securecookie.SecureCookie
+	User     *bbl.User
+	Hub      *catbird.Hub
+	topics   []string
+	Loc      *gotext.Locale
+}
+
+func (c *appCtx) viewCtx() views.Ctx {
+	return views.Ctx{
+		AssetPath: c.AssetPath,
+		SSEPath:   c.SSEPath,
+		Loc:       c.Loc,
+		User:      c.User,
+	}
 }
 
 func (c *appCtx) HandleError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
+func (c *appCtx) AddTopic(topic string) {
+	if !slices.Contains(c.topics, topic) {
+		c.topics = append(c.topics, topic)
+	}
+}
+
+func (c *appCtx) SSEPath() string {
+	token, err := c.crypt.EncryptValue(c.topics)
+	if err != nil {
+		panic(err)
+	}
+	return urls.BackofficeSSE(token)
+}
+
+func (c *appCtx) AssetPath(asset string) string {
+	a, ok := c.assets[asset]
+	if !ok {
+		panic(fmt.Errorf("asset '%s' not found in manifest", asset))
+	}
+	return a
+}
+
+func (c *appCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {
+	val := &SessionCookie{
+		UserID: user.ID,
+	}
+	err := c.SetCookie(w, sessionCookieName, val, 30*24*time.Hour)
+	if err != nil {
+		return err
+	}
+
+	c.User = user
+
+	return nil
+}
+
+func (c *appCtx) ClearUser(w http.ResponseWriter) {
+	c.User = nil
+	c.ClearCookie(w, sessionCookieName)
+}
+
+func (c *appCtx) GetCookie(r *http.Request, name string, val any) error {
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return fmt.Errorf("can't get cookie %s: %w", name, err)
+	}
+	if err := c.cookies.Decode(name, cookie.Value, val); err != nil {
+		return fmt.Errorf("can't decode cookie %s: %w", name, err)
+	}
+	return nil
+}
+
+func (c *appCtx) SetCookie(w http.ResponseWriter, name string, val any, ttl time.Duration) error {
+	v, err := c.cookies.Encode(name, val)
+	if err != nil {
+		return fmt.Errorf("can't encode cookie %s: %w", name, err)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    v,
+		Path:     "/",
+		Expires:  time.Now().Add(ttl),
+		HttpOnly: true,
+		Secure:   !c.insecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	return nil
+}
+
+func (c *appCtx) ClearCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   !c.insecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
 type App struct {
-	logger  *slog.Logger
-	handler http.Handler
+	env          string
+	logger       *slog.Logger
+	repo         *pgxrepo.Repo
+	store        *s3store.Store
+	index        bbl.Index
+	crypt        *crypt.Crypt
+	assets       map[string]string
+	cookies      *securecookie.SecureCookie
+	hub          *catbird.Hub
+	authProvider AuthProvider
 }
 
 func NewApp(
+	baseURL string,
+	env string,
 	logger *slog.Logger,
+	hashSecret, secret []byte,
+	repo *pgxrepo.Repo,
+	store *s3store.Store,
+	index bbl.Index,
+	hub *catbird.Hub,
+	authIssuerURL string,
+	authClientID string,
+	authClientSecret string,
 ) (*App, error) {
-	mux := http.NewServeMux()
-
-	baseChain := chain{
-		sloghttp.Recovery,
-		sloghttp.NewWithConfig(logger.WithGroup("http"), sloghttp.Config{
-			WithRequestID: true,
-		}),
-		http.NewCrossOriginProtection().Handler,
+	assets, err := parseManifest()
+	if err != nil {
+		return nil, err
 	}
 
-	handler := baseChain.then(mux)
+	cookies := securecookie.New(hashSecret, secret)
+	cookies.SetSerializer(securecookie.JSONEncoder{})
+
+	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
+		IssuerURL:        authIssuerURL,
+		ClientID:         authClientID,
+		ClientSecret:     authClientSecret,
+		RedirectURL:      baseURL + "/backoffice/auth/callback",
+		CookieInsecure:   env == "development",
+		CookiePrefix:     "bbl.oidc.",
+		CookieHashSecret: hashSecret,
+		CookieSecret:     secret,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	app := &App{
-		logger:  logger,
-		handler: handler,
+		env:          env,
+		logger:       logger,
+		repo:         repo,
+		store:        store,
+		index:        index,
+		crypt:        crypt.New(secret),
+		assets:       assets,
+		cookies:      cookies,
+		hub:          hub,
+		authProvider: authProvider,
 	}
 
 	return app, nil
 }
 
-// func SearchWorks(mux *http.ServeMux) {
-// 	mux.Handle("GET /backoffice/works", with(newSearchWorksCtx, func(w http.ResponseWriter, r *http.Request, c *searchWorksCtx) error {
-// 		if err := c.RequireUser(); err != nil {
-// 			return err
-// 		}
-// 		return nil
-// 	}))
-// }
+func (app *App) Handler() http.Handler {
+	baseChain := chain{
+		sloghttp.Recovery,
+		sloghttp.NewWithConfig(app.logger.WithGroup("http"), sloghttp.Config{
+			WithRequestID: true,
+		}),
+		http.NewCrossOriginProtection().Handler,
+	}
+
+	appChain := chain{setCtx(appCtxKey, app.newAppCtx)}
+
+	userChain := appChain.with(requireUser)
+
+	mux := http.NewServeMux()
+
+	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
+
+	mux.Handle("GET /works/{id}", appChain.then(wrap(getAppCtx, app.work)))
+	mux.Handle("GET /works", appChain.then(wrap(getAppCtx, app.works)))
+
+	mux.Handle("GET /backoffice/login", appChain.then(wrap(getAppCtx, app.login)))
+	mux.Handle("GET /backoffice/auth/callback", appChain.then(wrap(getAppCtx, app.authCallback)))
+	mux.Handle("GET /backoffice/logout", appChain.then(wrap(getAppCtx, app.logout)))
+
+	mux.Handle("GET /backoffice/organizations", userChain.then(wrap(getAppCtx, app.backofficeOrganizations)))
+	mux.Handle("GET /backoffice/people", userChain.then(wrap(getAppCtx, app.backofficePeople)))
+	mux.Handle("GET /backoffice/projects", userChain.then(wrap(getAppCtx, app.backofficeProjects)))
+
+	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
+
+	mux.Handle("GET /backoffice/sse", userChain.then(wrap(getAppCtx, app.backofficeSSE)))
+	mux.Handle("GET /backoffice", userChain.then(wrap(getAppCtx, app.backofficeHome)))
+
+	return baseChain.then(mux)
+}
+
+func (app *App) newAppCtx(r *http.Request) (*appCtx, error) {
+	c := &appCtx{
+		insecure: app.env == "development",
+		assets:   app.assets,
+		crypt:    app.crypt,
+		cookies:  app.cookies,
+		Loc:      i18n.Locales["en"],
+		Hub:      app.hub,
+	}
+
+	// get user from session if present
+	session := SessionCookie{}
+	err := c.GetCookie(r, sessionCookieName, &session)
+	if err != nil && !errors.Is(err, http.ErrNoCookie) {
+		return nil, err
+	}
+	if err == nil {
+		user, err := app.repo.GetUser(r.Context(), session.UserID)
+		if err != nil {
+			return nil, err
+		}
+		c.User = user
+		c.AddTopic("users")
+		c.AddTopic("users." + user.ID)
+	}
+
+	return c, nil
+}
+
+func requireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := getAppCtx(r)
+		if err != nil { // TODO log error
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		if c.User == nil {
+			http.Redirect(w, r, urls.BackofficeLogin(), http.StatusFound)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
