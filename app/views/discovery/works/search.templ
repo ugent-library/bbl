@@ -2,6 +2,7 @@ package works
 
 import (
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/discovery"
 )
@@ -11,7 +12,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Work]) {
 		<ul class="list-group list-group-flush">
 			for _, hit := range hits.Hits {
 				<li class="list-group-item">
-					<a href={ c.SafeRoute("discovery_work", "id", hit.Rec.ID) }>
+					<a href={ urls.Work(hit.Rec.ID) }>
 						<span class="list-group-item-title">{ hit.Rec.GetTitle() }</span>
 					</a>
 				</li>

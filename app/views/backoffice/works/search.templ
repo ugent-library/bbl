@@ -3,6 +3,7 @@ package works
 import (
 	"fmt"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/can"
@@ -25,7 +26,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 						</div>
 						<div class="bc-toolbar-right">
 							<div class="bc-toolbar-item">
-								<a class="btn btn-primary" href={ c.SafeRoute("backoffice_new_work") }>
+								<a class="btn btn-primary" href={ urls.BackofficeNewWork() }>
 									<i class="if if-add"></i>
 									<div class="btn-text">Add work</div>
 								</a>
@@ -39,14 +40,14 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 							<ul class="nav nav-tabs">
 								if can.Curate(c.User) {
 									<li class="nav-item">
-										<a class={ "nav-link", templ.KV("active", scope == "curator") } href={ c.SafeRoute("backoffice_works", "scope", "curator") }>All works</a>
+										<a class={ "nav-link", templ.KV("active", scope == "curator") } href={ urls.BackofficeWorks("curator", nil) }>All works</a>
 									</li>
 								}
 								<li class="nav-item">
-									<a class={ "nav-link", templ.KV("active", scope == "contributor") } href={ c.SafeRoute("backoffice_works", "scope", "contributor") }>My works</a>
+									<a class={ "nav-link", templ.KV("active", scope == "contributor") } href={ urls.BackofficeWorks("contributor", nil) }>My works</a>
 								</li>
 								<li class="nav-item">
-									<a class={ "nav-link", templ.KV("active", scope == "creator") } href={ c.SafeRoute("backoffice_works", "scope", "creator") }>Registered by me</a>
+									<a class={ "nav-link", templ.KV("active", scope == "creator") } href={ urls.BackofficeWorks("creator", nil) }>Registered by me</a>
 								</li>
 							</ul>
 						</div>
@@ -54,7 +55,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="work-search-form" class="mb-4" action={ c.SafeRoute("backoffice_works") } method="GET">
+				<form id="work-search-form" class="mb-4" action={ urls.BackofficeWorks("", nil) } method="GET">
 					<input type="hidden" name="scope" value={ scope }/>
 					<div class="row">
 						<div class="col">
@@ -139,11 +140,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 												<button
 													class="dropdown-item"
 													type="button"
-													hx-post={ c.Route("backoffice_export_works").String() }
-													hx-include="#work-search-form"
-													hx-swap="none"
-													name="format"
-													value={ format }
+													data-on-click={ "@post('" + urls.BackofficeExportWorks(format) + "', {contentType: 'form', selector: '#work-search-form'})" }
 												>
 													<span>Export search results as { format }</span>
 												</button>
@@ -303,7 +300,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 												<div class="dropdown-menu"></div>
 											</div>
 											if can.EditWork(c.User, hit.Rec) {
-												<a class="btn btn-tertiary btn-lg-only-responsive" href={ c.SafeRoute("backoffice_edit_work", "id", hit.Rec.ID) }>
+												<a class="btn btn-tertiary btn-lg-only-responsive" href={ urls.BackofficeEditWork(hit.Rec.ID) }>
 													<i class="if if-edit"></i>
 													<span class="btn-text d-md-none d-xl-inline-block">Edit</span>
 													<span class="visually-hidden">Edit record</span>

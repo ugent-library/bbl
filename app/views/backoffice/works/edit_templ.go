@@ -11,6 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"fmt"
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/app/views/forms"
@@ -100,9 +101,9 @@ func Edit(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
-				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(c.SafeRoute("backoffice_work_changes", "id", rec.ID))
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkChanges(rec.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 78, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 79, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -223,9 +224,9 @@ func FormButtons(c views.Ctx, rec *bbl.Work) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_create_work").String())
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorks("", nil))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 118, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 119, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -241,9 +242,9 @@ func FormButtons(c views.Ctx, rec *bbl.Work) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_update_work", "id", rec.ID).String())
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWork(rec.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 120, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 121, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -319,7 +320,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(state)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 175, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 176, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -330,9 +331,9 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var11 string
-		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_change_kind").String())
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkChangeKind())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 189, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 190, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -350,7 +351,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 192, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 193, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -373,7 +374,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 192, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 193, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -396,7 +397,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(rec.Kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 200, Col: 60}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 201, Col: 60}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -407,9 +408,9 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_change_kind").String())
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkChangeKind())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 204, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 205, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -427,7 +428,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 208, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 209, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -450,7 +451,7 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(kind)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 208, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 209, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -486,8 +487,8 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 					Required: rec.Profile.Titles.Required,
 				},
 				Attrs:     rec.Titles,
-				AddURL:    c.Route("backoffice_work_add_title").String(),
-				RemoveURL: c.Route("backoffice_work_remove_title").String(),
+				AddURL:    urls.BackofficeWorkAddTitle(),
+				RemoveURL: urls.BackofficeWorkRemoveTitle(),
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -501,9 +502,9 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				PluralLabel: c.Loc.Get("abstracts"),
 				Title:       c.Loc.Get("Abstract"),
 				PluralTitle: c.Loc.Get("Abstracts"),
-				AddURL:      c.Route("backoffice_work_add_abstract").String(),
-				EditURL:     c.Route("backoffice_work_edit_abstract").String(),
-				RemoveURL:   c.Route("backoffice_work_remove_abstract").String(),
+				AddURL:      urls.BackofficeWorkAddAbstract(),
+				EditURL:     urls.BackofficeWorkEditAbstract(),
+				RemoveURL:   urls.BackofficeWorkRemoveAbstract(),
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -517,9 +518,9 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				PluralLabel: c.Loc.Get("lay summaries"),
 				Title:       c.Loc.Get("Lay summary"),
 				PluralTitle: c.Loc.Get("Lay summaries"),
-				AddURL:      c.Route("backoffice_work_add_lay_summary").String(),
-				EditURL:     c.Route("backoffice_work_edit_lay_summary").String(),
-				RemoveURL:   c.Route("backoffice_work_remove_lay_summary").String(),
+				AddURL:      urls.BackofficeWorkAddLaySummary(),
+				EditURL:     urls.BackofficeWorkEditLaySummary(),
+				RemoveURL:   urls.BackofficeWorkRemoveLaySummary(),
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -826,8 +827,8 @@ func Form(c views.Ctx, rec *bbl.Work, state string) templ.Component {
 				},
 				Attrs:     rec.Identifiers,
 				Schemes:   rec.Profile.IdentifierSchemes,
-				AddURL:    c.Route("backoffice_work_add_identifier").String(),
-				RemoveURL: c.Route("backoffice_work_remove_identifier").String(),
+				AddURL:    urls.BackofficeWorkAddIdentifier(),
+				RemoveURL: urls.BackofficeWorkRemoveIdentifier(),
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -885,7 +886,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-%s-add", args.Name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 541, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 542, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -898,7 +899,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 545, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 546, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -935,7 +936,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 564, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 565, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -948,7 +949,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(args.AddURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 570, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 571, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -961,7 +962,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, len(args.Texts)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 571, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 572, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -974,7 +975,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 573, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 574, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -987,7 +988,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(args.PluralTitle)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 583, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 584, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -1000,7 +1001,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-%s-add", args.Name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 590, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 591, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -1013,7 +1014,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Add %s", args.Label))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 593, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 594, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -1031,7 +1032,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("No %s.", args.Label))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 601, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 602, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 			if templ_7745c5c3_Err != nil {
@@ -1050,7 +1051,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-%s-edit-%d", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 607, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 608, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -1063,7 +1064,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var30 string
 				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit %s", args.Label))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 611, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 612, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 				if templ_7745c5c3_Err != nil {
@@ -1102,7 +1103,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var31 string
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Cancel"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 632, Col: 96}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 633, Col: 96}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
@@ -1115,7 +1116,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(args.EditURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 638, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 639, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -1128,7 +1129,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 639, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 640, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -1141,7 +1142,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var34 string
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit %s", args.Label))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 641, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 642, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
@@ -1154,7 +1155,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var35 string
 				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-%s-edit-%d", args.Name, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 655, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 656, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 				if templ_7745c5c3_Err != nil {
@@ -1167,7 +1168,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Edit"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 658, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 659, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 				if templ_7745c5c3_Err != nil {
@@ -1180,7 +1181,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var37 string
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(args.RemoveURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 663, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 664, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
@@ -1193,7 +1194,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 664, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 665, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -1206,7 +1207,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var39 string
 				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc.Get("Remove"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 667, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 668, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
@@ -1219,7 +1220,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(text.Lang)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 670, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 671, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -1232,7 +1233,7 @@ func textsField(c views.Ctx, args textsFieldArgs) templ.Component {
 				var templ_7745c5c3_Var41 string
 				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(text.Val)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 671, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 672, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 				if templ_7745c5c3_Err != nil {
@@ -1278,9 +1279,9 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var43 string
-		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_suggest_contributor").String())
+		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkSuggestContributor())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 698, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 699, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
@@ -1293,7 +1294,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 		var templ_7745c5c3_Var44 string
 		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "add", "idx": %d}`, len(rec.Contributors)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 699, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 700, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 		if templ_7745c5c3_Err != nil {
@@ -1311,7 +1312,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var45 string
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 711, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 712, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
@@ -1324,7 +1325,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var46 string
 			templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 711, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 712, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 			if templ_7745c5c3_Err != nil {
@@ -1353,7 +1354,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var47 string
 				templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-contributors-edit-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 752, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 753, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 				if templ_7745c5c3_Err != nil {
@@ -1364,9 +1365,9 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var48 string
-				templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_suggest_contributor").String())
+				templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkSuggestContributor())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 770, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 771, Col: 60}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 				if templ_7745c5c3_Err != nil {
@@ -1379,7 +1380,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var49 string
 				templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "edit", "idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 771, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 772, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 				if templ_7745c5c3_Err != nil {
@@ -1392,7 +1393,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var50 string
 				templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-contributor-suggestions-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 773, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 774, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 				if templ_7745c5c3_Err != nil {
@@ -1410,7 +1411,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					var templ_7745c5c3_Var51 string
 					templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 783, Col: 33}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 784, Col: 33}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 					if templ_7745c5c3_Err != nil {
@@ -1433,7 +1434,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					var templ_7745c5c3_Var52 string
 					templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 783, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 784, Col: 95}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 					if templ_7745c5c3_Err != nil {
@@ -1451,7 +1452,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var53 string
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("work-contributor-suggestions-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 789, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 790, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 				if templ_7745c5c3_Err != nil {
@@ -1464,7 +1465,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var54 string
 				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("contributors[%d].person_id", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 797, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 798, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 				if templ_7745c5c3_Err != nil {
@@ -1477,7 +1478,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var55 string
 				templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(con.PersonID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 797, Col: 101}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 798, Col: 101}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 				if templ_7745c5c3_Err != nil {
@@ -1490,7 +1491,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var56 string
 				templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(con.GetName())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 805, Col: 42}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 806, Col: 42}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 				if templ_7745c5c3_Err != nil {
@@ -1508,7 +1509,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					var templ_7745c5c3_Var57 string
 					templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(role)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 813, Col: 44}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 814, Col: 44}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 					if templ_7745c5c3_Err != nil {
@@ -1526,7 +1527,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var58 string
 				templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#work-contributors-edit-%d", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 823, Col: 72}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 824, Col: 72}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 				if templ_7745c5c3_Err != nil {
@@ -1537,9 +1538,9 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var59 string
-				templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_remove_contributor").String())
+				templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkRemoveContributor())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 833, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 834, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 				if templ_7745c5c3_Err != nil {
@@ -1552,7 +1553,7 @@ func contributorsField(c views.Ctx, rec *bbl.Work) templ.Component {
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 834, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 835, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 				if templ_7745c5c3_Err != nil {
@@ -1605,7 +1606,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 			var templ_7745c5c3_Var62 string
 			templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(hit.Rec.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 861, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 862, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 			if templ_7745c5c3_Err != nil {
@@ -1621,9 +1622,9 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var63 string
-				templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_add_contributor").String())
+				templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkAddContributor())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 871, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 872, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 				if templ_7745c5c3_Err != nil {
@@ -1639,9 +1640,9 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var64 string
-				templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_edit_contributor").String())
+				templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkEditContributor())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 873, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 874, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 				if templ_7745c5c3_Err != nil {
@@ -1659,7 +1660,7 @@ func ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action 
 			var templ_7745c5c3_Var65 string
 			templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 875, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 876, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 			if templ_7745c5c3_Err != nil {
@@ -1726,7 +1727,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var67 string
 			templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 913, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 914, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 			if templ_7745c5c3_Err != nil {
@@ -1739,7 +1740,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var68 string
 			templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(f.ContentType)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 916, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 917, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 			if templ_7745c5c3_Err != nil {
@@ -1752,7 +1753,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var69 string
 			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(f.Size))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 917, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 918, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 			if templ_7745c5c3_Err != nil {
@@ -1763,9 +1764,9 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var70 string
-			templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_remove_file").String())
+			templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkRemoveFile())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 932, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 933, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 			if templ_7745c5c3_Err != nil {
@@ -1778,7 +1779,7 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var71 string
 			templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"idx": %d}`, i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 933, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 934, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 			if templ_7745c5c3_Err != nil {
@@ -1794,9 +1795,9 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var72 string
-		templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_create_file_upload_url").String())
+		templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeFileUploadURL())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 947, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 948, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 		if templ_7745c5c3_Err != nil {
@@ -1807,9 +1808,9 @@ func filesField(c views.Ctx, rec *bbl.Work) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var73 string
-		templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(c.Route("backoffice_work_add_files").String())
+		templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(urls.BackofficeWorkAddFiles())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 948, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/edit.templ`, Line: 949, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 		if templ_7745c5c3_Err != nil {

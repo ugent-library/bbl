@@ -48,10 +48,10 @@ templ Flash(f FlashArgs) {
 				if f.Title != "" {
 					<h3 class="alert-title">{ f.Title }</h3>
 				}
-				if f.Text != "" {
-					{ f.Text }
-				} else if f.HTML != "" {
+				if f.HTML != "" {
 					@templ.Raw(f.HTML)
+				} else if f.Text != "" {
+					{ f.Text }
 				}
 			</div>
 			<button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="toast">

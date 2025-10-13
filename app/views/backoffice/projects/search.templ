@@ -5,11 +5,12 @@ import (
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/pagination"
+	"github.com/ugent-library/bbl/app/urls"
 )
 
 templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Project]) {
 	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
-	@backoffice.Page(c, "Overview works") {
+	@backoffice.Page(c, "Overview projects") {
 		<div class="w-100 u-scroll-wrapper">
 			<div class="bg-white">
 				<div class="bc-navbar bc-navbar--bordered-bottom bc-navbar--white bc-navbar--auto">
@@ -25,7 +26,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Project]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="projects-search-form" class="mb-4" action={ c.SafeRoute("backoffice_projects") } method="GET">
+				<form id="projects-search-form" class="mb-4" action={ urls.BackofficeProjects() } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">

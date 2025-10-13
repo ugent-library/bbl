@@ -2,6 +2,7 @@ package works
 
 import (
 	"fmt"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/app/views/forms"
@@ -37,7 +38,7 @@ templ BatchEdit(c views.Ctx, args BatchEditArgs) {
 						</div>
 					</div>
 					<div id="batch-body" class="card-body">
-						<form action={ c.SafeRoute("backoffice_batch_update_works") } method="POST">
+						<form action={ urls.BackofficeBatchEditWorks() } method="POST">
 							<div class="mb-6">
 								<div class="row mb-6">
 									<label for="mutations" class="col-lg-3 col-xl-2 col-form-label">Operations</label>

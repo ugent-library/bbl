@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/app/ctx"
 	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workflows"
@@ -75,21 +74,21 @@ var startCmd = &cobra.Command{
 		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer signalRelease()
 
-		handler, err := app.New(&ctx.Config{
-			Env:              config.Env,
-			BaseURL:          config.BaseURL,
-			Logger:           logger,
-			Repo:             repo,
-			Index:            index,
-			Store:            store,
-			Hub:              hub,
-			Secret:           []byte(config.Secret),
-			HashSecret:       []byte(config.HashSecret),
-			AuthIssuerURL:    config.OIDC.IssuerURL,
-			AuthClientID:     config.OIDC.ClientID,
-			AuthClientSecret: config.OIDC.ClientSecret,
-			ExportWorksTask:  exportWorksTask, // TOOD how best to pass tasks to handlers?
-		})
+		handler, err := app.NewApp(
+			config.BaseURL,
+			config.Env,
+			logger,
+			[]byte(config.HashSecret),
+			[]byte(config.Secret),
+			repo,
+			store,
+			index,
+			hub,
+			config.OIDC.IssuerURL,
+			config.OIDC.ClientID,
+			config.OIDC.ClientSecret,
+			exportWorksTask, // TOOD how best to pass tasks to handlers?
+		)
 		if err != nil {
 			return err
 		}
@@ -99,7 +98,7 @@ var startCmd = &cobra.Command{
 			WriteTimeout: time.Second * 15,
 			ReadTimeout:  time.Second * 15,
 			IdleTimeout:  time.Second * 60,
-			Handler:      handler,
+			Handler:      handler.Handler(),
 		}
 
 		group, groupCtx := errgroup.WithContext(signalCtx)

@@ -2,6 +2,7 @@ package organizations
 
 import (
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/pagination"
@@ -9,7 +10,7 @@ import (
 
 templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
-	@backoffice.Page(c, "Overview works") {
+	@backoffice.Page(c, "Overview organizations") {
 		<div class="w-100 u-scroll-wrapper">
 			<div class="bg-white">
 				<div class="bc-navbar bc-navbar--bordered-bottom bc-navbar--white bc-navbar--auto">
@@ -25,7 +26,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Organization]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="organization-search-form" class="mb-4" action={ c.SafeRoute("backoffice_organizations") } method="GET">
+				<form id="organization-search-form" class="mb-4" action={ urls.BackofficeOrganizations() } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">

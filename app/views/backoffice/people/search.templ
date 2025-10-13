@@ -2,6 +2,7 @@ package people
 
 import (
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/pagination"
@@ -25,7 +26,7 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 				</div>
 			</div>
 			<div class="u-scroll-wrapper__body p-6">
-				<form id="people-search-form" class="mb-4" action={ c.SafeRoute("backoffice_people") } method="GET">
+				<form id="people-search-form" class="mb-4" action={ urls.BackofficePeople() } method="GET">
 					<div class="row">
 						<div class="col">
 							<div class="input-group flex-nowrap">

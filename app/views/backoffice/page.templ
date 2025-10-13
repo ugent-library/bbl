@@ -1,6 +1,7 @@
 package backoffice
 
 import "github.com/ugent-library/bbl/app/views"
+import "github.com/ugent-library/bbl/app/urls"
 
 templ Page(c views.Ctx, title string) {
 	<!DOCTYPE html>
@@ -28,13 +29,13 @@ templ Page(c views.Ctx, title string) {
 								<nav aria-label="breadcrumb">
 									<ol class="breadcrumb">
 										<li class="breadcrumb-item">
-											<a href={ c.SafeRoute("backoffice_home") }>
+											<a href={ templ.SafeURL(urls.BackofficeHome()) }>
 												<img class="c-logo d-none d-xl-inline-block" src={ c.AssetPath("/images/ugent/ghent-university-library-logo.svg") } alt="Ghent University Library"/>
 												<img class="c-logo d-inline-block d-xl-none" src={ c.AssetPath("/images/ugent/ghent-university-library-mark.svg") } alt="Ghent University Library"/>
 											</a>
 										</li>
 										<li class="breadcrumb-item">
-											<a href={ c.SafeRoute("backoffice_home") }>
+											<a href={ templ.SafeURL(urls.BackofficeHome()) }>
 												<i class="if if-book if--small me-3"></i>
 												<span class="breadcrumb-text">Biblio</span>
 											</a>
@@ -67,13 +68,13 @@ templ Page(c views.Ctx, title string) {
 														</div>
 													</div>
 													<hr class="dropdown-divider"/>
-													<a class="dropdown-item" href={ c.SafeRoute("backoffice_logout") }>
+													<a class="dropdown-item" href={ templ.SafeURL(urls.BackofficeLogout()) }>
 														<i class="if if-log-out"></i> Sign out
 													</a>
 												</div>
 											</div>
 										} else {
-											<a class="btn btn-link btn-sm ms-4" href={ c.SafeRoute("backoffice_login") }>
+											<a class="btn btn-link btn-sm ms-4" href={ templ.SafeURL(urls.BackofficeLogin()) }>
 												<i class="if if-arrow-right ms-0"></i> <span class="btn-text me-2">Sign in</span>
 											</a>
 										}
@@ -91,7 +92,7 @@ templ Page(c views.Ctx, title string) {
 							<nav>
 								<ul class="c-sidebar-menu">
 									<li class="c-sidebar__item">
-										<a href={ c.SafeRoute("backoffice_works") }>
+										<a href={ templ.SafeURL(urls.BackofficeWorks("", nil)) }>
 											<span class="c-sidebar__icon">
 												<i class="if if-article"></i>
 											</span>
@@ -99,7 +100,7 @@ templ Page(c views.Ctx, title string) {
 										</a>
 									</li>
 									<li class="c-sidebar__item">
-										<a href={ c.SafeRoute("backoffice_organizations") }>
+										<a href={ templ.SafeURL(urls.BackofficeOrganizations()) }>
 											<span class="c-sidebar__icon">
 												<i class="if if-article"></i>
 											</span>
@@ -107,7 +108,7 @@ templ Page(c views.Ctx, title string) {
 										</a>
 									</li>
 									<li class="c-sidebar__item">
-										<a href={ c.SafeRoute("backoffice_people") }>
+										<a href={ templ.SafeURL(urls.BackofficePeople()) }>
 											<span class="c-sidebar__icon">
 												<i class="if if-article"></i>
 											</span>
@@ -115,7 +116,7 @@ templ Page(c views.Ctx, title string) {
 										</a>
 									</li>
 									<li class="c-sidebar__item">
-										<a href={ c.SafeRoute("backoffice_projects") }>
+										<a href={ templ.SafeURL(urls.BackofficeProjects()) }>
 											<span class="c-sidebar__icon">
 												<i class="if if-article"></i>
 											</span>
@@ -133,8 +134,8 @@ templ Page(c views.Ctx, title string) {
 					{ children... }
 				</div>
 			</main>
-			<div
-				class="toast-container position-absolute top-0 end-0 p-3"
+			<div id="flashes"
+ 				class="toast-container position-absolute top-0 end-0 p-3"
 				if c.User != nil {
 					sse-swap="flash"
 					hx-swap="beforeend"
@@ -146,6 +147,7 @@ templ Page(c views.Ctx, title string) {
 				</div>
 			</div>
 			<script type="application/javascript" src={ c.AssetPath("/js/app.js") }></script>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js"></script>
 		</body>
 	</html>
 }
