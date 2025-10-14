@@ -12,7 +12,7 @@ templ Page(c views.Ctx, title string) {
 			<link rel="stylesheet" href={ c.AssetPath("/css/app.css") }/>
 			<link rel="icon" href={ c.AssetPath("/images/ugent/favicon.ico") }/>
 		</head>
-		<body>
+		<body hx-swap="none">
 			<div class="d-flex flex-column min-vh-100 c-body-large">
 				<div class="c-global-banner c-body">
 					<div class="c-global-banner__content">

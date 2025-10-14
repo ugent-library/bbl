@@ -20,6 +20,12 @@ type FlashArgs struct {
 	DismissAfter time.Duration
 }
 
+templ AddFlash(f FlashArgs) {
+	<div hx-swap-oob="beforeend:#flashes">
+		@Flash(f)
+	</div>
+}
+
 // TODO dismiss after doesn't work
 templ Flash(f FlashArgs) {
 	<div

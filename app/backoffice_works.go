@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starfederation/datastar-go/datastar"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
@@ -104,16 +103,16 @@ func (app *App) backofficeExportWorks(w http.ResponseWriter, r *http.Request, c 
 		return err
 	}
 
-	sse := datastar.NewSSE(w, r)
-
-	return sse.PatchElementTempl(views.Flash(views.FlashArgs{
+	return views.AddFlash(views.FlashArgs{
 		Type:         views.FlashInfo,
 		Title:        "Export started",
 		Text:         "You will be notified when your export is ready.",
 		DismissAfter: 5 * time.Second,
-	}), datastar.WithModeAppend(),
-		datastar.WithSelectorID("flashes"),
-	)
+	}).Render(r.Context(), w)
+}
+
+func (app *App) backofficeAddWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	return workviews.Add(c.viewCtx()).Render(r.Context(), w)
 }
 
 func (app *App) backofficeNewWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {

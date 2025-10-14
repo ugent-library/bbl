@@ -1,0 +1,12 @@
+package works
+
+import (
+	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/app/views/backoffice"
+)
+
+templ Add(c views.Ctx) {
+	@backoffice.Page(c, "Add work") {
+		<h1>Add work</h1>
+	}
+}

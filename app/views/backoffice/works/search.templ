@@ -140,7 +140,9 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 												<button
 													class="dropdown-item"
 													type="button"
-													data-on-click={ "@post('" + urls.BackofficeExportWorks(format) + "', {contentType: 'form', selector: '#work-search-form'})" }
+													hx-post={ urls.BackofficeExportWorks(format) }
+													hx-include="#work-search-form"
+													hx-swap="none"
 												>
 													<span>Export search results as { format }</span>
 												</button>
