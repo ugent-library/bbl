@@ -7,11 +7,13 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/opensearchindex"
+	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
 )
 
@@ -21,6 +23,19 @@ func newLogger(w io.Writer) *slog.Logger {
 	} else {
 		return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
+}
+
+func newRepo(ctx context.Context) (*pgxrepo.Repo, func(), error) {
+	conn, err := pgxpool.New(ctx, config.PgConn)
+	if err != nil {
+		return nil, nil, err
+	}
+	repo, err := pgxrepo.New(ctx, conn)
+	if err != nil {
+		conn.Close()
+		return nil, nil, err
+	}
+	return repo, conn.Close, nil
 }
 
 func newIndex(ctx context.Context) (bbl.Index, error) {

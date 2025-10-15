@@ -1,9 +1,6 @@
 package views
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 const (
 	FlashSuccess = "success"
@@ -34,7 +31,7 @@ templ Flash(f FlashArgs) {
 		aria-live="assertive"
 		aria-atomic="true"
 		if f.DismissAfter != 0 {
-			data-bs-delay={ fmt.Sprint(f.DismissAfter.Milliseconds()) }
+			data-bs-delay={ f.DismissAfter.Milliseconds() }
 		} else {
 			data-bs-autohide="false"
 		}

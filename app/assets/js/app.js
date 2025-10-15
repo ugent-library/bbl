@@ -1,6 +1,6 @@
 import htmx from 'htmx.org/dist/htmx.esm.js';
-import 'htmx-ext-sse'; 
 import 'bootstrap';
+import initCentrifuge from './centrifuge.js';
 import initClipboard from './clipboard.js';
 import initTags from './tags.js';
 import initUppy from './uppy.js';
@@ -10,3 +10,5 @@ htmx.config.defaultFocusScroll = true;
 htmx.onLoad(initClipboard);
 htmx.onLoad(initTags);
 htmx.onLoad(initUppy);
+
+initCentrifuge(document.body);

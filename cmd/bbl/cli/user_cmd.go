@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workflows"
 )
 
@@ -23,16 +21,11 @@ var userCmd = &cobra.Command{
 	Short: "Get user",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		rec, err := repo.GetUser(cmd.Context(), args[0])
 		if err != nil {
@@ -48,16 +41,11 @@ var usersCmd = &cobra.Command{
 	Short: "Users",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		enc := json.NewEncoder(cmd.OutOrStdout())
 
@@ -82,16 +70,11 @@ var importUserSourceCmd = &cobra.Command{
 			return fmt.Errorf("unknown source %s", source)
 		}
 
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		hatchetClient, err := hatchet.NewClient()
 		if err != nil {

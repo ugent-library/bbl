@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workflows"
 )
 
@@ -26,16 +24,11 @@ var organizationCmd = &cobra.Command{
 	Short: "Get organization",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		rec, err := repo.GetOrganization(cmd.Context(), args[0])
 		if err != nil {
@@ -51,16 +44,11 @@ var organizationsCmd = &cobra.Command{
 	Short: "Organizations",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		enc := json.NewEncoder(cmd.OutOrStdout())
 
@@ -78,16 +66,11 @@ var reindexOrganizationsCmd = &cobra.Command{
 	Use:   "reindex",
 	Short: "Start reindex organizations job",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		index, err := newIndex(cmd.Context())
 		if err != nil {

@@ -1,7 +1,6 @@
 package works
 
 import (
-	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
@@ -100,7 +99,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 													checked?={ hits.Opts.QueryFilter.HasTerm(f.Name, v.Val) }
 													form="work-search-form"
 												/>
-												<label class="form-check-label">{ v.Val } ({ fmt.Sprint(v.Count) })</label>
+												<label class="form-check-label">{ v.Val } ({ v.Count })</label>
 											</div>
 										}
 									</div>

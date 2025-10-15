@@ -5,22 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/centrifugal/gocent/v3"
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/catbird"
-	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workflows"
 	"golang.org/x/sync/errgroup"
-
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 )
 
 func init() {
@@ -34,16 +32,11 @@ var startCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := newLogger(cmd.OutOrStdout())
 
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		store, err := newStore()
 		if err != nil {
@@ -55,7 +48,10 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		hub := catbird.NewHub(conn, catbird.HubOpts{})
+		centrifugeClient := gocent.New(gocent.Config{
+			Addr: config.Centrifuge.API.URL,
+			Key:  config.Centrifuge.API.Key,
+		})
 
 		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
@@ -63,7 +59,7 @@ var startCmd = &cobra.Command{
 		}
 
 		addWorkRepresentationsTask := workflows.AddWorkRepresentations(hatchetClient, repo, index)
-		exportWorksTask := workflows.ExportWorks(hatchetClient, store, index, hub)
+		exportWorksTask := workflows.ExportWorks(hatchetClient, store, index, centrifugeClient)
 		importUserSourceTask := workflows.ImportUserSource(hatchetClient, repo)
 		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
 		importWorkTask := workflows.ImportWork(hatchetClient, repo)
@@ -71,8 +67,7 @@ var startCmd = &cobra.Command{
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
 		tongaGCTask := workflows.TongaGC(hatchetClient, repo.Tonga)
 
-		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-		defer signalRelease()
+		log.Printf("centrifuge hmac secret: %s", config.Centrifuge.HMACSecret)
 
 		handler, err := app.NewApp(
 			config.BaseURL,
@@ -83,10 +78,11 @@ var startCmd = &cobra.Command{
 			repo,
 			store,
 			index,
-			hub,
 			config.OIDC.IssuerURL,
 			config.OIDC.ClientID,
 			config.OIDC.ClientSecret,
+			config.Centrifuge.Transport.URL,
+			[]byte(config.Centrifuge.HMACSecret),
 			exportWorksTask, // TOOD how best to pass tasks to handlers?
 		)
 		if err != nil {
@@ -101,12 +97,10 @@ var startCmd = &cobra.Command{
 			Handler:      handler.Handler(),
 		}
 
-		group, groupCtx := errgroup.WithContext(signalCtx)
+		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+		defer signalRelease()
 
-		group.Go(func() error {
-			logger.Info("started message hub")
-			return hub.Start(groupCtx)
-		})
+		group, groupCtx := errgroup.WithContext(signalCtx)
 
 		group.Go(func() error {
 			logger.Info("server listening", "host", config.Host, "port", config.Port)
@@ -124,9 +118,6 @@ var startCmd = &cobra.Command{
 
 			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 5*time.Second)
 			defer timeoutRelease()
-
-			hub.Shutdown() // TODO not graceful
-			logger.Info("stopped message hub")
 
 			err := server.Shutdown(timeoutCtx)
 			if err == nil {

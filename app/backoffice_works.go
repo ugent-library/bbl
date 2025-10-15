@@ -70,7 +70,7 @@ func (app *App) backofficeWorks(w http.ResponseWriter, r *http.Request, c *appCt
 }
 
 func (app *App) backofficeExportWorks(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	format := r.FormValue("format")
+	format := r.PathValue("format")
 
 	scope := r.FormValue("scope")
 	if scope == "" {

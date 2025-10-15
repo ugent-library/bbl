@@ -9,11 +9,12 @@ import (
 )
 
 type Ctx struct {
-	URL       *url.URL
-	AssetPath func(string) string
-	SSEPath   func() string
-	Loc       *gotext.Locale
-	User      *bbl.User
+	URL                     *url.URL
+	AssetPath               func(string) string
+	Loc                     *gotext.Locale
+	User                    *bbl.User
+	CentrifugeURL           string
+	GenerateCentrifugeToken func() (string, error)
 }
 
 func (c Ctx) FormatTime(t time.Time) string {

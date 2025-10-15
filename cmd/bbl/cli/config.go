@@ -1,5 +1,6 @@
 package cli
 
+// TODO validation
 type Config struct {
 	Env     string `mapstructure:"env"`
 	Host    string `mapstructure:"host"`
@@ -18,6 +19,16 @@ type Config struct {
 		Username string   `mapstructure:"username"`
 		Password string   `mapstructure:"password"`
 	} `mapstructure:"opensearch"`
+	Centrifuge struct {
+		API struct {
+			URL string `mapstructure:"url"`
+			Key string `mapstructure:"key"`
+		} `mapstructure:"api"`
+		Transport struct {
+			URL string `mapstructure:"url"`
+		} `mapstructure:"transport"`
+		HMACSecret string `mapstructure:"hmac_secret"`
+	} `mapstructure:"centrifuge"`
 	OIDC struct {
 		IssuerURL    string `mapstructure:"issuer_url"`
 		ClientID     string `mapstructure:"client_id"`

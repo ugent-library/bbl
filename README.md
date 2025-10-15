@@ -27,7 +27,6 @@
 
 * bind
 * vo
-* catbird
 * tonga
 * orcid
 * oaipmh

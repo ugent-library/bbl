@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/workflows"
 	"github.com/ugent-library/vo"
 )
@@ -39,16 +37,11 @@ var workCmd = &cobra.Command{
 	Short: "Get work",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		rec, err := repo.GetWork(cmd.Context(), args[0])
 		if err != nil {
@@ -76,16 +69,11 @@ var worksCmd = &cobra.Command{
 	Short: "Works",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		e, err := bbl.NewWorkExporter(cmd.OutOrStdout(), worksFormat)
 		if err != nil {
@@ -141,16 +129,11 @@ var importWorkCmd = &cobra.Command{
 		source := args[0]
 		id := args[1]
 
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
@@ -184,16 +167,11 @@ var importWorkSourceCmd = &cobra.Command{
 			return fmt.Errorf("unknown source %s", source)
 		}
 
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		hatchetClient, err := hatchet.NewClient()
 		if err != nil {
@@ -221,16 +199,11 @@ var reindexWorksCmd = &cobra.Command{
 	Short: "Start reindex works job",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := pgxpool.New(cmd.Context(), config.PgConn)
+		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-
-		repo, err := pgxrepo.New(cmd.Context(), conn)
-		if err != nil {
-			return err
-		}
+		defer close()
 
 		index, err := newIndex(cmd.Context())
 		if err != nil {

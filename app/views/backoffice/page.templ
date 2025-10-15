@@ -16,9 +16,11 @@ templ Page(c views.Ctx, title string) {
 		</head>
 		<body
 			class="u-maximize-height overflow-hidden u-scroll-wrapper"
+			hx-swap="none"
 			if c.User != nil {
-				hx-ext="sse"
-				sse-connect={ c.SSEPath() }
+				data-centrifuge
+				data-centrifuge-url={ c.CentrifugeURL }
+				data-centrifuge-token={ c.GenerateCentrifugeToken() }
 			}
 		>
 			<header>
@@ -134,13 +136,7 @@ templ Page(c views.Ctx, title string) {
 					{ children... }
 				</div>
 			</main>
-			<div id="flashes"
- 				class="toast-container position-absolute top-0 end-0 p-3"
-				if c.User != nil {
-					sse-swap="flash"
-					hx-swap="beforeend"
-				}
-			></div>
+			<div id="flashes" class="toast-container position-absolute top-0 end-0 p-3"></div>
 			<div id="modals" class="modal modal-blur fade" style="display: none" aria-hidden="false" tabindex="-1">
 				<div class="modal-dialog modal-lg modal-dialog-centered" role="document">
 					<div class="modal-content"></div>

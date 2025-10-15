@@ -167,6 +167,25 @@ services:
     volumes:
       - hatchet-data:/config
 
+  centrifugo:
+    container_name: centrifugo
+    image: centrifugo/centrifugo:v6
+    command: centrifugo
+    ports:
+      - 3357:8000
+    environment:
+      CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: bbe7d157-a253-4094-9759-06a8236543f9
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: '*'
+      CENTRIFUGO_ADMIN_PASSWORD: d0683813-0916-4c49-979f-0e08a686b727
+      CENTRIFUGO_ADMIN_SECRET: 4e9eafcf-0120-4ddd-b668-8dc40072c78e
+      CENTRIFUGO_ADMIN_ENABLED: 'true'
+      CENTRIFUGO_HTTP_API_KEY: d7627bb6-2292-4911-82e1-615c0ed3eebb
+      CENTRIFUGO_CHANNEL_WITHOUT_NAMESPACE_ALLOW_SUBSCRIBE_FOR_CLIENT: 'true' # todo remove
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+
   citeproc:
     image: ugentlib/citeproc-server:latest
     ports:

@@ -27,10 +27,6 @@ func BackofficeLogout() string {
 	return "/backoffice/logout"
 }
 
-func BackofficeSSE(token string) string {
-	return "/backoffice/sse?token=" + url.QueryEscape(token)
-}
-
 func BackofficeOrganizations() string {
 	return "/backoffice/organizations"
 }

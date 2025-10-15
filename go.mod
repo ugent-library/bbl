@@ -9,13 +9,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.4
+	github.com/centrifugal/gocent/v3 v3.4.0
 	github.com/charmbracelet/fang v0.4.3
 	github.com/go-ldap/ldap/v3 v3.4.12
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hatchet-dev/hatchet v0.73.34
 	github.com/huandu/go-sqlbuilder v1.37.0
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/leonelquinteros/gotext v1.7.2
 	github.com/lmittmann/tint v1.1.2
 	github.com/opensearch-project/opensearch-go/v4 v4.5.0
@@ -23,7 +24,6 @@ require (
 	github.com/samber/slog-http v1.8.2
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
-	github.com/starfederation/datastar-go v1.0.2
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/pretty v1.2.1
 	github.com/tidwall/sjson v1.2.5
@@ -42,7 +42,6 @@ require (
 require (
 	cel.dev/expr v0.24.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/CAFxX/httpcompression v0.0.9 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
@@ -100,7 +99,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo/v4 v4.13.4 // indirect

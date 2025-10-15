@@ -9,7 +9,7 @@ templ Pagination(c Ctx, pager *pagination.Pager, formID string) {
 	<ul class="pagination">
 		if pager.HasPrevPage {
 			<li class="page-item">
-				<button class="page-link" type="submit" name="from" value={ fmt.Sprint(pager.PrevPage.Offset) } form={ formID } aria-label="Previous">
+				<button class="page-link" type="submit" name="from" value={ pager.PrevPage.Offset } form={ formID } aria-label="Previous">
 					<i class="if if-chevron-left" aria-hidden="true"></i>
 				</button>
 			</li>
@@ -22,14 +22,14 @@ templ Pagination(c Ctx, pager *pagination.Pager, formID string) {
 		}
 		for _, p := range pager.Pages {
 			<li class={ "page-item", templ.KV("active", p.Current) }>
-				<button class="page-link" name="from" type="submit" value={ fmt.Sprint(p.Offset) } form={ formID }>
-					{ fmt.Sprint(p.Number) }
+				<button class="page-link" name="from" type="submit" value={ p.Offset } form={ formID }>
+					{ p.Number }
 				</button>
 			</li>
 		}
 		if pager.HasNextPage {
 			<li class="page-item">
-				<button class="page-link" name="from" type="submit" value={ fmt.Sprint(pager.NextPage.Offset) } form={ formID } aria-label="Next">
+				<button class="page-link" name="from" type="submit" value={ pager.NextPage.Offset } form={ formID } aria-label="Next">
 					<i class="if if-chevron-right" aria-hidden="true"></i>
 				</button>
 			</li>

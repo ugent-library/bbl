@@ -6,20 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"slices"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/securecookie"
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/leonelquinteros/gotext"
 	sloghttp "github.com/samber/slog-http"
-
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
-	"github.com/ugent-library/bbl/catbird"
 	"github.com/ugent-library/bbl/i18n"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
@@ -123,40 +123,41 @@ func getAppCtx(r *http.Request) (*appCtx, error) {
 }
 
 type appCtx struct {
-	insecure bool
-	assets   map[string]string
-	crypt    *crypt.Crypt
-	cookies  *securecookie.SecureCookie
-	User     *bbl.User
-	Hub      *catbird.Hub
-	topics   []string
-	Loc      *gotext.Locale
+	insecure                bool
+	assets                  map[string]string
+	crypt                   *crypt.Crypt
+	cookies                 *securecookie.SecureCookie
+	User                    *bbl.User
+	channels                []string
+	loc                     *gotext.Locale
+	centrifugeURL           string
+	generateCentrifugeToken func(string, []string, int64) (string, error)
+}
+
+func (c *appCtx) generateUserCentrifugeToken() (string, error) {
+	return c.generateCentrifugeToken(c.User.ID, c.channels, time.Now().Add(24*time.Hour).Unix())
 }
 
 func (c *appCtx) viewCtx() views.Ctx {
 	return views.Ctx{
-		AssetPath: c.AssetPath,
-		SSEPath:   c.SSEPath,
-		Loc:       c.Loc,
-		User:      c.User,
+		AssetPath:               c.AssetPath,
+		Loc:                     c.loc,
+		User:                    c.User,
+		CentrifugeURL:           c.centrifugeURL,
+		GenerateCentrifugeToken: c.generateUserCentrifugeToken,
 	}
 }
 
+// TODO handl ehttp status errors properly
 func (c *appCtx) HandleError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Println("error:", err) // TODO proper logging
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
-func (c *appCtx) AddTopic(topic string) {
-	if !slices.Contains(c.topics, topic) {
-		c.topics = append(c.topics, topic)
+func (c *appCtx) AddChannel(ch string) {
+	if !slices.Contains(c.channels, ch) {
+		c.channels = append(c.channels, ch)
 	}
-}
-
-func (c *appCtx) SSEPath() string {
-	token, err := c.crypt.EncryptValue(c.topics)
-	if err != nil {
-		panic(err)
-	}
-	return urls.BackofficeSSE(token)
 }
 
 func (c *appCtx) AssetPath(asset string) string {
@@ -229,17 +230,18 @@ func (c *appCtx) ClearCookie(w http.ResponseWriter, name string) {
 }
 
 type App struct {
-	env             string
-	logger          *slog.Logger
-	repo            *pgxrepo.Repo
-	store           *s3store.Store
-	index           bbl.Index
-	crypt           *crypt.Crypt
-	assets          map[string]string
-	cookies         *securecookie.SecureCookie
-	hub             *catbird.Hub
-	authProvider    AuthProvider
-	exportWorksTask *hatchet.StandaloneTask
+	env                     string
+	logger                  *slog.Logger
+	repo                    *pgxrepo.Repo
+	store                   *s3store.Store
+	index                   bbl.Index
+	crypt                   *crypt.Crypt
+	assets                  map[string]string
+	cookies                 *securecookie.SecureCookie
+	authProvider            AuthProvider
+	centrifugeURL           string
+	generateCentrifugeToken func(string, []string, int64) (string, error)
+	exportWorksTask         *hatchet.StandaloneTask
 }
 
 func NewApp(
@@ -250,10 +252,11 @@ func NewApp(
 	repo *pgxrepo.Repo,
 	store *s3store.Store,
 	index bbl.Index,
-	hub *catbird.Hub,
 	authIssuerURL string,
 	authClientID string,
 	authClientSecret string,
+	centrifugeURL string,
+	centrifugeHMACSecret []byte,
 	exportWorksTask *hatchet.StandaloneTask,
 ) (*App, error) {
 	assets, err := parseManifest()
@@ -279,16 +282,32 @@ func NewApp(
 	}
 
 	app := &App{
-		env:             env,
-		logger:          logger,
-		repo:            repo,
-		store:           store,
-		index:           index,
-		crypt:           crypt.New(secret),
-		assets:          assets,
-		cookies:         cookies,
-		hub:             hub,
-		authProvider:    authProvider,
+		env:           env,
+		logger:        logger,
+		repo:          repo,
+		store:         store,
+		index:         index,
+		crypt:         crypt.New(secret),
+		assets:        assets,
+		cookies:       cookies,
+		authProvider:  authProvider,
+		centrifugeURL: centrifugeURL,
+		generateCentrifugeToken: func(userID string, channels []string, exp int64) (string, error) {
+			claims := jwt.MapClaims{
+				"sub":      userID,
+				"channels": channels,
+			}
+			if exp > 0 {
+				claims["exp"] = exp
+			}
+			log.Printf("generating centrifuge token for user %s, channels: %v, exp: %d, secret: %s", userID, channels, exp, centrifugeHMACSecret)
+
+			token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(centrifugeHMACSecret)
+			if err != nil {
+				return "", err
+			}
+			return token, nil
+		},
 		exportWorksTask: exportWorksTask,
 	}
 
@@ -355,8 +374,6 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
 
-	mux.Handle("GET /backoffice/sse", userChain.then(wrap(getAppCtx, app.backofficeSSE)))
-
 	mux.Handle("GET /backoffice", userChain.then(wrap(getAppCtx, app.backofficeHome)))
 
 	return baseChain.then(mux)
@@ -364,12 +381,13 @@ func (app *App) Handler() http.Handler {
 
 func (app *App) newAppCtx(r *http.Request) (*appCtx, error) {
 	c := &appCtx{
-		insecure: app.env == "development",
-		assets:   app.assets,
-		crypt:    app.crypt,
-		cookies:  app.cookies,
-		Loc:      i18n.Locales["en"],
-		Hub:      app.hub,
+		insecure:                app.env == "development",
+		assets:                  app.assets,
+		crypt:                   app.crypt,
+		cookies:                 app.cookies,
+		loc:                     i18n.Locales["en"],
+		centrifugeURL:           app.centrifugeURL,
+		generateCentrifugeToken: app.generateCentrifugeToken,
 	}
 
 	// get user from session if present
@@ -384,8 +402,8 @@ func (app *App) newAppCtx(r *http.Request) (*appCtx, error) {
 			return nil, err
 		}
 		c.User = user
-		c.AddTopic("users")
-		c.AddTopic("users." + user.ID)
+		// c.AddChannel("users")
+		c.AddChannel("users#" + user.ID)
 	}
 
 	return c, nil

@@ -127,7 +127,7 @@ templ TextArea(args TextAreaArgs) {
 			form={ args.Form }
 		}
 		readonly?={ args.Readonly }
-		rows={ fmt.Sprint(args.Rows) }
+		rows={ args.Rows }
 		autofocus?={ args.AutoFocus }
 		{ fieldAria(args.FieldArgs)... }
 	>{ args.Value }</textarea>
