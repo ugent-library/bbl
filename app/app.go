@@ -62,10 +62,6 @@ func (c chain) with(mw ...func(http.Handler) http.Handler) chain {
 	return append(c, mw...)
 }
 
-// func (c chain) thenFunc(h http.HandlerFunc) http.Handler {
-// 	return c.then(h)
-// }
-
 func (c chain) then(h http.Handler) http.Handler {
 	for _, mw := range slices.Backward(c) {
 		h = mw(h)
@@ -344,8 +340,10 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("GET /backoffice/projects", userChain.then(wrap(getAppCtx, app.backofficeProjects)))
 
+	mux.Handle("GET /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeWorks)))
+	mux.Handle("POST /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeCreateWork)))
 	mux.Handle("GET /backoffice/works/add", userChain.then(wrap(getAppCtx, app.backofficeAddWork)))
-	mux.Handle("GET /backoffice/works/new", userChain.then(wrap(getAppCtx, app.backofficeNewWork)))
+	mux.Handle("GET /backoffice/works/new/{kind}", userChain.then(wrap(getAppCtx, app.backofficeNewWork)))
 	mux.Handle("POST /backoffice/works/export/{format}", userChain.then(wrap(getAppCtx, app.backofficeExportWorks)))
 	mux.Handle("GET /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchEditWorks)))
 	mux.Handle("POST /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchUpdateWorks)))
@@ -366,11 +364,10 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/works/_add_lay_summary", userChain.then(wrap(getAppCtx, app.backofficeWorkAddLaySummary)))
 	mux.Handle("GET /backoffice/works/_edit_lay_summary", userChain.then(wrap(getAppCtx, app.backofficeWorkEditLaySummary)))
 	mux.Handle("POST /backoffice/works/_remove_abstract", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveAbstract)))
-	mux.Handle("GET /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeWorks)))
-	mux.Handle("POST /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeCreateWork)))
-	mux.Handle("GET /backoffice/works/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))
-	mux.Handle("GET /backoffice/works/{id}/edit", userChain.then(wrap(getAppCtx, app.backofficeEditWork)))
-	mux.Handle("POST /backoffice/works/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
+
+	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
+	mux.Handle("GET /backoffice/work/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))
+	mux.Handle("GET /backoffice/work/{id}/edit", userChain.then(wrap(getAppCtx, app.backofficeEditWork)))
 
 	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
 

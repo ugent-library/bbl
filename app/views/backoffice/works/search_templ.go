@@ -56,15 +56,15 @@ func Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) templ.Compo
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 templ.SafeURL
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(urls.BackofficeNewWork())
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(urls.BackofficeAddWorks())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/search.templ`, Line: 28, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/backoffice/works/search.templ`, Line: 28, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><i class=\"if if-add\"></i><div class=\"btn-text\">Add work</div></a></div></div></div></div><div class=\"bc-navbar bc-navbar--bordered-bottom bc-navbar--white\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><ul class=\"nav nav-tabs\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><i class=\"if if-add\"></i><div class=\"btn-text\">Add works</div></a></div></div></div></div><div class=\"bc-navbar bc-navbar--bordered-bottom bc-navbar--white\"><div class=\"bc-toolbar\"><div class=\"bc-toolbar-left\"><ul class=\"nav nav-tabs\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

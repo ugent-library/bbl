@@ -77,8 +77,12 @@ func BackofficeWorkChanges(id string) string {
 	return "/backoffice/works/" + url.PathEscape(id) + "/changes"
 }
 
-func BackofficeNewWork() string {
-	return "/backoffice/works/new"
+func BackofficeAddWorks() string {
+	return "/backoffice/works/add"
+}
+
+func BackofficeNewWork(kind string) string {
+	return "/backoffice/works/new/" + url.PathEscape(kind)
 }
 
 func BackofficeEditWork(id string) string {
