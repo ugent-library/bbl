@@ -1,12 +1,36 @@
 package works
 
 import (
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 )
 
 templ Add(c views.Ctx) {
-	@backoffice.Page(c, "Add work") {
-		<h1>Add work</h1>
+	@backoffice.Page(c, "Add works") {
+		<div class="container-sm">
+			<h1>Add works</h1>
+			for _, kind := range bbl.WorkKinds {
+				<div class="card mb-3">
+					<div class="card-body py-5">
+						<div class="bc-toolbar h-auto">
+							<div class="bc-toolbar-left">
+								<p>{ kind }</p>
+							</div>
+							<div class="bc-toolbar-right">
+								<form method="POST" action={ urls.BackofficeCreateWork() }>
+									<input type="hidden" name="kind" value={ kind }/>
+									<button class="btn btn-primary" type="submit">
+										<i class="if if-add"></i>
+										<span class="btn-text">Add</span>
+									</button>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
 	}
 }

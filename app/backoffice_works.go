@@ -17,7 +17,6 @@ import (
 	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/httperr"
 	"github.com/ugent-library/bbl/workflows"
-	"github.com/ugent-library/htmx"
 )
 
 func (app *App) bindSearchWorksOpts(r *http.Request, c *appCtx, scope string) (*bbl.SearchOpts, error) {
@@ -115,58 +114,30 @@ func (app *App) backofficeAddWork(w http.ResponseWriter, r *http.Request, c *app
 	return workviews.Add(c.viewCtx()).Render(r.Context(), w)
 }
 
-func (app *App) backofficeNewWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+func (app *App) backofficeCreateWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	kind := r.FormValue("kind")
+
 	rec := &bbl.Work{
+		RecHeader: bbl.RecHeader{
+			ID: bbl.NewID(),
+		},
 		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?
 		Status:      bbl.DraftStatus,
-		Kind:        bbl.WorkKinds[0],
+		Kind:        kind,
 	}
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return err
 	}
 
-	// TODO this is repeated in refreshForm
-	if rec.Profile.Identifiers != nil {
-		rec.Identifiers = []bbl.Code{{}}
-	}
-	if rec.Profile.Titles != nil {
-		rec.Titles = []bbl.Text{{}}
-	}
-
-	state, err := c.crypt.EncryptValue(rec)
-	if err != nil {
-		return err
-	}
-
-	return workviews.Edit(c.viewCtx(), rec, state).Render(r.Context(), w)
-}
-
-func (app *App) backofficeCreateWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	work, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	vacuumWork(work)
-
-	work.ID = bbl.NewID()
-
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.CreateWork{Work: work})
+	rev.Add(&bbl.CreateWork{Work: rec})
 	if err := app.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
 
-	// TODO this is clunky
-	rec, err := app.repo.GetWork(r.Context(), work.ID)
-	if err != nil {
-		return err
-	}
-	work = rec
+	http.Redirect(w, r, urls.BackofficeEditWork(rec.ID), http.StatusSeeOther)
 
-	htmx.PushURL(w, urls.BackofficeEditWork(work.ID))
-
-	return app.refreshWorkForm(w, r, c, work)
+	return nil
 }
 
 func (app *App) backofficeEditWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
@@ -223,40 +194,6 @@ func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request,
 
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return err
-	}
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkAddIdentifier(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-	rec.Identifiers = slices.Insert(slices.Grow(rec.Identifiers, 1), idx, bbl.Code{})
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkRemoveIdentifier(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.Identifiers = slices.Delete(rec.Identifiers, idx, idx+1)
-	if len(rec.Identifiers) == 0 {
-		rec.Identifiers = []bbl.Code{{}}
 	}
 
 	return app.refreshWorkForm(w, r, c, rec)
@@ -397,41 +334,6 @@ func (app *App) backofficeWorkRemoveFile(w http.ResponseWriter, r *http.Request,
 	}
 
 	rec.Files = slices.Delete(rec.Files, idx, idx+1)
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkAddTitle(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.Titles = slices.Insert(slices.Grow(rec.Titles, 1), idx, bbl.Text{})
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkRemoveTitle(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.Titles = slices.Delete(rec.Titles, idx, idx+1)
-	if len(rec.Titles) == 0 {
-		rec.Titles = []bbl.Text{{}}
-	}
 
 	return app.refreshWorkForm(w, r, c, rec)
 }

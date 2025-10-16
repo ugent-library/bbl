@@ -9,52 +9,55 @@ type CodeRepeatArgs struct {
 	FieldArgs
 	Attrs   []bbl.Code
 	Schemes []string
-	AddURL    string
-	RemoveURL string
 }
 
 templ CodeRepeat(args CodeRepeatArgs) {
 	@Field(args.FieldArgs, fmt.Sprintf("%s[0].val", args.Name)) {
-		for i, attr := range args.Attrs {
-			<div class="form-group">
-				<div class="d-flex">
-					<div class="input-group">
-						<select
-							class="form-control form-select"
-							name={ fmt.Sprintf("%s[%d].scheme", args.Name, i) }
+		<div
+			data-repeatable
+			data-repeatable-name={ args.Name }
+			data-repeatable-id={ args.ID() }
+		>
+			for i, attr := range append(args.Attrs, bbl.Code{}) {
+				<div data-repeatable-field class="form-group">
+					<div class="d-flex">
+						<div class="input-group">
+							<select
+								class="form-control form-select"
+								name={ fmt.Sprintf("%s[%d].scheme", args.Name, i) }
+							>
+								for _, scheme := range args.Schemes {
+									<option value={ scheme } selected?={ scheme == attr.Scheme }>{ scheme }</option>
+								}
+							</select>
+							<input
+								data-repeatable-clear
+								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
+								name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
+								type="text"
+								value={ attr.Val }
+								{ fieldAria(args.FieldArgs)... }
+							/>
+						</div>
+						<button
+							data-repeatable-remove
+							class="btn btn-tertiary btn-icon-only ms-3"
+							type="button"
 						>
-							for _, scheme := range args.Schemes {
-								<option value={ scheme } selected?={ scheme == attr.Scheme }>{ scheme }</option>
-							}
-						</select>
-						<input
-							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ fmt.Sprintf("%s[%d].val", args.Name, i) }
-							type="text"
-							value={ attr.Val }
-							{ fieldAria(args.FieldArgs)... }
-						/>
+							<i class="if if-delete"></i>
+							<span class="visually-hidden">Delete</span>
+						</button>
+						<button
+							data-repeatable-add
+							class="btn btn-tertiary btn-icon-only ms-3"
+							type="button"
+						>
+							<i class="if if-add"></i>
+							<span class="visually-hidden">Add</span>
+						</button>
 					</div>
-					<button
-						class="btn btn-tertiary btn-icon-only ms-3"
-						type="button"
-						hx-post={ args.RemoveURL }
-						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
-					>
-						<i class="if if-delete"></i>
-						<span class="visually-hidden">Delete</span>
-					</button>
-					<button
-						class="btn btn-tertiary btn-icon-only ms-3"
-						type="button"
-						hx-post={ args.AddURL }
-						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i+1) }
-					>
-						<i class="if if-add"></i>
-						<span class="visually-hidden">Add</span>
-					</button>
 				</div>
-			</div>
-		}
+			}
+		</div>
 	}
 }

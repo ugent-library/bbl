@@ -180,7 +180,6 @@ services:
       CENTRIFUGO_ADMIN_SECRET: 4e9eafcf-0120-4ddd-b668-8dc40072c78e
       CENTRIFUGO_ADMIN_ENABLED: 'true'
       CENTRIFUGO_HTTP_API_KEY: d7627bb6-2292-4911-82e1-615c0ed3eebb
-      CENTRIFUGO_CHANNEL_WITHOUT_NAMESPACE_ALLOW_SUBSCRIBE_FOR_CLIENT: 'true' # todo remove
     ulimits:
       nofile:
         soft: 65535

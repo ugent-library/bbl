@@ -1,61 +1,61 @@
 package forms
 
-import (
-	"fmt"
-	"github.com/ugent-library/bbl"
-)
+import "github.com/ugent-library/bbl"
 
 type TextRepeatArgs struct {
 	FieldArgs
-	Attrs     []bbl.Text
-	AddURL    string
-	RemoveURL string
+	Attrs []bbl.Text
 }
 
 templ TextRepeat(args TextRepeatArgs) {
 	@Field(args.FieldArgs, args.IDFor(0, "val")) {
-		for i, attr := range args.Attrs {
-			<div class="form-group">
-				<div class="d-flex">
-					<div class="input-group">
-						<input
-							class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
-							name={ args.NameFor(i, "val") }
-							id={ args.IDFor(i, "val") }
-							type="text"
-							value={ attr.Val }
-							{ fieldAria(args.FieldArgs)... }
-						/>
-						<select
-							class="form-control form-select"
-							name={ args.NameFor(i, "lang") }
-							id={ args.IDFor(i, "lang") }
+		<div
+			data-repeatable
+			data-repeatable-name={ args.Name }
+			data-repeatable-id={ args.ID() }
+		>
+			for i, attr := range append(args.Attrs, bbl.Text{}) {
+				<div data-repeatable-field class="form-group">
+					<div class="d-flex">
+						<div class="input-group">
+							<input
+								data-repeatable-clear
+								class={ "form-control", "w-75", templ.KV("is-invalid", args.Error != "") }
+								name={ args.NameFor(i, "val") }
+								id={ args.IDFor(i, "val") }
+								type="text"
+								value={ attr.Val }
+								{ fieldAria(args.FieldArgs)... }
+							/>
+							<select
+								class="form-control form-select"
+								name={ args.NameFor(i, "lang") }
+								id={ args.IDFor(i, "lang") }
+							>
+								for _, opt := range LanguageOptions {
+									<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
+								}
+							</select>
+						</div>
+						<button
+							data-repeatable-remove
+							class="btn btn-tertiary btn-icon-only ms-3"
+							type="button"
 						>
-							for _, opt := range LanguageOptions {
-								<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
-							}
-						</select>
+							<i class="if if-delete"></i>
+							<span class="visually-hidden">Remove</span>
+						</button>
+						<button
+							data-repeatable-add
+							class="btn btn-tertiary btn-icon-only ms-3"
+							type="button"
+						>
+							<i class="if if-add"></i>
+							<span class="visually-hidden">Add</span>
+						</button>
 					</div>
-					<button
-						class="btn btn-tertiary btn-icon-only ms-3"
-						type="button"
-						hx-post={ args.RemoveURL }
-						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
-					>
-						<i class="if if-delete"></i>
-						<span class="visually-hidden">Remove</span>
-					</button>
-					<button
-						class="btn btn-tertiary btn-icon-only ms-3"
-						type="button"
-						hx-post={ args.AddURL }
-						hx-vals={ fmt.Sprintf(`{"idx": %d}`, i+1) }
-					>
-						<i class="if if-add"></i>
-						<span class="visually-hidden">Add</span>
-					</button>
 				</div>
-			</div>
-		}
+			}
+		</div>
 	}
 }

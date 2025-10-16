@@ -28,7 +28,6 @@ require (
 	github.com/tidwall/pretty v1.2.1
 	github.com/tidwall/sjson v1.2.5
 	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9
-	github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690
 	github.com/ugent-library/oidc v0.1.0
 	github.com/ugent-library/tonga v0.0.0-20250416071751-ab5c715b2347
 	github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9

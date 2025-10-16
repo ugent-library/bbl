@@ -70,19 +70,19 @@ func BackofficeBatchEditWorks() string {
 }
 
 func BackofficeWork(id string) string {
-	return "/backoffice/works/" + url.PathEscape(id)
+	return "/backoffice/work/" + url.PathEscape(id)
 }
 
 func BackofficeWorkChanges(id string) string {
-	return "/backoffice/works/" + url.PathEscape(id) + "/changes"
+	return "/backoffice/work/" + url.PathEscape(id) + "/changes"
 }
 
 func BackofficeAddWorks() string {
 	return "/backoffice/works/add"
 }
 
-func BackofficeNewWork(kind string) string {
-	return "/backoffice/works/new/" + url.PathEscape(kind)
+func BackofficeCreateWork() string {
+	return "/backoffice/works"
 }
 
 func BackofficeEditWork(id string) string {

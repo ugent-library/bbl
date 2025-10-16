@@ -1,5 +1,5 @@
 import { Centrifuge } from 'centrifuge';
-import htmx from 'htmx.org/dist/htmx.esm.js';
+import htmx from 'htmx.org';
 
 export default function (rootEl) {
     if (!rootEl.hasAttribute("data-centrifuge")) {

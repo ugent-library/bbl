@@ -240,8 +240,6 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Titles.Required,
 							},
 							Attrs:     rec.Titles,
-							AddURL:    urls.BackofficeWorkAddTitle(),
-							RemoveURL: urls.BackofficeWorkRemoveTitle(),
 						})
 					}
 					if rec.Profile.Abstracts != nil {
@@ -516,8 +514,6 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 							},
 							Attrs:     rec.Identifiers,
 							Schemes:   rec.Profile.IdentifierSchemes,
-							AddURL:    urls.BackofficeWorkAddIdentifier(),
-							RemoveURL: urls.BackofficeWorkRemoveIdentifier(),
 						})
 					</div>
 				</div>
