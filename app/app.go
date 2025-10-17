@@ -327,7 +327,7 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
 
-	mux.Handle("GET /works/{id}", appChain.then(wrap(getAppCtx, app.work)))
+	mux.Handle("GET /work/{id}", appChain.then(wrap(getAppCtx, app.work)))
 	mux.Handle("GET /works", appChain.then(wrap(getAppCtx, app.works)))
 
 	mux.Handle("GET /backoffice/login", appChain.then(wrap(getAppCtx, app.login)))
@@ -353,12 +353,6 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/works/_remove_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveContributor)))
 	mux.Handle("POST /backoffice/works/_add_files", userChain.then(wrap(getAppCtx, app.backofficeWorkAddFiles)))
 	mux.Handle("POST /backoffice/works/_remove_file", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveFile)))
-	mux.Handle("POST /backoffice/works/_add_abstract", userChain.then(wrap(getAppCtx, app.backofficeWorkAddAbstract)))
-	mux.Handle("GET /backoffice/works/_edit_abstract", userChain.then(wrap(getAppCtx, app.backofficeWorkEditAbstract)))
-	mux.Handle("POST /backoffice/works/_remove_lay_summary", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveLaySummary)))
-	mux.Handle("POST /backoffice/works/_add_lay_summary", userChain.then(wrap(getAppCtx, app.backofficeWorkAddLaySummary)))
-	mux.Handle("GET /backoffice/works/_edit_lay_summary", userChain.then(wrap(getAppCtx, app.backofficeWorkEditLaySummary)))
-	mux.Handle("POST /backoffice/works/_remove_abstract", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveAbstract)))
 
 	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
 	mux.Handle("GET /backoffice/work/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))

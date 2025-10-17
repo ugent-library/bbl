@@ -338,106 +338,6 @@ func (app *App) backofficeWorkRemoveFile(w http.ResponseWriter, r *http.Request,
 	return app.refreshWorkForm(w, r, c, rec)
 }
 
-func (app *App) backofficeWorkAddAbstract(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	var text bbl.Text
-	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
-		return err
-	}
-
-	rec.Abstracts = slices.Insert(slices.Grow(rec.Abstracts, 1), idx, text)
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkEditAbstract(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	var text bbl.Text
-	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
-		return err
-	}
-
-	rec.Abstracts[idx] = text
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkRemoveAbstract(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.Abstracts = slices.Delete(rec.Abstracts, idx, idx+1)
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkAddLaySummary(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	var text bbl.Text
-	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
-		return err
-	}
-
-	rec.LaySummaries = slices.Insert(slices.Grow(rec.LaySummaries, 1), idx, text)
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkEditLaySummary(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	var text bbl.Text
-	if err := bind.Request(r).Form().Int("idx", &idx).String("lang", &text.Lang).String("val", &text.Val).Err(); err != nil {
-		return err
-	}
-
-	rec.LaySummaries[idx] = text
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkRemoveLaySummary(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.LaySummaries = slices.Delete(rec.LaySummaries, idx, idx+1)
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
 func (app *App) backofficeWorkChanges(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	rec, err := app.repo.GetWork(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -580,27 +480,46 @@ func bindWorkState(r *http.Request, c *appCtx) (*bbl.Work, error) {
 }
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {
-	// we only need to bind inline editable fields
+	// TODO bind could use a Map function
+	rec.Identifiers = nil
+	rec.Classifications = nil
+	rec.Titles = nil
+	rec.Abstracts = nil
+	rec.LaySummaries = nil
 	err := bind.Request(r).Form().
 		Each("work.identifiers", func(i int, b *bind.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
-			rec.Identifiers[i] = code
+			rec.Identifiers = append(rec.Identifiers, code)
 			return true
 		}).
 		Each("work.classifications", func(i int, b *bind.Values) bool {
 			var code bbl.Code
 			b.String("scheme", &code.Scheme)
 			b.String("val", &code.Val)
-			rec.Classifications[i] = code
+			rec.Classifications = append(rec.Classifications, code)
 			return true
 		}).
 		Each("work.titles", func(i int, b *bind.Values) bool {
 			var text bbl.Text
 			b.String("lang", &text.Lang)
 			b.String("val", &text.Val)
-			rec.Titles[i] = text
+			rec.Titles = append(rec.Titles, text)
+			return true
+		}).
+		Each("work.abstracts", func(i int, b *bind.Values) bool {
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			rec.Abstracts = append(rec.Abstracts, text)
+			return true
+		}).
+		Each("work.lay_summaries", func(i int, b *bind.Values) bool {
+			var text bbl.Text
+			b.String("lang", &text.Lang)
+			b.String("val", &text.Val)
+			rec.LaySummaries = append(rec.LaySummaries, text)
 			return true
 		}).
 		StringSlice("work.keywords", &rec.Keywords).
@@ -628,14 +547,6 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 }
 
 func (app *App) refreshWorkForm(w http.ResponseWriter, r *http.Request, c *appCtx, rec *bbl.Work) error {
-	// TODO this is repeated in New
-	if rec.Profile.Identifiers != nil && len(rec.Identifiers) == 0 {
-		rec.Identifiers = []bbl.Code{{}}
-	}
-	if rec.Profile.Titles != nil && len(rec.Titles) == 0 {
-		rec.Titles = []bbl.Text{{}}
-	}
-
 	state, err := c.crypt.EncryptValue(rec)
 	if err != nil {
 		return err

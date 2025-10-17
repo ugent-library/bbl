@@ -59,3 +59,75 @@ templ TextRepeat(args TextRepeatArgs) {
 		</div>
 	}
 }
+
+type LargeTextRepeatArgs struct {
+	FieldArgs
+	Attrs []bbl.Text
+	Rows  int
+}
+
+templ LargeTextRepeat(args LargeTextRepeatArgs) {
+	@Field(args.FieldArgs, args.IDFor(0, "val")) {
+		<ul
+			class="list-group rounded-lg"
+			data-repeatable
+			data-repeatable-name={ args.Name }
+			data-repeatable-id={ args.ID() }
+		>
+			for i, attr := range append(args.Attrs, bbl.Text{}) {
+				<li data-repeatable-field class="list-group-item bg-lightest">
+					<div class="vstack-md-responsive gap-3 gap-lg-4">
+						<div class="form-group">
+							<div class="bc-toolbar h-auto">
+								<div class="bc-toolbar-left">
+									<label class="form-label form-label-top" for={ args.IDFor(i, "val") }>Description</label>
+								</div>
+								<div class="bc-toolbar-right">
+									<div class="c-button-toolbar">
+										<button
+											data-repeatable-remove
+											class="btn btn-tertiary btn-icon-only ms-3"
+											type="button"
+										>
+											<i class="if if-delete"></i>
+											<span class="visually-hidden">Remove</span>
+										</button>
+										<button
+											data-repeatable-add
+											class="btn btn-tertiary btn-icon-only ms-3"
+											type="button"
+										>
+											<i class="if if-add"></i>
+											<span class="visually-hidden">Add</span>
+										</button>
+									</div>
+								</div>
+							</div>
+							<textarea
+								data-repeatable-clear
+								name={ args.NameFor(i, "val") }
+								id={ args.IDFor(i, "val") }
+								class="form-control"
+								rows={ args.Rows }
+							>
+								{ attr.Val }
+							</textarea>
+						</div>
+						<div class="form-group">
+							<label class="form-label form-label-top" for={ args.IDFor(i, "lang") }>Language</label>
+							<select
+								class="form-select w-50"
+								name={ args.NameFor(i, "lang") }
+								id={ args.IDFor(i, "lang") }
+							>
+								for _, opt := range LanguageOptions {
+									<option value={ opt.Value } selected?={ opt.Value == attr.Lang }>{ opt.Label }</option>
+								}
+							</select>
+						</div>
+					</div>
+				</li>
+			}
+		</ul>
+	}
+}

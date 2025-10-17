@@ -239,33 +239,29 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Label:    "Title",
 								Required: rec.Profile.Titles.Required,
 							},
-							Attrs:     rec.Titles,
+							Attrs: rec.Titles,
 						})
 					}
 					if rec.Profile.Abstracts != nil {
-						@textsField(c, textsFieldArgs{
-							Texts:       rec.Abstracts,
-							Name:        "abstracts",
-							Label:       c.Loc.Get("abstract"),
-							PluralLabel: c.Loc.Get("abstracts"),
-							Title:       c.Loc.Get("Abstract"),
-							PluralTitle: c.Loc.Get("Abstracts"),
-							AddURL:      urls.BackofficeWorkAddAbstract(),
-							EditURL:     urls.BackofficeWorkEditAbstract(),
-							RemoveURL:   urls.BackofficeWorkRemoveAbstract(),
+						@forms.LargeTextRepeat(forms.LargeTextRepeatArgs{
+							FieldArgs: forms.FieldArgs{
+								Name:     "work.abstracts",
+								Label:    c.Loc.Get("abstracts"),
+								Required: rec.Profile.Abstracts.Required,
+							},
+							Attrs: rec.Abstracts,
+							Rows: 3,
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
-						@textsField(c, textsFieldArgs{
-							Texts:       rec.LaySummaries,
-							Name:        "lay_summaries",
-							Label:       c.Loc.Get("lay summary"),
-							PluralLabel: c.Loc.Get("lay summaries"),
-							Title:       c.Loc.Get("Lay summary"),
-							PluralTitle: c.Loc.Get("Lay summaries"),
-							AddURL:      urls.BackofficeWorkAddLaySummary(),
-							EditURL:     urls.BackofficeWorkEditLaySummary(),
-							RemoveURL:   urls.BackofficeWorkRemoveLaySummary(),
+						@forms.LargeTextRepeat(forms.LargeTextRepeatArgs{
+							FieldArgs: forms.FieldArgs{
+								Name:     "work.lay_summaries",
+								Label:    c.Loc.Get("lay summaries"),
+								Required: rec.Profile.LaySummaries.Required,
+							},
+							Attrs: rec.LaySummaries,
+							Rows: 3,
 						})
 					}
 					if rec.Profile.Keywords != nil {
@@ -512,163 +508,12 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Name:     "work.identifiers",
 								Required: rec.Profile.Identifiers.Required,
 							},
-							Attrs:     rec.Identifiers,
-							Schemes:   rec.Profile.IdentifierSchemes,
+							Attrs:   rec.Identifiers,
+							Schemes: rec.Profile.IdentifierSchemes,
 						})
 					</div>
 				</div>
 			</div>
-		}
-	</div>
-}
-
-type textsFieldArgs struct {
-	Texts       []bbl.Text
-	Name        string
-	Label       string
-	PluralLabel string
-	Title       string
-	PluralTitle string
-	AddURL      string
-	EditURL     string
-	RemoveURL   string
-}
-
-templ textsField(c views.Ctx, args textsFieldArgs) {
-	<div id={ fmt.Sprintf("work-%s-add", args.Name) } class="modal fade" tabindex="-1">
-		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h2 class="modal-title">{ c.Loc.Get("Add %s", args.Label) }</h2>
-				</div>
-				<div class="modal-body">
-					@forms.TextArea(forms.TextAreaArgs{
-						FieldArgs: forms.FieldArgs{
-							Name:  "val",
-							Label: args.Title,
-						},
-						Rows: 8,
-					})
-					@forms.Select(forms.SelectArgs{
-						FieldArgs: forms.FieldArgs{
-							Name:  "lang",
-							Label: "Language",
-						},
-						Options: forms.LanguageOptions,
-					})
-				</div>
-				<div class="modal-footer">
-					<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("Cancel") }</button>
-					<button
-						class="btn btn-primary"
-						type="button"
-						data-bs-dismiss="modal"
-						hx-include="#work-form [name*='work.'], closest .modal"
-						hx-post={ args.AddURL }
-						hx-vals={ fmt.Sprintf(`{"idx": %d}`, len(args.Texts)) }
-					>
-						<span class="btn-text">{ c.Loc.Get("Add %s", args.Label) }</span>
-						<i class="if if-arrow-right"></i>
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="form-group">
-		<div class="bc-toolbar h-auto">
-			<div class="bc-toolbar-left">
-				<label class="form-label form-label-top">{ args.PluralTitle }</label>
-			</div>
-			<div class="bc-toolbar-right">
-				<button
-					class="btn btn-tertiary"
-					type="button"
-					data-bs-toggle="modal"
-					data-bs-target={ fmt.Sprintf("#work-%s-add", args.Name) }
-				>
-					<i class="if if-add"></i>
-					<div class="btn-text">{ c.Loc.Get("Add %s", args.Label) }</div>
-				</button>
-			</div>
-		</div>
-		if len(args.Texts) == 0 {
-			<div class="card shadow-none mb-6 bg-lightest">
-				<div class="card-body">
-					<div class="c-blank-slate py-4">
-						<p>{ c.Loc.Get("No %s.", args.Label) }</p>
-					</div>
-				</div>
-			</div>
-		} else {
-			for i, text := range args.Texts {
-				<div id={ fmt.Sprintf("work-%s-edit-%d", args.Name, i) } class="modal fade" tabindex="-1">
-					<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
-						<div class="modal-content">
-							<div class="modal-header">
-								<h2 class="modal-title">{ c.Loc.Get("Edit %s", args.Label) }</h2>
-							</div>
-							<div class="modal-body">
-								@forms.TextArea(forms.TextAreaArgs{
-									FieldArgs: forms.FieldArgs{
-										Name:  "val",
-										Label: args.Title,
-									},
-									Value: text.Val,
-									Rows:  8,
-								})
-								@forms.Select(forms.SelectArgs{
-									FieldArgs: forms.FieldArgs{
-										Name:  "lang",
-										Label: "Language",
-									},
-									Value:   text.Lang,
-									Options: forms.LanguageOptions,
-								})
-							</div>
-							<div class="modal-footer">
-								<button class="btn btn-link" type="button" data-bs-dismiss="modal">{ c.Loc.Get("Cancel") }</button>
-								<button
-									class="btn btn-primary"
-									type="button"
-									data-bs-dismiss="modal"
-									hx-include="#work-form [name*='work.'], closest .modal"
-									hx-post={ args.EditURL }
-									hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
-								>
-									<span class="btn-text">{ c.Loc.Get("Edit %s", args.Label) }</span>
-									<i class="if if-arrow-right"></i>
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="card shadow-none mb-6 bg-lightest">
-					<div class="card-body">
-						<div class="c-button-toolbar">
-							<button
-								class="btn btn-tertiary btn-lg-only-responsive"
-								type="button"
-								data-bs-toggle="modal"
-								data-bs-target={ fmt.Sprintf("#work-%s-edit-%d", args.Name, i) }
-							>
-								<i class="if if-edit"></i>
-								<span class="btn-text">{ c.Loc.Get("Edit") }</span>
-							</button>
-							<button
-								class="btn btn-tertiary btn-lg-only-responsive"
-								type="button"
-								hx-post={ args.RemoveURL }
-								hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
-							>
-								<i class="if if-delete"></i>
-								<span class="btn-text">{ c.Loc.Get("Remove") }</span>
-							</button>
-						</div>
-						<p class="c-body-small text-muted mb-1">{ text.Lang }</p>
-						<p>{ text.Val }</p>
-					</div>
-				</div>
-			}
 		}
 	</div>
 }

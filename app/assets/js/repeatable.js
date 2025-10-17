@@ -51,18 +51,25 @@ function setFieldIndices(componentEl) {
     const idPrefix = componentEl.getAttribute('data-repeatable-id');
     componentEl.querySelectorAll('[data-repeatable-field]').forEach((el, idx) => {
         el.querySelectorAll(`[name^='${namePrefix}[']`).forEach((formEl) => {
-            const name = formEl.getAttribute('name');
-            const beforeIdx = name.slice(0, namePrefix.length + 1);
-            const afterIdx = name.slice(namePrefix.length + 1).replace(/^[0-9]+/, '');
-            const newName = beforeIdx + idx.toString() + afterIdx;
-            formEl.setAttribute('name', newName);
+            const attr = formEl.getAttribute('name');
+            const beforeIdx = attr.slice(0, namePrefix.length + 1);
+            const afterIdx = attr.slice(namePrefix.length + 1).replace(/^[0-9]+/, '');
+            const newAttr = beforeIdx + idx.toString() + afterIdx;
+            formEl.setAttribute('name', newAttr);
         });
         el.querySelectorAll(`[id^='${idPrefix}-']`).forEach((formEl) => {
-            const id = formEl.getAttribute('id');
-            const beforeIdx = id.slice(0, idPrefix.length + 1);
-            const afterIdx = id.slice(idPrefix.length + 1).replace(/^[0-9]+/, '');
-            const newID = beforeIdx + idx.toString() + afterIdx;
-            formEl.setAttribute('id', newID);
+            const attr = formEl.getAttribute('id');
+            const beforeIdx = attr.slice(0, idPrefix.length + 1);
+            const afterIdx = attr.slice(idPrefix.length + 1).replace(/^[0-9]+/, '');
+            const newAttr = beforeIdx + idx.toString() + afterIdx;
+            formEl.setAttribute('id', newAttr);
+        });
+        el.querySelectorAll(`[for^='${idPrefix}-']`).forEach((formEl) => {
+            const attr = formEl.getAttribute('for');
+            const beforeIdx = attr.slice(0, idPrefix.length + 1);
+            const afterIdx = attr.slice(idPrefix.length + 1).replace(/^[0-9]+/, '');
+            const newAttr = beforeIdx + idx.toString() + afterIdx;
+            formEl.setAttribute('for', newAttr);
         });
     });
 }
