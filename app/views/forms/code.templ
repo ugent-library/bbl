@@ -12,13 +12,18 @@ type CodeRepeatArgs struct {
 }
 
 templ CodeRepeat(args CodeRepeatArgs) {
+	{{
+		if len(args.Attrs) == 0 {
+			args.Attrs = []bbl.Code{{}}
+		}
+	}}
 	@Field(args.FieldArgs, fmt.Sprintf("%s[0].val", args.Name)) {
 		<div
 			data-repeatable
 			data-repeatable-name={ args.Name }
 			data-repeatable-id={ args.ID() }
 		>
-			for i, attr := range append(args.Attrs, bbl.Code{}) {
+			for i, attr := range args.Attrs {
 				<div data-repeatable-field class="form-group">
 					<div class="d-flex">
 						<div class="input-group">

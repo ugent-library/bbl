@@ -8,13 +8,18 @@ type TextRepeatArgs struct {
 }
 
 templ TextRepeat(args TextRepeatArgs) {
+	{{
+		if len(args.Attrs) == 0 {
+			args.Attrs = []bbl.Text{{}}
+		}
+	}}
 	@Field(args.FieldArgs, args.IDFor(0, "val")) {
 		<div
 			data-repeatable
 			data-repeatable-name={ args.Name }
 			data-repeatable-id={ args.ID() }
 		>
-			for i, attr := range append(args.Attrs, bbl.Text{}) {
+			for i, attr := range args.Attrs {
 				<div data-repeatable-field class="form-group">
 					<div class="d-flex">
 						<div class="input-group">
@@ -67,6 +72,11 @@ type LargeTextRepeatArgs struct {
 }
 
 templ LargeTextRepeat(args LargeTextRepeatArgs) {
+	{{
+		if len(args.Attrs) == 0 {
+			args.Attrs = []bbl.Text{{}}
+		}
+	}}
 	@Field(args.FieldArgs, args.IDFor(0, "val")) {
 		<ul
 			class="list-group rounded-lg"
@@ -74,7 +84,7 @@ templ LargeTextRepeat(args LargeTextRepeatArgs) {
 			data-repeatable-name={ args.Name }
 			data-repeatable-id={ args.ID() }
 		>
-			for i, attr := range append(args.Attrs, bbl.Text{}) {
+			for i, attr := range args.Attrs {
 				<li data-repeatable-field class="list-group-item bg-lightest">
 					<div class="vstack-md-responsive gap-3 gap-lg-4">
 						<div class="form-group">
