@@ -199,37 +199,36 @@ func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request,
 	return app.refreshWorkForm(w, r, c, rec)
 }
 
-func (app *App) backofficeWorkSuggestContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	var query string
-	var action string
-	var idx int
-	err := bind.Request(r).Query().
-		String("q", &query).
-		String("action", &action).
-		Int("idx", &idx).
-		Err()
-	if err != nil {
-		return err
-	}
+func (app *App) backofficeWorkSuggestContributors(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	query := r.URL.Query().Get("q")
 
 	hits, err := app.index.People().Search(r.Context(), &bbl.SearchOpts{Query: query, Size: 20})
 	if err != nil {
 		return err
 	}
 
-	return workviews.ContributorSuggestions(c.viewCtx(), hits, action, idx).Render(r.Context(), w)
+	return workviews.ContributorSuggestions(c.viewCtx(), hits).Render(r.Context(), w)
 }
 
+// TODO check for duplicates
+// TODO check idx is valid
 func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
+	var cons []bbl.WorkContributor
 	var idx int
 	var creditRoles []string
 	var personID string
-	err = bind.Request(r).Form().
+
+	b := bind.Request(r).Form()
+
+	for _, v := range b.GetAll("work.contributors") {
+		var con bbl.WorkContributor
+		if err := json.Unmarshal([]byte(v), &con); err != nil {
+			return err
+		}
+		cons = append(cons, con)
+	}
+
+	err := b.
 		Int("idx", &idx).
 		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
@@ -238,71 +237,48 @@ func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	person, err := app.repo.GetPerson(r.Context(), personID)
+	rec, err := app.repo.GetPerson(r.Context(), personID)
 	if err != nil {
 		return err
 	}
 
-	rec.Contributors = slices.Grow(rec.Contributors, 1)
-	rec.Contributors = slices.Insert(rec.Contributors, idx, bbl.WorkContributor{
+	cons = slices.Grow(cons, 1)
+	cons = slices.Insert(cons, idx, bbl.WorkContributor{
 		WorkContributorAttrs: bbl.WorkContributorAttrs{
 			CreditRoles: creditRoles,
 		},
 		PersonID: personID,
-		Person:   person,
+		Person:   rec,
 	})
 
-	return app.refreshWorkForm(w, r, c, rec)
+	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
 }
 
-func (app *App) backofficeWorkEditContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
+// TODO check idx is valid
+func (app *App) backofficeWorkRemoveContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	var cons []bbl.WorkContributor
+	var idx int
+
+	b := bind.Request(r).Form()
+
+	for _, v := range b.GetAll("work.contributors") {
+		var con bbl.WorkContributor
+		if err := json.Unmarshal([]byte(v), &con); err != nil {
+			return err
+		}
+		cons = append(cons, con)
 	}
 
-	var idx int
-	var creditRoles []string
-	var personID string
-	err = bind.Request(r).Form().
+	err := b.
 		Int("idx", &idx).
-		StringSlice("credit_roles", &creditRoles).
-		String("person_id", &personID).
 		Err()
 	if err != nil {
 		return err
 	}
 
-	person, err := app.repo.GetPerson(r.Context(), personID)
-	if err != nil {
-		return err
-	}
+	cons = slices.Delete(cons, idx, idx+1)
 
-	rec.Contributors[idx] = bbl.WorkContributor{
-		WorkContributorAttrs: bbl.WorkContributorAttrs{
-			CreditRoles: creditRoles,
-		},
-		PersonID: personID,
-		Person:   person,
-	}
-
-	return app.refreshWorkForm(w, r, c, rec)
-}
-
-func (app *App) backofficeWorkRemoveContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
-	if err != nil {
-		return err
-	}
-
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
-
-	rec.Contributors = slices.Delete(rec.Contributors, idx, idx+1)
-
-	return app.refreshWorkForm(w, r, c, rec)
+	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
 }
 
 func (app *App) backofficeWorkAddFiles(w http.ResponseWriter, r *http.Request, c *appCtx) error {

@@ -16,7 +16,6 @@ templ Page(c views.Ctx, title string) {
 		</head>
 		<body
 			class="u-maximize-height overflow-hidden u-scroll-wrapper"
-			hx-swap="none"
 			if c.User != nil {
 				data-centrifuge
 				data-centrifuge-url={ c.CentrifugeURL }

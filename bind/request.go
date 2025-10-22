@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/textproto"
 	"slices"
@@ -374,6 +375,16 @@ func (b *Values) TimeSlice(key string, layout string, ptr *[]time.Time) *Values 
 			}
 		}
 		*ptr = s
+	}
+	return b
+}
+
+func (b *Values) JSON(key string, ptr any) *Values {
+	if b.binder.err != nil || !b.Has(key) {
+		return b
+	}
+	if err := json.Unmarshal([]byte(b.Get(key)), ptr); err != nil {
+		b.binder.err = err
 	}
 	return b
 }

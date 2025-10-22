@@ -1,3 +1,5 @@
+const reIdx = /^[0-9]+/;
+
 export default function (rootEl) {
     if (rootEl.matches('[data-repeatable]'))
         init(rootEl);
@@ -53,23 +55,31 @@ function setFieldIndices(componentEl) {
         el.querySelectorAll(`[name^='${namePrefix}[']`).forEach((formEl) => {
             const attr = formEl.getAttribute('name');
             const beforeIdx = attr.slice(0, namePrefix.length + 1);
-            const afterIdx = attr.slice(namePrefix.length + 1).replace(/^[0-9]+/, '');
+            const afterIdx = attr.slice(namePrefix.length + 1).replace(reIdx, '');
             const newAttr = beforeIdx + idx.toString() + afterIdx;
             formEl.setAttribute('name', newAttr);
         });
-        el.querySelectorAll(`[id^='${idPrefix}-']`).forEach((formEl) => {
-            const attr = formEl.getAttribute('id');
-            const beforeIdx = attr.slice(0, idPrefix.length + 1);
-            const afterIdx = attr.slice(idPrefix.length + 1).replace(/^[0-9]+/, '');
-            const newAttr = beforeIdx + idx.toString() + afterIdx;
-            formEl.setAttribute('id', newAttr);
-        });
-        el.querySelectorAll(`[for^='${idPrefix}-']`).forEach((formEl) => {
-            const attr = formEl.getAttribute('for');
-            const beforeIdx = attr.slice(0, idPrefix.length + 1);
-            const afterIdx = attr.slice(idPrefix.length + 1).replace(/^[0-9]+/, '');
-            const newAttr = beforeIdx + idx.toString() + afterIdx;
-            formEl.setAttribute('for', newAttr);
-        });
+        if (idPrefix) {
+            el.querySelectorAll(`[id^='${idPrefix}-']`).forEach((formEl) => {
+                const attr = formEl.getAttribute('id');
+                const beforeIdx = attr.slice(0, idPrefix.length + 1);
+                const afterIdx = attr.slice(idPrefix.length + 1);
+                if (!reIdx.test(afterIdx)) {
+                    return;
+                }
+                const newAttr = beforeIdx + idx.toString() + afterIdx.replace(reIdx, '');
+                formEl.setAttribute('id', newAttr);
+            });
+            el.querySelectorAll(`[for^='${idPrefix}-']`).forEach((formEl) => {
+                const attr = formEl.getAttribute('for');
+                const beforeIdx = attr.slice(0, idPrefix.length + 1);
+                const afterIdx = attr.slice(idPrefix.length + 1);
+                if (!reIdx.test(afterIdx)) {
+                    return;
+                }
+                const newAttr = beforeIdx + idx.toString() + afterIdx.replace(reIdx, '');
+                formEl.setAttribute('for', newAttr);
+            });
+        }
     });
 }

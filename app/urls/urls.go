@@ -137,12 +137,8 @@ func BackofficeWorkAddContributor() string {
 	return "/backoffice/works/_add_contributor"
 }
 
-func BackofficeWorkSuggestContributor() string {
-	return "/backoffice/works/_suggest_contributor"
-}
-
-func BackofficeWorkEditContributor() string {
-	return "/backoffice/works/_edit_contributor"
+func BackofficeWorkSuggestContributors() string {
+	return "/backoffice/works/_suggest_contributors"
 }
 
 func BackofficeWorkRemoveContributor() string {

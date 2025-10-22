@@ -7,7 +7,6 @@ import (
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/app/views/forms"
-	"slices"
 )
 
 templ Edit(c views.Ctx, rec *bbl.Work, state string) {
@@ -99,9 +98,6 @@ templ RefreshForm(c views.Ctx, rec *bbl.Work, state string) {
 	<div hx-swap-oob="innerHTML:#work-summary-cite">
 		@SummaryCite(c, rec)
 	</div>
-	<div hx-swap-oob="innerHTML:#work-summary-id">
-		@SummaryID(c, rec)
-	</div>
 	<div hx-swap-oob="outerHTML:#work-form-buttons">
 		@FormButtons(c, rec)
 	</div>
@@ -115,13 +111,8 @@ templ FormButtons(c views.Ctx, rec *bbl.Work) {
 	<div class="c-button-toolbar" id="work-form-buttons">
 		<button
 			class="btn btn-outline-secondary"
-			if rec.ID == "" {
-				hx-post={ urls.BackofficeWorks("", nil) }
-			} else {
-				hx-post={ urls.BackofficeWork(rec.ID) }
-			}
-			hx-include="#work-form [name*='work.']"
-			hx-target="#work-form"
+			hx-post={ urls.BackofficeWork(rec.ID) }
+			hx-include="[name*='work.']"
 		>Save</button>
 		<a class="btn btn-success" href="#">Publish to Biblio</a>
 		<div class="dropdown">
@@ -166,13 +157,7 @@ templ FormNav(c views.Ctx, rec *bbl.Work) {
 }
 
 templ Form(c views.Ctx, rec *bbl.Work, state string) {
-	<div
-		id="work-form"
-		hx-include="#work-form [name*='work.']"
-		hx-target="#work-form"
-		hx-swap="outerHTML"
-	>
-		// hx-trigger="refresh-work-form from:body"
+	<div id="work-form">
 		<input type="hidden" name="work.state" value={ state }/>
 		<div class="mb-6" id="work-type">
 			<div class="mb-4">
@@ -188,6 +173,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 									class="form-select w-100"
 									name="kind"
 									hx-post={ urls.BackofficeWorkChangeKind() }
+									hx-include="[name*='work.']"
 								>
 									for _, kind := range bbl.WorkKinds {
 										<option value={ kind } selected?={ kind == rec.Kind }>{ kind }</option>
@@ -203,6 +189,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 										class="form-select w-100"
 										name="subkind"
 										hx-post={ urls.BackofficeWorkChangeKind() }
+										hx-include="[name*='work.']"
 									>
 										<option></option>
 										for _, kind := range subKinds {
@@ -250,7 +237,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.Abstracts.Required,
 							},
 							Attrs: rec.Abstracts,
-							Rows: 3,
+							Rows:  3,
 						})
 					}
 					if rec.Profile.LaySummaries != nil {
@@ -261,7 +248,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								Required: rec.Profile.LaySummaries.Required,
 							},
 							Attrs: rec.LaySummaries,
-							Rows: 3,
+							Rows:  3,
 						})
 					}
 					if rec.Profile.Keywords != nil {
@@ -519,177 +506,207 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 }
 
 templ contributorsField(c views.Ctx, rec *bbl.Work) {
-	<div id="work-contributors-add" class="modal" tabindex="-1" role="dialog" aria-modal="true">
-		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h2 class="modal-title">Add contributor</h2>
-				</div>
-				<div class="p-6 border-bottom">
-					<h3>Search contributor</h3>
-					<div class="row">
-						<div
-							class="form-group col"
-							hx-disinherit="*"
-						>
-							<label class="col-form-label">Name</label>
-							<input
-								class="form-control"
-								type="search"
-								name="q"
-								hx-get={ urls.BackofficeWorkSuggestContributor() }
-								hx-vals={ fmt.Sprintf(`{"action": "add", "idx": %d}`, len(rec.Contributors)) }
-								hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-								hx-target="#work-contributor-suggestions"
-								hx-swap="innerHTML"
-							/>
-						</div>
-					</div>
-					<div class="row">
-						<div class="form-group col">
-							<label class="col-form-label">Credit role</label>
-							<select class="form-control" name="credit_roles" multiple>
-								for _, role := range bbl.CreditRoles {
-									<option value={ role }>{ role }</option>
-								}
-							</select>
-						</div>
-					</div>
-				</div>
-				<div id="work-contributor-suggestions" class="modal-body"></div>
-				<div class="modal-footer">
-					<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
-				</div>
-			</div>
-		</div>
-	</div>
 	<div class="form-group">
 		<div class="bc-toolbar h-auto">
 			<div class="bc-toolbar-left">
-				<label class="form-label form-label-top">Contributors</label>
+				<h3>Contributors</h3>
 			</div>
 			<div class="bc-toolbar-right">
-				<button
-					class="btn btn-tertiary"
-					type="button"
-					data-bs-toggle="modal"
-					data-bs-target="#work-contributors-add"
-				>
+				<button class="btn btn-tertiary" type="button" data-bs-toggle="modal" data-bs-target="#work-contributors-add">
 					<i class="if if-add"></i>
-					<div class="btn-text">Add contributor</div>
+					<div class="btn-text">Add contributors</div>
 				</button>
 			</div>
 		</div>
-		<div class="list-group rounded-lg">
-			if len(rec.Contributors) == 0 {
-				<div class="card shadow-none mb-6 bg-lightest">
-					<div class="card-body">
-						<div class="c-blank-slate py-4">
-							<p>No contributors.</p>
+		<div id="work-contributors">
+				@contributors(c, rec.Contributors)
+		</div>
+		<div class="modal" id="work-contributors-add" tabindex="-1" role="dialog" aria-modal="true">
+			<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<div class="bc-toolbar">
+							<div class="bc-toolbar-left">
+								<div class="bc-toolbar-item">
+									<div class="mt-5">
+										<h2 class="modal-title">Contributors</h2>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="modal-body">
+						<div class="row">
+							<div class="col-6 border-end">
+								<div id="modal-work-contributors">
+										@modalContributors(c, rec.Contributors)
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="p-6 border-bottom">
+									<div class="form-group col-6">
+										<label class="col-form-label">Search researcher</label>
+										<input
+											class="form-control"
+											type="search"
+											name="q"
+											autocomplete="off"
+											hx-get={ urls.BackofficeWorkSuggestContributors() }
+											hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
+											hx-target="#work-contributor-suggestions"
+										/>
+										<span class="form-text text-muted" for="search-researcher">Enter name, ORCID or UGent ID.</span>
+									</div>
+								</div>
+								<div id="work-contributor-suggestions">
+									<div class="c-blank-slate c-blank-slate-muted c-blank-slate-large">
+										<div class="bc-avatar bc-avatar--small">
+											<i class="if if-info-circle"></i>
+										</div>
+										<p>Type a first and last name above to add a contributor.</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<div class="bc-toolbar h-auto">
+							<div class="bc-toolbar-right flex-wrap">
+								<div class="bc-toolbar-item">
+									<button class="btn btn-primary" data-bs-dismiss="modal">
+										<i class="if if-check"></i>
+										<span class="button-text">Done</span>
+									</button>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
-			} else {
-				for i, con := range rec.Contributors {
-					<div id={ fmt.Sprintf("work-contributors-edit-%d", i) } class="modal" tabindex="-1" role="dialog" aria-modal="true">
-						<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
-							<div class="modal-content">
-								<div class="modal-header">
-									<h2 class="modal-title">Edit contributor</h2>
-								</div>
-								<div class="p-6 border-bottom">
-									<h3>Search contributor</h3>
-									<div class="row">
-										<div
-											class="form-group col"
-											hx-disinherit="*"
-										>
-											<label class="col-form-label">Name</label>
-											<input
-												class="form-control"
-												type="search"
-												name="q"
-												hx-get={ urls.BackofficeWorkSuggestContributor() }
-												hx-vals={ fmt.Sprintf(`{"action": "edit", "idx": %d}`, i) }
-												hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-												hx-target={ fmt.Sprintf("#work-contributor-suggestions-%d", i) }
-												hx-swap="innerHTML"
-											/>
-										</div>
-									</div>
-									<div class="row">
-										<div class="form-group col">
-											<label class="col-form-label">Credit role</label>
-											<select class="form-control" name="credit_roles" multiple>
-												for _, role := range bbl.CreditRoles {
-													<option value={ role } selected?={ slices.Contains(con.CreditRoles, role) }>{ role }</option>
-												}
-											</select>
-										</div>
-									</div>
-								</div>
-								<div id={ fmt.Sprintf("work-contributor-suggestions-%d", i) } class="modal-body"></div>
-								<div class="modal-footer">
-									<button class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="list-group-item">
-						<input type="hidden" name={ fmt.Sprintf("contributors[%d].person_id", i) } value={ con.PersonID }/>
-						<div class="bc-avatar-and-text align-items-start">
-							<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-								<i class="if if-ghent-university"></i>
-							</div>
-							<div class="bc-avatar-text">
-								<div class="hstack-md-responsive gap-3 gap-lg-4">
-									<div class="vstack gap-3">
-										<h4 class="mb-0">{ con.GetName() }</h4>
-										<ul class="c-meta-list c-meta-list-horizontal">
-											<li class="c-meta-item">
-												<i class="if if-ghent-university if--small if--muted"></i>
-												<span class="text-muted">UGent</span>
-											</li>
-											for _, role := range con.CreditRoles {
-												<li class="c-meta-item">
-													<span class="text-muted">{ role }</span>
-												</li>
-											}
-										</ul>
-									</div>
-									<div class="c-button-toolbar">
-										<button
-											class="btn btn-tertiary btn-lg-only-responsive"
-											type="button"
-											data-bs-toggle="modal"
-											data-bs-target={ fmt.Sprintf("#work-contributors-edit-%d", i) }
-										>
-											<i class="if if-edit"></i>
-											<span
-												class="btn-text"
-											>Edit</span>
-										</button>
-										<button
-											class="btn btn-tertiary btn-lg-only-responsive"
-											type="button"
-											hx-post={ urls.BackofficeWorkRemoveContributor() }
-											hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
-										>
-											<i class="if if-delete"></i>
-											<span class="btn-text">Remove</span>
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				}
-			}
+			</div>
 		</div>
 	</div>
 }
 
-templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action string, idx int) {
+templ contributors(c views.Ctx, cons []bbl.WorkContributor) {
+	if len(cons) > 0 {
+		<ul class="list-group rounded-lg" id="work-contributors">
+			for i, con := range cons {
+				@contributor(c, con, i)
+			}
+		</ul>
+	} else {
+		<div class="card shadow-none bg-lightest">
+			<div class="card-body">
+				<div class="c-blank-slate py-4">
+					<p>No contributors.</p>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ contributor(c views.Ctx, con bbl.WorkContributor, idx int) {
+	<li class="list-group-item">
+		<input type="hidden" name="work.contributors" value={ templ.JSONString(con) }/>
+		<div class="bc-avatar-and-text align-items-start">
+			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+				<i class="if if-ghent-university"></i>
+			</div>
+			<div class="bc-avatar-text">
+				<div class="hstack-md-responsive gap-3 gap-lg-4">
+					<div class="vstack gap-3">
+						<h4 class="mb-0">{ con.GetName() }</h4>
+						<ul class="c-meta-list c-meta-list-horizontal">
+							<li class="c-meta-item">
+								<i class="if if-ghent-university if--small if--muted"></i>
+								<span class="text-muted">UGent</span>
+							</li>
+							for _, role := range con.CreditRoles {
+								<li class="c-meta-item">
+									<span class="text-muted">{ role }</span>
+								</li>
+							}
+						</ul>
+					</div>
+					<div class="c-button-toolbar">
+						<button
+							class="btn btn-tertiary btn-lg-only-responsive"
+							type="button"
+							hx-post={ urls.BackofficeWorkRemoveContributor() }
+							hx-swap="none"
+							hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+							hx-include="[name='work.contributors']"
+						>
+							<i class="if if-delete"></i>
+							<span class="btn-text">Remove</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</li>
+}
+
+templ modalContributors(c views.Ctx, cons []bbl.WorkContributor) {
+	if len(cons) > 0 {
+		<ul class="list-group" id="modal-work-contributors">
+			for i, con := range cons {
+				@modalContributor(c, con, i)
+			}
+		</ul>
+	} else {
+		<div class="card shadow-none bg-lightest">
+			<div class="card-body">
+				<div class="c-blank-slate py-4">
+					<p>No contributors.</p>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
+	<li class="list-group-item" data-work-contributor={ idx }>
+		<div class="bc-avatar-and-text align-items-start">
+			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+				<i class="if if-ghent-university"></i>
+			</div>
+			<div class="bc-avatar-text">
+				<div class="hstack-md-responsive gap-3 gap-lg-4">
+					<div class="vstack gap-3">
+						<h4 class="mb-0">{ con.GetName() }</h4>
+						<ul class="c-meta-list c-meta-list-horizontal">
+							<li class="c-meta-item">
+								<i class="if if-ghent-university if--small if--muted"></i>
+								<span class="text-muted">UGent</span>
+							</li>
+							for _, role := range con.CreditRoles {
+								<li class="c-meta-item">
+									<span class="text-muted">{ role }</span>
+								</li>
+							}
+						</ul>
+					</div>
+					<div class="c-button-toolbar">
+						<button
+							class="btn btn-tertiary btn-lg-only-responsive"
+							type="button"
+							hx-post={ urls.BackofficeWorkRemoveContributor() }
+							hx-swap="none"
+							hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+							hx-include="[name='work.contributors']"
+						>
+							<i class="if if-delete"></i>
+							<span class="btn-text">Remove</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</li>
+}
+
+templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 	<ul class="list-group">
 		for _, hit := range hits.Hits {
 			<li class="list-group-item">
@@ -708,22 +725,12 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action
 						<button
 							class="btn btn-primary"
 							type="button"
-							data-bs-dismiss="modal"
-							if action == "add" {
-								hx-post={ urls.BackofficeWorkAddContributor() }
-							} else {
-								hx-post={ urls.BackofficeWorkEditContributor() }
-							}
-							hx-vals={ fmt.Sprintf(`{"idx": %d, "person_id": "%s"}`, idx, hit.Rec.ID) }
-							hx-include="#work-form [name*='work.'], closest .modal"
+							hx-post={ urls.BackofficeWorkAddContributor() }
+							hx-swap="none"
+							hx-vals={ fmt.Sprintf(`js:{person_id: "%s", idx: document.querySelectorAll("[name='work.contributors']").length}`, hit.Rec.ID) }
+							hx-include="[name='work.contributors']"
 						>
-							<span class="btn-text">
-								if action == "add" {
-									Add contributor
-								} else {
-									Edit contributor
-								}
-							</span>
+							Select
 							<i class="if if-arrow-right"></i>
 						</button>
 					</div>
@@ -731,6 +738,15 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person], action
 			</li>
 		}
 	</ul>
+}
+
+templ RefreshContributors(c views.Ctx, cons []bbl.WorkContributor) {
+	<div hx-swap-oob="innerHTML:#work-contributors">
+			@contributors(c, cons)
+	</div>
+	<div hx-swap-oob="innerHTML:#modal-work-contributors">
+			@modalContributors(c, cons)
+	</div>
 }
 
 templ filesField(c views.Ctx, rec *bbl.Work) {
@@ -788,7 +804,7 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 		data-uppy
 		data-uppy-presign-url={ urls.BackofficeFileUploadURL() }
 		hx-post={ urls.BackofficeWorkAddFiles() }
-		hx-include="#work-form [name*='work.'], [data-uppy] [name='files']"
+		hx-include="[name*='work.'], [data-uppy] [name='files']"
 		hx-trigger="files-added"
 	>
 		<div data-uppy-drag-drop></div>

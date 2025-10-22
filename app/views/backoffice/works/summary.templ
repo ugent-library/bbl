@@ -12,13 +12,11 @@ templ SummaryCite(c views.Ctx, rec *bbl.Work) {
 }
 
 templ SummaryID(c views.Ctx, rec *bbl.Work) {
-	if rec.ID != "" {
-		<button type="button" class="btn btn-sm btn-outline-secondary me-3" data-clipboard={ rec.ID }>
-			<i class="if if-copy"></i>
-			<div class="btn-text">Biblio ID</div>
-			<div class="btn-text border-start ps-3 ms-3">
-				<div class="fw-normal text-muted">{ rec.ID }</div>
-			</div>
-		</button>
-	}
+	<button type="button" class="btn btn-sm btn-outline-secondary me-3" data-clipboard={ rec.ID }>
+		<i class="if if-copy"></i>
+		<div class="btn-text">Biblio ID</div>
+		<div class="btn-text border-start ps-3 ms-3">
+			<div class="fw-normal text-muted">{ rec.ID }</div>
+		</div>
+	</button>
 }
