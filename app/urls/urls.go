@@ -97,8 +97,20 @@ func BackofficeWorkAddContributor() string {
 	return "/backoffice/works/_add_contributor"
 }
 
-func BackofficeWorkSuggestContributors() string {
-	return "/backoffice/works/_suggest_contributors"
+func BackofficeWorkAddContributorSuggest() string {
+	return "/backoffice/works/_add_contributor_suggest"
+}
+
+func BackofficeWorkEditContributor() string {
+	return "/backoffice/works/_edit_contributor"
+}
+
+func BackofficeWorkEditContributorSuggest(idx int) string {
+	return "/backoffice/works/_edit_contributor_suggest?idx=" + fmt.Sprint(idx)
+}
+
+func BackofficeWorkUpdateContributor(idx int) string {
+	return "/backoffice/works/_update_contributor/" + fmt.Sprint(idx)
 }
 
 func BackofficeWorkRemoveContributor() string {

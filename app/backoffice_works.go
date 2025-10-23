@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -199,7 +200,7 @@ func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request,
 	return workviews.RefreshForm(c.viewCtx(), rec).Render(r.Context(), w)
 }
 
-func (app *App) backofficeWorkSuggestContributors(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+func (app *App) backofficeWorkAddContributorSuggest(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	query := r.URL.Query().Get("q")
 
 	hits, err := app.index.People().Search(r.Context(), &bbl.SearchOpts{Query: query, Size: 20})
@@ -207,9 +208,10 @@ func (app *App) backofficeWorkSuggestContributors(w http.ResponseWriter, r *http
 		return err
 	}
 
-	return workviews.ContributorSuggestions(c.viewCtx(), hits).Render(r.Context(), w)
+	return workviews.AddContributorSuggest(c.viewCtx(), hits).Render(r.Context(), w)
 }
 
+// TODO should be backofficeWorkCreateContributor
 func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	var cons []bbl.WorkContributor
 	var creditRoles []string
@@ -235,15 +237,85 @@ func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	con := bbl.WorkContributor{
+	cons = append(cons, bbl.WorkContributor{
+		WorkContributorAttrs: bbl.WorkContributorAttrs{
+			CreditRoles: creditRoles,
+		},
+		PersonID: personID,
+		Person:   rec,
+	})
+
+	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
+}
+
+func (app *App) backofficeWorkEditContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	var cons []bbl.WorkContributor
+	var idx int
+
+	err := bind.Request(r).Form().
+		JSON("work.contributors", &cons).
+		Int("idx", &idx).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	con := cons[idx]
+
+	return workviews.EditContributor(c.viewCtx(), con, idx).Render(r.Context(), w)
+}
+
+func (app *App) backofficeWorkEditContributorSuggest(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	var query string
+	var idx int
+
+	err := bind.Request(r).Query().
+		String("q", &query).
+		Int("idx", &idx).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	hits, err := app.index.People().Search(r.Context(), &bbl.SearchOpts{Query: query, Size: 20})
+	if err != nil {
+		return err
+	}
+
+	return workviews.EditContributorSuggest(c.viewCtx(), hits, idx).Render(r.Context(), w)
+}
+
+func (app *App) backofficeWorkUpdateContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	var cons []bbl.WorkContributor
+	var creditRoles []string
+	var personID string
+
+	idx, err := strconv.Atoi(r.PathValue("idx"))
+	if err != nil {
+		return err
+	}
+
+	err = bind.Request(r).Form().
+		JSON("work.contributors", &cons).
+		StringSlice("credit_roles", &creditRoles).
+		String("person_id", &personID).
+		Err()
+	if err != nil {
+		return err
+	}
+
+	rec, err := app.repo.GetPerson(r.Context(), personID)
+	if err != nil {
+		return err
+	}
+
+	cons[idx] = bbl.WorkContributor{
 		WorkContributorAttrs: bbl.WorkContributorAttrs{
 			CreditRoles: creditRoles,
 		},
 		PersonID: personID,
 		Person:   rec,
 	}
-
-	cons = append(cons, con)
 
 	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
 }

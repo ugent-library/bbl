@@ -518,7 +518,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 			</div>
 		</div>
 		<div id="work-contributors">
-				@contributorsList(c, rec.Contributors)
+			@contributorsList(c, rec.Contributors)
 		</div>
 		<div class="modal" id="work-contributors-add" tabindex="-1" role="dialog" aria-modal="true">
 			<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
@@ -536,35 +536,11 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 					</div>
 					<div class="modal-body">
 						<div class="row">
-							<div class="col-6 border-end">
-								<div id="modal-work-contributors">
-										@modalContributorsList(c, rec.Contributors)
-								</div>
+							<div class="col-6 border-end" id="modal-work-contributors">
+								@modalContributorsList(c, rec.Contributors)
 							</div>
-							<div class="col-6">
-								<div class="p-6 border-bottom">
-									<div class="form-group col-6">
-										<label class="col-form-label">Search researcher</label>
-										<input
-											class="form-control"
-											type="search"
-											name="q"
-											autocomplete="off"
-											hx-get={ urls.BackofficeWorkSuggestContributors() }
-											hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-											hx-target="#work-contributor-suggestions"
-										/>
-										<span class="form-text text-muted" for="search-researcher">Enter name, ORCID or UGent ID.</span>
-									</div>
-								</div>
-								<div id="work-contributor-suggestions">
-									<div class="c-blank-slate c-blank-slate-muted c-blank-slate-large">
-										<div class="bc-avatar bc-avatar--small">
-											<i class="if if-info-circle"></i>
-										</div>
-										<p>Type a first and last name above to add a contributor.</p>
-									</div>
-								</div>
+							<div class="col-6" id="work-contributor-form">
+								@addContributorForm(c)
 							</div>
 						</div>
 					</div>
@@ -606,7 +582,7 @@ templ contributorsList(c views.Ctx, cons []bbl.WorkContributor) {
 }
 
 templ contributor(c views.Ctx, con bbl.WorkContributor, idx int) {
-	<li class="list-group-item">
+	<li class="list-group-item" id={ fmt.Sprintf("work-contributor-%d", idx) }>
 		<div class="bc-avatar-and-text align-items-start">
 			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
 				<i class="if if-ghent-university"></i>
@@ -665,7 +641,7 @@ templ modalContributorsList(c views.Ctx, cons []bbl.WorkContributor) {
 }
 
 templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
-	<li class="list-group-item">
+	<li class="list-group-item" id={ fmt.Sprintf("modal-work-contributor-%d", idx) }>
 		<div class="bc-avatar-and-text align-items-start">
 			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
 				<i class="if if-ghent-university"></i>
@@ -690,6 +666,17 @@ templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 						<button
 							class="btn btn-tertiary btn-lg-only-responsive"
 							type="button"
+							hx-post={ urls.BackofficeWorkEditContributor() }
+							hx-swap="none"
+							hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
+							hx-include="[name='work.contributors']"
+						>
+							<i class="if if-edit"></i>
+							<span class="btn-text">Edit</span>
+						</button>
+						<button
+							class="btn btn-tertiary btn-lg-only-responsive"
+							type="button"
 							hx-post={ urls.BackofficeWorkRemoveContributor() }
 							hx-swap="none"
 							hx-vals={ fmt.Sprintf(`{"idx": %d}`, idx) }
@@ -705,9 +692,59 @@ templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 	</li>
 }
 
-templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
+type contributorFormArgs struct {
+	Query string
+	URL string
+}
+
+templ contributorForm(c views.Ctx, args contributorFormArgs) {
+	<div class="p-6 border-bottom">
+		<div class="form-group col-6">
+			<label class="col-form-label">Search researcher</label>
+			<input
+				class="form-control"
+				type="search"
+				name="q"
+				value={ args.Query }
+				autocomplete="off"
+				hx-get={ args.URL }
+				hx-trigger="revealed, input changed delay:500ms, keyup[key=='Enter']"
+				hx-target="#work-contributor-suggestions"
+			/>
+			<span class="form-text text-muted" for="search-researcher">Enter name, ORCID or UGent ID.</span>
+		</div>
+	</div>
+	<div id="work-contributor-suggestions">
+		<div class="c-blank-slate c-blank-slate-muted c-blank-slate-large">
+			<div class="bc-avatar bc-avatar--small">
+				<i class="if if-info-circle"></i>
+			</div>
+			<p>Type a first and last name above to add a contributor.</p>
+		</div>
+	</div>
+}
+
+templ addContributorForm(c views.Ctx) {
+	@contributorForm(c, contributorFormArgs{
+		URL: urls.BackofficeWorkAddContributorSuggest(),
+	})
+}
+
+templ editContributorForm(c views.Ctx, con bbl.WorkContributor, idx int) {
+	@contributorForm(c, contributorFormArgs{
+		Query: con.GetName(),
+		URL: urls.BackofficeWorkEditContributorSuggest(idx),
+	})
+}
+
+type contributorSuggestArgs struct {
+	Hits *bbl.RecHits[*bbl.Person]
+	URL string
+}
+
+templ contributorSuggest(c views.Ctx, args contributorSuggestArgs) {
 	<ul class="list-group">
-		for _, hit := range hits.Hits {
+		for _, hit := range args.Hits.Hits {
 			<li class="list-group-item">
 				<div class="list-group-item-inner">
 					<div class="list-group-item-main">
@@ -724,7 +761,7 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 						<button
 							class="btn btn-primary"
 							type="button"
-							hx-post={ urls.BackofficeWorkAddContributor() }
+							hx-post={ args.URL }
 							hx-swap="none"
 							hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
 							hx-include="[name='work.contributors']"
@@ -739,12 +776,35 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 	</ul>
 }
 
+templ AddContributorSuggest(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
+	@contributorSuggest(c, contributorSuggestArgs{
+		Hits: hits,
+		URL: urls.BackofficeWorkAddContributor(),
+	})
+}
+
+templ EditContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
+	<div hx-swap-oob="innerHTML:#work-contributor-form">
+		@editContributorForm(c, con, idx)
+	</div>
+}
+
+templ EditContributorSuggest(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx int) {
+	@contributorSuggest(c, contributorSuggestArgs{
+		Hits: hits,
+		URL: urls.BackofficeWorkUpdateContributor(idx),
+	})
+}
+
 templ RefreshContributors(c views.Ctx, cons []bbl.WorkContributor) {
 	<div hx-swap-oob="innerHTML:#work-contributors">
-			@contributorsList(c, cons)
+		@contributorsList(c, cons)
 	</div>
 	<div hx-swap-oob="innerHTML:#modal-work-contributors">
-			@modalContributorsList(c, cons)
+		@modalContributorsList(c, cons)
+	</div>
+	<div hx-swap-oob="innerHTML:#work-contributor-form">
+		@addContributorForm(c)
 	</div>
 }
 
@@ -821,6 +881,6 @@ templ filesList(c views.Ctx, files []bbl.WorkFile) {
 
 templ RefreshFiles(c views.Ctx, files []bbl.WorkFile) {
 	<div hx-swap-oob="innerHTML:#work-files">
-			@filesList(c, files)
+		@filesList(c, files)
 	</div>
 }
