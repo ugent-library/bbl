@@ -9,7 +9,7 @@ import (
 	"github.com/ugent-library/bbl/app/views/forms"
 )
 
-templ Edit(c views.Ctx, rec *bbl.Work, state string) {
+templ Edit(c views.Ctx, rec *bbl.Work) {
 	@backoffice.Page(c, "Edit") {
 		<div class="w-100 h-100 d-flex flex-column overflow-hidden">
 			<div class="bc-navbar bc-navbar--white bc-navbar--auto bc-navbar--bordered-bottom flex-column align-items-start">
@@ -58,7 +58,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, state string) {
 				</div>
 				<div class="w-100 u-scroll-wrapper">
 					<div class="u-scroll-wrapper__body u-smooth-scroll p-6" data-bs-spy="scroll" data-bs-target="#work-form-nav" data-bs-offset="160" data-scroll-area>
-						@Form(c, rec, state)
+						@Form(c, rec)
 					</div>
 				</div>
 				if rec.ID != "" {
@@ -94,7 +94,7 @@ templ Edit(c views.Ctx, rec *bbl.Work, state string) {
 	}
 }
 
-templ RefreshForm(c views.Ctx, rec *bbl.Work, state string) {
+templ RefreshForm(c views.Ctx, rec *bbl.Work) {
 	<div hx-swap-oob="innerHTML:#work-summary-cite">
 		@SummaryCite(c, rec)
 	</div>
@@ -104,7 +104,7 @@ templ RefreshForm(c views.Ctx, rec *bbl.Work, state string) {
 	<div hx-swap-oob="outerHTML:#work-form-nav">
 		@FormNav(c, rec)
 	</div>
-	@Form(c, rec, state)
+	@Form(c, rec)
 }
 
 templ FormButtons(c views.Ctx, rec *bbl.Work) {
@@ -156,9 +156,8 @@ templ FormNav(c views.Ctx, rec *bbl.Work) {
 	</nav>
 }
 
-templ Form(c views.Ctx, rec *bbl.Work, state string) {
+templ Form(c views.Ctx, rec *bbl.Work) {
 	<div id="work-form">
-		<input type="hidden" name="work.state" value={ state }/>
 		<div class="mb-6" id="work-type">
 			<div class="mb-4">
 				<h2>Type</h2>
@@ -172,7 +171,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 								<select
 									class="form-select w-100"
 									name="kind"
-									hx-post={ urls.BackofficeWorkChangeKind() }
+									hx-post={ urls.BackofficeWorkChangeKind(rec.ID) }
 									hx-include="[name*='work.']"
 								>
 									for _, kind := range bbl.WorkKinds {
@@ -188,7 +187,7 @@ templ Form(c views.Ctx, rec *bbl.Work, state string) {
 									<select
 										class="form-select w-100"
 										name="subkind"
-										hx-post={ urls.BackofficeWorkChangeKind() }
+										hx-post={ urls.BackofficeWorkChangeKind(rec.ID) }
 										hx-include="[name*='work.']"
 									>
 										<option></option>
@@ -519,7 +518,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 			</div>
 		</div>
 		<div id="work-contributors">
-				@contributors(c, rec.Contributors)
+				@contributorsList(c, rec.Contributors)
 		</div>
 		<div class="modal" id="work-contributors-add" tabindex="-1" role="dialog" aria-modal="true">
 			<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen" role="document">
@@ -539,7 +538,7 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 						<div class="row">
 							<div class="col-6 border-end">
 								<div id="modal-work-contributors">
-										@modalContributors(c, rec.Contributors)
+										@modalContributorsList(c, rec.Contributors)
 								</div>
 							</div>
 							<div class="col-6">
@@ -587,7 +586,8 @@ templ contributorsField(c views.Ctx, rec *bbl.Work) {
 	</div>
 }
 
-templ contributors(c views.Ctx, cons []bbl.WorkContributor) {
+templ contributorsList(c views.Ctx, cons []bbl.WorkContributor) {
+	<input type="hidden" name="work.contributors" value={ templ.JSONString(cons) }/>
 	if len(cons) > 0 {
 		<ul class="list-group rounded-lg" id="work-contributors">
 			for i, con := range cons {
@@ -607,7 +607,6 @@ templ contributors(c views.Ctx, cons []bbl.WorkContributor) {
 
 templ contributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 	<li class="list-group-item">
-		<input type="hidden" name="work.contributors" value={ templ.JSONString(con) }/>
 		<div class="bc-avatar-and-text align-items-start">
 			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
 				<i class="if if-ghent-university"></i>
@@ -647,7 +646,7 @@ templ contributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 	</li>
 }
 
-templ modalContributors(c views.Ctx, cons []bbl.WorkContributor) {
+templ modalContributorsList(c views.Ctx, cons []bbl.WorkContributor) {
 	if len(cons) > 0 {
 		<ul class="list-group" id="modal-work-contributors">
 			for i, con := range cons {
@@ -666,7 +665,7 @@ templ modalContributors(c views.Ctx, cons []bbl.WorkContributor) {
 }
 
 templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
-	<li class="list-group-item" data-work-contributor={ idx }>
+	<li class="list-group-item">
 		<div class="bc-avatar-and-text align-items-start">
 			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
 				<i class="if if-ghent-university"></i>
@@ -727,7 +726,7 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 							type="button"
 							hx-post={ urls.BackofficeWorkAddContributor() }
 							hx-swap="none"
-							hx-vals={ fmt.Sprintf(`js:{person_id: "%s", idx: document.querySelectorAll("[name='work.contributors']").length}`, hit.Rec.ID) }
+							hx-vals={ fmt.Sprintf(`{"person_id": "%s"}`, hit.Rec.ID) }
 							hx-include="[name='work.contributors']"
 						>
 							Select
@@ -742,16 +741,23 @@ templ ContributorSuggestions(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 
 templ RefreshContributors(c views.Ctx, cons []bbl.WorkContributor) {
 	<div hx-swap-oob="innerHTML:#work-contributors">
-			@contributors(c, cons)
+			@contributorsList(c, cons)
 	</div>
 	<div hx-swap-oob="innerHTML:#modal-work-contributors">
-			@modalContributors(c, cons)
+			@modalContributorsList(c, cons)
 	</div>
 }
 
 templ filesField(c views.Ctx, rec *bbl.Work) {
+	<div id="work-files">
+		@filesList(c, rec.Files)
+	</div>
+}
+
+templ filesList(c views.Ctx, files []bbl.WorkFile) {
+	<input type="hidden" name="work.files" value={ templ.JSONString(files) }/>
 	<ul class="list-group mb-6">
-		for i, f := range rec.Files {
+		for i, f := range files {
 			<li class="list-group-item">
 				<div class="bc-avatar-and-text align-items-start w-100">
 					<div class="bc-avatar bc-avatar--square mt-3 bc-avatar--muted">
@@ -789,6 +795,7 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 									type="button"
 									hx-post={ urls.BackofficeWorkRemoveFile() }
 									hx-vals={ fmt.Sprintf(`{"idx": %d}`, i) }
+									hx-include="[name='work.files']"
 								>
 									<i class="if if-delete"></i>
 									<span class="btn-text">Remove</span>
@@ -804,10 +811,16 @@ templ filesField(c views.Ctx, rec *bbl.Work) {
 		data-uppy
 		data-uppy-presign-url={ urls.BackofficeFileUploadURL() }
 		hx-post={ urls.BackofficeWorkAddFiles() }
-		hx-include="[name*='work.'], [data-uppy] [name='files']"
+		hx-include="[data-uppy] [name='files'], [name='work.files']"
 		hx-trigger="files-added"
 	>
 		<div data-uppy-drag-drop></div>
 		<div data-uppy-status></div>
+	</div>
+}
+
+templ RefreshFiles(c views.Ctx, files []bbl.WorkFile) {
+	<div hx-swap-oob="innerHTML:#work-files">
+			@filesList(c, files)
 	</div>
 }

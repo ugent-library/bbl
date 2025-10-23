@@ -89,48 +89,8 @@ func BackofficeEditWork(id string) string {
 	return "/backoffice/work/" + url.PathEscape(id) + "/edit"
 }
 
-func BackofficeWorkChangeKind() string {
-	return "/backoffice/works/_change_kind"
-}
-
-func BackofficeWorkAddTitle() string {
-	return "/backoffice/works/_add_title"
-}
-
-func BackofficeWorkRemoveTitle() string {
-	return "/backoffice/works/_remove_title"
-}
-
-func BackofficeWorkAddAbstract() string {
-	return "/backoffice/works/_add_abstract"
-}
-
-func BackofficeWorkEditAbstract() string {
-	return "/backoffice/works/_edit_abstract"
-}
-
-func BackofficeWorkRemoveAbstract() string {
-	return "/backoffice/works/_remove_abstract"
-}
-
-func BackofficeWorkAddLaySummary() string {
-	return "/backoffice/works/_add_lay_summary"
-}
-
-func BackofficeWorkEditLaySummary() string {
-	return "/backoffice/works/_edit_lay_summary"
-}
-
-func BackofficeWorkRemoveLaySummary() string {
-	return "/backoffice/works/_remove_lay_summary"
-}
-
-func BackofficeWorkAddIdentifier() string {
-	return "/backoffice/works/_add_identifier"
-}
-
-func BackofficeWorkRemoveIdentifier() string {
-	return "/backoffice/works/_remove_identifier"
+func BackofficeWorkChangeKind(id string) string {
+	return "/backoffice/work/" + url.PathEscape(id) + "/_change_kind"
 }
 
 func BackofficeWorkAddContributor() string {

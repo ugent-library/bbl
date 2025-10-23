@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -146,41 +145,43 @@ func (app *App) backofficeEditWork(w http.ResponseWriter, r *http.Request, c *ap
 		return err
 	}
 
-	state, err := c.crypt.EncryptValue(rec)
-	if err != nil {
-		return err
-	}
-
-	return workviews.Edit(c.viewCtx(), rec, state).Render(r.Context(), w)
+	return workviews.Edit(c.viewCtx(), rec).Render(r.Context(), w)
 }
 
 func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	work, err := bindWorkState(r, c)
+	rec, err := app.repo.GetWork(r.Context(), r.PathValue("id"))
 	if err != nil {
 		return err
 	}
 
-	vacuumWork(work)
+	if err := bindWorkForm(r, rec); err != nil {
+		return err
+	}
+
+	vacuumWork(rec)
 
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.UpdateWork{Work: work, MatchVersion: true})
+	rev.Add(&bbl.UpdateWork{Work: rec, MatchVersion: true})
 	if err := app.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
 
-	// TODO this is clunky
-	rec, err := app.repo.GetWork(r.Context(), work.ID)
+	// TODO this is clunky, there should be a convenience method for save and reload
+	rec, err = app.repo.GetWork(r.Context(), rec.ID)
 	if err != nil {
 		return err
 	}
-	work = rec
 
-	return app.refreshWorkForm(w, r, c, work)
+	return workviews.RefreshForm(c.viewCtx(), rec).Render(r.Context(), w)
 }
 
 func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
+	rec, err := app.repo.GetWork(r.Context(), r.PathValue("id"))
 	if err != nil {
+		return err
+	}
+
+	if err := bindWorkForm(r, rec); err != nil {
 		return err
 	}
 
@@ -191,12 +192,11 @@ func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		return err
 	}
-
 	if err := bbl.LoadWorkProfile(rec); err != nil {
 		return err
 	}
 
-	return app.refreshWorkForm(w, r, c, rec)
+	return workviews.RefreshForm(c.viewCtx(), rec).Render(r.Context(), w)
 }
 
 func (app *App) backofficeWorkSuggestContributors(w http.ResponseWriter, r *http.Request, c *appCtx) error {
@@ -210,26 +210,13 @@ func (app *App) backofficeWorkSuggestContributors(w http.ResponseWriter, r *http
 	return workviews.ContributorSuggestions(c.viewCtx(), hits).Render(r.Context(), w)
 }
 
-// TODO check for duplicates
-// TODO check idx is valid
 func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	var cons []bbl.WorkContributor
-	var idx int
 	var creditRoles []string
 	var personID string
 
-	b := bind.Request(r).Form()
-
-	for _, v := range b.GetAll("work.contributors") {
-		var con bbl.WorkContributor
-		if err := json.Unmarshal([]byte(v), &con); err != nil {
-			return err
-		}
-		cons = append(cons, con)
-	}
-
-	err := b.
-		Int("idx", &idx).
+	err := bind.Request(r).Form().
+		JSON("work.contributors", &cons).
 		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
 		Err()
@@ -237,39 +224,36 @@ func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
+	for _, con := range cons {
+		if con.PersonID == personID {
+			return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
+		}
+	}
+
 	rec, err := app.repo.GetPerson(r.Context(), personID)
 	if err != nil {
 		return err
 	}
 
-	cons = slices.Grow(cons, 1)
-	cons = slices.Insert(cons, idx, bbl.WorkContributor{
+	con := bbl.WorkContributor{
 		WorkContributorAttrs: bbl.WorkContributorAttrs{
 			CreditRoles: creditRoles,
 		},
 		PersonID: personID,
 		Person:   rec,
-	})
+	}
+
+	cons = append(cons, con)
 
 	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
 }
 
-// TODO check idx is valid
 func (app *App) backofficeWorkRemoveContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	var cons []bbl.WorkContributor
 	var idx int
 
-	b := bind.Request(r).Form()
-
-	for _, v := range b.GetAll("work.contributors") {
-		var con bbl.WorkContributor
-		if err := json.Unmarshal([]byte(v), &con); err != nil {
-			return err
-		}
-		cons = append(cons, con)
-	}
-
-	err := b.
+	err := bind.Request(r).Form().
+		JSON("work.contributors", &cons).
 		Int("idx", &idx).
 		Err()
 	if err != nil {
@@ -282,36 +266,37 @@ func (app *App) backofficeWorkRemoveContributor(w http.ResponseWriter, r *http.R
 }
 
 func (app *App) backofficeWorkAddFiles(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
+	var files []bbl.WorkFile
+	var newFiles []bbl.WorkFile
+
+	err := bind.Request(r).Form().
+		JSON("work.files", &files).
+		JSON("files", &newFiles).
+		Err()
 	if err != nil {
 		return err
 	}
 
-	for _, str := range bind.Request(r).Form().GetAll("files") {
-		var f bbl.WorkFile
-		if err := json.Unmarshal([]byte(str), &f); err != nil {
-			return err
-		}
-		rec.Files = append(rec.Files, f)
-	}
+	files = append(files, newFiles...)
 
-	return app.refreshWorkForm(w, r, c, rec)
+	return workviews.RefreshFiles(c.viewCtx(), files).Render(r.Context(), w)
 }
 
 func (app *App) backofficeWorkRemoveFile(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	rec, err := bindWorkState(r, c)
+	var files []bbl.WorkFile
+	var idx int
+
+	err := bind.Request(r).Form().
+		JSON("work.files", &files).
+		Int("idx", &idx).
+		Err()
 	if err != nil {
 		return err
 	}
 
-	var idx int
-	if err := bind.Request(r).Form().Int("idx", &idx).Err(); err != nil {
-		return err
-	}
+	files = slices.Delete(files, idx, idx+1)
 
-	rec.Files = slices.Delete(rec.Files, idx, idx+1)
-
-	return app.refreshWorkForm(w, r, c, rec)
+	return workviews.RefreshFiles(c.viewCtx(), files).Render(r.Context(), w)
 }
 
 func (app *App) backofficeWorkChanges(w http.ResponseWriter, r *http.Request, c *appCtx) error {
@@ -420,9 +405,12 @@ LINES:
 	return workviews.BatchEdit(c.viewCtx(), args).Render(r.Context(), w)
 }
 
+// TODO make method of Work?
 func vacuumWork(rec *bbl.Work) {
 	var identifiers []bbl.Code
 	var titles []bbl.Text
+	var abstracts []bbl.Text
+	var laySummaries []bbl.Text
 	for _, code := range rec.Identifiers {
 		if code.Val != "" {
 			identifiers = append(identifiers, code)
@@ -433,26 +421,20 @@ func vacuumWork(rec *bbl.Work) {
 			titles = append(titles, text)
 		}
 	}
+	for _, text := range rec.Abstracts {
+		if text.Val != "" {
+			abstracts = append(abstracts, text)
+		}
+	}
+	for _, text := range rec.LaySummaries {
+		if text.Val != "" {
+			laySummaries = append(laySummaries, text)
+		}
+	}
 	rec.Identifiers = identifiers
 	rec.Titles = titles
-}
-
-func bindWorkState(r *http.Request, c *appCtx) (*bbl.Work, error) {
-	var recState string
-	var rec bbl.Work
-	if err := bind.Request(r).Form().String("work.state", &recState).Err(); err != nil {
-		return nil, err
-	}
-	if err := c.crypt.DecryptValue(recState, &rec); err != nil {
-		return nil, err
-	}
-	if err := bbl.LoadWorkProfile(&rec); err != nil {
-		return nil, err
-	}
-	if err := bindWorkForm(r, &rec); err != nil {
-		return nil, err
-	}
-	return &rec, nil
+	rec.Abstracts = abstracts
+	rec.LaySummaries = laySummaries
 }
 
 func bindWorkForm(r *http.Request, rec *bbl.Work) error {
@@ -498,6 +480,8 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 			rec.LaySummaries = append(rec.LaySummaries, text)
 			return true
 		}).
+		JSON("work.contributors", &rec.Contributors).
+		JSON("work.files", &rec.Files).
 		StringSlice("work.keywords", &rec.Keywords).
 		String("work.conference.name", &rec.Conference.Name).
 		String("work.conference.organizer", &rec.Conference.Organizer).
@@ -520,13 +504,4 @@ func bindWorkForm(r *http.Request, rec *bbl.Work) error {
 		String("work.series_title", &rec.SeriesTitle).
 		Err()
 	return err
-}
-
-func (app *App) refreshWorkForm(w http.ResponseWriter, r *http.Request, c *appCtx, rec *bbl.Work) error {
-	state, err := c.crypt.EncryptValue(rec)
-	if err != nil {
-		return err
-	}
-
-	return workviews.RefreshForm(c.viewCtx(), rec, state).Render(r.Context(), w)
 }

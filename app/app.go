@@ -346,7 +346,6 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeCreateWork)))
 	mux.Handle("GET /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchEditWorks)))
 	mux.Handle("POST /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchUpdateWorks)))
-	mux.Handle("POST /backoffice/works/_change_kind", userChain.then(wrap(getAppCtx, app.backofficeWorkChangeKind)))
 	mux.Handle("GET /backoffice/works/_suggest_contributors", userChain.then(wrap(getAppCtx, app.backofficeWorkSuggestContributors)))
 	mux.Handle("POST /backoffice/works/_add_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkAddContributor)))
 	mux.Handle("POST /backoffice/works/_remove_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveContributor)))
@@ -356,6 +355,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
 	mux.Handle("GET /backoffice/work/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))
 	mux.Handle("GET /backoffice/work/{id}/edit", userChain.then(wrap(getAppCtx, app.backofficeEditWork)))
+	mux.Handle("POST /backoffice/work/{id}/_change_kind", userChain.then(wrap(getAppCtx, app.backofficeWorkChangeKind)))
 
 	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
 

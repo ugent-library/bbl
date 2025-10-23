@@ -49,18 +49,20 @@ export default function (rootEl) {
 
         // TODO handle res.failed
         uppy.on('complete', (res) => {
-            res.successful.forEach(f => {
-                let inputEl = document.createElement('input');
-                inputEl.type = 'hidden';
-                inputEl.name = 'files';
-                inputEl.value = JSON.stringify({
+            let files = res.successful.map(f => {
+                return {
                     object_id: f.meta.object_id,
                     name: f.name,
                     content_type: f.type,
                     size: f.size,
-                });
-                el.appendChild(inputEl);
+                };
             });
+
+            let inputEl = document.createElement('input');
+            inputEl.type = 'hidden';
+            inputEl.name = 'files';
+            inputEl.value = JSON.stringify(files);
+            el.appendChild(inputEl);
 
             el.dispatchEvent(new Event('files-added'));
         });
