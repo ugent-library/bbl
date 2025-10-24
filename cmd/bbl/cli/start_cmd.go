@@ -65,7 +65,7 @@ var startCmd = &cobra.Command{
 		importWorkTask := workflows.ImportWork(hatchetClient, repo)
 		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
-		tongaGCTask := workflows.TongaGC(hatchetClient, repo.Tonga)
+		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
 
 		log.Printf("centrifuge hmac secret: %s", config.Centrifuge.HMACSecret)
 
@@ -142,7 +142,7 @@ var startCmd = &cobra.Command{
 				case <-groupCtx.Done():
 					return nil
 				default:
-					msgs, err := repo.Tonga.Read(groupCtx, bbl.OutboxQueue, n, hideFor)
+					msgs, err := repo.Catbird.Read(groupCtx, bbl.OutboxQueue, n, hideFor)
 					if err != nil {
 						return err
 					}
@@ -203,7 +203,7 @@ var startCmd = &cobra.Command{
 							return err
 						}
 
-						if _, err := repo.Tonga.Delete(groupCtx, bbl.OutboxQueue, msg.ID); err != nil {
+						if _, err := repo.Catbird.Delete(groupCtx, bbl.OutboxQueue, msg.ID); err != nil {
 							return err
 						}
 					}
@@ -227,7 +227,7 @@ var startCmd = &cobra.Command{
 				importWorkTask,
 				reindexOrganizationsTask,
 				reindexPeopleTask,
-				tongaGCTask,
+				catbirdGCTask,
 			))
 			if err != nil {
 				return fmt.Errorf("failed to create hatchet worker: %w", err)

@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/tonga"
+	"github.com/ugent-library/catbird"
 )
 
 type Conn interface {
@@ -17,25 +17,25 @@ type Conn interface {
 }
 
 type Repo struct {
-	conn  Conn
-	Tonga *tonga.Client
+	conn    Conn
+	Catbird *catbird.Client
 }
 
 func New(ctx context.Context, conn Conn) (*Repo, error) {
-	tongaClient := tonga.New(conn)
+	catbirdClient := catbird.New(conn)
 
-	err := tongaClient.CreateQueue(ctx, bbl.OutboxQueue, []string{
+	err := catbirdClient.CreateQueue(ctx, bbl.OutboxQueue, []string{
 		bbl.OrganizationChangedTopic,
 		bbl.PersonChangedTopic,
 		bbl.ProjectChangedTopic,
 		bbl.WorkChangedTopic,
-	}, tonga.QueueOpts{})
+	}, catbird.QueueOpts{})
 	if err != nil {
 		return nil, err
 	}
 
 	return &Repo{
-		conn:  conn,
-		Tonga: tongaClient,
+		conn:    conn,
+		Catbird: catbirdClient,
 	}, nil
 }

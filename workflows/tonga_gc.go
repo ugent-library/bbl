@@ -2,20 +2,20 @@ package workflows
 
 import (
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
-	"github.com/ugent-library/tonga"
+	"github.com/ugent-library/catbird"
 )
 
-type TongaGCInput struct{}
+type CatbirdGCInput struct{}
 
-type TongaGCOutput struct{}
+type CatbirdGCOutput struct{}
 
-func TongaGC(client *hatchet.Client, tongaClient *tonga.Client) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("tonga_gc", func(ctx hatchet.Context, input TongaGCInput) (TongaGCOutput, error) {
-		out := TongaGCOutput{}
+func CatbirdGC(client *hatchet.Client, catbirdClient *catbird.Client) *hatchet.StandaloneTask {
+	return client.NewStandaloneTask("catbird_gc", func(ctx hatchet.Context, input CatbirdGCInput) (CatbirdGCOutput, error) {
+		out := CatbirdGCOutput{}
 
-		return out, tongaClient.GC(ctx)
+		return out, catbirdClient.GC(ctx)
 	},
 		hatchet.WithWorkflowCron("0 * * * *"),
-		hatchet.WithWorkflowDescription("Hourly tonga queues cleanup"),
+		hatchet.WithWorkflowDescription("Hourly catbird queues cleanup"),
 	)
 }

@@ -9,7 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/tonga"
+	"github.com/ugent-library/catbird"
 )
 
 func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
@@ -21,7 +21,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	}
 	defer tx.Rollback(ctx)
 
-	mq := tonga.New(tx)
+	mq := catbird.New(tx)
 
 	batch := &pgx.Batch{}
 
@@ -84,7 +84,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateOrganization:
@@ -172,7 +172,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Organization.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: a.Organization.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreatePerson:
@@ -215,7 +215,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Person.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdatePerson:
@@ -270,7 +270,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Person.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: a.Person.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateProject:
@@ -313,7 +313,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateProject:
@@ -368,7 +368,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Project.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: a.Project.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.CreateWork:
@@ -452,7 +452,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				revID, a.Work.ID, jsonDiff,
 			)
 
-			if err := tonga.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.Work.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+			if err := catbird.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: a.Work.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.UpdateWork:
@@ -569,7 +569,7 @@ func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new
 	}
 }
 
-func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Client, revID, userID string, rec, currentRec *bbl.Work) error {
+func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Client, revID, userID string, rec, currentRec *bbl.Work) error {
 	if err := lookupWorkContributors(ctx, tx, rec.Contributors); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
@@ -724,7 +724,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *tonga.Clie
 		revID, rec.ID, jsonDiff,
 	)
 
-	if err := tonga.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, tonga.SendOpts{}); err != nil {
+	if err := catbird.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
 

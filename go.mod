@@ -1,6 +1,6 @@
 module github.com/ugent-library/bbl
 
-go 1.25.1
+go 1.25.3
 
 require (
 	github.com/a-h/templ v0.3.943
@@ -27,9 +27,9 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/pretty v1.2.1
 	github.com/tidwall/sjson v1.2.5
+	github.com/ugent-library/catbird v0.0.0-20251024131000-1ace95cf5ae8
 	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9
 	github.com/ugent-library/oidc v0.1.0
-	github.com/ugent-library/tonga v0.0.0-20250416071751-ab5c715b2347
 	github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9
 	go.breu.io/ulid v0.0.2
 	golang.org/x/exp v0.0.0-20251002181428-27f1f14c8bb9

@@ -8,7 +8,7 @@ import (
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
-	"github.com/ugent-library/tonga"
+	"github.com/ugent-library/catbird"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,11 +36,11 @@ func ReindexWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *
 			n := 100
 			hideFor := 10 * time.Second
 
-			queueOpts := tonga.QueueOpts{
+			queueOpts := catbird.QueueOpts{
 				DeleteAt: time.Now().Add(30 * time.Minute),
 				Unlogged: true,
 			}
-			if err := repo.Tonga.CreateQueue(groupCtx, queue, []string{topic}, queueOpts); err != nil {
+			if err := repo.Catbird.CreateQueue(groupCtx, queue, []string{topic}, queueOpts); err != nil {
 				return err
 			}
 
@@ -49,7 +49,7 @@ func ReindexWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *
 				case <-cancelCtx.Done():
 					return nil
 				default:
-					msgs, err := repo.Tonga.Read(groupCtx, queue, n, hideFor)
+					msgs, err := repo.Catbird.Read(groupCtx, queue, n, hideFor)
 					if err != nil {
 						return err
 					}
@@ -68,7 +68,7 @@ func ReindexWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *
 							return err
 						}
 
-						if _, err = repo.Tonga.Delete(groupCtx, queue, msg.ID); err != nil {
+						if _, err = repo.Catbird.Delete(groupCtx, queue, msg.ID); err != nil {
 							return err
 						}
 					}
