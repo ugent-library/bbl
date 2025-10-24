@@ -214,36 +214,47 @@ func (app *App) backofficeWorkAddContributorSuggest(w http.ResponseWriter, r *ht
 // TODO should be backofficeWorkCreateContributor
 func (app *App) backofficeWorkAddContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	var cons []bbl.WorkContributor
-	var creditRoles []string
 	var personID string
+	var name string
+	var creditRoles []string
 
 	err := bind.Request(r).Form().
 		JSON("work.contributors", &cons).
-		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
+		String("name", &name).
+		StringSlice("credit_roles", &creditRoles).
 		Err()
 	if err != nil {
 		return err
 	}
 
-	for _, con := range cons {
-		if con.PersonID == personID {
-			return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
+	if personID != "" {
+		for _, con := range cons {
+			if con.PersonID == personID {
+				return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
+			}
 		}
-	}
 
-	rec, err := app.repo.GetPerson(r.Context(), personID)
-	if err != nil {
-		return err
-	}
+		rec, err := app.repo.GetPerson(r.Context(), personID)
+		if err != nil {
+			return err
+		}
 
-	cons = append(cons, bbl.WorkContributor{
-		WorkContributorAttrs: bbl.WorkContributorAttrs{
-			CreditRoles: creditRoles,
-		},
-		PersonID: personID,
-		Person:   rec,
-	})
+		cons = append(cons, bbl.WorkContributor{
+			WorkContributorAttrs: bbl.WorkContributorAttrs{
+				CreditRoles: creditRoles,
+			},
+			PersonID: personID,
+			Person:   rec,
+		})
+	} else {
+		cons = append(cons, bbl.WorkContributor{
+			WorkContributorAttrs: bbl.WorkContributorAttrs{
+				Name:        name,
+				CreditRoles: creditRoles,
+			},
+		})
+	}
 
 	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)
 }
@@ -287,8 +298,9 @@ func (app *App) backofficeWorkEditContributorSuggest(w http.ResponseWriter, r *h
 
 func (app *App) backofficeWorkUpdateContributor(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	var cons []bbl.WorkContributor
-	var creditRoles []string
 	var personID string
+	var name string
+	var creditRoles []string
 
 	idx, err := strconv.Atoi(r.PathValue("idx"))
 	if err != nil {
@@ -297,24 +309,34 @@ func (app *App) backofficeWorkUpdateContributor(w http.ResponseWriter, r *http.R
 
 	err = bind.Request(r).Form().
 		JSON("work.contributors", &cons).
-		StringSlice("credit_roles", &creditRoles).
 		String("person_id", &personID).
+		String("name", &name).
+		StringSlice("credit_roles", &creditRoles).
 		Err()
 	if err != nil {
 		return err
 	}
 
-	rec, err := app.repo.GetPerson(r.Context(), personID)
-	if err != nil {
-		return err
-	}
+	if personID != "" {
+		rec, err := app.repo.GetPerson(r.Context(), personID)
+		if err != nil {
+			return err
+		}
 
-	cons[idx] = bbl.WorkContributor{
-		WorkContributorAttrs: bbl.WorkContributorAttrs{
-			CreditRoles: creditRoles,
-		},
-		PersonID: personID,
-		Person:   rec,
+		cons[idx] = bbl.WorkContributor{
+			WorkContributorAttrs: bbl.WorkContributorAttrs{
+				CreditRoles: creditRoles,
+			},
+			PersonID: personID,
+			Person:   rec,
+		}
+	} else {
+		cons[idx] = bbl.WorkContributor{
+			WorkContributorAttrs: bbl.WorkContributorAttrs{
+				Name:        name,
+				CreditRoles: creditRoles,
+			},
+		}
 	}
 
 	return workviews.RefreshContributors(c.viewCtx(), cons).Render(r.Context(), w)

@@ -584,18 +584,28 @@ templ contributorsList(c views.Ctx, cons []bbl.WorkContributor) {
 templ contributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 	<li class="list-group-item" id={ fmt.Sprintf("work-contributor-%d", idx) }>
 		<div class="bc-avatar-and-text align-items-start">
-			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-				<i class="if if-ghent-university"></i>
-			</div>
+			if con.PersonID != "" {
+				<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+					<i class="if if-ghent-university"></i>
+				</div>
+			} else {
+				<div class="bc-avatar bc-avatar--muted">
+					<i class="if if-external-link"></i>
+				</div>
+			}
 			<div class="bc-avatar-text">
 				<div class="hstack-md-responsive gap-3 gap-lg-4">
 					<div class="vstack gap-3">
 						<h4 class="mb-0">{ con.GetName() }</h4>
 						<ul class="c-meta-list c-meta-list-horizontal">
-							<li class="c-meta-item">
-								<i class="if if-ghent-university if--small if--muted"></i>
-								<span class="text-muted">UGent</span>
-							</li>
+							if con.PersonID != "" {
+								<li class="c-meta-item">
+									<i class="if if-ghent-university if--small if--muted"></i>
+									<span class="text-muted">UGent</span>
+								</li>
+							} else {
+								<li class="c-meta-item">External, non-UGent</li>
+							}
 							for _, role := range con.CreditRoles {
 								<li class="c-meta-item">
 									<span class="text-muted">{ role }</span>
@@ -643,18 +653,28 @@ templ modalContributorsList(c views.Ctx, cons []bbl.WorkContributor) {
 templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 	<li class="list-group-item" id={ fmt.Sprintf("modal-work-contributor-%d", idx) }>
 		<div class="bc-avatar-and-text align-items-start">
-			<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
-				<i class="if if-ghent-university"></i>
-			</div>
+			if con.PersonID != "" {
+				<div class="bc-avatar mt-3 bc-avatar--light-blue" data-avatar-item="data-avatar-item">
+					<i class="if if-ghent-university"></i>
+				</div>
+			} else {
+				<div class="bc-avatar bc-avatar--muted">
+					<i class="if if-external-link"></i>
+				</div>
+			}
 			<div class="bc-avatar-text">
 				<div class="hstack-md-responsive gap-3 gap-lg-4">
 					<div class="vstack gap-3">
 						<h4 class="mb-0">{ con.GetName() }</h4>
 						<ul class="c-meta-list c-meta-list-horizontal">
-							<li class="c-meta-item">
-								<i class="if if-ghent-university if--small if--muted"></i>
-								<span class="text-muted">UGent</span>
-							</li>
+							if con.PersonID != "" {
+								<li class="c-meta-item">
+									<i class="if if-ghent-university if--small if--muted"></i>
+									<span class="text-muted">UGent</span>
+								</li>
+							} else {
+								<li class="c-meta-item">External, non-UGent</li>
+							}
 							for _, role := range con.CreditRoles {
 								<li class="c-meta-item">
 									<span class="text-muted">{ role }</span>
@@ -694,7 +714,7 @@ templ modalContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 
 type contributorFormArgs struct {
 	Query string
-	URL string
+	URL   string
 }
 
 templ contributorForm(c views.Ctx, args contributorFormArgs) {
@@ -733,17 +753,47 @@ templ addContributorForm(c views.Ctx) {
 templ editContributorForm(c views.Ctx, con bbl.WorkContributor, idx int) {
 	@contributorForm(c, contributorFormArgs{
 		Query: con.GetName(),
-		URL: urls.BackofficeWorkEditContributorSuggest(idx),
+		URL:   urls.BackofficeWorkEditContributorSuggest(idx),
 	})
 }
 
 type contributorSuggestArgs struct {
 	Hits *bbl.RecHits[*bbl.Person]
-	URL string
+	URL  string
 }
 
 templ contributorSuggest(c views.Ctx, args contributorSuggestArgs) {
 	<ul class="list-group">
+		<li class="list-group-item">
+			<div class="list-group-item-inner">
+				<div class="list-group-item-main">
+					<div class="bc-avatar-and-text align-items-start">
+						<div class="bc-avatar bc-avatar--muted">
+							<i class="if if-external-link"></i>
+						</div>
+						<div class="bc-avatar-text">
+							<h4>{ args.Hits.Opts.Query }</h4>
+							<ul class="c-meta-list c-meta-list-horizontal">
+								<li class="c-meta-item">External, non-UGent</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="c-button-toolbar">
+					<button
+						class="btn btn-secondary"
+						type="button"
+						hx-post={ args.URL }
+						hx-swap="none"
+						hx-vals={ fmt.Sprintf(`{"name": "%s"}`, args.Hits.Opts.Query) }
+						hx-include="[name='work.contributors']"
+					>
+						Select
+						<i class="if if-arrow-right"></i>
+					</button>
+				</div>
+			</div>
+		</li>
 		for _, hit := range args.Hits.Hits {
 			<li class="list-group-item">
 				<div class="list-group-item-inner">
@@ -779,7 +829,7 @@ templ contributorSuggest(c views.Ctx, args contributorSuggestArgs) {
 templ AddContributorSuggest(c views.Ctx, hits *bbl.RecHits[*bbl.Person]) {
 	@contributorSuggest(c, contributorSuggestArgs{
 		Hits: hits,
-		URL: urls.BackofficeWorkAddContributor(),
+		URL:  urls.BackofficeWorkAddContributor(),
 	})
 }
 
@@ -792,7 +842,7 @@ templ EditContributor(c views.Ctx, con bbl.WorkContributor, idx int) {
 templ EditContributorSuggest(c views.Ctx, hits *bbl.RecHits[*bbl.Person], idx int) {
 	@contributorSuggest(c, contributorSuggestArgs{
 		Hits: hits,
-		URL: urls.BackofficeWorkUpdateContributor(idx),
+		URL:  urls.BackofficeWorkUpdateContributor(idx),
 	})
 }
 
