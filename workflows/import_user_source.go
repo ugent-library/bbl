@@ -19,19 +19,21 @@ func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 	return client.NewStandaloneTask("import_user_source", func(ctx hatchet.Context, input ImportUserSourceInput) (ImportUserSourceOutput, error) {
 		us := bbl.GetUserSource(input.Source)
 
-		seq, finish := us.Iter(ctx)
+		var err error
+
+		seq := us.Iter(ctx, &err)
 
 		out := ImportUserSourceOutput{}
 
 		for rec := range seq {
-			if err := repo.SaveUser(ctx, rec); err != nil {
+			if err = repo.SaveUser(ctx, rec); err != nil {
 				return out, err
 			} else {
 				out.Imported++
 			}
 		}
 
-		return out, finish()
+		return out, err
 	},
 		hatchet.WithWorkflowConcurrency(types.Concurrency{
 			Expression:    "input.source",

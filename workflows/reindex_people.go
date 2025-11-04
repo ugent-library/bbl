@@ -84,13 +84,11 @@ func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) 
 			defer cancel()
 
 			var err error
-
 			for rec := range repo.PeopleIter(groupCtx, &err) {
 				if err = switcher.Add(groupCtx, rec); err != nil {
 					return err
 				}
 			}
-
 			if err != nil {
 				return err
 			}

@@ -38,21 +38,17 @@ func (us *UserSource) MatchIdentifierScheme() string {
 	return us.config.MatchIdentifierScheme
 }
 
-func (us *UserSource) Iter(ctx context.Context) (iter.Seq[*bbl.User], func() error) {
-	var iterErr error
-
-	finish := func() error { return iterErr }
-
+func (us *UserSource) Iter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
 	seq := func(yield func(*bbl.User) bool) {
 		conn, err := ldap.DialURL(us.config.URL)
 		if err != nil {
-			iterErr = err
+			*errPtr = err
 			return
 		}
 		defer conn.Close()
 
 		if err = conn.Bind(us.config.Username, us.config.Password); err != nil {
-			iterErr = err
+			*errPtr = err
 			return
 		}
 
@@ -78,7 +74,7 @@ func (us *UserSource) Iter(ctx context.Context) (iter.Seq[*bbl.User], func() err
 
 			user, err := us.config.MappingFunc(attrs)
 			if err != nil {
-				iterErr = err
+				*errPtr = err
 				return
 			}
 			if !yield(user) {
@@ -87,5 +83,5 @@ func (us *UserSource) Iter(ctx context.Context) (iter.Seq[*bbl.User], func() err
 		}
 	}
 
-	return seq, finish
+	return seq
 }

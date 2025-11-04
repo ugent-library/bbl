@@ -35,6 +35,16 @@ create table bbl_user_proxies (
 create index on bbl_user_proxies (user_id); -- TODO probably not needed
 create index on bbl_user_proxies (proxy_user_id);
 
+create table bbl_subscriptions (
+  id uuid primary key,
+  user_id uuid not null references bbl_users (id) on delete cascade,
+  topic text not null,
+  webhook_url text not null
+);
+
+create index on bbl_subscriptions (user_id);
+create index on bbl_subscriptions (topic);
+
 create table bbl_organizations (
   id uuid primary key,
   version int not null,
@@ -306,6 +316,7 @@ drop table bbl_work_representations cascade;
 drop table bbl_work_identifiers cascade;
 drop table bbl_work_rels cascade;
 drop table bbl_works cascade;
+drop table bbl_subscriptions cascade;
 drop table bbl_user_proxies cascade;
 drop table bbl_user_identifiers cascade;
 drop table bbl_users cascade;

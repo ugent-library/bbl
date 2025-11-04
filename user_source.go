@@ -10,7 +10,7 @@ import (
 type UserSource interface {
 	Interval() time.Duration
 	MatchIdentifierScheme() string
-	Iter(context.Context) (iter.Seq[*User], func() error)
+	Iter(context.Context, *error) iter.Seq[*User]
 }
 
 var userSources = map[string]UserSource{}

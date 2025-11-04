@@ -59,13 +59,14 @@ var startCmd = &cobra.Command{
 		}
 
 		addWorkRepresentationsTask := workflows.AddWorkRepresentations(hatchetClient, repo, index)
+		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
 		exportWorksTask := workflows.ExportWorks(hatchetClient, store, index, centrifugeClient)
 		importUserSourceTask := workflows.ImportUserSource(hatchetClient, repo)
 		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
 		importWorkTask := workflows.ImportWork(hatchetClient, repo)
+		notifySubscribersTask := workflows.NotifySubscribers(hatchetClient, repo)
 		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
-		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
 
 		log.Printf("centrifuge hmac secret: %s", config.Centrifuge.HMACSecret)
 
@@ -199,7 +200,7 @@ var startCmd = &cobra.Command{
 							}
 						}
 
-						if err := hatchetClient.Events().Push(groupCtx, msg.Topic, msg.Payload); err != nil {
+						if err := hatchetClient.Events().Push(groupCtx, msg.Topic, msg); err != nil {
 							return err
 						}
 
@@ -221,13 +222,14 @@ var startCmd = &cobra.Command{
 			logger.Info("starting hatchet worker")
 			worker, err := hatchetClient.NewWorker("worker", hatchet.WithWorkflows(
 				addWorkRepresentationsTask,
+				catbirdGCTask,
 				exportWorksTask,
 				importUserSourceTask,
 				importWorkSourceTask,
 				importWorkTask,
+				notifySubscribersTask,
 				reindexOrganizationsTask,
 				reindexPeopleTask,
-				catbirdGCTask,
 			))
 			if err != nil {
 				return fmt.Errorf("failed to create hatchet worker: %w", err)

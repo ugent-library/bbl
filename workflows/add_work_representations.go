@@ -8,7 +8,7 @@ import (
 )
 
 type AddWorkRepresentationsInput struct {
-	ID string `json:"id"`
+	Payload bbl.RecordChangedPayload `json:"payload"`
 }
 
 type AddWorkRepresentationsOutput struct {
@@ -19,7 +19,7 @@ func AddWorkRepresentations(client *hatchet.Client, repo *pgxrepo.Repo, index bb
 	return client.NewStandaloneTask("add_work_representations", func(ctx hatchet.Context, input AddWorkRepresentationsInput) (AddWorkRepresentationsOutput, error) {
 		out := AddWorkRepresentationsOutput{}
 
-		rec, err := repo.GetWork(ctx, input.ID)
+		rec, err := repo.GetWork(ctx, input.Payload.ID)
 		if err != nil {
 			return out, err
 		}

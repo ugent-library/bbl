@@ -16,7 +16,6 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 	return getUser(ctx, r.conn, id)
 }
 
-// TODO use func() error instead of error pointer
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
 	q := `select ` + userCols + ` from bbl_users_view u;`
 
