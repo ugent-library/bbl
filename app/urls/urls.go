@@ -58,6 +58,9 @@ func BackofficeWorks(scope string, opts *bbl.SearchOpts) string {
 			params.Add("cursor", fmt.Sprint(opts.From))
 		}
 	}
+	if len(params) > 0 {
+		return "/backoffice/works?" + params.Encode()
+	}
 	return "/backoffice/works"
 }
 

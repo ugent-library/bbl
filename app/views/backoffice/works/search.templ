@@ -10,14 +10,16 @@ import (
 )
 
 templ Suggest(c views.Ctx, hits *bbl.CompletionHits) {
-	<ul>
+	<ul class="list-group">
 		for _, h := range hits.Hits {
-			<li>
-				if h.Highlight.Completion != "" {
-					@templ.Raw(h.Highlight.Completion)
-				} else {
-					{ h.Completion }
-				}
+			<li class="list-group-item">
+				<a href={ urls.BackofficeWorks("", &bbl.SearchOpts{Query: h.Completion}) }>
+					if h.Highlight.Completion != "" {
+						@templ.Raw(h.Highlight.Completion)
+					} else {
+						{ h.Completion }
+					}
+				</a>
 			</li>
 		}
 	</ul>

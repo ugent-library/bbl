@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"log"
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -89,9 +88,6 @@ func (idx *completionIndex) Search(ctx context.Context, q string) (*bbl.Completi
 	if err != nil {
 		return nil, err
 	}
-
-	j, _ := json.MarshalIndent(res, "  ", "")
-	log.Printf("res: %s", j)
 
 	hits := &bbl.CompletionHits{
 		Hits: make([]bbl.CompletionHit, len(res.Hits.Hits)),
