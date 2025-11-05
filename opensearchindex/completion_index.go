@@ -61,14 +61,8 @@ func (idx *completionIndex) Search(ctx context.Context, q string) (*bbl.Completi
 
 	body := `{
 		"query": {
-			"multi_match": {
-				"query": "` + jQ + `",
-				"type": "bool_prefix",
-				"fields": [
-					"completion",
-					"completion._2gram",
-					"completion._3gram"
-				]
+			"match_phrase_prefix": {
+				"completion": "` + jQ + `"
 			}
 		},
 		"size": 10,

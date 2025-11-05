@@ -1,6 +1,5 @@
 {
-  "settings": {
-  },
+  "settings": {},
   "mappings": {
     "dynamic": "false",
     "properties": {
