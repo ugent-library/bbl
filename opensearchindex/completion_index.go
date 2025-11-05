@@ -46,8 +46,7 @@ func (idx *completionIndex) NewSwitcher(ctx context.Context) (bbl.IndexSwitcher[
 		Retention:     1,
 		ToItem: func(completion string) opensearchswitcher.Item {
 			return opensearchswitcher.Item{
-				Doc:     completionDoc{completion},
-				Version: 1, // TODO no version needed
+				Doc: completionDoc{completion},
 			}
 		},
 	})

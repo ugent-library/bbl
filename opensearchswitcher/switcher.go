@@ -101,17 +101,21 @@ func (switcher Switcher[T]) Add(ctx context.Context, t T) error {
 		return err
 	}
 
-	return switcher.bulkIndexer.Add(ctx, opensearchutil.BulkIndexerItem{
-		Action:      "index",
-		DocumentID:  item.ID,
-		Version:     &item.Version,
-		VersionType: &versionType,
-		Body:        bytes.NewReader(b),
+	biItem := opensearchutil.BulkIndexerItem{
+		Action:     "index",
+		DocumentID: item.ID,
+		Body:       bytes.NewReader(b),
 		// TODO make configurable
 		OnFailure: func(_ context.Context, biItem opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
 			log.Printf("error indexing %s: %s", biItem.DocumentID, err)
 		},
-	})
+	}
+	if item.Version != 0 {
+		biItem.Version = &item.Version
+		biItem.VersionType = &versionType
+	}
+
+	return switcher.bulkIndexer.Add(ctx, biItem)
 }
 
 func (switcher Switcher[T]) Switch(ctx context.Context) error {
