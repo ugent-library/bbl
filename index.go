@@ -10,18 +10,49 @@ type Index interface {
 	People() RecIndex[*Person]
 	Projects() RecIndex[*Project]
 	Works() RecIndex[*Work]
+	WorkSearches() CompletionIndex
+}
+
+type IndexSwitcher[T any] interface {
+	Add(context.Context, T) error
+	Switch(context.Context) error
 }
 
 type RecIndex[T Rec] interface {
 	Add(context.Context, T) error
 	Get(context.Context, string) (T, error)
 	Search(context.Context, *SearchOpts) (*RecHits[T], error)
-	NewSwitcher(context.Context) (RecIndexSwitcher[T], error)
+	NewSwitcher(context.Context) (IndexSwitcher[T], error)
 }
 
-type RecIndexSwitcher[T Rec] interface {
-	Add(context.Context, T) error
-	Switch(context.Context) error
+type RecHits[T Rec] struct {
+	Opts   *SearchOpts `json:"-"`
+	Hits   []RecHit[T] `json:"hits"`
+	Total  int         `json:"total"`
+	Cursor string      `json:"cursor,omitempty"`
+	Facets []Facet     `json:"facets,omitempty"`
+}
+
+type RecHit[T Rec] struct {
+	Rec T `json:"rec"`
+}
+
+type CompletionIndex interface {
+	Search(context.Context, string) (*CompletionHits, error)
+	NewSwitcher(context.Context) (IndexSwitcher[string], error)
+}
+
+type CompletionHits struct {
+	Hits []CompletionHit `json:"hits"`
+}
+
+type CompletionHit struct {
+	Completion string              `json:"completion"`
+	Highlight  CompletionHighlight `json:"highlight"`
+}
+
+type CompletionHighlight struct {
+	Completion string `json:"completion"`
 }
 
 // TODO make a subfield only containing the query, filter, size (export context etc)?
@@ -45,14 +76,6 @@ func (s *SearchOpts) AddTermsFilter(field string, terms ...string) *SearchOpts {
 	return s
 }
 
-type RecHits[T Rec] struct {
-	Opts   *SearchOpts `json:"-"`
-	Hits   []RecHit[T] `json:"hits"`
-	Total  int         `json:"total"`
-	Cursor string      `json:"cursor,omitempty"`
-	Facets []Facet     `json:"facets,omitempty"`
-}
-
 type Facet struct {
 	Name string       `json:"name"`
 	Vals []FacetValue `json:"vals"`
@@ -61,10 +84,6 @@ type Facet struct {
 type FacetValue struct {
 	Val   string `json:"val"`
 	Count int    `json:"count"`
-}
-
-type RecHit[T any] struct {
-	Rec T `json:"rec"`
 }
 
 func SearchIter[T Rec](ctx context.Context, index RecIndex[T], opts *SearchOpts, errPtr *error) iter.Seq[T] {

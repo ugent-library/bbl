@@ -9,6 +9,20 @@ import (
 	"github.com/ugent-library/bbl/pagination"
 )
 
+templ Suggest(c views.Ctx, hits *bbl.CompletionHits) {
+	<ul>
+		for _, h := range hits.Hits {
+			<li>
+				if h.Highlight.Completion != "" {
+					@templ.Raw(h.Highlight.Completion)
+				} else {
+					{ h.Completion }
+				}
+			</li>
+		}
+	</ul>
+}
+
 templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 	{{ pager := pagination.New(hits.Opts.Size, hits.Opts.From, hits.Total) }}
 	@backoffice.Page(c, "Overview works") {
@@ -60,13 +74,24 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 						<div class="col">
 							<div class="input-group flex-nowrap">
 								<label class="visually-hidden" for="search">Search</label>
-								<input class="form-control" type="search" name="q" placeholder="Search..." value={ hits.Opts.Query }/>
+								<input
+									class="form-control"
+									type="search"
+									name="q"
+									placeholder="Search..."
+									value={ hits.Opts.Query }
+									autocomplete="off"
+									hx-get={ urls.BackofficeWorksSuggest() }
+									hx-trigger="input changed delay:500ms"
+									hx-target="#suggestions"
+								/>
 								<button class="btn btn-outline-primary" type="submit">
 									<i class="if if-search"></i>
 									<div class="btn-text">Search</div>
 								</button>
 							</div>
 						</div>
+						<div id="suggestions"></div>
 					</div>
 				</form>
 				<div class="d-flex flex-wrap mb-6">

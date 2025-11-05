@@ -63,7 +63,7 @@ services:
         mc mb docker/bbl --ignore-existing;
 
   opensearch-node1:
-    image: opensearchproject/opensearch:2.19.1
+    image: opensearchproject/opensearch:3.3.2
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
@@ -93,7 +93,7 @@ services:
       start_period: 10s
 
   opensearch-node2:
-    image: opensearchproject/opensearch:2.19.1
+    image: opensearchproject/opensearch:3.3.2
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node2

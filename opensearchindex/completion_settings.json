@@ -1,0 +1,12 @@
+{
+  "settings": {
+  },
+  "mappings": {
+    "dynamic": "false",
+    "properties": {
+      "completion": {
+        "type": "search_as_you_type"
+      }
+    }
+  }
+}

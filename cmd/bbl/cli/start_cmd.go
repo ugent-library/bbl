@@ -67,6 +67,8 @@ var startCmd = &cobra.Command{
 		notifySubscribersTask := workflows.NotifySubscribers(hatchetClient, repo)
 		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
+		reindexWorksTask := workflows.ReindexWorks(hatchetClient, repo, index)
+		reindexWorkSearchesTask := workflows.ReindexWorkSearches(hatchetClient, repo, index)
 
 		log.Printf("centrifuge hmac secret: %s", config.Centrifuge.HMACSecret)
 
@@ -230,6 +232,8 @@ var startCmd = &cobra.Command{
 				notifySubscribersTask,
 				reindexOrganizationsTask,
 				reindexPeopleTask,
+				reindexWorksTask,
+				reindexWorkSearchesTask,
 			))
 			if err != nil {
 				return fmt.Errorf("failed to create hatchet worker: %w", err)

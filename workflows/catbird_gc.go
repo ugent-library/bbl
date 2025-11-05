@@ -15,7 +15,6 @@ func CatbirdGC(client *hatchet.Client, catbirdClient *catbird.Client) *hatchet.S
 
 		return out, catbirdClient.GC(ctx)
 	},
-		hatchet.WithWorkflowCron("0 * * * *"),
-		hatchet.WithWorkflowDescription("Hourly catbird queues cleanup"),
+		hatchet.WithCron("0 * * * *"),
 	)
 }

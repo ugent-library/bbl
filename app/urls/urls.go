@@ -61,6 +61,10 @@ func BackofficeWorks(scope string, opts *bbl.SearchOpts) string {
 	return "/backoffice/works"
 }
 
+func BackofficeWorksSuggest() string {
+	return "/backoffice/works/_suggest"
+}
+
 func BackofficeExportWorks(format string) string {
 	return "/backoffice/works/export/" + url.PathEscape(format)
 }

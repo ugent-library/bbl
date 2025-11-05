@@ -65,7 +65,25 @@ func (app *App) backofficeWorks(w http.ResponseWriter, r *http.Request, c *appCt
 		return err
 	}
 
+	// log search queries
+	if hits.Opts.Query != "" && hits.Opts.Cursor == "" && hits.Opts.From == 0 && hits.Total > 0 {
+		if err := app.repo.AddWorkSearch(r.Context(), hits.Opts.Query); err != nil {
+			return err
+		}
+	}
+
 	return workviews.Search(c.viewCtx(), scope, hits).Render(r.Context(), w)
+}
+
+func (app *App) backofficeWorksSuggest(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	q := r.URL.Query().Get("q")
+
+	hits, err := app.index.WorkSearches().Search(r.Context(), q)
+	if err != nil {
+		return err
+	}
+
+	return workviews.Suggest(c.viewCtx(), hits).Render(r.Context(), w)
 }
 
 func (app *App) backofficeExportWorks(w http.ResponseWriter, r *http.Request, c *appCtx) error {
