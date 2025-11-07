@@ -17,7 +17,6 @@ type Index struct {
 	peopleIndex        *recIndex[*bbl.Person]
 	projectsIndex      *recIndex[*bbl.Project]
 	worksIndex         *recIndex[*bbl.Work]
-	workSearchesIndex  *completionIndex
 }
 
 func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
@@ -38,17 +37,11 @@ func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
 		return nil, err
 	}
 
-	workSearchesindex, err := newCompletionIndex(ctx, client, "bbl_work_searches")
-	if err != nil {
-		return nil, err
-	}
-
 	return &Index{
 		organizationsIndex: organizationsIndex,
 		peopleIndex:        peopleIndex,
 		projectsIndex:      projectsIndex,
 		worksIndex:         worksIndex,
-		workSearchesIndex:  workSearchesindex,
 	}, nil
 }
 
@@ -66,8 +59,4 @@ func (idx *Index) Projects() bbl.RecIndex[*bbl.Project] {
 
 func (idx *Index) Works() bbl.RecIndex[*bbl.Work] {
 	return idx.worksIndex
-}
-
-func (idx *Index) WorkSearches() bbl.CompletionIndex {
-	return idx.workSearchesIndex
 }

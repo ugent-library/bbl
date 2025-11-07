@@ -23,20 +23,20 @@ type completionIndex struct {
 	alias  string
 }
 
-func newCompletionIndex(
-	ctx context.Context,
-	client *opensearchapi.Client,
-	alias string,
-) (*completionIndex, error) {
-	if err := opensearchswitcher.Init(ctx, client, alias, strings.NewReader(completionSettings), 1); err != nil {
-		return nil, err
-	}
+// func newCompletionIndex(
+// 	ctx context.Context,
+// 	client *opensearchapi.Client,
+// 	alias string,
+// ) (*completionIndex, error) {
+// 	if err := opensearchswitcher.Init(ctx, client, alias, strings.NewReader(completionSettings), 1); err != nil {
+// 		return nil, err
+// 	}
 
-	return &completionIndex{
-		client: client,
-		alias:  alias,
-	}, nil
-}
+// 	return &completionIndex{
+// 		client: client,
+// 		alias:  alias,
+// 	}, nil
+// }
 
 func (idx *completionIndex) NewSwitcher(ctx context.Context) (bbl.IndexSwitcher[string], error) {
 	return opensearchswitcher.New(ctx, opensearchswitcher.Config[string]{

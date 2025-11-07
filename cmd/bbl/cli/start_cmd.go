@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -68,9 +67,6 @@ var startCmd = &cobra.Command{
 		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
 		reindexWorksTask := workflows.ReindexWorks(hatchetClient, repo, index)
-		reindexWorkSearchesTask := workflows.ReindexWorkSearches(hatchetClient, repo, index)
-
-		log.Printf("centrifuge hmac secret: %s", config.Centrifuge.HMACSecret)
 
 		handler, err := app.NewApp(
 			config.BaseURL,
@@ -233,7 +229,6 @@ var startCmd = &cobra.Command{
 				reindexOrganizationsTask,
 				reindexPeopleTask,
 				reindexWorksTask,
-				reindexWorkSearchesTask,
 			))
 			if err != nil {
 				return fmt.Errorf("failed to create hatchet worker: %w", err)

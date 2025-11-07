@@ -9,7 +9,7 @@ import (
 )
 
 func (r *Repo) TopicSubscriptionsIter(ctx context.Context, topic string, errPtr *error) iter.Seq[*bbl.Subscription] {
-	q := `select ` + subscriptionCols + ` from bbl_subscriptions s where s.topic = $1;`
+	q := `SELECT ` + subscriptionCols + ` FROM bbl_subscriptions s WHERE s.topic = $1;`
 
 	return func(yield func(*bbl.Subscription) bool) {
 		rows, err := r.conn.Query(ctx, q, topic)

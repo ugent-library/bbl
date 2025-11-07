@@ -10,7 +10,6 @@ type Index interface {
 	People() RecIndex[*Person]
 	Projects() RecIndex[*Project]
 	Works() RecIndex[*Work]
-	WorkSearches() CompletionIndex
 }
 
 type IndexSwitcher[T any] interface {
