@@ -1,322 +1,328 @@
 -- +goose up
 
-create extension if not exists citext; -- TODO use collation instead
+CREATE COLLATION bbl_case_insensitive (
+  provider = icu,
+  locale = 'und-u-ks-level2',
+  deterministic = false
+);
 
-create table bbl_users (
-  id uuid primary key,
-  username text not null unique,
-  email citext not null unique,
-  name text not null,
-  role text not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp(),
+CREATE TABLE bbl_users (
+  id uuid PRIMARY KEY,
+  username text NOT NULL UNIQUE,
+  email text NOT NULL UNIQUE COLLATE bbl_case_insensitive,
+  name text NOT NULL,
+  role text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   deactivate_at timestamptz
 );
 
-create table bbl_user_identifiers (
-  user_id uuid not null references bbl_users (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  primary key (user_id, idx),
-  unique (scheme, val)
+CREATE TABLE BBL_USER_IDENTIFIERS (
+  user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  scheme text NOT NULL,
+  val text NOT NULL,
+  PRIMARY KEY (user_id, idx),
+  UNIQUE (scheme, val)
 );
 
--- TODO is this necessary?
-create index on bbl_user_identifiers (user_id);
+-- TODO IS this necessary?
+CREATE INDEX ON bbl_user_identifiers (user_id);
 
-create table bbl_user_proxies (
-  user_id uuid not null references bbl_users (id) on delete cascade,
-  proxy_user_id uuid not null references bbl_users (id) on delete cascade,
-  primary key (user_id, proxy_user_id),
-  check (user_id <> proxy_user_id)
+CREATE TABLE bbl_user_proxies (
+  user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+  proxy_user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, proxy_user_id),
+  CHECK (user_id <> proxy_user_id)
 );
 
-create index on bbl_user_proxies (user_id); -- TODO probably not needed
-create index on bbl_user_proxies (proxy_user_id);
+CREATE INDEX ON bbl_user_proxies (user_id); -- TODO probably not needed
+CREATE INDEX ON bbl_user_proxies (proxy_user_id);
 
-create table bbl_subscriptions (
-  id uuid primary key,
-  user_id uuid not null references bbl_users (id) on delete cascade,
-  topic text not null,
-  webhook_url text not null
+CREATE TABLE bbl_subscriptions (
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+  topic text NOT NULL,
+  webhook_url text NOT NULL
 );
 
-create index on bbl_subscriptions (user_id);
-create index on bbl_subscriptions (topic);
+CREATE INDEX ON bbl_subscriptions (user_id);
+CREATE INDEX ON bbl_subscriptions (topic);
 
-create table bbl_organizations (
-  id uuid primary key,
-  version int not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp(),
-  created_by_id uuid references bbl_users (id) on delete set null,
-  updated_by_id uuid references bbl_users (id) on delete set null,
-  kind text not null,
-  attrs jsonb not null default '{}'
+CREATE TABLE bbl_organizations (
+  id uuid PRIMARY KEY,
+  version int NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  kind text NOT NULL,
+  attrs jsonb NOT NULL DEFAULT '{}'
 );
 
-create table bbl_organization_identifiers (
-  organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  uniq boolean not null,
-  primary key (organization_id, idx)
-);
-
--- TODO are these all necessary?
-create index on bbl_organization_identifiers (organization_id);
-create unique index on bbl_organization_identifiers (scheme, val) where uniq is true;
-create index on bbl_organization_identifiers (scheme, val);
-create index on bbl_organization_identifiers (uniq);
-
-create table bbl_organization_rels (
-  organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  idx int not null,
-  kind text not null,
-  rel_organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  primary key (organization_id, idx),
-  check (organization_id <> rel_organization_id)
-);
-
-create index on bbl_organization_rels (organization_id); -- TODO probably not needed
-create index on bbl_organization_rels (rel_organization_id);
-
-create table bbl_people (
-  id uuid primary key,
-  version int not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp(),
-  created_by_id uuid references bbl_users (id) on delete set null,
-  updated_by_id uuid references bbl_users (id) on delete set null,
-  attrs jsonb not null default '{}'
-);
-
-create table bbl_person_identifiers (
-  person_id uuid not null references bbl_people (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  uniq boolean not null,
-  primary key (person_id, idx)
+CREATE TABLE bbl_organization_identifiers (
+  organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  scheme text NOT NULL,
+  val text NOT NULL,
+  uniq boolean NOT NULL,
+  PRIMARY KEY (organization_id, idx)
 );
 
 -- TODO are these all necessary?
-create index on bbl_person_identifiers (person_id);
-create unique index on bbl_person_identifiers (scheme, val) where uniq is true;
-create index on bbl_person_identifiers (scheme, val);
-create index on bbl_person_identifiers (uniq);
+CREATE INDEX ON bbl_organization_identifiers (organization_id);
+CREATE UNIQUE INDEX ON bbl_organization_identifiers (scheme, val) WHERE uniq IS TRUE;
+CREATE INDEX ON bbl_organization_identifiers (scheme, val);
+CREATE INDEX ON bbl_organization_identifiers (uniq);
 
-create table bbl_person_organizations (
-  person_id uuid not null references bbl_people (id) on delete cascade,
-  idx int not null,
-  organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  primary key (person_id, idx)
+CREATE TABLE bbl_organization_rels (
+  organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  kind text NOT NULL,
+  rel_organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  PRIMARY KEY (organization_id, idx),
+  CHECK (organization_id <> rel_organization_id)
 );
 
-create index on bbl_person_organizations (person_id); -- TODO probably not needed
-create index on bbl_person_organizations (organization_id);
+CREATE INDEX ON bbl_organization_rels (organization_id); -- TODO probably not needed
+CREATE INDEX ON bbl_organization_rels (rel_organization_id);
 
-create table bbl_projects (
-  id uuid primary key,
-  version int not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp(),
-  created_by_id uuid references bbl_users (id) on delete set null,
-  updated_by_id uuid references bbl_users (id) on delete set null,
-  attrs jsonb not null default '{}'
+CREATE TABLE bbl_people (
+  id uuid PRIMARY KEY,
+  version int NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  attrs jsonb NOT NULL DEFAULT '{}'
 );
 
-create table bbl_project_identifiers (
-  project_id uuid not null references bbl_projects (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  uniq boolean not null,
-  primary key (project_id, idx)
+CREATE TABLE bbl_person_identifiers (
+  person_id uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  scheme text NOT NULL,
+  val text NOT NULL,
+  uniq boolean NOT NULL,
+  PRIMARY KEY (person_id, idx)
 );
 
 -- TODO are these all necessary?
-create index on bbl_project_identifiers (project_id);
-create unique index on bbl_project_identifiers (scheme, val) where uniq is true;
-create index on bbl_project_identifiers (scheme, val);
-create index on bbl_project_identifiers (uniq);
+CREATE INDEX ON bbl_person_identifiers (person_id);
+CREATE UNIQUE INDEX ON bbl_person_identifiers (scheme, val) WHERE uniq IS TRUE;
+CREATE INDEX ON bbl_person_identifiers (scheme, val);
+CREATE INDEX ON bbl_person_identifiers (uniq);
 
-create table bbl_works (
-  id uuid primary key,
-  version int not null,
-  created_at timestamptz not null default transaction_timestamp(),
-  updated_at timestamptz not null default transaction_timestamp(),
-  created_by_id uuid references bbl_users (id) on delete set null,
-  updated_by_id uuid references bbl_users (id) on delete set null,
-  kind text not null,
+CREATE TABLE bbl_person_organizations (
+  person_id uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  PRIMARY KEY (person_id, idx)
+);
+
+CREATE INDEX ON bbl_person_organizations (person_id); -- TODO probably not needed
+CREATE INDEX ON bbl_person_organizations (organization_id);
+
+CREATE TABLE bbl_projects (
+  id uuid PRIMARY KEY,
+  version int NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  attrs jsonb NOT NULL DEFAULT '{}'
+);
+
+CREATE TABLE bbl_project_identifiers (
+  project_id uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  scheme text NOT NULL,
+  val text NOT NULL,
+  uniq boolean NOT NULL,
+  PRIMARY KEY (project_id, idx)
+);
+
+-- TODO are these all necessary?
+CREATE INDEX ON bbl_project_identifiers (project_id);
+CREATE UNIQUE INDEX ON bbl_project_identifiers (scheme, val) WHERE uniq IS TRUE;
+CREATE INDEX ON bbl_project_identifiers (scheme, val);
+CREATE INDEX ON bbl_project_identifiers (uniq);
+
+CREATE TABLE bbl_works (
+  id uuid PRIMARY KEY,
+  version int NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  kind text NOT NULL,
   subkind text,
-  status text not null,
-  attrs jsonb not null default '{}'
+  status text NOT NULL,
+  attrs jsonb NOT NULL DEFAULT '{}'
 );
 
-create table bbl_work_permissions (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  user_id uuid not null references bbl_users (id) on delete cascade,
-  kind text not null
+CREATE TABLE bbl_work_permissions (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+  kind text NOT NULL
   -- TODO duration of access
 );
 
-create index on bbl_work_permissions (work_id);
+CREATE INDEX ON bbl_work_permissions (work_id);
 
-create table bbl_work_identifiers (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  scheme text not null,
-  val text not null,
-  uniq boolean not null,
-  primary key (work_id, idx)
+CREATE TABLE bbl_work_identifiers (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  scheme text NOT NULL,
+  val text NOT NULL,
+  uniq boolean NOT NULL,
+  PRIMARY KEY (work_id, idx)
 );
 
 -- TODO are these all necessary?
-create index on bbl_work_identifiers (work_id);
-create unique index on bbl_work_identifiers (scheme, val) where uniq is true;
-create index on bbl_work_identifiers (scheme, val);
-create index on bbl_work_identifiers (uniq);
+CREATE INDEX ON bbl_work_identifiers (work_id);
+CREATE UNIQUE INDEX ON bbl_work_identifiers (scheme, val) WHERE uniq IS TRUE;
+CREATE INDEX ON bbl_work_identifiers (scheme, val);
+CREATE INDEX ON bbl_work_identifiers (uniq);
 
-create table bbl_work_files (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  object_id uuid not null,
-  name text not null,
-  content_type text not null,
-  size int not null,
-  primary key (work_id, idx)
+CREATE TABLE bbl_work_files (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  object_id uuid NOT NULL,
+  name text NOT NULL,
+  content_type text NOT NULL,
+  size int NOT NULL,
+  PRIMARY KEY (work_id, idx)
 );
 
--- TODO is this necessary?
-create index on bbl_work_files (work_id);
+-- TODO IS this necessary?
+CREATE INDEX ON bbl_work_files (work_id);
 
-create table bbl_work_representations (
-    work_id uuid not null references bbl_works (id) on delete cascade,
-    scheme text not null,
-    record bytea not null,
-    updated_at timestamptz not null default transaction_timestamp(),
-    primary key (work_id, scheme)
+CREATE TABLE bbl_work_representations (
+    work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    scheme text NOT NULL,
+    record bytea NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    PRIMARY KEY (work_id, scheme)
 );
 
-create index on bbl_work_representations (updated_at);
+CREATE INDEX ON bbl_work_representations (updated_at);
 
-create table bbl_work_rels (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  kind text not null,
-  rel_work_id uuid not null references bbl_works (id) on delete cascade,
-  primary key (work_id, idx),
-  check (work_id <> rel_work_id)
+CREATE TABLE bbl_work_rels (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  kind text NOT NULL,
+  rel_work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  PRIMARY KEY (work_id, idx),
+  CHECK (work_id <> rel_work_id)
 );
 
-create index on bbl_work_rels (work_id); -- TODO probably not needed
-create index on bbl_work_rels (rel_work_id);
+CREATE INDEX ON bbl_work_rels (work_id); -- TODO probably not needed
+CREATE INDEX ON bbl_work_rels (rel_work_id);
 
-create table bbl_work_contributors (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  person_id uuid references bbl_people (id) on delete set null,
-  attrs jsonb not null default '{}',
-  primary key (work_id, idx)
+CREATE TABLE bbl_work_contributors (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  person_id uuid REFERENCES bbl_people (id) ON DELETE SET NULL,
+  attrs jsonb NOT NULL DEFAULT '{}',
+  PRIMARY KEY (work_id, idx)
 );
 
-create index on bbl_work_contributors (work_id); -- TODO probably not needed
-create index on bbl_work_contributors (person_id) where person_id is not null;
+CREATE INDEX ON bbl_work_contributors (work_id); -- TODO probably not needed
+CREATE INDEX ON bbl_work_contributors (person_id) WHERE person_id IS NOT NULL;
 
-create table bbl_work_organizations (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  organization_id uuid not null references bbl_organizations (id) on delete cascade,
-  primary key (work_id, idx)
+CREATE TABLE bbl_work_organizations (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  PRIMARY KEY (work_id, idx)
 );
 
-create index on bbl_work_organizations (work_id); -- TODO probably not needed
-create index on bbl_work_organizations (organization_id);
+CREATE INDEX ON bbl_work_organizations (work_id); -- TODO probably not needed
+CREATE INDEX ON bbl_work_organizations (organization_id);
 
-create table bbl_work_projects (
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  idx int not null,
-  project_id uuid not null references bbl_projects (id) on delete cascade,
-  primary key (work_id, idx)
+CREATE TABLE bbl_work_projects (
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  project_id uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
+  PRIMARY KEY (work_id, idx)
 );
 
-create index on bbl_work_projects (work_id); -- TODO probably not needed
-create index on bbl_work_projects (project_id);
+CREATE INDEX ON bbl_work_projects (work_id); -- TODO probably not needed
+CREATE INDEX ON bbl_work_projects (project_id);
 
-create table bbl_sets (
-  id uuid primary key,
-  name text not null unique,
+CREATE TABLE bbl_sets (
+  id uuid PRIMARY KEY,
+  name text NOT NULL UNIQUE,
   description text,
-  public boolean not null default false
+  public boolean NOT NULL DEFAULT false
 );
 
-create index on bbl_sets (public);
+CREATE INDEX ON bbl_sets (public);
 
-create table bbl_set_works (
-  set_id uuid not null references bbl_sets (id) on delete cascade,
-  work_id uuid not null references bbl_works (id) on delete cascade,
-  primary key (set_id, work_id)
+CREATE TABLE bbl_set_works (
+  set_id uuid NOT NULL REFERENCES bbl_sets (id) ON DELETE CASCADE,
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  idx int NOT NULL,
+  PRIMARY KEY (set_id, work_id)
 );
 
-create index on bbl_set_works (set_id); -- TODO probably not needed
-create index on bbl_set_works (work_id);
+CREATE INDEX ON bbl_set_works (set_id); -- TODO probably not needed
+CREATE INDEX ON bbl_set_works (work_id);
 
-create table bbl_revs (
-  id uuid primary key,
-  created_at timestamptz not null default transaction_timestamp(),
-  user_id uuid references bbl_users (id) on delete set null
+CREATE TABLE bbl_revs (
+  id uuid PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  user_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL
 );
 
-create table bbl_changes (
-  id bigserial primary key,
-  rev_id uuid not null references bbl_revs (id) on delete cascade,
-  organization_id uuid references bbl_organizations (id) on delete cascade,
-  person_id uuid references bbl_people (id) on delete cascade,
-  project_id uuid references bbl_projects (id) on delete cascade,
-  work_id uuid references bbl_works (id) on delete cascade,
-  diff jsonb not null,
+CREATE TABLE bbl_changes (
+  id bigserial PRIMARY KEY,
+  rev_id uuid NOT NULL REFERENCES bbl_revs (id) ON DELETE CASCADE,
+  organization_id uuid REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+  person_id uuid REFERENCES bbl_people (id) ON DELETE CASCADE,
+  project_id uuid REFERENCES bbl_projects (id) ON DELETE CASCADE,
+  work_id uuid REFERENCES bbl_works (id) ON DELETE CASCADE,
+  diff jsonb NOT NULL,
 
-  check (
-    (case when organization_id is null then 0 else 1 end) +
-    (case when person_id is null then 0 else 1 end) +
-    (case when project_id is null then 0 else 1 end) +
-    (case when work_id is null then 0 else 1 end) = 1
+  CHECK (
+    (case when organization_id IS NULL THEN 0 ELSE 1 end) +
+    (case when person_id IS NULL THEN 0 ELSE 1 end) +
+    (case when project_id IS NULL THEN 0 ELSE 1 end) +
+    (case when work_id IS NULL THEN 0 ELSE 1 end) = 1
   )
 );
 
-create index on bbl_changes (rev_id);
-create index on bbl_changes (organization_id) where organization_id is not null;
-create index on bbl_changes (person_id) where person_id is not null;
-create index on bbl_changes (project_id) where project_id is not null;
-create index on bbl_changes (work_id) where work_id is not null;
+CREATE INDEX ON bbl_changes (rev_id);
+CREATE INDEX ON bbl_changes (organization_id) WHERE organization_id IS NOT NULL;
+CREATE INDEX ON bbl_changes (person_id) WHERE person_id IS NOT NULL;
+CREATE INDEX ON bbl_changes (project_id) WHERE project_id IS NOT NULL;
+CREATE INDEX ON bbl_changes (work_id) WHERE work_id IS NOT NULL;
 
 -- +goose down
 
-drop table bbl_changes cascade;
-drop table bbl_revs cascade;
-drop table bbl_set_works cascade;
-drop table bbl_sets cascade;
-drop table bbl_work_files cascade;
-drop table bbl_work_contributors cascade;
-drop table bbl_work_organizations cascade;
-drop table bbl_work_projects cascade;
-drop table bbl_person_organizations cascade;
-drop table bbl_organization_identifiers cascade;
-drop table bbl_organization_rels cascade;
-drop table bbl_organizations cascade;
-drop table bbl_person_identifiers cascade;
-drop table bbl_people cascade;
-drop table bbl_project_identifiers cascade;
-drop table bbl_projects cascade;
-drop table bbl_work_permissions cascade;
-drop table bbl_work_representations cascade;
-drop table bbl_work_identifiers cascade;
-drop table bbl_work_rels cascade;
-drop table bbl_works cascade;
-drop table bbl_subscriptions cascade;
-drop table bbl_user_proxies cascade;
-drop table bbl_user_identifiers cascade;
-drop table bbl_users cascade;
+DROP TABLE bbl_changes CASCADE;
+DROP TABLE bbl_revs CASCADE;
+DROP TABLE bbl_set_works CASCADE;
+DROP TABLE bbl_sets CASCADE;
+DROP TABLE bbl_work_files CASCADE;
+DROP TABLE bbl_work_contributors CASCADE;
+DROP TABLE bbl_work_organizations CASCADE;
+DROP TABLE bbl_work_projects CASCADE;
+DROP TABLE bbl_person_organizations CASCADE;
+DROP TABLE bbl_organization_identifiers CASCADE;
+DROP TABLE bbl_organization_rels CASCADE;
+DROP TABLE bbl_organizations CASCADE;
+DROP TABLE bbl_person_identifiers CASCADE;
+DROP TABLE bbl_people CASCADE;
+DROP TABLE bbl_project_identifiers CASCADE;
+DROP TABLE bbl_projects CASCADE;
+DROP TABLE bbl_work_permissions CASCADE;
+DROP TABLE bbl_work_representations CASCADE;
+DROP TABLE bbl_work_identifiers CASCADE;
+DROP TABLE bbl_work_rels CASCADE;
+DROP TABLE bbl_works CASCADE;
+DROP TABLE bbl_subscriptions CASCADE;
+DROP TABLE bbl_user_proxies CASCADE;
+DROP TABLE bbl_user_identifiers CASCADE;
+DROP TABLE bbl_users CASCADE;
+DROP COLLATION bbl_case_insensitive;
