@@ -1,10 +1,10 @@
 package opensearchindex
 
-import (
-	_ "embed"
-)
+// import (
+// 	_ "embed"
+// )
 
-//go:embed completion_settings.json
+////go:embed completion_settings.json
 // var completionSettings string
 
 // type completionDoc struct {
