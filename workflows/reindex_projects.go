@@ -12,11 +12,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type ReindexProjectsInput struct {
-}
+type ReindexProjectsInput struct{}
 
-type ReindexProjectsOutput struct {
-}
+type ReindexProjectsOutput struct{}
 
 func ReindexProjects(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *hatchet.StandaloneTask {
 	return client.NewStandaloneTask("reindex_projects", func(ctx hatchet.Context, input ReindexProjectsInput) (ReindexProjectsOutput, error) {

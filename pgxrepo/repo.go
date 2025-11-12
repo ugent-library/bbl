@@ -10,10 +10,11 @@ import (
 )
 
 type Conn interface {
-	Begin(ctx context.Context) (pgx.Tx, error)
-	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, optionsAndArgs ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, optionsAndArgs ...any) pgx.Row
+	Begin(context.Context) (pgx.Tx, error)
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+	SendBatch(context.Context, *pgx.Batch) pgx.BatchResults
 }
 
 type Repo struct {

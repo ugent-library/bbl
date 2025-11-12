@@ -187,7 +187,7 @@ func (a *ChangeWork) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type GetWorkRepresentationsOpts struct {
+type GetRepresentationsOpts struct {
 	WorkID       string
 	Scheme       string
 	Limit        int

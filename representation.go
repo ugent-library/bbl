@@ -2,7 +2,7 @@ package bbl
 
 import "time"
 
-type WorkRepresentation struct {
+type Representation struct {
 	WorkID    string    `json:"work_id"`
 	Scheme    string    `json:"scheme"`
 	Record    []byte    `json:"record"`

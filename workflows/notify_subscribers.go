@@ -16,8 +16,7 @@ type NotifySubscribersInput struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-type NotifySubscribersOutput struct {
-}
+type NotifySubscribersOutput struct{}
 
 // TODO work:changed only if public
 // TODO allow custom headers for auth etc

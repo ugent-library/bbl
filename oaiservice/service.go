@@ -67,7 +67,7 @@ func (s *Service) GetMoreSets(context.Context, string) ([]*oaipmh.Set, *oaipmh.R
 }
 
 func (s *Service) GetIdentifiers(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
-	reps, cursor, err := s.repo.GetWorkRepresentations(ctx, bbl.GetWorkRepresentationsOpts{
+	reps, cursor, err := s.repo.GetRepresentations(ctx, bbl.GetRepresentationsOpts{
 		Limit:        50,
 		Scheme:       metadataPrefix,
 		UpdatedAtGTE: from,
@@ -91,7 +91,7 @@ func (s *Service) GetIdentifiers(ctx context.Context, metadataPrefix, set string
 }
 
 func (s *Service) GetMoreIdentifiers(ctx context.Context, cursor string) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
-	reps, newCursor, err := s.repo.GetMoreWorkRepresentations(ctx, cursor)
+	reps, newCursor, err := s.repo.GetMoreRepresentations(ctx, cursor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,11 +110,11 @@ func (s *Service) GetMoreIdentifiers(ctx context.Context, cursor string) ([]*oai
 }
 
 func (s *Service) HasRecord(ctx context.Context, id string) (bool, error) {
-	return s.repo.HasWorkRepresentation(ctx, id, "oai_dc")
+	return s.repo.HasRepresentation(ctx, id, "oai_dc")
 }
 
 func (s *Service) GetRecords(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*oaipmh.Record, *oaipmh.ResumptionToken, error) {
-	reps, cursor, err := s.repo.GetWorkRepresentations(ctx, bbl.GetWorkRepresentationsOpts{
+	reps, cursor, err := s.repo.GetRepresentations(ctx, bbl.GetRepresentationsOpts{
 		Limit:        50,
 		Scheme:       metadataPrefix,
 		UpdatedAtGTE: from,
@@ -141,7 +141,7 @@ func (s *Service) GetRecords(ctx context.Context, metadataPrefix, set string, fr
 }
 
 func (s *Service) GetMoreRecords(ctx context.Context, cursor string) ([]*oaipmh.Record, *oaipmh.ResumptionToken, error) {
-	reps, newCursor, err := s.repo.GetMoreWorkRepresentations(ctx, cursor)
+	reps, newCursor, err := s.repo.GetMoreRepresentations(ctx, cursor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,7 +163,7 @@ func (s *Service) GetMoreRecords(ctx context.Context, cursor string) ([]*oaipmh.
 }
 
 func (s *Service) GetRecord(ctx context.Context, id string, metadataPrefix string) (*oaipmh.Record, error) {
-	rep, err := s.repo.GetWorkRepresentation(ctx, id, metadataPrefix)
+	rep, err := s.repo.GetRepresentation(ctx, id, metadataPrefix)
 	if errors.Is(err, bbl.ErrNotFound) {
 		return nil, oaipmh.ErrCannotDisseminateFormat
 	}

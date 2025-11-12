@@ -17,7 +17,7 @@ CREATE TABLE bbl_users (
   deactivate_at timestamptz
 );
 
-CREATE TABLE BBL_USER_IDENTIFIERS (
+CREATE TABLE bbl_user_identifiers (
   user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
   idx int NOT NULL,
   scheme text NOT NULL,
@@ -197,16 +197,6 @@ CREATE TABLE bbl_work_files (
 -- TODO IS this necessary?
 CREATE INDEX ON bbl_work_files (work_id);
 
-CREATE TABLE bbl_work_representations (
-    work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    scheme text NOT NULL,
-    record bytea NOT NULL,
-    updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    PRIMARY KEY (work_id, scheme)
-);
-
-CREATE INDEX ON bbl_work_representations (updated_at);
-
 CREATE TABLE bbl_work_rels (
   work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
   idx int NOT NULL,
@@ -253,21 +243,25 @@ CREATE INDEX ON bbl_work_projects (project_id);
 CREATE TABLE bbl_sets (
   id uuid PRIMARY KEY,
   name text NOT NULL UNIQUE,
-  description text,
-  public boolean NOT NULL DEFAULT false
+  description text
 );
 
-CREATE INDEX ON bbl_sets (public);
+CREATE TABLE bbl_representations (
+    id uuid PRIMARY KEY,
+    work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    scheme text NOT NULL,
+    record bytea NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    UNIQUE (work_id, scheme)
+);
 
-CREATE TABLE bbl_set_works (
+CREATE INDEX ON bbl_representations (updated_at);
+
+CREATE TABLE bbl_set_representations (
   set_id uuid NOT NULL REFERENCES bbl_sets (id) ON DELETE CASCADE,
-  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-  idx int NOT NULL,
-  PRIMARY KEY (set_id, work_id)
+  representation_id uuid NOT NULL REFERENCES bbl_representations (id) ON DELETE CASCADE,
+  UNIQUE (set_id, representation_id)
 );
-
-CREATE INDEX ON bbl_set_works (set_id); -- TODO probably not needed
-CREATE INDEX ON bbl_set_works (work_id);
 
 CREATE TABLE bbl_revs (
   id uuid PRIMARY KEY,
@@ -302,8 +296,9 @@ CREATE INDEX ON bbl_changes (work_id) WHERE work_id IS NOT NULL;
 
 DROP TABLE bbl_changes CASCADE;
 DROP TABLE bbl_revs CASCADE;
-DROP TABLE bbl_set_works CASCADE;
+DROP TABLE bbl_set_representations CASCADE;
 DROP TABLE bbl_sets CASCADE;
+DROP TABLE bbl_representations CASCADE;
 DROP TABLE bbl_work_files CASCADE;
 DROP TABLE bbl_work_contributors CASCADE;
 DROP TABLE bbl_work_organizations CASCADE;
@@ -317,7 +312,6 @@ DROP TABLE bbl_people CASCADE;
 DROP TABLE bbl_project_identifiers CASCADE;
 DROP TABLE bbl_projects CASCADE;
 DROP TABLE bbl_work_permissions CASCADE;
-DROP TABLE bbl_work_representations CASCADE;
 DROP TABLE bbl_work_identifiers CASCADE;
 DROP TABLE bbl_work_rels CASCADE;
 DROP TABLE bbl_works CASCADE;
