@@ -11,6 +11,50 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
+func (r *Repo) HasSet(ctx context.Context, name string) (bool, error) {
+	q := `SELECT EXISTS(SELECT 1 FROM bbl_sets WHERE name = $1);`
+
+	var exists bool
+	if err := r.conn.QueryRow(ctx, q, name).Scan(&exists); err != nil {
+		return false, fmt.Errorf("HasSet: %w", err)
+	}
+	return exists, nil
+}
+
+func (r *Repo) GetSets(ctx context.Context) ([]*bbl.Set, error) {
+	q := `SELECT name, description FROM bbl_sets;`
+
+	rows, err := r.conn.Query(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("GetSets: %w", err)
+	}
+
+	recs, err := pgx.CollectRows(rows, scanSet)
+	if err != nil {
+		return nil, fmt.Errorf("GetSets: %w", err)
+	}
+
+	return recs, nil
+}
+
+func scanSet(row pgx.CollectableRow) (*bbl.Set, error) {
+	var rec bbl.Set
+	var description *string
+
+	if err := row.Scan(
+		&rec.Name,
+		&description,
+	); err != nil {
+		return nil, err
+	}
+
+	if description != nil {
+		rec.Description = *description
+	}
+
+	return &rec, nil
+}
+
 func (r *Repo) HasRepresentation(ctx context.Context, id, scheme string) (bool, error) {
 	q := `SELECT EXISTS(SELECT 1 FROM bbl_representations WHERE work_id = $1 AND SCHEME = $2);`
 
@@ -24,9 +68,9 @@ func (r *Repo) HasRepresentation(ctx context.Context, id, scheme string) (bool, 
 func (r *Repo) GetRepresentation(ctx context.Context, id, scheme string) (*bbl.Representation, error) {
 	q := `SELECT record, updated_at, sets FROM bbl_representations_view WHERE work_id = $1 AND scheme = $2;`
 
-	repr := bbl.Representation{WorkID: id, Scheme: scheme}
+	rec := bbl.Representation{WorkID: id, Scheme: scheme}
 
-	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&repr.Record, &repr.UpdatedAt, &repr.Sets)
+	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&rec.Record, &rec.UpdatedAt, &rec.Sets)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("GetRepresentation: %w", bbl.ErrNotFound)
 	}
@@ -34,7 +78,7 @@ func (r *Repo) GetRepresentation(ctx context.Context, id, scheme string) (*bbl.R
 		return nil, fmt.Errorf("GetRepresentation: %w", err)
 	}
 
-	return &repr, nil
+	return &rec, nil
 }
 
 func getRepresentationsQuery(opts bbl.GetRepresentationsOpts) *sqlbuilder.SelectBuilder {
@@ -115,15 +159,15 @@ func (r *Repo) AddRepresentation(ctx context.Context, workID string, scheme stri
 	batch := &pgx.Batch{}
 	for _, set := range sets {
 		batch.Queue(`
-			INSERT INTO bbl_sets (id, name)
-			VALUES ($1, $2)
+			INSERT INTO bbl_sets (id, name, description)
+			VALUES ($1, $2, $3)
 			ON CONFLICT (name) DO NOTHING;`,
-			bbl.NewID(), set,
+			bbl.NewID(), set, set,
 		)
 	}
 
 	batch.Queue(`
-		WITH repr AS (	
+		WITH rep AS (	
 			INSERT INTO bbl_representations (id, work_id, scheme, record, updated_at)
 			VALUES ($1, $2, $3, $4, now())
 			ON CONFLICT (work_id, scheme) DO UPDATE
@@ -132,14 +176,14 @@ func (r *Repo) AddRepresentation(ctx context.Context, workID string, scheme stri
 			RETURNING id
 		), sets AS (
 	  		SELECT id FROM bbl_sets where name = any($5)
-		), del_set_reprs AS (
+		), del_set_reps AS (
 			DELETE FROM bbl_set_representations
-			USING repr, sets
-			WHERE representation_id = repr.id AND set_id NOT IN (SELECT id FROM sets)
+			USING rep, sets
+			WHERE representation_id = rep.id AND set_id NOT IN (SELECT id FROM sets)
 		)
 		INSERT INTO bbl_set_representations (set_id, representation_id)
-	  	SELECT sets.id, repr.id 
-	  	FROM sets, repr
+	  	SELECT sets.id, rep.id 
+	  	FROM sets, rep
 	    ON CONFLICT (set_id, representation_id) DO NOTHING;`,
 		bbl.NewID(), workID, scheme, record, sets,
 	)

@@ -234,16 +234,17 @@ func NewProvider(conf ProviderConfig) (*Provider, error) {
 	if p.Granularity == "" {
 		p.Granularity = "YYYY-MM-DDThh:mm:ssZ"
 	}
-	if p.Granularity == "YYYY-MM-DD" {
-		p.dateFormat = "2006-01-02"
-	} else if p.Granularity == "YYYY-MM-DDThh:mm:ssZ" {
-		p.dateFormat = "2006-01-02T15:04:05Z"
-	} else {
-		return nil, errors.New("OAI-PMH granularity should be YYYY-MM-DD or YYYY-MM-DDThh:mm:ssZ")
-	}
-
 	if p.DeletedRecord == "" {
 		p.DeletedRecord = "persistent"
+	}
+
+	switch p.Granularity {
+	case "YYYY-MM-DD":
+		p.dateFormat = "2006-01-02"
+	case "YYYY-MM-DDThh:mm:ssZ":
+		p.dateFormat = "2006-01-02T15:04:05Z"
+	default:
+		return nil, errors.New("OAI-PMH granularity should be YYYY-MM-DD or YYYY-MM-DDThh:mm:ssZ")
 	}
 
 	return p, nil

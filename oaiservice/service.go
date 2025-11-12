@@ -18,7 +18,7 @@ var metadataFormats = []*oaipmh.MetadataFormat{
 	},
 }
 
-// TODO handle deleted, sets, identifier prefix
+// TODO handle deleted, identifier prefix
 type Service struct {
 	repo *pgxrepo.Repo
 }
@@ -43,27 +43,39 @@ func (s *Service) HasMetadataFormat(_ context.Context, metadataPrefix string) (b
 }
 
 func (s *Service) HasSets(context.Context) (bool, error) {
-	return false, nil //TODO
+	return true, nil
 }
 
-func (s *Service) HasSet(context.Context, string) (bool, error) {
-	return false, nil // TODO
+func (s *Service) HasSet(ctx context.Context, name string) (bool, error) {
+	return s.repo.HasSet(ctx, name)
 }
 
 func (s *Service) GetMetadataFormats(context.Context) ([]*oaipmh.MetadataFormat, error) {
-	return metadataFormats, nil // TODO
+	return metadataFormats, nil
 }
 
 func (s *Service) GetRecordMetadataFormats(context.Context, string) ([]*oaipmh.MetadataFormat, error) {
 	return metadataFormats, nil // TODO
 }
 
-func (s *Service) GetSets(context.Context) ([]*oaipmh.Set, *oaipmh.ResumptionToken, error) {
-	return nil, nil, nil // TODO
+func (s *Service) GetSets(ctx context.Context) ([]*oaipmh.Set, *oaipmh.ResumptionToken, error) {
+	sets, err := s.repo.GetSets(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	oaiSets := make([]*oaipmh.Set, len(sets))
+	for i, set := range sets {
+		oaiSets[i] = &oaipmh.Set{
+			SetSpec: set.Name,
+			SetName: set.Description,
+		}
+	}
+	return oaiSets, nil, nil
 }
 
+// unused, we don't paginate sets
 func (s *Service) GetMoreSets(context.Context, string) ([]*oaipmh.Set, *oaipmh.ResumptionToken, error) {
-	return nil, nil, nil // TODO
+	return nil, nil, nil
 }
 
 func (s *Service) GetIdentifiers(ctx context.Context, metadataPrefix, set string, from, until time.Time) ([]*oaipmh.Header, *oaipmh.ResumptionToken, error) {
