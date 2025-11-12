@@ -21,6 +21,8 @@ import (
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/i18n"
+	"github.com/ugent-library/bbl/oaipmh"
+	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
 	"github.com/ugent-library/crypt"
@@ -235,6 +237,7 @@ type App struct {
 	assets                  map[string]string
 	cookies                 *securecookie.SecureCookie
 	authProvider            AuthProvider
+	oaiProvider             *oaipmh.Provider
 	centrifugeURL           string
 	generateCentrifugeToken func(string, []string, int64) (string, error)
 	exportWorksTask         *hatchet.StandaloneTask
@@ -277,6 +280,22 @@ func NewApp(
 		return nil, err
 	}
 
+	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
+		RepositoryName: "Ghent University Institutional Archive",
+		BaseURL:        "http://localhost:3000/oai",
+		AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
+		DeletedRecord:  "persistent",
+		Granularity:    "YYYY-MM-DDThh:mm:ssZ",
+		// StyleSheet:     "/oai.xsl",
+		Backend: oaiservice.New(repo),
+		ErrorHandler: func(err error) { // TODO
+			logger.Error("oai error", "error", err)
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	app := &App{
 		env:           env,
 		logger:        logger,
@@ -287,6 +306,7 @@ func NewApp(
 		assets:        assets,
 		cookies:       cookies,
 		authProvider:  authProvider,
+		oaiProvider:   oaiProvider,
 		centrifugeURL: centrifugeURL,
 		generateCentrifugeToken: func(userID string, channels []string, exp int64) (string, error) {
 			claims := jwt.MapClaims{
@@ -324,6 +344,8 @@ func (app *App) Handler() http.Handler {
 	userChain := appChain.with(requireUser)
 
 	mux := http.NewServeMux()
+
+	mux.Handle("GET /oai", app.oaiProvider)
 
 	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
 

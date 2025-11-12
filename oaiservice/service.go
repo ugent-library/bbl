@@ -81,6 +81,7 @@ func (s *Service) GetIdentifiers(ctx context.Context, metadataPrefix, set string
 		hdrs[i] = &oaipmh.Header{
 			Identifier: rep.WorkID,
 			Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+			SetSpecs:   rep.Sets,
 		}
 	}
 
@@ -100,6 +101,7 @@ func (s *Service) GetMoreIdentifiers(ctx context.Context, cursor string) ([]*oai
 		hdrs[i] = &oaipmh.Header{
 			Identifier: rep.WorkID,
 			Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+			SetSpecs:   rep.Sets,
 		}
 	}
 
@@ -129,6 +131,7 @@ func (s *Service) GetRecords(ctx context.Context, metadataPrefix, set string, fr
 			Header: &oaipmh.Header{
 				Identifier: rep.WorkID,
 				Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+				SetSpecs:   rep.Sets,
 			},
 			Metadata: &oaipmh.Payload{XML: string(rep.Record)},
 		}
@@ -151,6 +154,7 @@ func (s *Service) GetMoreRecords(ctx context.Context, cursor string) ([]*oaipmh.
 			Header: &oaipmh.Header{
 				Identifier: rep.WorkID,
 				Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+				SetSpecs:   rep.Sets,
 			},
 			Metadata: &oaipmh.Payload{XML: string(rep.Record)},
 		}
@@ -175,6 +179,7 @@ func (s *Service) GetRecord(ctx context.Context, id string, metadataPrefix strin
 		Header: &oaipmh.Header{
 			Identifier: id,
 			Datestamp:  rep.UpdatedAt.UTC().Format(time.RFC3339),
+			SetSpecs:   rep.Sets,
 		},
 		Metadata: &oaipmh.Payload{XML: string(rep.Record)},
 	}, nil

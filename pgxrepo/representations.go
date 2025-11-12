@@ -22,11 +22,11 @@ func (r *Repo) HasRepresentation(ctx context.Context, id, scheme string) (bool, 
 }
 
 func (r *Repo) GetRepresentation(ctx context.Context, id, scheme string) (*bbl.Representation, error) {
-	q := `SELECT record, updated_at FROM bbl_representations WHERE work_id = $1 AND scheme = $2;`
+	q := `SELECT record, updated_at, sets FROM bbl_representations_view WHERE work_id = $1 AND scheme = $2;`
 
 	repr := bbl.Representation{WorkID: id, Scheme: scheme}
 
-	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&repr.Record, &repr.UpdatedAt)
+	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&repr.Record, &repr.UpdatedAt, &repr.Sets)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("GetRepresentation: %w", bbl.ErrNotFound)
 	}
@@ -39,8 +39,8 @@ func (r *Repo) GetRepresentation(ctx context.Context, id, scheme string) (*bbl.R
 
 func getRepresentationsQuery(opts bbl.GetRepresentationsOpts) *sqlbuilder.SelectBuilder {
 	b := sqlbuilder.PostgreSQL.NewSelectBuilder()
-	b.Select("work_id", "scheme", "record", "updated_at").
-		From("bbl_representations").
+	b.Select("work_id", "scheme", "record", "updated_at", "sets").
+		From("bbl_representations_view").
 		Limit(opts.Limit).
 		OrderBy("work_id", "scheme").Asc()
 	if opts.WorkID != "" {

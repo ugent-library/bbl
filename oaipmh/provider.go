@@ -570,6 +570,7 @@ func setRequiredIdentifier(ctx context.Context, p *Provider, res *response, args
 
 	if val == "" {
 		res.Errors = append(res.Errors, errIdentifierMissing)
+		return nil
 	}
 
 	exists, err := p.Backend.HasRecord(ctx, val)

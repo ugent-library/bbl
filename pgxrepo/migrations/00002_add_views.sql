@@ -7,7 +7,7 @@ FROM bbl_users u
 LEFT JOIN LATERAL (
   SELECT
    	user_id,
-    json_agg(json_build_object('scheme', u_i.scheme, 'val', u_i.val) ORDER BY u_i.idx) filter (WHERE u_i.idx IS NOT NULL) AS identifiers
+    json_agg(json_build_object('scheme', u_i.scheme, 'val', u_i.val) ORDER BY u_i.idx) FILTER (WHERE u_i.idx IS NOT NULL) AS identifiers
   FROM bbl_user_identifiers u_i
   WHERE u_i.user_id = u.id
   GROUP BY user_id
@@ -25,7 +25,7 @@ LEFT JOIN bbl_users_view u_u ON o.updated_by_id = u_u.id
 LEFT JOIN LATERAL (
   SELECT
    	organization_id,
-    json_agg(json_build_object('scheme', o_i.scheme, 'val', o_i.val) ORDER BY o_i.idx) filter (WHERE o_i.idx IS NOT NULL) AS identifiers
+    json_agg(json_build_object('scheme', o_i.scheme, 'val', o_i.val) ORDER BY o_i.idx) FILTER (WHERE o_i.idx IS NOT NULL) AS identifiers
   FROM bbl_organization_identifiers o_i
   WHERE o_i.organization_id = o.id
   GROUP BY organization_id
@@ -33,7 +33,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
    	organization_id,
-    json_agg(json_build_object('kind', o_r.kind, 'organization_id', o_r.rel_organization_id) ORDER BY o_r.idx) filter (WHERE o_r.idx IS NOT NULL) AS rels
+    json_agg(json_build_object('kind', o_r.kind, 'organization_id', o_r.rel_organization_id) ORDER BY o_r.idx) FILTER (WHERE o_r.idx IS NOT NULL) AS rels
   FROM bbl_organization_rels o_r
   WHERE o_r.organization_id = o.id
   GROUP BY organization_id
@@ -50,7 +50,7 @@ LEFT JOIN bbl_users_view u_u ON p.updated_by_id = u_u.id
 LEFT JOIN LATERAL (
   SELECT
    	person_id,
-    json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) ORDER BY p_i.idx) filter (WHERE p_i.idx IS NOT NULL) AS identifiers
+    json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) ORDER BY p_i.idx) FILTER (WHERE p_i.idx IS NOT NULL) AS identifiers
   FROM bbl_person_identifiers p_i
   WHERE p_i.person_id = p.id
   GROUP BY person_id
@@ -67,7 +67,7 @@ LEFT JOIN bbl_users_view u_u ON p.updated_by_id = u_u.id
 LEFT JOIN LATERAL (
   SELECT
    	project_id,
-    json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) ORDER BY p_i.idx) filter (WHERE p_i.idx IS NOT NULL) AS identifiers
+    json_agg(json_build_object('scheme', p_i.scheme, 'val', p_i.val) ORDER BY p_i.idx) FILTER (WHERE p_i.idx IS NOT NULL) AS identifiers
   FROM bbl_project_identifiers p_i
   WHERE p_i.project_id = p.id
   GROUP BY project_id
@@ -88,7 +88,7 @@ LEFT JOIN bbl_users_view u_u ON w.updated_by_id = u_u.id
 LEFT JOIN LATERAL (
   SELECT
    	work_id,
-    json_agg(json_build_object('kind', w_pe.kind, 'user_id', w_pe.user_id)) filter (WHERE w_pe.work_id IS NOT NULL) AS permissions
+    json_agg(json_build_object('kind', w_pe.kind, 'user_id', w_pe.user_id)) FILTER (WHERE w_pe.work_id IS NOT NULL) AS permissions
   FROM bbl_work_permissions w_pe
   WHERE w_pe.work_id = w.id
   GROUP BY work_id
@@ -96,7 +96,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
    	work_id,
-    json_agg(json_build_object('scheme', w_i.scheme, 'val', w_i.val) ORDER BY w_i.idx) filter (WHERE w_i.idx IS NOT NULL) AS identifiers
+    json_agg(json_build_object('scheme', w_i.scheme, 'val', w_i.val) ORDER BY w_i.idx) FILTER (WHERE w_i.idx IS NOT NULL) AS identifiers
   FROM bbl_work_identifiers w_i
   WHERE w_i.work_id=w.id
   GROUP BY work_id
@@ -104,7 +104,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
    	work_id,
-    json_agg(json_build_object('person_id', w_c.person_id, 'person', p, 'attrs', w_c.attrs) ORDER BY w_c.idx) filter (WHERE w_c.idx IS NOT NULL) AS contributors
+    json_agg(json_build_object('person_id', w_c.person_id, 'person', p, 'attrs', w_c.attrs) ORDER BY w_c.idx) FILTER (WHERE w_c.idx IS NOT NULL) AS contributors
   FROM bbl_work_contributors w_c
   LEFT JOIN bbl_people_view p ON p.id = w_c.person_id
   WHERE w_c.work_id = w.id
@@ -113,7 +113,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
    	work_id,
-    json_agg(json_build_object('object_id', w_f.object_id, 'name', w_f.name, 'content_type', w_f.content_type, 'size', w_f.size) ORDER BY w_f.idx) filter (WHERE w_f.idx IS NOT NULL) AS files
+    json_agg(json_build_object('object_id', w_f.object_id, 'name', w_f.name, 'content_type', w_f.content_type, 'size', w_f.size) ORDER BY w_f.idx) FILTER (WHERE w_f.idx IS NOT NULL) AS files
   FROM bbl_work_files w_f
   WHERE w_f.work_id = w.id
   GROUP BY work_id
@@ -121,14 +121,29 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
    	work_id,
-    json_agg(json_build_object('kind', w_r.kind, 'work_id', w_r.rel_work_id) ORDER BY w_r.idx) filter (WHERE w_r.idx IS NOT NULL) AS rels
+    json_agg(json_build_object('kind', w_r.kind, 'work_id', w_r.rel_work_id) ORDER BY w_r.idx) FILTER (WHERE w_r.idx IS NOT NULL) AS rels
   FROM bbl_work_rels w_r
   WHERE w_r.work_id = w.id
   GROUP BY work_id
 ) w_r ON w_r.work_id = w.id;
 
+CREATE VIEW bbl_representations_view AS
+SELECT r.*,
+       s_r.sets AS sets
+FROM bbl_representations r
+LEFT JOIN LATERAL (
+  SELECT
+   	representation_id,
+    array_agg(s.name) FILTER (WHERE s.id IS NOT NULL) AS sets
+  FROM bbl_set_representations s_r
+  LEFT JOIN bbl_sets s ON s.id = s_r.set_id
+  WHERE s_r.representation_id = r.id
+  GROUP BY representation_id
+) s_r ON s_r.representation_id = r.id;
+
 -- +goose down
 
+DROP VIEW bbl_representations_view;
 DROP VIEW bbl_works_view;
 DROP VIEW bbl_people_view;
 DROP VIEW bbl_organizations_view;
