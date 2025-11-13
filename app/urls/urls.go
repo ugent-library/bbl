@@ -135,3 +135,19 @@ func BackofficeWorkRemoveFile() string {
 func BackofficeFileUploadURL() string {
 	return "/backoffice/files/upload_url"
 }
+
+func BackofficeLists() string {
+	return "/backoffice/lists"
+}
+
+func BackofficeNewList() string {
+	return "/backoffice/lists/_new"
+}
+
+func BackofficeListItems(listID string) string {
+	return "/backoffice/list/" + url.PathEscape(listID) + "/items"
+}
+
+func BackofficeAddListItem() string {
+	return "/backoffice/lists/_add_item"
+}

@@ -1,0 +1,58 @@
+package lists
+
+import (
+	"fmt"
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
+	"github.com/ugent-library/bbl/app/views"
+)
+
+templ AddItem(c views.Ctx, lists []*bbl.List, workID string) {
+	for _, list := range lists {
+		<li>
+			<button
+				class="dropdown-item"
+				hx-post={ urls.BackofficeListItems(list.ID) }
+				hx-vals={ fmt.Sprintf(`{"work_id": %q}`, workID) }
+				hx-swap="none"
+			>{ list.Name }</button>
+		</li>
+	}
+	<li><hr class="dropdown-divider"/></li>
+	<li>
+		<button
+			class="dropdown-item"
+			hx-get={ urls.BackofficeNewList() }
+			hx-target="#modals"
+			data-bs-toggle="modal"
+			data-bs-target="#modals"
+		>Create list</button>
+	</li>
+}
+
+templ New(c views.Ctx) {
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Create list</h5>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label for="list-name" class="form-label">Name</label>
+					<input type="text" class="form-control" id="list-name" name="name"/>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				<button
+					type="submit"
+					class="btn btn-primary"
+					data-bs-dismiss="modal"
+					hx-post={ urls.BackofficeLists() }
+					hx-include="closest .modal-content"
+					hx-swap="none"
+				>Create</button>
+			</div>
+		</div>
+	</div>
+}

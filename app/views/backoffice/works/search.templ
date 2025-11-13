@@ -1,6 +1,7 @@
 package works
 
 import (
+	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
@@ -319,13 +320,20 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 												<span class="btn-text d-md-none d-xl-inline-block">More info</span>
 												<span class="visually-hidden">Get more info about this record.</span>
 											</button>
-											<div class="dropdown">
-												<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-													<i class="if if-more"></i>
-													<span class="btn-text d-md-none d-xl-inline-block">Actions</span>
-													<span class="visually-hidden">Show more actions for this record</span>
+											<div class="btn-group">
+												<button type="button" class="btn btn-tertiary">Add to list</button>
+												<button
+													type="button"
+													class="btn btn- dropdown-toggle dropdown-toggle-split"
+													data-bs-toggle="dropdown"
+													aria-expanded="false"
+													hx-get={ urls.BackofficeAddListItem() }
+													hx-vals={ fmt.Sprintf(`{"work_id": %q}`, hit.Rec.ID) }
+													hx-target="next"
+												>
+													<span class="visually-hidden">Toggle Dropdown</span>
 												</button>
-												<div class="dropdown-menu"></div>
+												<ul class="dropdown-menu"></ul>
 											</div>
 											if can.EditWork(c.User, hit.Rec) {
 												<a class="btn btn-tertiary btn-lg-only-responsive" href={ urls.BackofficeEditWork(hit.Rec.ID) }>

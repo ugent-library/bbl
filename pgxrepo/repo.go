@@ -15,6 +15,7 @@ type Conn interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...any) pgx.Row
 	SendBatch(context.Context, *pgx.Batch) pgx.BatchResults
+	CopyFrom(context.Context, pgx.Identifier, []string, pgx.CopyFromSource) (int64, error)
 }
 
 type Repo struct {

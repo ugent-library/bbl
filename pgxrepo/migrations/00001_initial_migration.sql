@@ -292,8 +292,28 @@ CREATE INDEX ON bbl_changes (person_id) WHERE person_id IS NOT NULL;
 CREATE INDEX ON bbl_changes (project_id) WHERE project_id IS NOT NULL;
 CREATE INDEX ON bbl_changes (work_id) WHERE work_id IS NOT NULL;
 
+CREATE TABLE bbl_lists (
+  id uuid PRIMARY KEY,
+  name text NOT NULL,
+  public boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX ON bbl_lists (created_by_id);
+
+CREATE TABLE bbl_list_items (
+  list_id uuid NOT NULL REFERENCES bbl_lists (id) ON DELETE CASCADE,
+  work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+  pos text NOT NULL COLLATE "C",
+  UNIQUE (list_id, work_id),
+  UNIQUE (list_id, pos)
+);
+
 -- +goose down
 
+DROP TABLE bbl_list_items CASCADE;
+DROP TABLE bbl_lists CASCADE;
 DROP TABLE bbl_changes CASCADE;
 DROP TABLE bbl_revs CASCADE;
 DROP TABLE bbl_set_representations CASCADE;
