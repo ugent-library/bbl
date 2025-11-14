@@ -3,6 +3,7 @@ package pgxrepo
 import (
 	"context"
 	"fmt"
+	"iter"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ugent-library/bbl"
@@ -40,6 +41,30 @@ func (r *Repo) GetUserLists(ctx context.Context, userID string) ([]*bbl.List, er
 	}
 
 	return recs, nil
+}
+
+func (r *Repo) ListItemsIter(ctx context.Context, listID string, errPtr *error) iter.Seq[*bbl.ListItem] {
+	q := `SELECT work_id, pos FROM bbl_list_items WHERE list_id = $1 ORDER BY pos ASC;`
+
+	return func(yield func(*bbl.ListItem) bool) {
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = err
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanListItem(rows)
+			if err != nil {
+				*errPtr = err
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Repo) AddListItems(ctx context.Context, listID string, workIDs []string) error {
@@ -105,6 +130,19 @@ func scanList(row pgx.CollectableRow) (*bbl.List, error) {
 
 	if createdByID != nil {
 		rec.CreatedByID = *createdByID
+	}
+
+	return &rec, nil
+}
+
+func scanListItem(row pgx.CollectableRow) (*bbl.ListItem, error) {
+	var rec bbl.ListItem
+
+	if err := row.Scan(
+		&rec.WorkID,
+		&rec.Pos,
+	); err != nil {
+		return nil, err
 	}
 
 	return &rec, nil

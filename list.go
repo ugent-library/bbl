@@ -9,3 +9,8 @@ type List struct {
 	CreatedAt   time.Time `json:"created_at"`
 	CreatedByID string    `json:"created_by_id"`
 }
+
+type ListItem struct {
+	WorkID string `json:"work_id"`
+	Pos    string `json:"pos"`
+}
