@@ -47,7 +47,7 @@ func (r *Repo) ListItemsIter(ctx context.Context, listID string, errPtr *error) 
 	q := `SELECT work_id, pos FROM bbl_list_items WHERE list_id = $1 ORDER BY pos ASC;`
 
 	return func(yield func(*bbl.ListItem) bool) {
-		rows, err := r.conn.Query(ctx, q)
+		rows, err := r.conn.Query(ctx, q, listID)
 		if err != nil {
 			*errPtr = err
 			return
