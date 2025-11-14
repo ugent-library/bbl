@@ -17,26 +17,7 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*bbl.Project, error) 
 
 func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Project] {
 	q := `SELECT ` + projectCols + ` FROM bbl_projects_view p;`
-
-	return func(yield func(*bbl.Project) bool) {
-		rows, err := r.conn.Query(ctx, q)
-		if err != nil {
-			*errPtr = err
-			return
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			rec, err := scanProject(rows)
-			if err != nil {
-				*errPtr = err
-				return
-			}
-			if !yield(rec) {
-				return
-			}
-		}
-	}
+	return rowsIter(ctx, r.conn, errPtr, q, nil, scanProject)
 }
 
 func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error) {

@@ -17,26 +17,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*bbl.Organizatio
 
 func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Organization] {
 	q := `SELECT ` + organizationCols + ` FROM bbl_organizations_view o;`
-
-	return func(yield func(*bbl.Organization) bool) {
-		rows, err := r.conn.Query(ctx, q)
-		if err != nil {
-			*errPtr = err
-			return
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			rec, err := scanOrganization(rows)
-			if err != nil {
-				*errPtr = err
-				return
-			}
-			if !yield(rec) {
-				return
-			}
-		}
-	}
+	return rowsIter(ctx, r.conn, errPtr, q, nil, scanOrganization)
 }
 
 func getOrganization(ctx context.Context, conn Conn, id string) (*bbl.Organization, error) {

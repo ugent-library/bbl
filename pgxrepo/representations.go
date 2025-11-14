@@ -29,7 +29,7 @@ func (r *Repo) GetSets(ctx context.Context) ([]*bbl.Set, error) {
 		return nil, fmt.Errorf("GetSets: %w", err)
 	}
 
-	recs, err := pgx.CollectRows(rows, scanSet)
+	recs, err := pgx.CollectRows(rows, collectable(scanSet))
 	if err != nil {
 		return nil, fmt.Errorf("GetSets: %w", err)
 	}
@@ -37,7 +37,7 @@ func (r *Repo) GetSets(ctx context.Context) ([]*bbl.Set, error) {
 	return recs, nil
 }
 
-func scanSet(row pgx.CollectableRow) (*bbl.Set, error) {
+func scanSet(row pgx.Row) (*bbl.Set, error) {
 	var rec bbl.Set
 	var description *string
 
@@ -157,6 +157,7 @@ func (r *Repo) GetMoreRepresentations(ctx context.Context, cursor string) ([]*bb
 
 func (r *Repo) AddRepresentation(ctx context.Context, workID string, scheme string, record []byte, sets []string) error {
 	batch := &pgx.Batch{}
+
 	for _, set := range sets {
 		batch.Queue(`
 			INSERT INTO bbl_sets (id, name, description)

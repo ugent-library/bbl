@@ -18,26 +18,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
 	q := `SELECT ` + userCols + ` FROM bbl_users_view u;`
-
-	return func(yield func(*bbl.User) bool) {
-		rows, err := r.conn.Query(ctx, q)
-		if err != nil {
-			*errPtr = err
-			return
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			rec, err := scanUser(rows)
-			if err != nil {
-				*errPtr = err
-				return
-			}
-			if !yield(rec) {
-				return
-			}
-		}
-	}
+	return rowsIter(ctx, r.conn, errPtr, q, nil, scanUser)
 }
 
 // TODO handle NULL deactivate_at

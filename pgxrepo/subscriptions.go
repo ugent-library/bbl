@@ -10,26 +10,8 @@ import (
 
 func (r *Repo) TopicSubscriptionsIter(ctx context.Context, topic string, errPtr *error) iter.Seq[*bbl.Subscription] {
 	q := `SELECT ` + subscriptionCols + ` FROM bbl_subscriptions s WHERE s.topic = $1;`
-
-	return func(yield func(*bbl.Subscription) bool) {
-		rows, err := r.conn.Query(ctx, q, topic)
-		if err != nil {
-			*errPtr = err
-			return
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			rec, err := scanSubscription(rows)
-			if err != nil {
-				*errPtr = err
-				return
-			}
-			if !yield(rec) {
-				return
-			}
-		}
-	}
+	args := []any{topic}
+	return rowsIter(ctx, r.conn, errPtr, q, args, scanSubscription)
 }
 
 const subscriptionCols = `

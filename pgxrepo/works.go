@@ -17,26 +17,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
 	q := `SELECT ` + workCols + ` FROM bbl_works_view w;`
-
-	return func(yield func(*bbl.Work) bool) {
-		rows, err := r.conn.Query(ctx, q)
-		if err != nil {
-			*errPtr = err
-			return
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			rec, err := scanWork(rows)
-			if err != nil {
-				*errPtr = err
-				return
-			}
-			if !yield(rec) {
-				return
-			}
-		}
-	}
+	return rowsIter(ctx, r.conn, errPtr, q, nil, scanWork)
 }
 
 func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange, error) {
