@@ -17,7 +17,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 }
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
-	q := `select ` + userCols + ` from bbl_users_view u;`
+	q := `SELECT ` + userCols + ` FROM bbl_users_view u;`
 
 	return func(yield func(*bbl.User) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -71,20 +71,20 @@ func (r *Repo) SaveUser(ctx context.Context, rec *bbl.User) error {
 
 	if update {
 		_, err = tx.Exec(ctx, `
-			update bbl_users
-			set username = $2,
+			UPDATE bbl_users
+			SET username = $2,
 			    email = $3,
 			    name = $4,
 			    updated_at = transaction_timestamp(),
 			    deactivate_at = $5
-			where id = $1;`,
+			WHERE id = $1;`,
 			rec.ID, rec.Username, rec.Email, rec.Name, rec.DeactivateAt,
 		)
 		if err != nil {
 			return fmt.Errorf("SaveUser: %s (%+v)", err, rec)
 		}
 		_, err = tx.Exec(ctx, `
-			delete from bbl_user_identifiers where user_id = $1`,
+			DELETE FROM bbl_user_identifiers WHERE user_id = $1`,
 			rec.ID,
 		)
 		if err != nil {
@@ -92,8 +92,8 @@ func (r *Repo) SaveUser(ctx context.Context, rec *bbl.User) error {
 		}
 	} else {
 		_, err = tx.Exec(ctx, `
-			insert into bbl_users (id, username, email, name, role, deactivate_at)
-			values ($1, $2, $3, $4, $5, $6)`,
+			INSERT INTO bbl_users (id, username, email, name, role, deactivate_at)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
 			rec.ID, rec.Username, rec.Email, rec.Name, bbl.UserRole, rec.DeactivateAt,
 		)
 		if err != nil {
@@ -103,8 +103,8 @@ func (r *Repo) SaveUser(ctx context.Context, rec *bbl.User) error {
 
 	for i, ident := range rec.Identifiers {
 		_, err = tx.Exec(ctx, `
-			insert into bbl_user_identifiers (user_id, idx, scheme, val)
-			values ($1, $2, $3, $4)`,
+			INSERT INTO bbl_user_identifiers (user_id, idx, scheme, val)
+			VALUES ($1, $2, $3, $4)`,
 			rec.ID, i, ident.Scheme, ident.Val,
 		)
 		if err != nil {
@@ -124,19 +124,19 @@ func getUser(ctx context.Context, conn Conn, id string) (*bbl.User, error) {
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		switch scheme {
 		case "username":
-			row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.username = $1;`, val)
+			row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.username = $1;`, val)
 		case "email":
-			row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.email = $1;`, val)
+			row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.email = $1;`, val)
 		default:
 			row = conn.QueryRow(ctx, `
-				select `+userCols+`
-				from bbl_users_view u, bbl_user_identifiers u_i
-				where u.id = u_i.user_id and u_i.scheme = $1 and u_i.val = $2;`,
+				SELECT `+userCols+`
+				FROM bbl_users_view u, bbl_user_identifiers u_i
+				WHERE u.id = u_i.user_id AND u_i.scheme = $1 AND u_i.val = $2;`,
 				scheme, val,
 			)
 		}
 	} else {
-		row = conn.QueryRow(ctx, `select `+userCols+` from bbl_users_view u where u.id = $1;`, id)
+		row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.id = $1;`, id)
 	}
 
 	rec, err := scanUser(row)

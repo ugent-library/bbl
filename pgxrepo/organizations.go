@@ -16,7 +16,7 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*bbl.Organizatio
 }
 
 func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Organization] {
-	q := `select ` + organizationCols + ` from bbl_organizations_view o;`
+	q := `SELECT ` + organizationCols + ` FROM bbl_organizations_view o;`
 
 	return func(yield func(*bbl.Organization) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -43,15 +43,15 @@ func getOrganization(ctx context.Context, conn Conn, id string) (*bbl.Organizati
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select `+organizationCols+`
-			from bbl_organizations_view o, bbl_organization_identifiers o_i
-			where o.id = o_i.organizatons_id and 
-			      o_i.scheme = $1 and 
+			SELECT `+organizationCols+`
+			FROM bbl_organizations_view o, bbl_organization_identifiers o_i
+			WHERE o.id = o_i.organizatons_id AND 
+			      o_i.scheme = $1 AND 
 				  o_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `select `+organizationCols+` from bbl_organizations_view o where o.id = $1;`, id)
+		row = conn.QueryRow(ctx, `SELECT `+organizationCols+` FROM bbl_organizations_view o WHERE o.id = $1;`, id)
 	}
 
 	rec, err := scanOrganization(row)

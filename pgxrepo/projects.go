@@ -16,7 +16,7 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*bbl.Project, error) 
 }
 
 func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Project] {
-	q := `select ` + projectCols + ` from bbl_projects_view p;`
+	q := `SELECT ` + projectCols + ` FROM bbl_projects_view p;`
 
 	return func(yield func(*bbl.Project) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -43,13 +43,13 @@ func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error)
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select `+personCols+`
-			from bbl_projects_view p, bbl_project_identifiers p_i
-			where p.id = p_i.project_id and p_i.scheme = $1 and p_i.val = $2;`,
+			SELECT `+personCols+`
+			FROM bbl_projects_view p, bbl_project_identifiers p_i
+			WHERE p.id = p_i.project_id AND p_i.scheme = $1 AND p_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `select `+projectCols+` from bbl_projects_view p where p.id = $1;`, id)
+		row = conn.QueryRow(ctx, `SELECT `+projectCols+` FROM bbl_projects_view p WHERE p.id = $1;`, id)
 	}
 
 	rec, err := scanProject(row)

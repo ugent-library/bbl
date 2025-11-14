@@ -16,7 +16,7 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 }
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
-	q := `select ` + workCols + ` from bbl_works_view w;`
+	q := `SELECT ` + workCols + ` FROM bbl_works_view w;`
 
 	return func(yield func(*bbl.Work) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -41,12 +41,12 @@ func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work]
 
 func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange, error) {
 	q := `
-		select c.rev_id, r.created_at, r.user_id, row_to_json(u) as user, c.diff
-		from bbl_changes c
-		left join bbl_revs r on r.id = c.rev_id
-		left join bbl_users_view u on u.id = r.user_id
-		where c.work_id = $1
-		order by c.id desc;`
+		SELECT c.rev_id, r.created_at, r.user_id, row_to_json(u) AS user, c.diff
+		FROM bbl_changes c
+		LEFT JOIN bbl_revs r ON r.id = c.rev_id
+		LEFT JOIN bbl_users_view u ON u.id = r.user_id
+		WHERE c.work_id = $1
+		ORDER BY c.id DESC;`
 
 	var changes []bbl.WorkChange
 
@@ -82,15 +82,15 @@ func getWork(ctx context.Context, conn Conn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select `+workCols+` 
-			from bbl_works_view w, bbl_work_identifiers w_i
-			where w.id = w_i.work_id and
-			      w_i.scheme = $1 and
+			SELECT `+workCols+` 
+			FROM bbl_works_view w, bbl_work_identifiers w_i
+			WHERE w.id = w_i.work_id AND
+			      w_i.scheme = $1 AND
 				  w_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `select `+workCols+` from bbl_works_view w where w.id = $1;`, id)
+		row = conn.QueryRow(ctx, `SELECT `+workCols+` FROM bbl_works_view w WHERE w.id = $1;`, id)
 	}
 
 	rec, err := scanWork(row)

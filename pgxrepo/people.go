@@ -16,7 +16,7 @@ func (r *Repo) GetPerson(ctx context.Context, id string) (*bbl.Person, error) {
 }
 
 func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Person] {
-	q := `select ` + personCols + ` from bbl_people_view p;`
+	q := `SELECT ` + personCols + ` FROM bbl_people_view p;`
 
 	return func(yield func(*bbl.Person) bool) {
 		rows, err := r.conn.Query(ctx, q)
@@ -51,7 +51,7 @@ func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.
 		qVars = append(qVars, iden.Scheme, iden.Val)
 	}
 
-	q := `select distinct person_id from bbl_person_identifiers where (scheme, val) = any(values ` + qVals + `);`
+	q := `SELECT DISTINCT person_id FROM bbl_person_identifiers WHERE (scheme, val) = any(values ` + qVals + `);`
 
 	rows, err := r.conn.Query(ctx, q, qVars...)
 	if err != nil {
@@ -70,15 +70,15 @@ func getPerson(ctx context.Context, conn Conn, id string) (*bbl.Person, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
 		row = conn.QueryRow(ctx, `
-			select `+personCols+`
-			from bbl_people_view p, bbl_person_identifiers p_i
-			where p.id = p_i.person_id and
-			      p_i.scheme = $1 and
+			SELECT `+personCols+`
+			FROM bbl_people_view p, bbl_person_identifiers p_i
+			WHERE p.id = p_i.person_id AND
+			      p_i.scheme = $1 AND
 				  p_i.val = $2;`,
 			scheme, val,
 		)
 	} else {
-		row = conn.QueryRow(ctx, `select `+personCols+` from bbl_people_view p where p.id = $1;`, id)
+		row = conn.QueryRow(ctx, `SELECT `+personCols+` FROM bbl_people_view p WHERE p.id = $1;`, id)
 	}
 
 	rec, err := scanPerson(row)

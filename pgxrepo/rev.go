@@ -26,8 +26,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	batch := &pgx.Batch{}
 
 	batch.Queue(`
-		insert into bbl_revs (id, user_id)
-		values ($1, nullif($2, '')::uuid);`,
+		INSERT INTO bbl_revs (id, user_id)
+		VALUES ($1, nullif($2, '')::uuid);`,
 		revID, rev.UserID,
 	)
 
@@ -60,27 +60,27 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_organizations (id, kind, attrs, version, created_by_id, updated_by_id)
-				values ($1, $2, $3, 1, nullif($4, '')::uuid, nullif($5, '')::uuid);`,
+				INSERT INTO bbl_organizations (id, kind, attrs, version, created_by_id, updated_by_id)
+				VALUES ($1, $2, $3, 1, nullif($4, '')::uuid, nullif($5, '')::uuid);`,
 				a.Organization.ID, a.Organization.Kind, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Organization.Identifiers {
 				batch.Queue(`
-					insert into bbl_organization_identifiers (organization_id, idx, scheme, val, uniq)
-					values ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_organization_identifiers (organization_id, idx, scheme, val, uniq)
+					VALUES ($1, $2, $3, $4, true);`,
 					a.Organization.ID, i, iden.Scheme, iden.Val,
 				)
 			}
 			for i, rel := range a.Organization.Rels {
 				batch.Queue(`
-					insert into bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
-					values ($1, $2, $3, $4);`,
+					INSERT INTO bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
+					VALUES ($1, $2, $3, $4);`,
 					a.Organization.ID, i, rel.Kind, rel.OrganizationID,
 				)
 			}
 			batch.Queue(`
-				insert into bbl_changes (rev_id, organization_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, organization_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
 			)
 
@@ -124,13 +124,13 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				update bbl_organizations
-				set kind = $2,
+				UPDATE bbl_organizations
+				SET kind = $2,
 				    attrs = $3,
 					version = version + 1,
 				    updated_at = transaction_timestamp(),
 					updated_by_id = nullif($4, '')::uuid
-				where id = $1;`,
+				WHERE id = $1;`,
 				a.Organization.ID, a.Organization.Kind, jsonAttrs, rev.UserID,
 			)
 
@@ -141,8 +141,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			if _, ok := diff["rels"]; ok {
 				if len(currentRec.Rels) > len(a.Organization.Rels) {
 					batch.Queue(`
-						delete from bbl_organization_rels
-						where organization_id = $1 and idx >= $2;`,
+						DELETE FROM bbl_organization_rels
+						WHERE organization_id = $1 AND idx >= $2;`,
 						a.Organization.ID, len(a.Organization.Rels),
 					)
 				}
@@ -150,16 +150,16 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					// TODO only update if different
 					if i < len(currentRec.Rels) {
 						batch.Queue(`
-							update bbl_organization_rels
-							set kind = $3,
+							UPDATE bbl_organization_rels
+							SET kind = $3,
 							    rel_organization_id = $4,
-							where organization_id = $1 and idx = $2;`,
+							WHERE organization_id = $1 AND idx = $2;`,
 							a.Organization.ID, i, rel.Kind, rel.OrganizationID,
 						)
 					} else {
 						batch.Queue(`
-							insert into bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
-							values ($1, $2, $3, $4);`,
+							INSERT INTO bbl_organization_rels (organization_id, idx, kind, rel_organization_id)
+							VALUES ($1, $2, $3, $4);`,
 							a.Organization.ID, i, rel.Kind, rel.OrganizationID,
 						)
 					}
@@ -167,8 +167,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_changes (rev_id, organization_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, organization_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Organization.ID, jsonDiff,
 			)
 
@@ -198,20 +198,20 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_people (id, attrs, version, created_by_id, updated_by_id)
-				values ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
+				INSERT INTO bbl_people (id, attrs, version, created_by_id, updated_by_id)
+				VALUES ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
 				a.Person.ID, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Person.Identifiers {
 				batch.Queue(`
-					insert into bbl_person_identifiers (person_id, idx, scheme, val, uniq)
-					values ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_person_identifiers (person_id, idx, scheme, val, uniq)
+					VALUES ($1, $2, $3, $4, true);`,
 					a.Person.ID, i, iden.Scheme, iden.Val,
 				)
 			}
 			batch.Queue(`
-				insert into bbl_changes (rev_id, person_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, person_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Person.ID, jsonDiff,
 			)
 
@@ -251,12 +251,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				update bbl_people
-				set attrs = $2,
+				UPDATE bbl_people
+				SET attrs = $2,
 					version = version + 1,
 				    updated_at = transaction_timestamp(),
 					updated_by_id = nullif($3, '')::uuid
-				where id = $1;`,
+				WHERE id = $1;`,
 				a.Person.ID, jsonAttrs, rev.UserID,
 			)
 
@@ -265,8 +265,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_changes (rev_id, person_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, person_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Person.ID, jsonDiff,
 			)
 
@@ -296,20 +296,20 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_projects (id, attrs, version, created_by_id, updated_by_id)
-				values ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
+				INSERT INTO bbl_projects (id, attrs, version, created_by_id, updated_by_id)
+				VALUES ($1, $2, 1, nullif($3, '')::uuid, nullif($4, '')::uuid);`,
 				a.Project.ID, jsonAttrs, rev.UserID, rev.UserID,
 			)
 			for i, iden := range a.Project.Identifiers {
 				batch.Queue(`
-					insert into bbl_project_identifiers (project_id, idx, scheme, val, uniq)
-					values ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_project_identifiers (project_id, idx, scheme, val, uniq)
+					VALUES ($1, $2, $3, $4, true);`,
 					a.Project.ID, i, iden.Scheme, iden.Val,
 				)
 			}
 			batch.Queue(`
-				insert into bbl_changes (rev_id, project_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, project_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Project.ID, jsonDiff,
 			)
 
@@ -349,12 +349,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				update bbl_projects
-				set attrs = $2,
+				UPDATE bbl_projects
+				SET attrs = $2,
 					version = version + 1,
 				    updated_at = transaction_timestamp(),
 					updated_by_id = nullif($3, '')::uuid
-				where id = $1;`,
+				WHERE id = $1;`,
 				a.Project.ID, jsonAttrs, rev.UserID,
 			)
 
@@ -363,8 +363,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_changes (rev_id, project_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, project_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Project.ID, jsonDiff,
 			)
 
@@ -398,16 +398,16 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			}
 
 			batch.Queue(`
-				insert into bbl_works (id, kind, subkind, status, attrs, version, created_by_id, updated_by_id)
-				values ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
+				INSERT INTO bbl_works (id, kind, subkind, status, attrs, version, created_by_id, updated_by_id)
+				VALUES ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
 				a.Work.ID, a.Work.Kind, a.Work.Subkind, a.Work.Status, jsonAttrs, rev.UserID, rev.UserID,
 			)
 
 			if diff.Permissions != nil {
 				for _, perm := range a.Work.Permissions {
 					batch.Queue(`
-						insert into bbl_work_permissions (work_id, kind, user_id)
-						values ($1, $2, $3);`,
+						INSERT INTO bbl_work_permissions (work_id, kind, user_id)
+						VALUES ($1, $2, $3);`,
 						a.Work.ID, perm.Kind, perm.UserID,
 					)
 				}
@@ -415,8 +415,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
-					insert into bbl_work_identifiers (work_id, idx, scheme, val, uniq)
-					values ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_work_identifiers (work_id, idx, scheme, val, uniq)
+					VALUES ($1, $2, $3, $4, true);`,
 					a.Work.ID, i, iden.Scheme, iden.Val,
 				)
 			}
@@ -427,28 +427,28 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 
 				batch.Queue(`
-				insert into bbl_work_contributors (work_id, idx, attrs, person_id)
-				values ($1, $2, $3, nullif($4, '')::uuid);`,
+				INSERT INTO bbl_work_contributors (work_id, idx, attrs, person_id)
+				VALUES ($1, $2, $3, nullif($4, '')::uuid);`,
 					a.Work.ID, i, jsonAttrs, con.PersonID,
 				)
 			}
 			for i, f := range a.Work.Files {
 				batch.Queue(`
-					insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
-					values ($1, $2, $3, $4, $5, $6);`,
+					INSERT INTO bbl_work_files (work_id, idx, object_id, name, content_type, size)
+					VALUES ($1, $2, $3, $4, $5, $6);`,
 					a.Work.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 				)
 			}
 			for i, rel := range a.Work.Rels {
 				batch.Queue(`
-					insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
-					values ($1, $2, $3, $4);`,
+					INSERT INTO bbl_work_rels (work_id, idx, kind, rel_work_id)
+					VALUES ($1, $2, $3, $4);`,
 					a.Work.ID, i, rel.Kind, rel.WorkID,
 				)
 			}
 			batch.Queue(`
-				insert into bbl_changes (rev_id, work_id, diff)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_changes (rev_id, work_id, diff)
+				VALUES ($1, $2, $3);`,
 				revID, a.Work.ID, jsonDiff,
 			)
 
@@ -543,8 +543,8 @@ func lookupWorkContributors(ctx context.Context, conn Conn, contributors []bbl.W
 func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
 	if len(old) > len(new) {
 		batch.Queue(`
-			delete from bbl_`+name+`_identifiers
-			where `+name+`_id = $1 and idx >= $2;`,
+			DELETE FROM bbl_`+name+`_identifiers
+			WHERE `+name+`_id = $1 AND idx >= $2;`,
 			id, len(new),
 		)
 	}
@@ -552,17 +552,17 @@ func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new
 		// TODO only update if different
 		if i < len(old) {
 			batch.Queue(`
-				update bbl_`+name+`_identifiers
-				set scheme = $3,
+				UPDATE bbl_`+name+`_identifiers
+				SET scheme = $3,
 					val = $4,
 					uniq = true
-				where `+name+`_id = $1 and idx = $2;`,
+				WHERE `+name+`_id = $1 AND idx = $2;`,
 				id, i, ident.Scheme, ident.Val,
 			)
 		} else {
 			batch.Queue(`
-				insert into bbl_`+name+`_identifiers (`+name+`_id, idx, scheme, val, uniq)
-				values ($1, $2, $3, $4, true);`,
+				INSERT INTO bbl_`+name+`_identifiers (`+name+`_id, idx, scheme, val, uniq)
+				VALUES ($1, $2, $3, $4, true);`,
 				id, i, ident.Scheme, ident.Val,
 			)
 		}
@@ -596,28 +596,28 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	}
 
 	batch.Queue(`
-		update bbl_works
-		set kind = $2,
+		UPDATE bbl_works
+		SET kind = $2,
 			subkind = nullif($3, ''),
 			status = $4,
 			attrs = $5,
 			version = version + 1,
 			updated_at = transaction_timestamp(),
 			updated_by_id = nullif($6, '')::uuid
-		where id = $1;`,
+		WHERE id = $1;`,
 		rec.ID, rec.Kind, rec.Subkind, rec.Status, jsonAttrs, userID,
 	)
 
 	if diff.Permissions != nil {
 		batch.Queue(`
-			delete from bbl_work_permissions
-			where work_id = $1;`,
+			DELETE FROM bbl_work_permissions
+			WHERE work_id = $1;`,
 			rec.ID,
 		)
 		for _, perm := range rec.Permissions {
 			batch.Queue(`
-				insert into bbl_work_permissions (work_id, kind, user_id)
-				values ($1, $2, $3);`,
+				INSERT INTO bbl_work_permissions (work_id, kind, user_id)
+				VALUES ($1, $2, $3);`,
 				rec.ID, perm.Kind, perm.UserID,
 			)
 		}
@@ -630,8 +630,8 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	if diff.Contributors != nil {
 		if len(currentRec.Contributors) > len(rec.Contributors) {
 			batch.Queue(`
-				delete from bbl_work_contributors
-				where work_id = $1 and idx >= $2;`,
+				DELETE FROM bbl_work_contributors
+				WHERE work_id = $1 AND idx >= $2;`,
 				rec.ID, len(rec.Contributors),
 			)
 		}
@@ -644,16 +644,16 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 			// TODO only update if different
 			if i < len(currentRec.Contributors) {
 				batch.Queue(`
-					update bbl_work_contributors
-					set attrs = $3,
+					UPDATE bbl_work_contributors
+					SET attrs = $3,
 						person_id = nullif($4, '')::uuid
-					where work_id = $1 and idx = $2;`,
+					WHERE work_id = $1 and idx = $2;`,
 					rec.ID, i, jsonAttrs, con.PersonID,
 				)
 			} else {
 				batch.Queue(`
-					insert into bbl_work_contributors (work_id, idx, attrs, person_id)
-					values ($1, $2, $3, nullif($4, '')::uuid);`,
+					INSERT INTO bbl_work_contributors (work_id, idx, attrs, person_id)
+					VALUES ($1, $2, $3, nullif($4, '')::uuid);`,
 					rec.ID, i, jsonAttrs, con.PersonID,
 				)
 			}
@@ -663,8 +663,8 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	if diff.Files != nil {
 		if len(currentRec.Files) > len(rec.Files) {
 			batch.Queue(`
-				delete from bbl_work_files
-				where work_id = $1 and idx >= $2;`,
+				DELETE FROM bbl_work_files
+				WHERE work_id = $1 AND idx >= $2;`,
 				rec.ID, len(rec.Files),
 			)
 		}
@@ -672,18 +672,18 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 			// TODO only update if different
 			if i < len(currentRec.Files) {
 				batch.Queue(`
-					update bbl_work_files
-					set object_id = $3,
+					UPDATE bbl_work_files
+					SET object_id = $3,
 						name = $4,
 						content_type = $5,
 						size = $6
-					where work_id = $1 and idx = $2;`,
+					WHERE work_id = $1 AND idx = $2;`,
 					rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 				)
 			} else {
 				batch.Queue(`
-					insert into bbl_work_files (work_id, idx, object_id, name, content_type, size)
-					values ($1, $2, $3, $4, $5, $6);`,
+					INSERT INTO bbl_work_files (work_id, idx, object_id, name, content_type, size)
+					VALUES ($1, $2, $3, $4, $5, $6);`,
 					rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 				)
 			}
@@ -693,8 +693,8 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	if diff.Rels != nil {
 		if len(currentRec.Rels) > len(rec.Rels) {
 			batch.Queue(`
-				delete from bbl_work_rels
-				where work_id = $1 and idx >= $2;`,
+				DELETE FROM bbl_work_rels
+				WHERE work_id = $1 AND idx >= $2;`,
 				rec.ID, len(rec.Rels),
 			)
 		}
@@ -702,16 +702,16 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 			// TODO only update if different
 			if i < len(currentRec.Rels) {
 				batch.Queue(`
-					update bbl_work_rels
-					set kind = $3,
+					UPDATE bbl_work_rels
+					SET kind = $3,
 						rel_work_id = $4
-					where work_id = $1 and idx = $2;`,
+					WHERE work_id = $1 AND idx = $2;`,
 					rec.ID, i, rel.Kind, rel.WorkID,
 				)
 			} else {
 				batch.Queue(`
-					insert into bbl_work_rels (work_id, idx, kind, rel_work_id)
-					values ($1, $2, $3, $4);`,
+					INSERT INTO bbl_work_rels (work_id, idx, kind, rel_work_id)
+					VALUES ($1, $2, $3, $4);`,
 					rec.ID, i, rel.Kind, rel.WorkID,
 				)
 			}
@@ -719,8 +719,8 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	}
 
 	batch.Queue(`
-		insert into bbl_changes (rev_id, work_id, diff)
-		values ($1, $2, $3);`,
+		INSERT INTO bbl_changes (rev_id, work_id, diff)
+		VALUES ($1, $2, $3);`,
 		revID, rec.ID, jsonDiff,
 	)
 
@@ -733,9 +733,9 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 
 func getIDByIdentifier(ctx context.Context, conn Conn, name, scheme, val string) (string, error) {
 	q := `
-		select ` + name + `_id
-		from bbl_` + name + `_identifiers
-		where scheme = $1 and val = $2 and uniq = true;`
+		SELECT ` + name + `_id
+		FROM bbl_` + name + `_identifiers
+		WHERE scheme = $1 AND val = $2 AND uniq = true;`
 
 	var id string
 
