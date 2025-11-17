@@ -104,7 +104,9 @@ templ RefreshForm(c views.Ctx, rec *bbl.Work) {
 	<div hx-swap-oob="outerHTML:#work-form-nav">
 		@FormNav(c, rec)
 	</div>
-	@Form(c, rec)
+	<div hx-swap-oob="outerHTML:#work-form">
+		@Form(c, rec)
+	</div>
 }
 
 templ FormButtons(c views.Ctx, rec *bbl.Work) {

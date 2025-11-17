@@ -386,11 +386,13 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
 
+	mux.Handle("GET /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeLists)))
 	mux.Handle("GET /backoffice/lists/_new", userChain.then(wrap(getAppCtx, app.backofficeNewList)))
 	mux.Handle("POST /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeCreateList)))
 	mux.Handle("GET /backoffice/lists/_add_item", userChain.then(wrap(getAppCtx, app.backofficeAddListItem)))
 
 	mux.Handle("POST /backoffice/list/{id}/items", userChain.then(wrap(getAppCtx, app.backofficeCreateListItems)))
+	mux.Handle("DELETE /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeDeleteList)))
 
 	mux.Handle("GET /backoffice", userChain.then(wrap(getAppCtx, app.backofficeHome)))
 

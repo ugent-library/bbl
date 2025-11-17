@@ -68,6 +68,9 @@ templ Page(c views.Ctx, title string) {
 															<h4>{ c.User.Name }</h4>
 														</div>
 													</div>
+													<a class="dropdown-item" href={ templ.SafeURL(urls.BackofficeLists()) }>
+														My lists
+													</a>
 													<hr class="dropdown-divider"/>
 													<a class="dropdown-item" href={ templ.SafeURL(urls.BackofficeLogout()) }>
 														<i class="if if-log-out"></i> Sign out

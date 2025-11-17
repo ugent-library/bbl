@@ -144,6 +144,10 @@ func BackofficeNewList() string {
 	return "/backoffice/lists/_new"
 }
 
+func BackofficeList(listID string) string {
+	return "/backoffice/list/" + url.PathEscape(listID)
+}
+
 func BackofficeListItems(listID string) string {
 	return "/backoffice/list/" + url.PathEscape(listID) + "/items"
 }

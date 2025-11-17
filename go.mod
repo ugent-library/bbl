@@ -30,6 +30,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/ugent-library/catbird v0.0.0-20251024131000-1ace95cf5ae8
 	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9
+	github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690
 	github.com/ugent-library/oidc v0.1.0
 	github.com/ugent-library/vo v0.0.0-20251002073056-e6f92340d3f9
 	go.breu.io/ulid v0.0.2

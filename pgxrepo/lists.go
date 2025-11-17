@@ -10,20 +10,6 @@ import (
 	"github.com/ugent-library/bbl/fracdex"
 )
 
-func (r *Repo) CreateList(ctx context.Context, userID, name string) (string, error) {
-	q := `
-		INSERT INTO bbl_lists (id, name, created_by_id)
-		VALUES ($1, $2, nullif($3, '')::uuid);`
-
-	id := bbl.NewID()
-
-	if _, err := r.conn.Exec(ctx, q, id, name, userID); err != nil {
-		return "", fmt.Errorf("CreateList: %w", err)
-	}
-
-	return id, nil
-}
-
 func (r *Repo) GetUserLists(ctx context.Context, userID string) ([]*bbl.List, error) {
 	q := `
 		SELECT id, name, public, created_at, created_by_id
@@ -41,6 +27,31 @@ func (r *Repo) GetUserLists(ctx context.Context, userID string) ([]*bbl.List, er
 	}
 
 	return recs, nil
+}
+
+func (r *Repo) CreateList(ctx context.Context, userID, name string) (string, error) {
+	q := `
+		INSERT INTO bbl_lists (id, name, created_by_id)
+		VALUES ($1, $2, nullif($3, '')::uuid);`
+
+	id := bbl.NewID()
+
+	if _, err := r.conn.Exec(ctx, q, id, name, userID); err != nil {
+		return "", fmt.Errorf("CreateList: %w", err)
+	}
+
+	return id, nil
+}
+
+func (r *Repo) DeleteList(ctx context.Context, id string) error {
+	q := `
+		DELETE FROM bbl_lists WHERE id = $1;`
+
+	if _, err := r.conn.Exec(ctx, q, id); err != nil {
+		return fmt.Errorf("DeleteList: %w", err)
+	}
+
+	return nil
 }
 
 func scanList(row pgx.Row) (*bbl.List, error) {

@@ -5,29 +5,24 @@ import (
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/app/views/backoffice"
 )
 
-templ AddItem(c views.Ctx, lists []*bbl.List, workID string) {
-	for _, list := range lists {
-		<li>
-			<button
-				class="dropdown-item"
-				hx-post={ urls.BackofficeListItems(list.ID) }
-				hx-vals={ fmt.Sprintf(`{"work_id": %q}`, workID) }
-				hx-swap="none"
-			>{ list.Name }</button>
-		</li>
+templ Overview(c views.Ctx, lists []*bbl.List) {
+	@backoffice.Page(c, "My lists") {
+		<ul class="list-group">
+		for _, list := range lists {
+			<li class="list-group-item">
+				{ list.Name }
+				<a
+					hx-delete={ urls.BackofficeList(list.ID) }
+					hx-swap="none"
+					class="btn btn-sm btn-danger ms-3"
+				>Delete</a>
+			</li>
+		}
+		</ul>
 	}
-	<li><hr class="dropdown-divider"/></li>
-	<li>
-		<button
-			class="dropdown-item"
-			hx-get={ urls.BackofficeNewList() }
-			hx-target="#modals"
-			data-bs-toggle="modal"
-			data-bs-target="#modals"
-		>Create list</button>
-	</li>
 }
 
 templ New(c views.Ctx) {
@@ -55,4 +50,27 @@ templ New(c views.Ctx) {
 			</div>
 		</div>
 	</div>
+}
+
+templ AddItem(c views.Ctx, lists []*bbl.List, workID string) {
+	for _, list := range lists {
+		<li>
+			<button
+				class="dropdown-item"
+				hx-post={ urls.BackofficeListItems(list.ID) }
+				hx-vals={ fmt.Sprintf(`{"work_id": %q}`, workID) }
+				hx-swap="none"
+			>{ list.Name }</button>
+		</li>
+	}
+	<li><hr class="dropdown-divider"/></li>
+	<li>
+		<button
+			class="dropdown-item"
+			hx-get={ urls.BackofficeNewList() }
+			hx-target="#modals"
+			data-bs-toggle="modal"
+			data-bs-target="#modals"
+		>Create list</button>
+	</li>
 }
