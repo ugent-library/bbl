@@ -7,6 +7,10 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
+func Home() string {
+	return "/"
+}
+
 func Works() string {
 	return "/works"
 }
