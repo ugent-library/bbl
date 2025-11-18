@@ -7,7 +7,7 @@ import (
 )
 
 type Person struct {
-	RecHeader
+	Header
 	Identifiers []Code `json:"identifiers,omitempty"`
 	PersonAttrs `json:"attrs"`
 }

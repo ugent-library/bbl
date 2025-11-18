@@ -126,7 +126,7 @@ func (app *App) backofficeCreateWork(w http.ResponseWriter, r *http.Request, c *
 	kind := r.FormValue("kind")
 
 	rec := &bbl.Work{
-		RecHeader: bbl.RecHeader{
+		Header: bbl.Header{
 			ID: bbl.NewID(),
 		},
 		Permissions: []bbl.Permission{{Kind: "edit", UserID: c.User.ID}}, // TODO autoadd in repo?

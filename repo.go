@@ -16,7 +16,7 @@ func NewID() string {
 	return ulid.Make().UUIDString()
 }
 
-type RecHeader struct {
+type Header struct {
 	ID          string    `json:"id,omitempty"`
 	Version     int       `json:"version,omitzero"`
 	CreatedAt   time.Time `json:"created_at,omitzero"`
@@ -27,12 +27,12 @@ type RecHeader struct {
 	UpdatedBy   *User     `json:"updated_by,omitempty"`
 }
 
-func (h *RecHeader) Header() *RecHeader {
+func (h *Header) GetHeader() *Header {
 	return h
 }
 
 type Rec interface {
-	Header() *RecHeader
+	GetHeader() *Header
 }
 
 type Rev struct {

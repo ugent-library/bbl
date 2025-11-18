@@ -7,7 +7,7 @@ import (
 )
 
 type Project struct {
-	RecHeader
+	Header
 	Identifiers  []Code `json:"identifiers,omitempty"`
 	ProjectAttrs `json:"attrs"`
 }

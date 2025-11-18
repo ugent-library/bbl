@@ -33,7 +33,7 @@ var CreditRoles = []string{
 }
 
 type Work struct {
-	RecHeader
+	Header
 	Contributors []WorkContributor `json:"contributors,omitempty"`
 	Files        []WorkFile        `json:"files,omitempty"`
 	Identifiers  []Code            `json:"identifiers,omitempty"`
