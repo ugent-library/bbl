@@ -349,6 +349,8 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
 
+	mux.Handle("GET /", appChain.then(wrap(getAppCtx, app.home)))
+
 	mux.Handle("GET /work/{id}", appChain.then(wrap(getAppCtx, app.work)))
 	mux.Handle("GET /works", appChain.then(wrap(getAppCtx, app.works)))
 
