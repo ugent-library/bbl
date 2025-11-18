@@ -30,6 +30,22 @@ func (app *App) backofficeCreateList(w http.ResponseWriter, r *http.Request, c *
 	return nil
 }
 
+func (app *App) backofficeList(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	id := r.PathValue("id")
+
+	list, err := app.repo.GetList(r.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	listItems, err := app.repo.GetListItems(r.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	return listviews.Show(c.viewCtx(), list, listItems).Render(r.Context(), w)
+}
+
 // TODO check rights
 func (app *App) backofficeDeleteList(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	id := r.PathValue("id")

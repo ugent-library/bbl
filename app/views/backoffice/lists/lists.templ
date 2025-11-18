@@ -6,21 +6,40 @@ import (
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
+	"github.com/ugent-library/bbl/app/views/backoffice/works"
 )
 
 templ Overview(c views.Ctx, lists []*bbl.List) {
 	@backoffice.Page(c, "My lists") {
 		<ul class="list-group">
-		for _, list := range lists {
-			<li class="list-group-item">
-				{ list.Name }
-				<a
-					hx-delete={ urls.BackofficeList(list.ID) }
-					hx-swap="none"
-					class="btn btn-sm btn-danger ms-3"
-				>Delete</a>
-			</li>
-		}
+			for _, list := range lists {
+				<li class="list-group-item">
+					<a href={ urls.BackofficeList(list.ID) }>
+						{ list.Name }
+					</a>
+					if list.CreatedBy != nil {
+						Created by { list.CreatedBy.Name }
+					}
+					<a
+						hx-delete={ urls.BackofficeList(list.ID) }
+						hx-swap="none"
+						class="btn btn-sm btn-danger ms-3"
+					>Delete</a>
+				</li>
+			}
+		</ul>
+	}
+}
+
+templ Show(c views.Ctx, list *bbl.List, listItems []*bbl.ListItem) {
+	@backoffice.Page(c, list.Name) {
+		<div>
+			<h2>{ list.Name }</h2>
+		</div>
+		<ul class="list-group">
+			for _, item := range listItems {
+				@works.ListItem(c, item.Work)
+			}
 		</ul>
 	}
 }

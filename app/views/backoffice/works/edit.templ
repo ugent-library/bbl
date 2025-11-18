@@ -116,7 +116,11 @@ templ FormButtons(c views.Ctx, rec *bbl.Work) {
 			hx-post={ urls.BackofficeWork(rec.ID) }
 			hx-include="[name*='work.']"
 		>Save</button>
-		<a class="btn btn-success" href="#">Publish to Biblio</a>
+		<button
+			class="btn btn-success"
+			hx-post={ urls.BackofficePublishWork(rec.ID) }
+			hx-include="[name*='work.']"
+		>Publish to Biblio</button>
 		<div class="dropdown">
 			<button class="btn btn-outline-secondary btn-icon-only me-0" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 				<i class="if if-more"></i>

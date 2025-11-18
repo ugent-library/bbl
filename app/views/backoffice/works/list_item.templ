@@ -1,0 +1,145 @@
+package works
+
+import (
+	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/views"
+)
+
+templ ListItem(c views.Ctx, rec *bbl.Work) {
+	<li class="list-group-item">
+		<div class="w-100">
+			<div class="hstack-md-responsive align-items-start gap-3 w-100">
+				<div class="vstack gap-5">
+					<div class="vstack gap-2">
+						<div class="d-inline-flex align-items-center flex-wrap">
+							<span class="badge rounded-pill badge-success-light me-3 my-2">
+								<span class="badge-circle"></span>
+								<span class="badge-text">{ rec.Status }</span>
+							</span>
+							<span class="c-subline text-nowrap me-2 pe-3 my-2 border-end">{ rec.Kind }</span>
+							<span class="c-subline ps-2 my-2 me-3 pe-3 border-end">
+								<i class="if if-ghent-university if--small if--primary me-2"></i>UGent Access
+							</span>
+							<span class="c-subline ps-2 my-2">
+								<i class="if if-calendar if--small if--muted"></i> Open Access from 23-05-2022
+							</span>
+						</div>
+						<h4 class="mb-0">
+							<span class="list-group-item-title">{ rec.GetTitle() }</span>
+						</h4>
+						<ul class="c-meta-list c-meta-list-inline">
+							if rec.PublicationYear != "" {
+								<li class="c-meta-item">{ rec.PublicationYear }</li>
+							}
+							if rec.JournalTitle != "" {
+								<li class="c-meta-item">{ rec.JournalTitle }</li>
+							}
+							if rec.BookTitle != "" {
+								<li class="c-meta-item">{ rec.BookTitle }</li>
+							}
+							if rec.Volume != "" {
+								<li class="c-meta-item">
+									<span>Volume: { rec.Volume }</span>
+								</li>
+							}
+							if rec.Issue != "" {
+								<li class="c-meta-item">
+									<span>Issue: { rec.Issue }</span>
+								</li>
+							}
+							if !bbl.IsZero(rec.Pages) {
+								<li class="c-meta-item">
+									<span>Pages: { rec.Pages.String() }</span>
+								</li>
+							}
+						</ul>
+						<div class="c-author-list">
+							for _, c := range rec.GetAuthors() {
+								<div class="c-author">
+									<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
+									<span>{ c.GetName() }</span>
+								</div>
+							}
+							for _, c := range rec.GetSupervisors() {
+								<div class="c-author fst-italic">supervised by</div>
+								<div class="c-author">
+									<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
+									<span>{ c.GetName() }</span>
+								</div>
+							}
+							<span class="badge badge-light badge-sm">Your role: Author</span>
+						</div>
+					</div>
+					<div class="collapse" id="collapse-undefined">
+						<div class="vstack gap-3">
+							<div class="d-flex align-items-center">
+								<i class="if if-building if--small if--muted me-2"></i>
+								<div class="badge-list">
+									<span class="badge badge-light badge-sm">DI10</span>
+									<span class="badge badge-light badge-sm">DI05*</span>
+								</div>
+							</div>
+							<div class="d-flex align-items-start">
+								<i class="if if-briefcase if--muted if--small me-2 mt-2"></i>
+								<ul class="c-meta-list c-meta-list-inline">
+									<li class="c-meta-item">
+										Valorisation of cytokine traps: IL33 as lead case
+										<span>-</span>
+										<span class="c-body-small text-muted">F2016/IOF-ADV/307</span>
+									</li>
+									<li class="c-meta-item">
+										The archaeological material of ed-Dur (Umm al-Qaiwain, United Arab Emirates). A typological, chronological and comparative study in international context
+										<span>-</span>
+										<span class="c-body-small text-muted">F2016/IOF-ADV/307</span>
+									</li>
+								</ul>
+							</div>
+							<div class="d-flex align-items-start">
+								<i class="if if-database if--muted if--small me-2 mt-2"></i>
+								<ul class="c-meta-list c-meta-list-vertical c-meta-list-narrow-spacing">
+									<li class="c-meta-item">
+										Data and model for "Urban development and its exposure to river flood risk in Southeast Asia
+										<span>-</span>
+										<span class="c-body-small">20393</span>
+									</li>
+									<li class="c-meta-item">
+										Curabitur ut velit vitae posuere.
+										<span>-</span>
+										<span class="c-body-small">20394</span>
+									</li>
+								</ul>
+							</div>
+							<ul class="c-meta-list c-meta-list-inline">
+								<li class="c-meta-item">
+									<i class="if if-bar-chart"></i>VABB: c:vabb:339050, VABB-3, not approved, 2013
+								</li>
+							</ul>
+						</div>
+					</div>
+					<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
+						<ul class="c-meta-list c-meta-list-inline c-body-small">
+							<li class="c-meta-item">
+								Created { c.FormatTime(rec.CreatedAt) }
+								if u := rec.CreatedBy; u != nil {
+									by { u.Name }.
+								} else {
+									by System.
+								}
+							</li>
+							<li class="c-meta-item">
+								Edited { c.FormatTime(rec.UpdatedAt) }
+								if u := rec.UpdatedBy; u != nil {
+									by { u.Name }.
+								} else {
+									by System.
+								}
+							</li>
+						</ul>
+						@SummaryID(c, rec)
+					</div>
+				</div>
+				{ children... }
+			</div>
+		</div>
+	</li>
+}

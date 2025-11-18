@@ -182,170 +182,37 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 					</div>
 					<ul class="list-group list-group-flush">
 						for _, hit := range hits.Hits {
-							<li class="list-group-item">
-								<div class="w-100">
-									<div class="hstack-md-responsive align-items-start gap-3 w-100">
-										<div class="vstack gap-5">
-											<div class="vstack gap-2">
-												<div class="d-inline-flex align-items-center flex-wrap">
-													<span class="badge rounded-pill badge-success-light me-3 my-2">
-														<span class="badge-circle"></span>
-														<span class="badge-text">{ hit.Rec.Status }</span>
-													</span>
-													<span class="c-subline text-nowrap me-2 pe-3 my-2 border-end">{ hit.Rec.Kind }</span>
-													<span class="c-subline ps-2 my-2 me-3 pe-3 border-end">
-														<i class="if if-ghent-university if--small if--primary me-2"></i>UGent Access
-													</span>
-													<span class="c-subline ps-2 my-2">
-														<i class="if if-calendar if--small if--muted"></i> Open Access from 23-05-2022
-													</span>
-												</div>
-												<h4 class="mb-0">
-													<span class="list-group-item-title">{ hit.Rec.GetTitle() }</span>
-												</h4>
-												<ul class="c-meta-list c-meta-list-inline">
-													if hit.Rec.PublicationYear != "" {
-														<li class="c-meta-item">{ hit.Rec.PublicationYear }</li>
-													}
-													if hit.Rec.JournalTitle != "" {
-														<li class="c-meta-item">{ hit.Rec.JournalTitle }</li>
-													}
-													if hit.Rec.BookTitle != "" {
-														<li class="c-meta-item">{ hit.Rec.BookTitle }</li>
-													}
-													if hit.Rec.Volume != "" {
-														<li class="c-meta-item">
-															<span>Volume: { hit.Rec.Volume }</span>
-														</li>
-													}
-													if hit.Rec.Issue != "" {
-														<li class="c-meta-item">
-															<span>Issue: { hit.Rec.Issue }</span>
-														</li>
-													}
-													if !bbl.IsZero(hit.Rec.Pages) {
-														<li class="c-meta-item">
-															<span>Pages: { hit.Rec.Pages.String() }</span>
-														</li>
-													}
-												</ul>
-												<div class="c-author-list">
-													for _, c := range hit.Rec.GetAuthors() {
-														<div class="c-author">
-															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
-															<span>{ c.GetName() }</span>
-														</div>
-													}
-													for _, c := range hit.Rec.GetSupervisors() {
-														<div class="c-author fst-italic">supervised by</div>
-														<div class="c-author">
-															<i class="if if-ghent-university" data-bs-toggle="tooltip" title="UGent author" data-bs-placement="bottom"></i>
-															<span>{ c.GetName() }</span>
-														</div>
-													}
-													<span class="badge badge-light badge-sm">Your role: Author</span>
-												</div>
-											</div>
-											<div class="collapse" id="collapse-undefined">
-												<div class="vstack gap-3">
-													<div class="d-flex align-items-center">
-														<i class="if if-building if--small if--muted me-2"></i>
-														<div class="badge-list">
-															<span class="badge badge-light badge-sm">DI10</span>
-															<span class="badge badge-light badge-sm">DI05*</span>
-														</div>
-													</div>
-													<div class="d-flex align-items-start">
-														<i class="if if-briefcase if--muted if--small me-2 mt-2"></i>
-														<ul class="c-meta-list c-meta-list-inline">
-															<li class="c-meta-item">
-																Valorisation of cytokine traps: IL33 as lead case
-																<span>-</span>
-																<span class="c-body-small text-muted">F2016/IOF-ADV/307</span>
-															</li>
-															<li class="c-meta-item">
-																The archaeological material of ed-Dur (Umm al-Qaiwain, United Arab Emirates). A typological, chronological and comparative study in international context
-																<span>-</span>
-																<span class="c-body-small text-muted">F2016/IOF-ADV/307</span>
-															</li>
-														</ul>
-													</div>
-													<div class="d-flex align-items-start">
-														<i class="if if-database if--muted if--small me-2 mt-2"></i>
-														<ul class="c-meta-list c-meta-list-vertical c-meta-list-narrow-spacing">
-															<li class="c-meta-item">
-																Data and model for "Urban development and its exposure to river flood risk in Southeast Asia
-																<span>-</span>
-																<span class="c-body-small">20393</span>
-															</li>
-															<li class="c-meta-item">
-																Curabitur ut velit vitae posuere.
-																<span>-</span>
-																<span class="c-body-small">20394</span>
-															</li>
-														</ul>
-													</div>
-													<ul class="c-meta-list c-meta-list-inline">
-														<li class="c-meta-item">
-															<i class="if if-bar-chart"></i>VABB: c:vabb:339050, VABB-3, not approved, 2013
-														</li>
-													</ul>
-												</div>
-											</div>
-											<div class="d-lg-flex flex-row-reverse align-items-center justify-content-end vstack gap-3 flex-wrap">
-												<ul class="c-meta-list c-meta-list-inline c-body-small">
-													<li class="c-meta-item">
-														Created { c.FormatTime(hit.Rec.CreatedAt) }
-														if u := hit.Rec.CreatedBy; u != nil {
-															by { u.Name }.
-														} else {
-															by System.
-														}
-													</li>
-													<li class="c-meta-item">
-														Edited { c.FormatTime(hit.Rec.UpdatedAt) }
-														if u := hit.Rec.UpdatedBy; u != nil {
-															by { u.Name }.
-														} else {
-															by System.
-														}
-													</li>
-												</ul>
-												@SummaryID(c, hit.Rec)
-											</div>
-										</div>
-										<div class="c-button-toolbar">
-											<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-undefined" aria-expanded="false" aria-controls="collapse-undefined">
-												<i class="if if-info-circle"></i>
-												<span class="btn-text d-md-none d-xl-inline-block">More info</span>
-												<span class="visually-hidden">Get more info about this record.</span>
-											</button>
-											<div class="btn-group">
-												<button type="button" class="btn btn-tertiary">Add to list</button>
-												<button
-													type="button"
-													class="btn btn- dropdown-toggle dropdown-toggle-split"
-													data-bs-toggle="dropdown"
-													aria-expanded="false"
-													hx-get={ urls.BackofficeAddListItem() }
-													hx-vals={ fmt.Sprintf(`{"work_id": %q}`, hit.Rec.ID) }
-													hx-target="next"
-												>
-													<span class="visually-hidden">Toggle Dropdown</span>
-												</button>
-												<ul class="dropdown-menu"></ul>
-											</div>
-											if can.EditWork(c.User, hit.Rec) {
-												<a class="btn btn-tertiary btn-lg-only-responsive" href={ urls.BackofficeEditWork(hit.Rec.ID) }>
-													<i class="if if-edit"></i>
-													<span class="btn-text d-md-none d-xl-inline-block">Edit</span>
-													<span class="visually-hidden">Edit record</span>
-												</a>
-											}
-										</div>
+							@ListItem(c, hit.Rec) {
+								<div class="c-button-toolbar">
+									<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-undefined" aria-expanded="false" aria-controls="collapse-undefined">
+										<i class="if if-info-circle"></i>
+										<span class="btn-text d-md-none d-xl-inline-block">More info</span>
+										<span class="visually-hidden">Get more info about this record.</span>
+									</button>
+									<div class="btn-group">
+										<button type="button" class="btn btn-tertiary">Add to list</button>
+										<button
+											type="button"
+											class="btn btn- dropdown-toggle dropdown-toggle-split"
+											data-bs-toggle="dropdown"
+											aria-expanded="false"
+											hx-get={ urls.BackofficeAddListItem() }
+											hx-vals={ fmt.Sprintf(`{"work_id": %q}`, hit.Rec.ID) }
+											hx-target="next"
+										>
+											<span class="visually-hidden">Toggle Dropdown</span>
+										</button>
+										<ul class="dropdown-menu"></ul>
 									</div>
+									if can.EditWork(c.User, hit.Rec) {
+										<a class="btn btn-tertiary btn-lg-only-responsive" href={ urls.BackofficeEditWork(hit.Rec.ID) }>
+											<i class="if if-edit"></i>
+											<span class="btn-text d-md-none d-xl-inline-block">Edit</span>
+											<span class="visually-hidden">Edit record</span>
+										</a>
+									}
 								</div>
-							</li>
+							}
 						}
 					</ul>
 					<div class="card-footer">

@@ -96,6 +96,10 @@ func BackofficeEditWork(id string) string {
 	return "/backoffice/work/" + url.PathEscape(id) + "/edit"
 }
 
+func BackofficePublishWork(id string) string {
+	return "/backoffice/work/" + url.PathEscape(id) + "/publish"
+}
+
 func BackofficeWorkChangeKind(id string) string {
 	return "/backoffice/work/" + url.PathEscape(id) + "/_change_kind"
 }

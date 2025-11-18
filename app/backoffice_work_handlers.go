@@ -184,6 +184,35 @@ func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *
 	return workviews.RefreshForm(c.viewCtx(), rec).Render(r.Context(), w)
 }
 
+func (app *App) backofficePublishWork(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	rec, err := app.repo.GetWork(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+
+	if err := bindWorkForm(r, rec); err != nil {
+		return err
+	}
+
+	vacuumWork(rec)
+
+	rec.Status = bbl.PublicStatus
+
+	rev := &bbl.Rev{UserID: c.User.ID}
+	rev.Add(&bbl.UpdateWork{Work: rec, MatchVersion: true})
+	if err := app.repo.AddRev(r.Context(), rev); err != nil {
+		return err
+	}
+
+	// TODO this is clunky, there should be a convenience method for save and reload
+	rec, err = app.repo.GetWork(r.Context(), rec.ID)
+	if err != nil {
+		return err
+	}
+
+	return workviews.RefreshForm(c.viewCtx(), rec).Render(r.Context(), w)
+}
+
 func (app *App) backofficeWorkChangeKind(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	rec, err := app.repo.GetWork(r.Context(), r.PathValue("id"))
 	if err != nil {

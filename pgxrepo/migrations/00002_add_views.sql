@@ -141,8 +141,22 @@ LEFT JOIN LATERAL (
   GROUP BY representation_id
 ) s_r ON s_r.representation_id = r.id;
 
+CREATE VIEW bbl_lists_view AS
+SELECT l.*,
+       row_to_json(u_c) AS created_by
+FROM bbl_lists l
+LEFT JOIN bbl_users_view u_c ON l.created_by_id = u_c.id;
+
+CREATE VIEW bbl_list_items_view AS
+SELECT l_i.*,
+       row_to_json(w) AS work
+FROM bbl_list_items l_i
+LEFT JOIN bbl_works_view w ON l_i.work_id = w.id;
+
 -- +goose down
 
+DROP VIEW bbl_list_items_view;
+DROP VIEW bbl_lists_view;
 DROP VIEW bbl_representations_view;
 DROP VIEW bbl_works_view;
 DROP VIEW bbl_people_view;

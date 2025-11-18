@@ -379,9 +379,10 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/works/_add_files", userChain.then(wrap(getAppCtx, app.backofficeWorkAddFiles)))
 	mux.Handle("POST /backoffice/works/_remove_file", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveFile)))
 
-	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
 	mux.Handle("GET /backoffice/work/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))
 	mux.Handle("GET /backoffice/work/{id}/edit", userChain.then(wrap(getAppCtx, app.backofficeEditWork)))
+	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
+	mux.Handle("POST /backoffice/work/{id}/publish", userChain.then(wrap(getAppCtx, app.backofficePublishWork)))
 	mux.Handle("POST /backoffice/work/{id}/_change_kind", userChain.then(wrap(getAppCtx, app.backofficeWorkChangeKind)))
 
 	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
@@ -391,6 +392,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("POST /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeCreateList)))
 	mux.Handle("GET /backoffice/lists/_add_item", userChain.then(wrap(getAppCtx, app.backofficeAddListItem)))
 
+	mux.Handle("GET /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeList)))
 	mux.Handle("POST /backoffice/list/{id}/items", userChain.then(wrap(getAppCtx, app.backofficeCreateListItems)))
 	mux.Handle("DELETE /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeDeleteList)))
 
