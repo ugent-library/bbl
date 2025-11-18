@@ -1,6 +1,7 @@
 package works
 
 import (
+	"fmt"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 )
@@ -70,7 +71,7 @@ templ ListItem(c views.Ctx, rec *bbl.Work) {
 							<span class="badge badge-light badge-sm">Your role: Author</span>
 						</div>
 					</div>
-					<div class="collapse" id="collapse-undefined">
+					<div class="collapse" id={ fmt.Sprintf("work-%s-collapse", rec.ID) }>
 						<div class="vstack gap-3">
 							<div class="d-flex align-items-center">
 								<i class="if if-building if--small if--muted me-2"></i>
@@ -138,7 +139,14 @@ templ ListItem(c views.Ctx, rec *bbl.Work) {
 						@SummaryID(c, rec)
 					</div>
 				</div>
-				{ children... }
+				<div class="c-button-toolbar">
+					<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="collapse" data-bs-target={ fmt.Sprintf("#work-%s-collapse", rec.ID) } aria-expanded="false" aria-controls={ fmt.Sprintf("#work-%s-collapse", rec.ID) }>
+						<i class="if if-info-circle"></i>
+						<span class="btn-text d-md-none d-xl-inline-block">More info</span>
+						<span class="visually-hidden">Get more info about this record.</span>
+					</button>
+					{ children... }
+				</div>
 			</div>
 		</div>
 	</li>
