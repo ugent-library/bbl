@@ -51,8 +51,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			if oldRec == nil {
 				batch.Queue(`
-					INSERT INTO bbl_users (id, username, email, name, role, deactivate_at, created_by_id, updated_by_id)
-					VALUES ($1, $2, $3, $4, $5, $6, nullif($7, '')::uuid, nullif($8, '')::uuid);`,
+					INSERT INTO bbl_users (id, username, email, name, role, deactivate_at, version, created_by_id, updated_by_id)
+					VALUES ($1, $2, $3, $4, $5, $6, 1, nullif($7, '')::uuid, nullif($8, '')::uuid);`,
 					rec.ID, rec.Username, rec.Email, rec.Name, bbl.UserRole, rec.DeactivateAt, rev.UserID, rev.UserID,
 				)
 
