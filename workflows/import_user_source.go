@@ -26,7 +26,13 @@ func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 		out := ImportUserSourceOutput{}
 
 		for rec := range seq {
-			if err = repo.SaveUser(ctx, rec); err != nil {
+			rev := &bbl.Rev{}
+			rev.Add(&bbl.SaveUser{
+				User:         rec,
+				MatchVersion: false,
+			})
+
+			if err = repo.AddRev(ctx, rev); err != nil {
 				return out, err
 			} else {
 				out.Imported++

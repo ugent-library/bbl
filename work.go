@@ -36,7 +36,6 @@ type Work struct {
 	Header
 	Contributors []WorkContributor `json:"contributors,omitempty"`
 	Files        []WorkFile        `json:"files,omitempty"`
-	Identifiers  []Code            `json:"identifiers,omitempty"`
 	Kind         string            `json:"kind"`
 	Permissions  []Permission      `json:"permissions,omitempty"` // TODO move to header?
 	Profile      *WorkProfile      `json:"-"`

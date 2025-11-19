@@ -8,12 +8,15 @@ CREATE COLLATION bbl_case_insensitive (
 
 CREATE TABLE bbl_users (
   id uuid PRIMARY KEY,
+  version int NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+  created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+  updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
   username text NOT NULL UNIQUE,
   email text NOT NULL UNIQUE COLLATE bbl_case_insensitive,
   name text NOT NULL,
   role text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
-  updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   deactivate_at timestamptz
 );
 
@@ -65,15 +68,12 @@ CREATE TABLE bbl_organization_identifiers (
   idx int NOT NULL,
   scheme text NOT NULL,
   val text NOT NULL,
-  uniq boolean NOT NULL,
   PRIMARY KEY (organization_id, idx)
 );
 
 -- TODO are these all necessary?
 CREATE INDEX ON bbl_organization_identifiers (organization_id);
-CREATE UNIQUE INDEX ON bbl_organization_identifiers (scheme, val) WHERE uniq IS TRUE;
 CREATE INDEX ON bbl_organization_identifiers (scheme, val);
-CREATE INDEX ON bbl_organization_identifiers (uniq);
 
 CREATE TABLE bbl_organization_rels (
   organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
@@ -102,15 +102,12 @@ CREATE TABLE bbl_person_identifiers (
   idx int NOT NULL,
   scheme text NOT NULL,
   val text NOT NULL,
-  uniq boolean NOT NULL,
   PRIMARY KEY (person_id, idx)
 );
 
 -- TODO are these all necessary?
 CREATE INDEX ON bbl_person_identifiers (person_id);
-CREATE UNIQUE INDEX ON bbl_person_identifiers (scheme, val) WHERE uniq IS TRUE;
 CREATE INDEX ON bbl_person_identifiers (scheme, val);
-CREATE INDEX ON bbl_person_identifiers (uniq);
 
 CREATE TABLE bbl_person_organizations (
   person_id uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
@@ -137,15 +134,12 @@ CREATE TABLE bbl_project_identifiers (
   idx int NOT NULL,
   scheme text NOT NULL,
   val text NOT NULL,
-  uniq boolean NOT NULL,
   PRIMARY KEY (project_id, idx)
 );
 
 -- TODO are these all necessary?
 CREATE INDEX ON bbl_project_identifiers (project_id);
-CREATE UNIQUE INDEX ON bbl_project_identifiers (scheme, val) WHERE uniq IS TRUE;
 CREATE INDEX ON bbl_project_identifiers (scheme, val);
-CREATE INDEX ON bbl_project_identifiers (uniq);
 
 CREATE TABLE bbl_works (
   id uuid PRIMARY KEY,
@@ -174,15 +168,12 @@ CREATE TABLE bbl_work_identifiers (
   idx int NOT NULL,
   scheme text NOT NULL,
   val text NOT NULL,
-  uniq boolean NOT NULL,
   PRIMARY KEY (work_id, idx)
 );
 
 -- TODO are these all necessary?
 CREATE INDEX ON bbl_work_identifiers (work_id);
-CREATE UNIQUE INDEX ON bbl_work_identifiers (scheme, val) WHERE uniq IS TRUE;
 CREATE INDEX ON bbl_work_identifiers (scheme, val);
-CREATE INDEX ON bbl_work_identifiers (uniq);
 
 CREATE TABLE bbl_work_files (
   work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
@@ -272,6 +263,7 @@ CREATE TABLE bbl_revs (
 CREATE TABLE bbl_changes (
   id bigserial PRIMARY KEY,
   rev_id uuid NOT NULL REFERENCES bbl_revs (id) ON DELETE CASCADE,
+  user_id uuid REFERENCES bbl_users (id) ON DELETE CASCADE,
   organization_id uuid REFERENCES bbl_organizations (id) ON DELETE CASCADE,
   person_id uuid REFERENCES bbl_people (id) ON DELETE CASCADE,
   project_id uuid REFERENCES bbl_projects (id) ON DELETE CASCADE,
@@ -279,6 +271,7 @@ CREATE TABLE bbl_changes (
   diff jsonb NOT NULL,
 
   CHECK (
+    (case when user_id IS NULL THEN 0 ELSE 1 end) +
     (case when organization_id IS NULL THEN 0 ELSE 1 end) +
     (case when person_id IS NULL THEN 0 ELSE 1 end) +
     (case when project_id IS NULL THEN 0 ELSE 1 end) +
@@ -287,6 +280,7 @@ CREATE TABLE bbl_changes (
 );
 
 CREATE INDEX ON bbl_changes (rev_id);
+CREATE INDEX ON bbl_changes (user_id) WHERE user_id IS NOT NULL;
 CREATE INDEX ON bbl_changes (organization_id) WHERE organization_id IS NOT NULL;
 CREATE INDEX ON bbl_changes (person_id) WHERE person_id IS NOT NULL;
 CREATE INDEX ON bbl_changes (project_id) WHERE project_id IS NOT NULL;

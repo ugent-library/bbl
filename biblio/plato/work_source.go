@@ -113,11 +113,13 @@ func mapWork(res gjson.Result) (*bbl.Work, error) {
 	platoID := res.Get("plato_id").String()
 
 	rec := &bbl.Work{
+		Header: bbl.Header{
+			Identifiers: []bbl.Code{
+				{Scheme: "plato_id", Val: platoID},
+			},
+		},
 		Kind:   "dissertation",
 		Status: bbl.SuggestionStatus,
-		Identifiers: []bbl.Code{
-			{Scheme: "plato_id", Val: platoID},
-		},
 		WorkAttrs: bbl.WorkAttrs{
 			Classifications: []bbl.Code{
 				{Scheme: "ugent", Val: "U"},

@@ -58,6 +58,7 @@ func RunWithContext(ctx context.Context) {
 	bbl.RegisterWorkExporter("csv", csv.NewWorkExporter)
 
 	if err := fang.Execute(ctx, rootCmd); err != nil {
+		newLogger(os.Stdout).Error("failed to execute command", "error", err)
 		os.Exit(1)
 	}
 }

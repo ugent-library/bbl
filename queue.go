@@ -3,6 +3,7 @@ package bbl
 const (
 	OutboxQueue = "outbox"
 
+	UserChangedTopic         = "user:changed"
 	OrganizationChangedTopic = "organization:changed"
 	PersonChangedTopic       = "person:changed"
 	ProjectChangedTopic      = "project:changed"

@@ -241,6 +241,7 @@ var startCmd = &cobra.Command{
 		})
 
 		if err := group.Wait(); err != nil {
+			logger.Error("stopped with error", "error", err)
 			return err
 		}
 

@@ -25,6 +25,7 @@ type Header struct {
 	CreatedBy   *User     `json:"created_by,omitempty"`
 	UpdatedByID string    `json:"updated_by_id,omitempty"`
 	UpdatedBy   *User     `json:"updated_by,omitempty"`
+	Identifiers []Code    `json:"identifiers,omitempty"`
 }
 
 func (h *Header) GetHeader() *Header {
@@ -61,6 +62,8 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 	for _, rawAction := range rawRev.Actions {
 		var action Action
 		switch rawAction.Action {
+		case "save_user":
+			action = &SaveUser{}
 		case "create_organization":
 			action = &CreateOrganization{}
 		case "update_organization":
@@ -96,6 +99,13 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 type Action interface {
 	isAction()
 }
+
+type SaveUser struct {
+	User         *User `json:"user"`
+	MatchVersion bool  `json:"match_version"`
+}
+
+func (*SaveUser) isAction() {}
 
 type CreateOrganization struct {
 	Organization *Organization `json:"organization"`
@@ -185,12 +195,4 @@ func (a *ChangeWork) UnmarshalJSON(b []byte) error {
 	*a = action
 
 	return nil
-}
-
-type GetRepresentationsOpts struct {
-	WorkID       string
-	Scheme       string
-	Limit        int
-	UpdatedAtLTE time.Time
-	UpdatedAtGTE time.Time
 }

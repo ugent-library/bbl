@@ -21,8 +21,6 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	}
 	defer tx.Rollback(ctx)
 
-	mq := catbird.New(tx)
-
 	batch := &pgx.Batch{}
 
 	batch.Queue(`
@@ -33,6 +31,68 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 	for _, action := range rev.Actions {
 		switch a := action.(type) {
+		// TODO handle NULL deactivate_at
+		case *bbl.SaveUser:
+			rec := a.User
+			var oldRec *bbl.User
+
+			if rec.ID != "" {
+				oldRec, err = getUser(ctx, tx, rec.ID)
+				if err != nil && !errors.Is(err, bbl.ErrNotFound) {
+					return fmt.Errorf("AddRev: %s", err)
+				}
+			}
+
+			if oldRec != nil {
+				rec.ID = oldRec.ID
+			} else {
+				rec.ID = bbl.NewID()
+			}
+
+			if oldRec == nil {
+				batch.Queue(`
+					INSERT INTO bbl_users (id, username, email, name, role, deactivate_at, created_by_id, updated_by_id)
+					VALUES ($1, $2, $3, $4, $5, $6, nullif($7, '')::uuid, nullif($8, '')::uuid);`,
+					rec.ID, rec.Username, rec.Email, rec.Name, bbl.UserRole, rec.DeactivateAt, rev.UserID, rev.UserID,
+				)
+
+				enqueueUpsertIdentifiers(batch, "user", rec.ID, nil, rec.Identifiers)
+
+				enqueueInsertChange(batch, "user", revID, rec.ID, rec.Diff(&bbl.User{}))
+			} else {
+				// conflict detection
+				if a.MatchVersion && rec.Version != oldRec.Version {
+					return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, rec.Version, oldRec.Version)
+				}
+
+				// only update if there are changes
+				diff := rec.Diff(oldRec)
+				if len(diff) == 0 {
+					continue
+				}
+
+				batch.Queue(`
+					UPDATE bbl_users
+					SET username = $2,
+						email = $3,
+						name = $4,
+						deactivate_at = $5
+						version = version + 1,
+						updated_at = transaction_timestamp(),
+						updated_by_id = nullif($6, '')::uuid
+					WHERE id = $1;`,
+					rec.ID, rec.Username, rec.Email, rec.Name, rec.DeactivateAt, rev.UserID,
+				)
+
+				enqueueUpsertIdentifiers(batch, "user", rec.ID, oldRec.Identifiers, rec.Identifiers)
+
+				enqueueInsertChange(batch, "user", revID, rec.ID, diff)
+
+			}
+
+			if err := enqueueRecordChangedMessage(batch, bbl.UserChangedTopic, rec.ID, revID); err != nil {
+				return err
+			}
 		case *bbl.CreateOrganization:
 			if a.Organization.ID == "" {
 				a.Organization.ID = bbl.NewID()
@@ -66,8 +126,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Organization.Identifiers {
 				batch.Queue(`
-					INSERT INTO bbl_organization_identifiers (organization_id, idx, scheme, val, uniq)
-					VALUES ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_organization_identifiers (organization_id, idx, scheme, val)
+					VALUES ($1, $2, $3, $4);`,
 					a.Organization.ID, i, iden.Scheme, iden.Val,
 				)
 			}
@@ -135,7 +195,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				enqueueUpdateIdentifiersQueries(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
+				enqueueUpsertIdentifiers(batch, "organization", a.Organization.ID, currentRec.Identifiers, a.Organization.Identifiers)
 			}
 
 			if _, ok := diff["rels"]; ok {
@@ -204,8 +264,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Person.Identifiers {
 				batch.Queue(`
-					INSERT INTO bbl_person_identifiers (person_id, idx, scheme, val, uniq)
-					VALUES ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_person_identifiers (person_id, idx, scheme, val)
+					VALUES ($1, $2, $3, $4);`,
 					a.Person.ID, i, iden.Scheme, iden.Val,
 				)
 			}
@@ -261,7 +321,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				enqueueUpdateIdentifiersQueries(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
+				enqueueUpsertIdentifiers(batch, "person", a.Person.ID, currentRec.Identifiers, a.Person.Identifiers)
 			}
 
 			batch.Queue(`
@@ -302,8 +362,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 			for i, iden := range a.Project.Identifiers {
 				batch.Queue(`
-					INSERT INTO bbl_project_identifiers (project_id, idx, scheme, val, uniq)
-					VALUES ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_project_identifiers (project_id, idx, scheme, val)
+					VALUES ($1, $2, $3, $4);`,
 					a.Project.ID, i, iden.Scheme, iden.Val,
 				)
 			}
@@ -359,7 +419,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 			)
 
 			if _, ok := diff["identifiers"]; ok {
-				enqueueUpdateIdentifiersQueries(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
+				enqueueUpsertIdentifiers(batch, "project", a.Project.ID, currentRec.Identifiers, a.Project.Identifiers)
 			}
 
 			batch.Queue(`
@@ -415,8 +475,8 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			for i, iden := range a.Work.Identifiers {
 				batch.Queue(`
-					INSERT INTO bbl_work_identifiers (work_id, idx, scheme, val, uniq)
-					VALUES ($1, $2, $3, $4, true);`,
+					INSERT INTO bbl_work_identifiers (work_id, idx, scheme, val)
+					VALUES ($1, $2, $3, $4);`,
 					a.Work.ID, i, iden.Scheme, iden.Val,
 				)
 			}
@@ -466,7 +526,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				return fmt.Errorf("AddRev: %w: got %d, expected %d", bbl.ErrConflict, a.Work.Version, currentRec.Version)
 			}
 
-			if err := updateWork(ctx, tx, batch, mq, revID, rev.UserID, a.Work, currentRec); err != nil {
+			if err := updateWork(ctx, tx, batch, revID, rev.UserID, a.Work, currentRec); err != nil {
 				return err
 			}
 		case *bbl.ChangeWork:
@@ -486,7 +546,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 			}
 
-			if err := updateWork(ctx, tx, batch, mq, revID, rev.UserID, rec, currentRec); err != nil {
+			if err := updateWork(ctx, tx, batch, revID, rev.UserID, rec, currentRec); err != nil {
 				return err
 			}
 		default:
@@ -494,16 +554,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 		}
 	}
 
-	res := tx.SendBatch(ctx, batch)
-	defer res.Close()
-
-	for i := 0; i < batch.Len(); i++ {
-		if _, err := res.Exec(); err != nil {
-			return fmt.Errorf("AddRev: %w: %s", err, batch.QueuedQueries[i].SQL)
-		}
-	}
-
-	if err := res.Close(); err != nil {
+	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
 
@@ -540,36 +591,80 @@ func lookupWorkContributors(ctx context.Context, conn Conn, contributors []bbl.W
 	return nil
 }
 
-func enqueueUpdateIdentifiersQueries(batch *pgx.Batch, name, id string, old, new []bbl.Code) {
+// func getOldRec[T bbl.Rec](ctx context.Context, conn Conn, getFn func(context.Context, Conn, string) (T, error), rec T) (T, error) {
+// 	var err error
+// 	var oldRec T
+
+// 	hdr := rec.GetHeader()
+
+// 	if hdr.ID != "" {
+// 		oldRec, err = getFn(ctx, conn, hdr.ID)
+// 		if err != nil && !errors.Is(err, bbl.ErrNotFound) {
+// 			return oldRec, fmt.Errorf("AddRev: %s", err)
+// 		}
+// 	}
+
+// 	if oldHdr := oldRec.GetHeader(); oldHdr != nil {
+// 		hdr.ID = oldHdr.ID
+// 	} else {
+// 		hdr.ID = bbl.NewID()
+// 	}
+
+// 	return oldRec, nil
+// }
+
+func enqueueRecordChangedMessage(batch *pgx.Batch, topic, id, revID string) error {
+	err := catbird.EnqueueSend(batch, topic, bbl.RecordChangedPayload{ID: id, Rev: revID}, catbird.SendOpts{})
+	if err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+	return nil
+}
+
+func enqueueUpsertIdentifiers(batch *pgx.Batch, t, id string, old, new []bbl.Code) {
 	if len(old) > len(new) {
 		batch.Queue(`
-			DELETE FROM bbl_`+name+`_identifiers
-			WHERE `+name+`_id = $1 AND idx >= $2;`,
+			DELETE FROM bbl_`+t+`_identifiers
+			WHERE `+t+`_id = $1 AND idx >= $2;`,
 			id, len(new),
 		)
 	}
-	for i, ident := range new {
-		// TODO only update if different
+	for i, iden := range new {
 		if i < len(old) {
+			if old[i].Scheme == iden.Scheme && old[i].Val == iden.Val {
+				continue
+			}
 			batch.Queue(`
-				UPDATE bbl_`+name+`_identifiers
+				UPDATE bbl_`+t+`_identifiers
 				SET scheme = $3,
-					val = $4,
-					uniq = true
-				WHERE `+name+`_id = $1 AND idx = $2;`,
-				id, i, ident.Scheme, ident.Val,
+					val = $4
+				WHERE `+t+`_id = $1 AND idx = $2;`,
+				id, i, iden.Scheme, iden.Val,
 			)
 		} else {
 			batch.Queue(`
-				INSERT INTO bbl_`+name+`_identifiers (`+name+`_id, idx, scheme, val, uniq)
-				VALUES ($1, $2, $3, $4, true);`,
-				id, i, ident.Scheme, ident.Val,
+				INSERT INTO bbl_`+t+`_identifiers (`+t+`_id, idx, scheme, val)
+				VALUES ($1, $2, $3, $4);`,
+				id, i, iden.Scheme, iden.Val,
 			)
 		}
 	}
 }
 
-func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Client, revID, userID string, rec, currentRec *bbl.Work) error {
+func enqueueInsertChange(batch *pgx.Batch, t, revID, id string, diff any) error {
+	jsonDiff, err := json.Marshal(diff)
+	if err != nil {
+		return fmt.Errorf("AddRev: %w", err)
+	}
+	batch.Queue(`
+				INSERT INTO bbl_changes (rev_id, `+t+`_id, diff)
+				VALUES ($1, $2, $3);`,
+		revID, id, jsonDiff,
+	)
+	return nil
+}
+
+func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, revID, userID string, rec, currentRec *bbl.Work) error {
 	if err := lookupWorkContributors(ctx, tx, rec.Contributors); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
@@ -624,7 +719,7 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	}
 
 	if diff.Identifiers != nil {
-		enqueueUpdateIdentifiersQueries(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
+		enqueueUpsertIdentifiers(batch, "work", rec.ID, currentRec.Identifiers, rec.Identifiers)
 	}
 
 	if diff.Contributors != nil {
@@ -731,11 +826,12 @@ func updateWork(ctx context.Context, tx pgx.Tx, batch *pgx.Batch, mq *catbird.Cl
 	return nil
 }
 
+// TODO assert that only one row is returned, eg if the identifier is not unique
 func getIDByIdentifier(ctx context.Context, conn Conn, name, scheme, val string) (string, error) {
 	q := `
 		SELECT ` + name + `_id
 		FROM bbl_` + name + `_identifiers
-		WHERE scheme = $1 AND val = $2 AND uniq = true;`
+		WHERE scheme = $1 AND val = $2;`
 
 	var id string
 

@@ -9,7 +9,6 @@ import (
 type Organization struct {
 	Header
 	Kind              string            `json:"kind"`
-	Identifiers       []Code            `json:"identifiers,omitempty"`
 	Rels              []OrganizationRel `json:"rels,omitempty"`
 	OrganizationAttrs `json:"attrs"`
 }

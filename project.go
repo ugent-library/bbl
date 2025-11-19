@@ -8,7 +8,6 @@ import (
 
 type Project struct {
 	Header
-	Identifiers  []Code `json:"identifiers,omitempty"`
 	ProjectAttrs `json:"attrs"`
 }
 

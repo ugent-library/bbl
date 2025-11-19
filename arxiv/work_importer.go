@@ -84,11 +84,13 @@ func (wi *WorkImporter) Get(id string) (*bbl.Work, error) {
 	}
 
 	rec := &bbl.Work{
+		Header: bbl.Header{
+			Identifiers: []bbl.Code{
+				{Scheme: "arxiv", Val: id},
+			},
+		},
 		Kind:    "journal_article",
 		Subkind: "original",
-		Identifiers: []bbl.Code{
-			{Scheme: "arxiv", Val: id},
-		},
 		WorkAttrs: bbl.WorkAttrs{
 			Titles:            []bbl.Text{{Lang: "und", Val: f.Entry.Title}},
 			JournalTitle:      f.Entry.JournalRef,

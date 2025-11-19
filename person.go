@@ -8,7 +8,6 @@ import (
 
 type Person struct {
 	Header
-	Identifiers []Code `json:"identifiers,omitempty"`
 	PersonAttrs `json:"attrs"`
 }
 

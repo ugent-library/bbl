@@ -1,6 +1,7 @@
 package bbl
 
 import (
+	"slices"
 	"time"
 
 	"github.com/ugent-library/vo"
@@ -27,14 +28,11 @@ var UserPermissions = []string{
 }
 
 type User struct {
-	ID           string    `json:"id,omitempty"`
+	Header
 	Username     string    `json:"username"`
 	Email        string    `json:"email"`
 	Name         string    `json:"name"`
-	Identifiers  []Code    `json:"identifiers,omitempty"`
 	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at,omitzero"`
-	UpdatedAt    time.Time `json:"updated_at,omitzero"`
 	DeactivateAt time.Time `json:"deactivate_at,omitzero"`
 }
 
@@ -59,4 +57,33 @@ func (rec *User) Validate() error {
 	}
 
 	return v.Validate().ToError()
+}
+
+func (rec *User) Diff(rec2 *User) map[string]any {
+	changes := map[string]any{}
+
+	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
+		changes["identifiers"] = rec.Identifiers
+	}
+	if rec.Username != rec2.Username {
+		changes["username"] = rec.Username
+	}
+	if rec.Email != rec2.Email {
+		changes["email"] = rec.Email
+	}
+	if rec.Name != rec2.Name {
+		changes["name"] = rec.Name
+	}
+	if rec.Role != rec2.Role {
+		changes["role"] = rec.Role
+	}
+	if !rec.DeactivateAt.Equal(rec2.DeactivateAt) {
+		if rec.DeactivateAt.IsZero() {
+			changes["deactivate_at"] = nil
+		} else {
+			changes["deactivate_at"] = rec.DeactivateAt
+		}
+	}
+
+	return changes
 }

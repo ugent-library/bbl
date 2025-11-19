@@ -15,3 +15,11 @@ type Representation struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Sets      []string  `json:"sets"`
 }
+
+type GetRepresentationsOpts struct {
+	WorkID       string
+	Scheme       string
+	Limit        int
+	UpdatedAtLTE time.Time
+	UpdatedAtGTE time.Time
+}
