@@ -60,13 +60,15 @@ func (app *App) viewAs(w http.ResponseWriter, r *http.Request, c *appCtx) error 
 		return httperr.BadRequest
 	}
 
-	user, err := app.repo.GetUser(r.Context(), r.FormValue("user_id"))
-	if err != nil {
-		return err
+	userID := r.FormValue("user_id")
+
+	if userID == c.User.ID {
+		return httperr.BadRequest
 	}
 
-	if user.ID == c.User.ID {
-		return httperr.BadRequest
+	user, err := app.repo.GetUser(r.Context(), userID)
+	if err != nil {
+		return err
 	}
 
 	c.ViewAsUser = c.User
