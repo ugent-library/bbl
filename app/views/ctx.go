@@ -13,6 +13,7 @@ type Ctx struct {
 	AssetPath               func(string) string
 	Loc                     *gotext.Locale
 	User                    *bbl.User
+	ViewAsUser              *bbl.User
 	CentrifugeURL           string
 	GenerateCentrifugeToken func() (string, error)
 }

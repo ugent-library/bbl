@@ -2,10 +2,10 @@ package users
 
 import (
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/app/views/backoffice"
 	"github.com/ugent-library/bbl/pagination"
-	"github.com/ugent-library/bbl/app/urls"
 )
 
 templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.User]) {
@@ -94,7 +94,16 @@ templ Search(c views.Ctx, hits *bbl.RecHits[*bbl.User]) {
 													<span class="btn-text d-md-none d-xl-inline-block">Actions</span>
 													<span class="visually-hidden">Show more actions for this record</span>
 												</button>
-												<div class="dropdown-menu"></div>
+												<ul class="dropdown-menu">
+													if c.ViewAsUser == nil {
+													<li>
+														<form action={ urls.BackofficeViewAs() } method="POST">
+															<input type="hidden" name="user_id" value={ hit.Rec.ID }/>
+															<button class="dropdown-item" type="submit">View as</button>
+														</form>
+													</li>
+													}
+												</ul>
 											</div>
 										</div>
 									</div>

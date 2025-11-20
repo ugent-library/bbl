@@ -37,7 +37,8 @@ const (
 var staticFS embed.FS
 
 type SessionCookie struct {
-	UserID string `json:"u"`
+	UserID       string `json:"u,omitempty"`
+	ViewAsUserID string `json:"v,omitempty"`
 }
 
 type AuthProvider interface {
@@ -126,6 +127,7 @@ type appCtx struct {
 	crypt                   *crypt.Crypt
 	cookies                 *securecookie.SecureCookie
 	User                    *bbl.User
+	ViewAsUser              *bbl.User
 	channels                []string
 	loc                     *gotext.Locale
 	centrifugeURL           string
@@ -141,6 +143,7 @@ func (c *appCtx) viewCtx() views.Ctx {
 		AssetPath:               c.AssetPath,
 		Loc:                     c.loc,
 		User:                    c.User,
+		ViewAsUser:              c.ViewAsUser,
 		CentrifugeURL:           c.centrifugeURL,
 		GenerateCentrifugeToken: c.generateUserCentrifugeToken,
 	}
@@ -166,23 +169,22 @@ func (c *appCtx) AssetPath(asset string) string {
 	return a
 }
 
-func (c *appCtx) SetUser(w http.ResponseWriter, user *bbl.User) error {
-	val := &SessionCookie{
-		UserID: user.ID,
+func (c *appCtx) SaveSession(w http.ResponseWriter) error {
+	val := &SessionCookie{}
+
+	if c.User != nil {
+		val.UserID = c.User.ID
 	}
+	if c.ViewAsUser != nil {
+		val.ViewAsUserID = c.ViewAsUser.ID
+	}
+
 	err := c.SetCookie(w, sessionCookieName, val, 30*24*time.Hour)
 	if err != nil {
 		return err
 	}
 
-	c.User = user
-
 	return nil
-}
-
-func (c *appCtx) ClearUser(w http.ResponseWriter) {
-	c.User = nil
-	c.ClearCookie(w, sessionCookieName)
 }
 
 func (c *appCtx) GetCookie(r *http.Request, name string, val any) error {
@@ -356,7 +358,8 @@ func (app *App) Handler() http.Handler {
 
 	mux.Handle("GET /backoffice/login", appChain.then(wrap(getAppCtx, app.login)))
 	mux.Handle("GET /backoffice/auth/callback", appChain.then(wrap(getAppCtx, app.authCallback)))
-	mux.Handle("GET /backoffice/logout", appChain.then(wrap(getAppCtx, app.logout)))
+	mux.Handle("GET /backoffice/logout", userChain.then(wrap(getAppCtx, app.logout)))
+	mux.Handle("POST /backoffice/view_as", userChain.then(wrap(getAppCtx, app.viewAs)))
 
 	mux.Handle("GET /backoffice/users", userChain.then(wrap(getAppCtx, app.backofficeUsers))) // TODO access control
 
@@ -416,20 +419,29 @@ func (app *App) newAppCtx(r *http.Request) (*appCtx, error) {
 		generateCentrifugeToken: app.generateCentrifugeToken,
 	}
 
-	// get user from session if present
+	// load session
 	session := SessionCookie{}
 	err := c.GetCookie(r, sessionCookieName, &session)
 	if err != nil && !errors.Is(err, http.ErrNoCookie) {
 		return nil, err
 	}
 	if err == nil {
-		user, err := app.repo.GetUser(r.Context(), session.UserID)
-		if err != nil {
-			return nil, err
+		if session.UserID != "" {
+			user, err := app.repo.GetUser(r.Context(), session.UserID)
+			if err != nil {
+				return nil, err
+			}
+			c.User = user
+			c.AddChannel("users")
+			c.AddChannel("users#" + user.ID)
 		}
-		c.User = user
-		c.AddChannel("users")
-		c.AddChannel("users#" + user.ID)
+		if session.ViewAsUserID != "" {
+			user, err := app.repo.GetUser(r.Context(), session.ViewAsUserID)
+			if err != nil {
+				return nil, err
+			}
+			c.ViewAsUser = user
+		}
 	}
 
 	return c, nil
