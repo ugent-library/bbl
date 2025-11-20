@@ -64,8 +64,10 @@ var startCmd = &cobra.Command{
 		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
 		importWorkTask := workflows.ImportWork(hatchetClient, repo)
 		notifySubscribersTask := workflows.NotifySubscribers(hatchetClient, repo)
+		reindexUsersTask := workflows.ReindexUsers(hatchetClient, repo, index)
 		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
 		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
+		reindexProjectsTask := workflows.ReindexProjects(hatchetClient, repo, index)
 		reindexWorksTask := workflows.ReindexWorks(hatchetClient, repo, index)
 
 		handler, err := app.NewApp(
@@ -148,6 +150,18 @@ var startCmd = &cobra.Command{
 
 					for _, msg := range msgs {
 						switch msg.Topic {
+						case bbl.UserChangedTopic:
+							var payload bbl.RecordChangedPayload
+							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+								return err
+							}
+							rec, err := repo.GetUser(groupCtx, payload.ID)
+							if err != nil {
+								return err
+							}
+							if err := index.Users().Add(groupCtx, rec); err != nil {
+								return err
+							}
 						case bbl.OrganizationChangedTopic:
 							var payload bbl.RecordChangedPayload
 							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
@@ -226,8 +240,10 @@ var startCmd = &cobra.Command{
 				importWorkSourceTask,
 				importWorkTask,
 				notifySubscribersTask,
+				reindexUsersTask,
 				reindexOrganizationsTask,
 				reindexPeopleTask,
+				reindexProjectsTask,
 				reindexWorksTask,
 			))
 			if err != nil {

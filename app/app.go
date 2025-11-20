@@ -358,6 +358,8 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("GET /backoffice/auth/callback", appChain.then(wrap(getAppCtx, app.authCallback)))
 	mux.Handle("GET /backoffice/logout", appChain.then(wrap(getAppCtx, app.logout)))
 
+	mux.Handle("GET /backoffice/users", userChain.then(wrap(getAppCtx, app.backofficeUsers))) // TODO access control
+
 	mux.Handle("GET /backoffice/organizations", userChain.then(wrap(getAppCtx, app.backofficeOrganizations)))
 
 	mux.Handle("GET /backoffice/people", userChain.then(wrap(getAppCtx, app.backofficePeople)))

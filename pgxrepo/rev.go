@@ -32,6 +32,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 	for _, action := range rev.Actions {
 		switch a := action.(type) {
 		// TODO handle NULL deactivate_at
+		// TODO this creates a lot of deactivate_at changes
 		case *bbl.SaveUser:
 			rec := a.User
 			var oldRec *bbl.User
@@ -76,7 +77,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 					SET username = $2,
 						email = $3,
 						name = $4,
-						deactivate_at = $5
+						deactivate_at = $5,
 						version = version + 1,
 						updated_at = transaction_timestamp(),
 						updated_by_id = nullif($6, '')::uuid

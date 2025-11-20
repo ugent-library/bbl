@@ -31,6 +31,10 @@ func BackofficeLogout() string {
 	return "/backoffice/logout"
 }
 
+func BackofficeUsers() string {
+	return "/backoffice/users"
+}
+
 func BackofficeOrganizations() string {
 	return "/backoffice/organizations"
 }

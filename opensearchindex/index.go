@@ -13,6 +13,7 @@ var versionType = "external"
 var _ bbl.Index = (*Index)(nil)
 
 type Index struct {
+	usersIndex         *recIndex[*bbl.User]
 	organizationsIndex *recIndex[*bbl.Organization]
 	peopleIndex        *recIndex[*bbl.Person]
 	projectsIndex      *recIndex[*bbl.Project]
@@ -20,6 +21,10 @@ type Index struct {
 }
 
 func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
+	usersIndex, err := newRecIndex(ctx, client, "bbl_users", userSettings, userToDoc, generateUserQuery, nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	organizationsIndex, err := newRecIndex(ctx, client, "bbl_organizations", organizationSettings, organizationToDoc, generateOrganizationQuery, nil, nil)
 	if err != nil {
 		return nil, err
@@ -38,11 +43,16 @@ func New(ctx context.Context, client *opensearchapi.Client) (*Index, error) {
 	}
 
 	return &Index{
+		usersIndex:         usersIndex,
 		organizationsIndex: organizationsIndex,
 		peopleIndex:        peopleIndex,
 		projectsIndex:      projectsIndex,
 		worksIndex:         worksIndex,
 	}, nil
+}
+
+func (idx *Index) Users() bbl.RecIndex[*bbl.User] {
+	return idx.usersIndex
 }
 
 func (idx *Index) Organizations() bbl.RecIndex[*bbl.Organization] {

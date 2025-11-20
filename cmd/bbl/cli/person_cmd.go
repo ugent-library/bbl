@@ -112,7 +112,6 @@ var searchPeopleCmd = &cobra.Command{
 			return err
 		}
 
-		enc := json.NewEncoder(cmd.OutOrStdout())
-		return enc.Encode(hits)
+		return writeData(cmd, hits)
 	},
 }
