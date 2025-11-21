@@ -35,6 +35,12 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 		// TODO this creates a lot of deactivate_at changes
 		case *bbl.SaveUser:
 			rec := a.User
+
+			// validate
+			if err := a.User.Validate(); err != nil {
+				return fmt.Errorf("AddRev: %w", err)
+			}
+
 			var oldRec *bbl.User
 
 			if rec.ID != "" {
@@ -54,7 +60,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				batch.Queue(`
 					INSERT INTO bbl_users (id, username, email, name, role, deactivate_at, version, created_by_id, updated_by_id)
 					VALUES ($1, $2, $3, $4, $5, $6, 1, nullif($7, '')::uuid, nullif($8, '')::uuid);`,
-					rec.ID, rec.Username, rec.Email, rec.Name, bbl.UserRole, rec.DeactivateAt, rev.UserID, rev.UserID,
+					rec.ID, rec.Username, rec.Email, rec.Name, rec.Role, rec.DeactivateAt, rev.UserID, rev.UserID,
 				)
 
 				enqueueUpsertIdentifiers(batch, "user", rec.ID, nil, rec.Identifiers)

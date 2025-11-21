@@ -14,7 +14,7 @@ CREATE TABLE bbl_users (
   created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
   updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
   username text NOT NULL UNIQUE,
-  email text NOT NULL UNIQUE COLLATE bbl_case_insensitive,
+  email text NOT NULL COLLATE bbl_case_insensitive,
   name text NOT NULL,
   role text NOT NULL,
   deactivate_at timestamptz

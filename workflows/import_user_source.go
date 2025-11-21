@@ -13,6 +13,7 @@ type ImportUserSourceInput struct {
 
 type ImportUserSourceOutput struct {
 	Imported int `json:"imported"`
+	Failed   int `json:"failed"`
 }
 
 func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.StandaloneTask {
@@ -32,8 +33,9 @@ func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 				MatchVersion: false,
 			})
 
-			if err = repo.AddRev(ctx, rev); err != nil {
-				return out, err
+			if err := repo.AddRev(ctx, rev); err != nil {
+				ctx.Log(err.Error()) // TODO
+				out.Failed++
 			} else {
 				out.Imported++
 			}

@@ -20,9 +20,16 @@ func main() {
 	v.BindEnv("ldap.password")
 	v.BindEnv("ldap.base")
 	v.BindEnv("ldap.filter")
+	v.BindEnv("ldap.assign_roles")
 	v.BindEnv("plato.url")
 	v.BindEnv("plato.username")
 	v.BindEnv("plato.password")
+
+	var assignRoles = make(map[string]string)
+	for _, v := range v.GetStringSlice("ldap.assign_roles") {
+		username, role, _ := strings.Cut(v, ":")
+		assignRoles[username] = role
+	}
 
 	ldapUserSource, err := ldap.New(ldap.Config{
 		URL:      v.GetString("ldap.url"),
@@ -60,6 +67,10 @@ func main() {
 			}
 			if vals := m["mail"]; len(vals) != 0 {
 				rec.Email = vals[0]
+			}
+
+			if role, ok := assignRoles[rec.Username]; ok {
+				rec.Role = role
 			}
 
 			return rec, nil
