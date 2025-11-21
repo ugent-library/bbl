@@ -2,6 +2,8 @@
 
 ## Initial setup
 
+0. Ask a colleague to give you the secrets and sample data files.
+
 1. Install prerequisites
 
     On mac:
@@ -18,7 +20,6 @@
     ```sh
     eval "$(direnv hook zsh)"
     ```
-
 
 2. Install Go dependencies
 
@@ -42,9 +43,13 @@
 
 5. Setup configuration
 
-    ```sh
-    cp .env.example .env
-    ```
+    1. Run
+
+        ```sh
+        cp .env.example .env
+        ```
+
+    2. Add secrets to the `.env` file.
 
 6. Add Hatchett client token to `.env`
 
@@ -69,3 +74,16 @@
     ```
 
     In development mode the application will reload itself after a `.go` source file, a `.templ` template, a file in the assets directory, a `.po` translation file or a profile `.json` file has changed.
+
+9. Load application data
+
+    Run these commands in another terminal window while the application is running:
+
+    ```sh
+    go run biblio/main.go users import-source ugent_ldap
+    cat ~/tmp/bbl_organizations.jsonl | go run biblio/main.go rev add
+    cat ~/tmp/bbl_people.jsonl | go run biblio/main.go rev add
+    cat ~/tmp/bbl_projects.jsonl | go run biblio/main.go rev add
+    cat ~/tmp/bbl_works.jsonl | go run biblio/main.go rev add
+    go run biblio/main.go works import-source plato
+    ```
