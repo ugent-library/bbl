@@ -44,7 +44,7 @@ type Permission struct {
 func (rec *User) Validate() error {
 	v := vo.New(
 		vo.NotBlank("username", rec.Username),
-		vo.NotBlank("email", rec.Email),
+		vo.EmailAddress("email", rec.Email),
 		vo.NotBlank("name", rec.Name),
 		vo.OneOf("role", rec.Role, UserRoles),
 	)
