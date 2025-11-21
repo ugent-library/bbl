@@ -2,46 +2,17 @@ package pgxrepo
 
 import (
 	"context"
+	"fmt"
 	"iter"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/ugent-library/bbl"
 )
 
-func getRow[T any](ctx context.Context, conn Conn, q string, args []any, scan func(pgx.Row) (T, error)) (T, error) {
-	row := conn.QueryRow(ctx, q, args...)
-
-	rec, err := scan(row)
-	if err == pgx.ErrNoRows {
-		err = bbl.ErrNotFound
-	}
-	if err != nil {
-		var t T
-		return t, err
-	}
-
-	return rec, nil
-}
-
-func getRows[T any](ctx context.Context, conn Conn, q string, args []any, scan func(pgx.Row) (T, error)) ([]T, error) {
-	rows, err := conn.Query(ctx, q, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	recs, err := pgx.CollectRows(rows, collectable(scan))
-	if err != nil {
-		return nil, err
-	}
-
-	return recs, nil
-}
-
-func rowsIter[T any](ctx context.Context, conn Conn, errPtr *error, q string, args []any, scan func(pgx.Row) (T, error)) iter.Seq[T] {
+func rowsIter[T any](ctx context.Context, conn Conn, fnName string, errPtr *error, q string, args []any, scan func(pgx.Row) (T, error)) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		rows, err := conn.Query(ctx, q, args...)
 		if err != nil {
-			*errPtr = err
+			*errPtr = fmt.Errorf("%s: query: %w", fnName, err)
 			return
 		}
 		defer rows.Close()
@@ -49,7 +20,7 @@ func rowsIter[T any](ctx context.Context, conn Conn, errPtr *error, q string, ar
 		for rows.Next() {
 			rec, err := scan(rows)
 			if err != nil {
-				*errPtr = err
+				*errPtr = fmt.Errorf("%s: scan: %w", fnName, err)
 				return
 			}
 			if !yield(rec) {

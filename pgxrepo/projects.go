@@ -3,6 +3,7 @@ package pgxrepo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"strings"
@@ -17,7 +18,7 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*bbl.Project, error) 
 
 func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Project] {
 	q := `SELECT ` + projectCols + ` FROM bbl_projects_view p;`
-	return rowsIter(ctx, r.conn, errPtr, q, nil, scanProject)
+	return rowsIter(ctx, r.conn, "ProjectsIter", errPtr, q, nil, scanProject)
 }
 
 func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error) {
@@ -34,7 +35,7 @@ func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error)
 	}
 
 	rec, err := scanProject(row)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
 	}
 	if err != nil {

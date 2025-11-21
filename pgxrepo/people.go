@@ -3,6 +3,7 @@ package pgxrepo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"strings"
@@ -17,7 +18,7 @@ func (r *Repo) GetPerson(ctx context.Context, id string) (*bbl.Person, error) {
 
 func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Person] {
 	q := `SELECT ` + personCols + ` FROM bbl_people_view p;`
-	return rowsIter(ctx, r.conn, errPtr, q, nil, scanPerson)
+	return rowsIter(ctx, r.conn, "PeopleIter", errPtr, q, nil, scanPerson)
 }
 
 // TODO include in users view?
@@ -63,7 +64,7 @@ func getPerson(ctx context.Context, conn Conn, id string) (*bbl.Person, error) {
 	}
 
 	rec, err := scanPerson(row)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
 	}
 	if err != nil {

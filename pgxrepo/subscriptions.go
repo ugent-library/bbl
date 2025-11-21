@@ -11,7 +11,7 @@ import (
 func (r *Repo) TopicSubscriptionsIter(ctx context.Context, topic string, errPtr *error) iter.Seq[*bbl.Subscription] {
 	q := `SELECT ` + subscriptionCols + ` FROM bbl_subscriptions s WHERE s.topic = $1;`
 	args := []any{topic}
-	return rowsIter(ctx, r.conn, errPtr, q, args, scanSubscription)
+	return rowsIter(ctx, r.conn, "TopicSubscriptionsIter", errPtr, q, args, scanSubscription)
 }
 
 const subscriptionCols = `

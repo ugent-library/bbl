@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -71,7 +72,7 @@ func (r *Repo) GetRepresentation(ctx context.Context, id, scheme string) (*bbl.R
 	rec := bbl.Representation{WorkID: id, Scheme: scheme}
 
 	err := r.conn.QueryRow(ctx, q, id, scheme).Scan(&rec.Record, &rec.UpdatedAt, &rec.Sets)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("GetRepresentation: %w", bbl.ErrNotFound)
 	}
 	if err != nil {

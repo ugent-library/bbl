@@ -9,8 +9,11 @@ import (
 	"go.breu.io/ulid"
 )
 
-var ErrNotFound = errors.New("not found")
-var ErrConflict = errors.New("version conflict")
+var (
+	ErrNotFound  = errors.New("not found")
+	ErrNotUnique = errors.New("not unique")
+	ErrConflict  = errors.New("version conflict")
+)
 
 func NewID() string {
 	return ulid.Make().UUIDString()

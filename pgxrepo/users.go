@@ -3,11 +3,13 @@ package pgxrepo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
 )
 
@@ -16,7 +18,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 }
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
-	return rowsIter(ctx, r.conn, errPtr,
+	return rowsIter(ctx, r.conn, "UsersIter", errPtr,
 		`SELECT `+userCols+` FROM bbl_users_view u;`,
 		nil,
 		scanUser)
@@ -29,22 +31,37 @@ func getUser(ctx context.Context, conn Conn, id string) (*bbl.User, error) {
 		case "username":
 			row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.username = $1;`, val)
 		case "email":
-			row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.email = $1;`, val)
-		default:
+			// query will fail if email is not unique
 			row = conn.QueryRow(ctx, `
 				SELECT `+userCols+`
-				FROM bbl_users_view u, bbl_user_identifiers u_i
-				WHERE u.id = u_i.user_id AND u_i.scheme = $1 AND u_i.val = $2;`,
-				scheme, val,
-			)
+				FROM bbl_users_view u
+				WHERE u.id = (SELECT id
+				              FROM bbl_users
+				              WHERE email = $1);`,
+				val)
+		default:
+			// query will fail if identifier is not unique
+			row = conn.QueryRow(ctx, `
+				SELECT `+userCols+`
+				FROM bbl_users_view u
+				WHERE u.id = (SELECT user_id
+				              FROM bbl_user_identifiers
+				              WHERE scheme = $1 AND val = $2);`,
+				scheme, val)
 		}
 	} else {
 		row = conn.QueryRow(ctx, `SELECT `+userCols+` FROM bbl_users_view u WHERE u.id = $1;`, id)
 	}
 
 	rec, err := scanUser(row)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "21000" { // cardinality_violation (mare than one row returned from subquery)
+			err = bbl.ErrNotUnique
+		}
 	}
 	if err != nil {
 		err = fmt.Errorf("GetUser %s: %w", id, err)

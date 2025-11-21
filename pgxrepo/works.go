@@ -3,6 +3,7 @@ package pgxrepo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"strings"
@@ -16,8 +17,10 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 }
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
-	q := `SELECT ` + workCols + ` FROM bbl_works_view w;`
-	return rowsIter(ctx, r.conn, errPtr, q, nil, scanWork)
+	return rowsIter(ctx, r.conn, "WorksIter", errPtr,
+		`SELECT `+workCols+` FROM bbl_works_view w;`,
+		nil,
+		scanWork)
 }
 
 func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange, error) {
@@ -75,7 +78,7 @@ func getWork(ctx context.Context, conn Conn, id string) (*bbl.Work, error) {
 	}
 
 	rec, err := scanWork(row)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
 	}
 	if err != nil {

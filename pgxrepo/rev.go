@@ -843,7 +843,7 @@ func getIDByIdentifier(ctx context.Context, conn Conn, name, scheme, val string)
 	var id string
 
 	err := conn.QueryRow(ctx, q, scheme, val).Scan(&id)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
 	}
 
