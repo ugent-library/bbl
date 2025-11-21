@@ -108,7 +108,12 @@ func getCtx[T handlerCtx](r *http.Request, key ctxKey) (T, error) {
 func setCtx[T handlerCtx](key ctxKey, newCtx func(r *http.Request) (T, error)) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c, _ := newCtx(r) // TODO handle error
+			c, err := newCtx(r)
+			if err != nil { // TODO better error handling
+				log.Printf("setCtx error: %s", err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
 			r = r.WithContext(context.WithValue(r.Context(), key, c))
 			next.ServeHTTP(w, r)
 		})
