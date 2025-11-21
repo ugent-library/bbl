@@ -35,7 +35,9 @@
 
 ## dependencies
 
-* postgres
-* opensearch
-* s3 compatible store
-* oidc provider
+* Postgres
+* Opensearch
+* S3 compatible store
+* OIDC provider
+* Hatchett
+* Centrifugal
