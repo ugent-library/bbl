@@ -489,8 +489,8 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 
 	if oldRec == nil {
 		batch.Queue(`
-					INSERT INTO bbl_works (id, kind, subkind, status, attrs, version, created_by_id, updated_by_id)
-					VALUES ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
+			INSERT INTO bbl_works (id, kind, subkind, status, attrs, version, created_by_id, updated_by_id)
+			VALUES ($1, $2, nullif($3, ''), $4, $5, 1, nullif($6, '')::uuid, nullif($7, '')::uuid);`,
 			rec.ID, rec.Kind, rec.Subkind, rec.Status, jsonAttrs, userID, userID,
 		)
 
@@ -505,15 +505,15 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		}
 
 		batch.Queue(`
-					UPDATE bbl_works
-					SET kind = $2,
-						subkind = nullif($3, ''),
-						status = $4,
-						attrs = $5,
-						version = version + 1,
-						updated_at = transaction_timestamp(),
-						updated_by_id = nullif($6, '')::uuid
-					WHERE id = $1;`,
+			UPDATE bbl_works
+			SET kind = $2,
+				subkind = nullif($3, ''),
+				status = $4,
+				attrs = $5,
+				version = version + 1,
+				updated_at = transaction_timestamp(),
+				updated_by_id = nullif($6, '')::uuid
+			WHERE id = $1;`,
 			rec.ID, rec.Kind, rec.Subkind, rec.Status, jsonAttrs, userID,
 		)
 
@@ -525,8 +525,8 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 	// upsert contributors
 	if oldRec != nil && len(oldRec.Contributors) > len(rec.Contributors) {
 		batch.Queue(`
-						DELETE FROM bbl_work_contributors
-						WHERE work_id = $1 AND idx >= $2;`,
+			DELETE FROM bbl_work_contributors
+			WHERE work_id = $1 AND idx >= $2;`,
 			rec.ID, len(rec.Contributors),
 		)
 	}
@@ -539,16 +539,16 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		// TODO only update if different
 		if oldRec != nil && i < len(oldRec.Contributors) {
 			batch.Queue(`
-							UPDATE bbl_work_contributors
-							SET attrs = $3,
-								person_id = nullif($4, '')::uuid
-							WHERE work_id = $1 and idx = $2;`,
+				UPDATE bbl_work_contributors
+				SET attrs = $3,
+					person_id = nullif($4, '')::uuid
+				WHERE work_id = $1 and idx = $2;`,
 				rec.ID, i, jsonAttrs, con.PersonID,
 			)
 		} else {
 			batch.Queue(`
-							INSERT INTO bbl_work_contributors (work_id, idx, attrs, person_id)
-							VALUES ($1, $2, $3, nullif($4, '')::uuid);`,
+				INSERT INTO bbl_work_contributors (work_id, idx, attrs, person_id)
+				VALUES ($1, $2, $3, nullif($4, '')::uuid);`,
 				rec.ID, i, jsonAttrs, con.PersonID,
 			)
 		}
@@ -557,8 +557,8 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 	// upsert files
 	if oldRec != nil && len(oldRec.Files) > len(rec.Files) {
 		batch.Queue(`
-					DELETE FROM bbl_work_files
-					WHERE work_id = $1 AND idx >= $2;`,
+			DELETE FROM bbl_work_files
+			WHERE work_id = $1 AND idx >= $2;`,
 			rec.ID, len(rec.Files),
 		)
 	}
@@ -566,18 +566,18 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		// TODO only update if different
 		if oldRec != nil && i < len(oldRec.Files) {
 			batch.Queue(`
-						UPDATE bbl_work_files
-						SET object_id = $3,
-							name = $4,
-							content_type = $5,
-							size = $6
-						WHERE work_id = $1 AND idx = $2;`,
+				UPDATE bbl_work_files
+				SET object_id = $3,
+					name = $4,
+					content_type = $5,
+					size = $6
+				WHERE work_id = $1 AND idx = $2;`,
 				rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 			)
 		} else {
 			batch.Queue(`
-						INSERT INTO bbl_work_files (work_id, idx, object_id, name, content_type, size)
-						VALUES ($1, $2, $3, $4, $5, $6);`,
+				INSERT INTO bbl_work_files (work_id, idx, object_id, name, content_type, size)
+				VALUES ($1, $2, $3, $4, $5, $6);`,
 				rec.ID, i, f.ObjectID, f.Name, f.ContentType, f.Size,
 			)
 		}
@@ -585,8 +585,8 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 
 	if oldRec != nil && len(oldRec.Rels) > len(rec.Rels) {
 		batch.Queue(`
-					DELETE FROM bbl_work_rels
-					WHERE work_id = $1 AND idx >= $2;`,
+			DELETE FROM bbl_work_rels
+			WHERE work_id = $1 AND idx >= $2;`,
 			rec.ID, len(rec.Rels),
 		)
 	}
@@ -596,16 +596,16 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		}
 		if oldRec != nil && i < len(oldRec.Rels) {
 			batch.Queue(`
-						UPDATE bbl_work_rels
-						SET kind = $3,
-							rel_work_id = $4
-						WHERE work_id = $1 AND idx = $2;`,
+				UPDATE bbl_work_rels
+				SET kind = $3,
+					rel_work_id = $4
+				WHERE work_id = $1 AND idx = $2;`,
 				rec.ID, i, rel.Kind, rel.WorkID,
 			)
 		} else {
 			batch.Queue(`
-						INSERT INTO bbl_work_rels (work_id, idx, kind, rel_work_id)
-						VALUES ($1, $2, $3, $4);`,
+				INSERT INTO bbl_work_rels (work_id, idx, kind, rel_work_id)
+				VALUES ($1, $2, $3, $4);`,
 				rec.ID, i, rel.Kind, rel.WorkID,
 			)
 		}

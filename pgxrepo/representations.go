@@ -30,7 +30,9 @@ func (r *Repo) GetSets(ctx context.Context) ([]*bbl.Set, error) {
 		return nil, fmt.Errorf("GetSets: %w", err)
 	}
 
-	recs, err := pgx.CollectRows(rows, collectable(scanSet))
+	recs, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*bbl.Set, error) {
+		return scanSet(row)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("GetSets: %w", err)
 	}

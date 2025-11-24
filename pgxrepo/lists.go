@@ -22,7 +22,9 @@ func (r *Repo) GetUserLists(ctx context.Context, userID string) ([]*bbl.List, er
 		return nil, err
 	}
 
-	recs, err := pgx.CollectRows(rows, collectable(scanList))
+	recs, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*bbl.List, error) {
+		return scanList(row)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +125,9 @@ func (r *Repo) GetListItems(ctx context.Context, listID string) ([]*bbl.ListItem
 		return nil, err
 	}
 
-	recs, err := pgx.CollectRows(rows, collectable(scanListItem))
+	recs, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*bbl.ListItem, error) {
+		return scanListItem(row)
+	})
 	if err != nil {
 		return nil, err
 	}
