@@ -138,7 +138,7 @@ func (app *App) backofficeCreateWork(w http.ResponseWriter, r *http.Request, c *
 	}
 
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.CreateWork{Work: rec})
+	rev.Add(&bbl.SaveWork{Work: rec})
 	if err := app.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *
 	vacuumWork(rec)
 
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.UpdateWork{Work: rec, MatchVersion: true})
+	rev.Add(&bbl.SaveWork{Work: rec, MatchVersion: true})
 	if err := app.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (app *App) backofficePublishWork(w http.ResponseWriter, r *http.Request, c 
 	rec.Status = bbl.PublicStatus
 
 	rev := &bbl.Rev{UserID: c.User.ID}
-	rev.Add(&bbl.UpdateWork{Work: rec, MatchVersion: true})
+	rev.Add(&bbl.SaveWork{Work: rec, MatchVersion: true})
 	if err := app.repo.AddRev(r.Context(), rev); err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
 )
 
@@ -17,10 +18,26 @@ func (r *Repo) GetWork(ctx context.Context, id string) (*bbl.Work, error) {
 }
 
 func (r *Repo) WorksIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Work] {
-	return rowsIter(ctx, r.conn, "WorksIter", errPtr,
-		`SELECT `+workCols+` FROM bbl_works_view w;`,
-		nil,
-		scanWork)
+	return func(yield func(*bbl.Work) bool) {
+		q := `SELECT ` + workCols + ` FROM bbl_works_view w;`
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = fmt.Errorf("WorksIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanWork(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("WorksIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange, error) {
@@ -65,14 +82,14 @@ func (r *Repo) GetWorkChanges(ctx context.Context, id string) ([]bbl.WorkChange,
 func getWork(ctx context.Context, conn Conn, id string) (*bbl.Work, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		// query will fail if identifier is not unique
 		row = conn.QueryRow(ctx, `
-			SELECT `+workCols+` 
-			FROM bbl_works_view w, bbl_work_identifiers w_i
-			WHERE w.id = w_i.work_id AND
-			      w_i.scheme = $1 AND
-				  w_i.val = $2;`,
-			scheme, val,
-		)
+			SELECT `+workCols+`
+			FROM bbl_works_view w
+			WHERE w.id = (SELECT work_id
+						  FROM bbl_work_identifiers
+						  WHERE scheme = $1 AND val = $2);`,
+			scheme, val)
 	} else {
 		row = conn.QueryRow(ctx, `SELECT `+workCols+` FROM bbl_works_view w WHERE w.id = $1;`, id)
 	}
@@ -80,6 +97,12 @@ func getWork(ctx context.Context, conn Conn, id string) (*bbl.Work, error) {
 	rec, err := scanWork(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "21000" { // cardinality_violation (mare than one row returned from subquery)
+			err = bbl.ErrNotUnique
+		}
 	}
 	if err != nil {
 		err = fmt.Errorf("GetWork %s: %w", id, err)

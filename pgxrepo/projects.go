@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
 )
 
@@ -17,19 +18,39 @@ func (r *Repo) GetProject(ctx context.Context, id string) (*bbl.Project, error) 
 }
 
 func (r *Repo) ProjectsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Project] {
-	q := `SELECT ` + projectCols + ` FROM bbl_projects_view p;`
-	return rowsIter(ctx, r.conn, "ProjectsIter", errPtr, q, nil, scanProject)
+	return func(yield func(*bbl.Project) bool) {
+		q := `SELECT ` + projectCols + ` FROM bbl_projects_view p;`
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = fmt.Errorf("ProjectsIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanProject(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("ProjectsIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		// query will fail if identifier is not unique
 		row = conn.QueryRow(ctx, `
-			SELECT `+personCols+`
-			FROM bbl_projects_view p, bbl_project_identifiers p_i
-			WHERE p.id = p_i.project_id AND p_i.scheme = $1 AND p_i.val = $2;`,
-			scheme, val,
-		)
+			SELECT `+projectCols+`
+			FROM bbl_projects_view p
+			WHERE p.id = (SELECT project_id
+						  FROM bbl_project_identifiers
+						  WHERE scheme = $1 AND val = $2);`,
+			scheme, val)
 	} else {
 		row = conn.QueryRow(ctx, `SELECT `+projectCols+` FROM bbl_projects_view p WHERE p.id = $1;`, id)
 	}
@@ -37,6 +58,12 @@ func getProject(ctx context.Context, conn Conn, id string) (*bbl.Project, error)
 	rec, err := scanProject(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "21000" { // cardinality_violation (mare than one row returned from subquery)
+			err = bbl.ErrNotUnique
+		}
 	}
 	if err != nil {
 		err = fmt.Errorf("GetProject %s: %w", id, err)

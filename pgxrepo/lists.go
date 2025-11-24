@@ -132,10 +132,26 @@ func (r *Repo) GetListItems(ctx context.Context, listID string) ([]*bbl.ListItem
 }
 
 func (r *Repo) ListItemsIter(ctx context.Context, listID string, errPtr *error) iter.Seq[*bbl.ListItem] {
-	return rowsIter(ctx, r.conn, "ListItemsIter", errPtr,
-		`SELECT `+listItemCols+` FROM bbl_list_items_view l_i WHERE list_id = $1 ORDER BY pos ASC;`,
-		[]any{listID},
-		scanListItem)
+	return func(yield func(*bbl.ListItem) bool) {
+		q := `SELECT ` + listItemCols + ` FROM bbl_list_items_view l_i WHERE list_id = $1 ORDER BY pos ASC;`
+		rows, err := r.conn.Query(ctx, q, listID)
+		if err != nil {
+			*errPtr = fmt.Errorf("ListItemsIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanListItem(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("ListItemsIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Repo) AddListItems(ctx context.Context, listID string, workIDs []string) error {

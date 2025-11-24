@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
 )
 
@@ -17,11 +18,30 @@ func (r *Repo) GetPerson(ctx context.Context, id string) (*bbl.Person, error) {
 }
 
 func (r *Repo) PeopleIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Person] {
-	q := `SELECT ` + personCols + ` FROM bbl_people_view p;`
-	return rowsIter(ctx, r.conn, "PeopleIter", errPtr, q, nil, scanPerson)
+	return func(yield func(*bbl.Person) bool) {
+		q := `SELECT ` + personCols + ` FROM bbl_people_view p;`
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = fmt.Errorf("PeopleIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanPerson(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("PeopleIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 // TODO include in users view?
+// TODO ensure uniqueness of identifiers (see getPerson)
 func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.Code) ([]string, error) {
 	var qVals string
 	var qVars []any
@@ -51,14 +71,14 @@ func (r *Repo) GetPeopleIDsByIdentifiers(ctx context.Context, identifiers []bbl.
 func getPerson(ctx context.Context, conn Conn, id string) (*bbl.Person, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		// query will fail if identifier is not unique
 		row = conn.QueryRow(ctx, `
 			SELECT `+personCols+`
-			FROM bbl_people_view p, bbl_person_identifiers p_i
-			WHERE p.id = p_i.person_id AND
-			      p_i.scheme = $1 AND
-				  p_i.val = $2;`,
-			scheme, val,
-		)
+			FROM bbl_people_view p
+			WHERE p.id = (SELECT person_id
+						  FROM bbl_person_identifiers
+			    		  WHERE scheme = $1 AND val = $2);`,
+			scheme, val)
 	} else {
 		row = conn.QueryRow(ctx, `SELECT `+personCols+` FROM bbl_people_view p WHERE p.id = $1;`, id)
 	}
@@ -66,6 +86,12 @@ func getPerson(ctx context.Context, conn Conn, id string) (*bbl.Person, error) {
 	rec, err := scanPerson(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "21000" { // cardinality_violation (mare than one row returned from subquery)
+			err = bbl.ErrNotUnique
+		}
 	}
 	if err != nil {
 		err = fmt.Errorf("GetPerson %s: %w", id, err)

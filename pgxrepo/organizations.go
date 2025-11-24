@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ugent-library/bbl"
 )
 
@@ -17,21 +18,39 @@ func (r *Repo) GetOrganization(ctx context.Context, id string) (*bbl.Organizatio
 }
 
 func (r *Repo) OrganizationsIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.Organization] {
-	q := `SELECT ` + organizationCols + ` FROM bbl_organizations_view o;`
-	return rowsIter(ctx, r.conn, "OrganizationsIter", errPtr, q, nil, scanOrganization)
+	return func(yield func(*bbl.Organization) bool) {
+		q := `SELECT ` + organizationCols + ` FROM bbl_organizations_view o;`
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = fmt.Errorf("OrganizationsIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanOrganization(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("OrganizationsIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func getOrganization(ctx context.Context, conn Conn, id string) (*bbl.Organization, error) {
 	var row pgx.Row
 	if scheme, val, ok := strings.Cut(id, ":"); ok {
+		// query will fail if identifier is not unique
 		row = conn.QueryRow(ctx, `
 			SELECT `+organizationCols+`
-			FROM bbl_organizations_view o, bbl_organization_identifiers o_i
-			WHERE o.id = o_i.organizatons_id AND 
-			      o_i.scheme = $1 AND 
-				  o_i.val = $2;`,
-			scheme, val,
-		)
+			FROM bbl_organizations_view o
+			WHERE o.id = (SELECT organization_id
+						  FROM bbl_organization_identifiers
+						  WHERE scheme = $1 AND val = $2);`,
+			scheme, val)
 	} else {
 		row = conn.QueryRow(ctx, `SELECT `+organizationCols+` FROM bbl_organizations_view o WHERE o.id = $1;`, id)
 	}
@@ -40,6 +59,13 @@ func getOrganization(ctx context.Context, conn Conn, id string) (*bbl.Organizati
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = bbl.ErrNotFound
 	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "21000" { // cardinality_violation (mare than one row returned from subquery)
+			err = bbl.ErrNotUnique
+		}
+	}
+
 	if err != nil {
 		err = fmt.Errorf("GetOrganization %s: %w", id, err)
 	}

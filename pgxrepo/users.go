@@ -18,10 +18,26 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*bbl.User, error) {
 }
 
 func (r *Repo) UsersIter(ctx context.Context, errPtr *error) iter.Seq[*bbl.User] {
-	return rowsIter(ctx, r.conn, "UsersIter", errPtr,
-		`SELECT `+userCols+` FROM bbl_users_view u;`,
-		nil,
-		scanUser)
+	return func(yield func(*bbl.User) bool) {
+		q := `SELECT ` + userCols + ` FROM bbl_users_view u;`
+		rows, err := r.conn.Query(ctx, q)
+		if err != nil {
+			*errPtr = fmt.Errorf("UsersIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanUser(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("UsersIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 func getUser(ctx context.Context, conn Conn, id string) (*bbl.User, error) {

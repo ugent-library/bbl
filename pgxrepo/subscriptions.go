@@ -2,6 +2,7 @@ package pgxrepo
 
 import (
 	"context"
+	"fmt"
 	"iter"
 
 	"github.com/jackc/pgx/v5"
@@ -9,9 +10,26 @@ import (
 )
 
 func (r *Repo) TopicSubscriptionsIter(ctx context.Context, topic string, errPtr *error) iter.Seq[*bbl.Subscription] {
-	q := `SELECT ` + subscriptionCols + ` FROM bbl_subscriptions s WHERE s.topic = $1;`
-	args := []any{topic}
-	return rowsIter(ctx, r.conn, "TopicSubscriptionsIter", errPtr, q, args, scanSubscription)
+	return func(yield func(*bbl.Subscription) bool) {
+		q := `SELECT ` + subscriptionCols + ` FROM bbl_subscriptions s WHERE s.topic = $1;`
+		rows, err := r.conn.Query(ctx, q, topic)
+		if err != nil {
+			*errPtr = fmt.Errorf("TopicSubscriptionsIter: query: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rec, err := scanSubscription(rows)
+			if err != nil {
+				*errPtr = fmt.Errorf("TopicSubscriptionsIter: scan: %w", err)
+				return
+			}
+			if !yield(rec) {
+				return
+			}
+		}
+	}
 }
 
 const subscriptionCols = `

@@ -39,7 +39,7 @@ func ImportWorkSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 			}
 			if !dup {
 				rev := &bbl.Rev{}
-				rev.Add(&bbl.CreateWork{Work: rec})
+				rev.Add(&bbl.SaveWork{Work: rec})
 				if err := repo.AddRev(ctx, rev); err != nil {
 					return out, err
 				} else {

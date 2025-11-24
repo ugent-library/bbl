@@ -67,22 +67,14 @@ func (r *Rev) UnmarshalJSON(b []byte) error {
 		switch rawAction.Action {
 		case "save_user":
 			action = &SaveUser{}
-		case "create_organization":
-			action = &CreateOrganization{}
-		case "update_organization":
-			action = &UpdateOrganization{}
-		case "create_person":
-			action = &CreatePerson{}
-		case "update_person":
-			action = &UpdatePerson{}
-		case "create_project":
-			action = &CreateProject{}
-		case "update_project":
-			action = &UpdateProject{}
-		case "create_work":
-			action = &CreateWork{}
-		case "update_work":
-			action = &UpdateWork{}
+		case "save_organization":
+			action = &SaveOrganization{}
+		case "save_person":
+			action = &SavePerson{}
+		case "save_project":
+			action = &SaveProject{}
+		case "save_work":
+			action = &SaveWork{}
 		case "change_work":
 			action = &ChangeWork{}
 		default:
@@ -110,61 +102,38 @@ type SaveUser struct {
 
 func (*SaveUser) isAction() {}
 
-type CreateOrganization struct {
+type SaveOrganization struct {
 	Organization *Organization `json:"organization"`
+	MatchVersion bool          `json:"match_version"`
 }
 
-func (*CreateOrganization) isAction() {}
+func (*SaveOrganization) isAction() {}
 
-type UpdateOrganization struct {
-	Organization *Organization `json:"organization"`
-	MatchVersion bool
-}
-
-func (*UpdateOrganization) isAction() {}
-
-type CreatePerson struct {
-	Person *Person `json:"person"`
-}
-
-func (*CreatePerson) isAction() {}
-
-type UpdatePerson struct {
+type SavePerson struct {
 	Person       *Person `json:"person"`
-	MatchVersion bool
+	MatchVersion bool    `json:"match_version"`
 }
 
-func (*UpdatePerson) isAction() {}
+func (*SavePerson) isAction() {}
 
-type CreateProject struct {
-	Project *Project `json:"project"`
-}
-
-func (*CreateProject) isAction() {}
-
-type UpdateProject struct {
+type SaveProject struct {
 	Project      *Project `json:"project"`
-	MatchVersion bool
+	MatchVersion bool     `json:"match_version"`
 }
 
-func (*UpdateProject) isAction() {}
+func (*SaveProject) isAction() {}
 
-type CreateWork struct {
-	Work *Work `json:"work"`
-}
-
-func (*CreateWork) isAction() {}
-
-type UpdateWork struct {
+type SaveWork struct {
 	Work         *Work `json:"work"`
-	MatchVersion bool
+	MatchVersion bool  `json:"match_version"`
 }
 
-func (*UpdateWork) isAction() {}
+func (*SaveWork) isAction() {}
 
 type ChangeWork struct {
-	WorkID  string
-	Changes []WorkChanger
+	WorkID  string        `json:"work_id"`
+	Version int           `json:"version,omitempty"`
+	Changes []WorkChanger `json:"changes"`
 }
 
 func (*ChangeWork) isAction() {}
