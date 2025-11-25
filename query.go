@@ -53,9 +53,9 @@ type expression struct {
 }
 
 type filter struct {
-	Field string   `parser:"@Ident" json:"field"`
-	Op    string   `parser:"@( '>=' | '>' | '<=' | '<' | '=' )" json:"op"`
-	Terms []string `parser:"( @Ident | @String ) ( '|' ( @Ident | @String ) )*" json:"terms"`
+	Field string   `parser:"@Ident"`
+	Op    string   `parser:"@( '>=' | '>' | '<=' | '<' | '=' )"`
+	Terms []string `parser:"( @Ident | @String ) ( '|' ( @Ident | @String ) )*"`
 }
 
 var queryParser = participle.MustBuild[andCondition](
