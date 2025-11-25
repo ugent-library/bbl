@@ -65,6 +65,7 @@ type SearchOpts struct {
 	Facets      []string     `json:"facets,omitempty"`
 }
 
+// TODO append to existing filter if it already exists?
 func (s *SearchOpts) AddTermsFilter(field string, terms ...string) *SearchOpts {
 	if s.QueryFilter == nil {
 		s.QueryFilter = &QueryFilter{}

@@ -93,6 +93,16 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 									<div class="btn-text">Search</div>
 								</button>
 							</div>
+							<div>
+								<input
+									class="form-control"
+									type="text"
+									name="f"
+									placeholder="Filters..."
+									value=""
+									autocomplete="off"
+								/>
+							</div>
 						</div>
 						<div id="suggestions"></div>
 					</div>
