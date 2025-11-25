@@ -446,8 +446,8 @@ func enqueueInsertChange(batch *pgx.Batch, t, revID, id string, diff any) error 
 		return fmt.Errorf("AddRev: %w", err)
 	}
 	batch.Queue(`
-				INSERT INTO bbl_changes (rev_id, `+t+`_id, diff)
-				VALUES ($1, $2, $3);`,
+		INSERT INTO bbl_changes (rev_id, `+t+`_id, diff)
+		VALUES ($1, $2, $3);`,
 		revID, id, jsonDiff,
 	)
 	return nil
