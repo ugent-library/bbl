@@ -9,7 +9,7 @@ import (
 )
 
 type QueryFilter struct {
-	And []*AndFilter `json:"and"`
+	And []*AndCondition `json:"and"`
 }
 
 func (qf *QueryFilter) HasTerm(field, term string) bool {
@@ -24,31 +24,31 @@ func (qf *QueryFilter) HasTerm(field, term string) bool {
 	return false
 }
 
-type AndFilter struct {
-	Or    []*OrFilter  `parser:"'(' @@ ( 'or' @@ )+ ')'" json:"or,omitempty"`
-	Terms *TermsFilter `parser:"| @@" json:"terms,omitempty"`
+type AndCondition struct {
+	Or    []*OrCondition `json:"or,omitempty"`
+	Terms *TermsFilter   `json:"terms,omitempty"`
 }
 
-type OrFilter struct {
-	And   []*AndFilter `parser:"'(' @@ ( 'and' @@ )+ ')'" json:"and,omitempty"`
-	Terms *TermsFilter `parser:"| @@" json:"terms,omitempty"`
+type OrCondition struct {
+	And   []*AndCondition `json:"and,omitempty"`
+	Terms *TermsFilter    `json:"terms,omitempty"`
 }
 
 type TermsFilter struct {
-	Field string   `parser:"@Ident '='" json:"field"`
-	Terms []string `parser:"@String ( '|' @String )*" json:"terms"`
+	Field string   `json:"field"`
+	Terms []string `json:"terms"`
 }
 
-type andCondition struct {
-	Or []*orCondition `parser:"@@ ( 'or' @@ )*"`
+type grammar struct {
+	Or []*orCondition `parser:"@@ ( ('or' | 'OR') @@ )*"`
 }
 
 type orCondition struct {
-	And []*expression `parser:"@@ ( 'and' @@ )*"`
+	And []*andCondition `parser:"@@ ( ('and' | 'AND') @@ )*"`
 }
 
-type expression struct {
-	Or     []*orCondition `parser:"'(' @@ ( 'or' @@ )* ')'"`
+type andCondition struct {
+	Or     []*orCondition `parser:"'(' @@ ( ('or' | 'OR') @@ )* ')'"`
 	Filter *filter        `parser:"| @@"`
 }
 
@@ -58,9 +58,54 @@ type filter struct {
 	Terms []string `parser:"( @Ident | @String ) ( '|' ( @Ident | @String ) )*"`
 }
 
-var queryParser = participle.MustBuild[andCondition](
+// TODO handle >=, >, <=, < operators
+// TODO add negation
+var queryParser = participle.MustBuild[grammar](
 	participle.Unquote("String"),
 )
+
+// TODO optimize "status=draft or kind=book or status=public" to "status=draft|public or kind=book"
+func visitAndCondition(o *andCondition) *AndCondition {
+	cond := &AndCondition{}
+
+	if o.Filter != nil {
+		cond.Terms = &TermsFilter{Field: o.Filter.Field, Terms: o.Filter.Terms}
+	} else {
+		for _, c := range o.Or {
+			cond.Or = append(cond.Or, visitOrCondition(c))
+		}
+	}
+
+	if len(cond.Or) == 1 {
+		if cond.Or[0].Terms != nil {
+			cond.Terms = cond.Or[0].Terms
+			cond.Or = nil
+		} else if len(cond.Or[0].And) == 1 {
+			cond.Or = cond.Or[0].And[0].Or
+		}
+	}
+
+	return cond
+}
+
+func visitOrCondition(o *orCondition) *OrCondition {
+	cond := &OrCondition{}
+
+	for _, c := range o.And {
+		cond.And = append(cond.And, visitAndCondition(c))
+	}
+
+	if len(cond.And) == 1 {
+		if cond.And[0].Terms != nil {
+			cond.Terms = cond.And[0].Terms
+			cond.And = nil
+		} else if len(cond.And[0].Or) == 1 {
+			cond.And = cond.And[0].Or[0].And
+		}
+	}
+
+	return cond
+}
 
 func ParseQueryFilter(str string) (*QueryFilter, error) {
 	g, err := queryParser.ParseString("", str)
@@ -68,20 +113,29 @@ func ParseQueryFilter(str string) (*QueryFilter, error) {
 		return nil, err
 	}
 
-	j, _ := json.MarshalIndent(g, "", "  ")
-	log.Printf("filter: %s", j)
+	cond := &AndCondition{}
+	for _, c := range g.Or {
+		cond.Or = append(cond.Or, visitOrCondition(c))
+	}
+	if len(cond.Or) == 1 && cond.Or[0].Terms != nil {
+		cond.Terms = cond.Or[0].Terms
+		cond.Or = nil
+	}
 
-	// qf := &QueryFilter{}
+	qf := &QueryFilter{}
+	if len(cond.Or) == 1 {
+		if cond.Or[0].Terms != nil {
+			qf.And = []*AndCondition{{Terms: cond.Or[0].Terms}}
+		} else {
+			qf.And = cond.Or[0].And
+		}
+	} else {
+		qf.And = []*AndCondition{cond}
+	}
 
-	// if g.And != nil {
-	// 	qf.And = append([]*AndFilter{{Terms: g.Terms}}, g.And...)
-	// } else if g.Or != nil {
-	// 	qf.And = []*AndFilter{{Or: append([]*OrFilter{{Terms: g.Terms}}, g.Or...)}}
-	// } else {
-	// 	qf.And = []*AndFilter{{Terms: g.Terms}}
-	// }
+	// TODO remove this
+	j, _ := json.MarshalIndent(qf, "", "  ")
+	log.Printf("parsed queryfilter: %s", j)
 
-	// return qf, nil
-
-	return &QueryFilter{}, nil
+	return qf, nil
 }

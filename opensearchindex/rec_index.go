@@ -285,7 +285,7 @@ func (idx *recIndex[T]) Search(ctx context.Context, opts *bbl.SearchOpts) (*bbl.
 	return hits, nil
 }
 
-func generateAndFilter(filters []*bbl.AndFilter, termsFilters map[string]string) (string, error) {
+func generateAndFilter(filters []*bbl.AndCondition, termsFilters map[string]string) (string, error) {
 	jFilters := `[]`
 
 	for _, filter := range filters {
@@ -313,7 +313,7 @@ func generateAndFilter(filters []*bbl.AndFilter, termsFilters map[string]string)
 	return sjson.SetRaw(``, "bool.must", jFilters)
 }
 
-func generateOrFilter(filters []*bbl.OrFilter, termsFilters map[string]string) (string, error) {
+func generateOrFilter(filters []*bbl.OrCondition, termsFilters map[string]string) (string, error) {
 	jFilters := `[]`
 
 	for _, filter := range filters {

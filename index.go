@@ -70,7 +70,7 @@ func (s *SearchOpts) AddTermsFilter(field string, terms ...string) *SearchOpts {
 	if s.QueryFilter == nil {
 		s.QueryFilter = &QueryFilter{}
 	}
-	s.QueryFilter.And = append(s.QueryFilter.And, &AndFilter{Terms: &TermsFilter{
+	s.QueryFilter.And = append(s.QueryFilter.And, &AndCondition{Terms: &TermsFilter{
 		Field: field,
 		Terms: terms,
 	}})
