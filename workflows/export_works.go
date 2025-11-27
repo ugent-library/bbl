@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 	"time"
 
@@ -11,21 +12,24 @@ import (
 	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
+	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
 	"golang.org/x/sync/errgroup"
 )
 
 type ExportWorksInput struct {
-	UserID string          `json:"user_id,omitempty"`
-	Opts   *bbl.SearchOpts `json:"opts"`
-	Format string          `json:"format"`
+	UserID     string          `json:"user_id,omitempty"`
+	WorkIDs    []string        `json:"work_ids,omitempty"`
+	ListID     string          `json:"list_id,omitempty"`
+	SearchOpts *bbl.SearchOpts `json:"search_opts"`
+	Format     string          `json:"format"`
 }
 
 type ExportWorksOutput struct {
 	FileID string `json:"file_id"`
 }
 
-func ExportWorks(client *hatchet.Client, store *s3store.Store, index bbl.Index, centrifugeClient *gocent.Client) *hatchet.StandaloneTask {
+func ExportWorks(client *hatchet.Client, store *s3store.Store, repo *pgxrepo.Repo, index bbl.Index, centrifugeClient *gocent.Client) *hatchet.StandaloneTask {
 	return client.NewStandaloneTask("export_works", func(ctx hatchet.Context, input ExportWorksInput) (ExportWorksOutput, error) {
 		out := ExportWorksOutput{}
 
@@ -47,7 +51,40 @@ func ExportWorks(client *hatchet.Client, store *s3store.Store, index bbl.Index, 
 				return err
 			}
 
-			for rec := range bbl.SearchIter(groupCtx, index.Works(), input.Opts, &err) {
+			var iter iter.Seq[*bbl.Work]
+
+			if input.WorkIDs != nil {
+				iter = func(yield func(*bbl.Work) bool) {
+					for _, id := range input.WorkIDs {
+						rec, e := repo.GetWork(ctx, id) // TODO get recs in one query
+						if e != nil {
+							err = e
+							return
+						}
+						if !yield(rec) {
+							return
+						}
+					}
+				}
+			} else if input.ListID != "" {
+				iter = func(yield func(*bbl.Work) bool) {
+					for listItem := range repo.ListItemsIter(ctx, input.ListID, &err) {
+						if !yield(listItem.Work) {
+							return
+						}
+					}
+				}
+			} else if input.SearchOpts != nil {
+				iter = func(yield func(*bbl.Work) bool) {
+					for rec := range bbl.SearchIter(ctx, index.Works(), input.SearchOpts, &err) {
+						if !yield(rec) {
+							return
+						}
+					}
+				}
+			}
+
+			for rec := range iter {
 				if err := exp.Add(rec); err != nil {
 					return err
 				}

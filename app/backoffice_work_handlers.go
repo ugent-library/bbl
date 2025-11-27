@@ -102,9 +102,9 @@ func (app *App) backofficeExportWorks(w http.ResponseWriter, r *http.Request, c 
 
 	// TODO do something with ref
 	_, err = app.exportWorksTask.RunNoWait(r.Context(), workflows.ExportWorksInput{
-		UserID: c.User.ID,
-		Opts:   opts,
-		Format: format,
+		UserID:     c.User.ID,
+		SearchOpts: opts,
+		Format:     format,
 	})
 	if err != nil {
 		return err
