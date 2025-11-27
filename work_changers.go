@@ -1,9 +1,12 @@
 package bbl
 
 import (
+	"fmt"
 	"slices"
 )
 
+// TODO use mutation terminology?
+// TODO validate args passed to Unmarshall
 var WorkChangers = map[string]func() WorkChanger{
 	"set_kind":           func() WorkChanger { return &WorkSetKind{} },
 	"set_identifier":     func() WorkChanger { return &WorkSetIdentifier{} },
@@ -17,6 +20,29 @@ type WorkChanger interface {
 	Apply(*Work) error
 }
 
+type RawWorkChanger struct {
+	Name string
+	Args []string
+}
+
+func LoadWorkChangers(rawChangers []RawWorkChanger) ([]WorkChanger, error) {
+	var changers []WorkChanger
+
+	for _, rawC := range rawChangers {
+		initC, ok := WorkChangers[rawC.Name]
+		if !ok {
+			return nil, fmt.Errorf("NewWorkChanger: unknown changer %s", rawC.Name)
+		}
+		c := initC()
+		if err := c.UnmarshalArgs(rawC.Args); err != nil {
+			return nil, fmt.Errorf("NewWorkChanger: %s: %w", rawC.Name, err)
+		}
+		changers = append(changers, c)
+	}
+
+	return changers, nil
+}
+
 type WorkSetKind struct {
 	Kind    string `json:"kind"`
 	Subkind string `json:"subkind"`
@@ -24,7 +50,9 @@ type WorkSetKind struct {
 
 func (c *WorkSetKind) UnmarshalArgs(args []string) error {
 	c.Kind = args[0]
-	c.Subkind = args[1]
+	if len(args) > 1 {
+		c.Subkind = args[1]
+	}
 	return nil
 }
 

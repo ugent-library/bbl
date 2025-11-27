@@ -138,6 +138,7 @@ type ChangeWork struct {
 
 func (*ChangeWork) isAction() {}
 
+// TODO also use raw format here?
 func (a *ChangeWork) UnmarshalJSON(b []byte) error {
 	rawAction := struct {
 		WorkID  string `json:"work_id"`

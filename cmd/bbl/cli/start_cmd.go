@@ -59,6 +59,7 @@ var startCmd = &cobra.Command{
 
 		addRepresentationsTask := workflows.AddRepresentations(hatchetClient, repo, index)
 		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
+		changeWorksTask := workflows.ChangeWorks(hatchetClient, repo, index)
 		exportWorksTask := workflows.ExportWorks(hatchetClient, store, index, centrifugeClient)
 		importUserSourceTask := workflows.ImportUserSource(hatchetClient, repo)
 		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
@@ -235,6 +236,7 @@ var startCmd = &cobra.Command{
 			worker, err := hatchetClient.NewWorker("worker", hatchet.WithWorkflows(
 				addRepresentationsTask,
 				catbirdGCTask,
+				changeWorksTask,
 				exportWorksTask,
 				importUserSourceTask,
 				importWorkSourceTask,
