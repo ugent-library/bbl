@@ -3,32 +3,54 @@ package sru
 import (
 	"encoding/xml"
 	"net/http"
-
-	"github.com/ugent-library/bbl"
+	"strconv"
 )
 
 type Server struct {
-	Index bbl.Index
-	Host  string
-	Port  int
+	SearchProvider func(string, int) ([][]byte, int, error)
+	Host           string
+	Port           int
 }
 
+// TODO error handling
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	op := r.URL.Query().Get("operation")
 
-	var res any
+	var res *response
 
 	switch op {
+	case "searchRetrieve":
+		q := r.URL.Query().Get("query")
+		sizeStr := r.URL.Query().Get("maximumRecords")
+		size, _ := strconv.Atoi(sizeStr)
+		recs, total, _ := s.SearchProvider(q, size)
+		res = &response{
+			XMLName:         xml.Name{Space: "http://docs.oasis-open.org/ns/search-ws/sruResponse", Local: "searchRetrieveResponse"},
+			Version:         "2.0",
+			NumberOfRecords: total,
+			Record:          make([]record, len(recs)),
+		}
+		for i, rec := range recs {
+			res.Record[i] = record{
+				RecordXMLEscaping: "xml",
+				RecordPosition:    i + 1,
+				RecordData:        recordData{rec},
+			}
+		}
 	case "explain", "":
-		res = &explainResponse{
-			Version: "2.0",
+		rec, _ := xml.Marshal(explain{
+			Host: s.Host,
+			Port: s.Port,
+		})
+		res = &response{
+			XMLName:         xml.Name{Space: "http://docs.oasis-open.org/ns/search-ws/sruResponse", Local: "explainResponse"},
+			Version:         "2.0",
+			NumberOfRecords: 1,
 			Record: []record{{
 				RecordSchema:      "http://explain.z3950.org/dtd/2.0/",
 				RecordXMLEscaping: "xml",
-				RecordData: explain{
-					Host: s.Host,
-					Port: s.Port,
-				},
+				RecordPosition:    1,
+				RecordData:        recordData{rec},
 			}},
 		}
 	}
@@ -38,17 +60,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-type explainResponse struct {
-	XMLName xml.Name `xml:"http://www.loc.gov/zing/srw/ explainResponse"`
-	Version string   `xml:"version"`
-	Record  []record `xml:"record"`
+type response struct {
+	XMLName            xml.Name
+	Version            string   `xml:"version"`
+	NumberOfRecords    int      `xml:"numberOfRecords"`
+	NextRecordPosition int      `xml:"nextRecordPosition"`
+	Record             []record `xml:"record"`
 }
 
 type record struct {
-	RecordSchema      string `xml:"recordSchema"`
-	RecordXMLEscaping string `xml:"recordXMLEscaping"`
-	RecordData        any    `xml:"recordData"`
-	RecordPosition    int    `xml:"recordPosition,omitempty"`
+	RecordSchema      string     `xml:"recordSchema"`
+	RecordXMLEscaping string     `xml:"recordXMLEscaping"`
+	RecordData        recordData `xml:"recordData"`
+	RecordPosition    int        `xml:"recordPosition"`
+}
+
+type recordData struct {
+	RecordData []byte `xml:",innerxml"`
 }
 
 type explain struct {

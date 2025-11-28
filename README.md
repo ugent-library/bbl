@@ -30,6 +30,7 @@
 * catbird
 * orcid
 * oaipmh
+* sru
 * opensearchswitcher
 * httperr
 

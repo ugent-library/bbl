@@ -106,9 +106,28 @@ var startCmd = &cobra.Command{
 		}
 
 		sruServer := &sru.Server{
-			Index: index,
-			Host:  config.Host,
-			Port:  config.Port,
+			Host: config.Host,
+			Port: config.Port,
+			SearchProvider: func(q string, size int) ([][]byte, int, error) {
+				hits, err := index.Works().Search(cmd.Context(), &bbl.SearchOpts{
+					Query: q,
+					Size:  size,
+				})
+				if err != nil {
+					return nil, 0, err
+				}
+
+				recs := make([][]byte, len(hits.Hits))
+				for i, hit := range hits.Hits {
+					b, err := bbl.EncodeWork(hit.Rec, "oai_dc")
+					if err != nil {
+						return nil, 0, err
+					}
+					recs[i] = b
+				}
+
+				return recs, hits.Total, nil
+			},
 		}
 
 		handler, err := app.NewApp(
