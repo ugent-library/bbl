@@ -21,12 +21,9 @@ import (
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/i18n"
-	"github.com/ugent-library/bbl/oaipmh"
-	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
 	"github.com/ugent-library/crypt"
-	"github.com/ugent-library/oidc"
 )
 
 const (
@@ -240,11 +237,12 @@ type App struct {
 	repo                    *pgxrepo.Repo
 	store                   *s3store.Store
 	index                   bbl.Index
+	oaiProvider             http.Handler
+	sruServer               http.Handler
 	crypt                   *crypt.Crypt
 	assets                  map[string]string
 	cookies                 *securecookie.SecureCookie
 	authProvider            AuthProvider
-	oaiProvider             *oaipmh.Provider
 	centrifugeURL           string
 	generateCentrifugeToken func(string, []string, int64) (string, error)
 	exportWorksTask         *hatchet.StandaloneTask
@@ -258,9 +256,9 @@ func NewApp(
 	repo *pgxrepo.Repo,
 	store *s3store.Store,
 	index bbl.Index,
-	authIssuerURL string,
-	authClientID string,
-	authClientSecret string,
+	authProvider AuthProvider,
+	oaiProvider http.Handler,
+	sruServer http.Handler,
 	centrifugeURL string,
 	centrifugeHMACSecret []byte,
 	exportWorksTask *hatchet.StandaloneTask,
@@ -273,47 +271,18 @@ func NewApp(
 	cookies := securecookie.New(hashSecret, secret)
 	cookies.SetSerializer(securecookie.JSONEncoder{})
 
-	authProvider, err := oidc.NewAuth(context.TODO(), oidc.Config{
-		IssuerURL:        authIssuerURL,
-		ClientID:         authClientID,
-		ClientSecret:     authClientSecret,
-		RedirectURL:      baseURL + "/backoffice/auth/callback",
-		CookieInsecure:   env == "development",
-		CookiePrefix:     "bbl.oidc.",
-		CookieHashSecret: hashSecret,
-		CookieSecret:     secret,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
-		RepositoryName: "Ghent University Institutional Archive",
-		BaseURL:        "http://localhost:3000/oai",
-		AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
-		DeletedRecord:  "persistent",
-		Granularity:    "YYYY-MM-DDThh:mm:ssZ",
-		// StyleSheet:     "/oai.xsl",
-		Backend: oaiservice.New(repo),
-		ErrorHandler: func(err error) { // TODO
-			logger.Error("oai error", "error", err)
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	app := &App{
 		env:           env,
 		logger:        logger,
 		repo:          repo,
 		store:         store,
 		index:         index,
+		oaiProvider:   oaiProvider,
+		sruServer:     sruServer,
+		authProvider:  authProvider,
 		crypt:         crypt.New(secret),
 		assets:        assets,
 		cookies:       cookies,
-		authProvider:  authProvider,
-		oaiProvider:   oaiProvider,
 		centrifugeURL: centrifugeURL,
 		generateCentrifugeToken: func(userID string, channels []string, exp int64) (string, error) {
 			claims := jwt.MapClaims{
@@ -353,6 +322,8 @@ func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /oai", app.oaiProvider)
+
+	mux.Handle("GET /sru", app.sruServer)
 
 	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
 

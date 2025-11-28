@@ -16,7 +16,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
+	"github.com/ugent-library/bbl/oaipmh"
+	"github.com/ugent-library/bbl/oaiservice"
+	"github.com/ugent-library/bbl/sru"
 	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/oidc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -71,6 +75,42 @@ var startCmd = &cobra.Command{
 		reindexProjectsTask := workflows.ReindexProjects(hatchetClient, repo, index)
 		reindexWorksTask := workflows.ReindexWorks(hatchetClient, repo, index)
 
+		authProvider, err := oidc.NewAuth(cmd.Context(), oidc.Config{
+			IssuerURL:        config.OIDC.IssuerURL,
+			ClientID:         config.OIDC.ClientID,
+			ClientSecret:     config.OIDC.ClientSecret,
+			RedirectURL:      config.BaseURL + "/backoffice/auth/callback",
+			CookieInsecure:   config.Env == "development",
+			CookiePrefix:     "bbl.oidc.",
+			CookieHashSecret: []byte(config.HashSecret),
+			CookieSecret:     []byte(config.Secret),
+		})
+		if err != nil {
+			return err
+		}
+
+		oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
+			RepositoryName: "Ghent University Institutional Repository",
+			BaseURL:        "http://localhost:3000/oai",
+			AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
+			DeletedRecord:  "persistent",
+			Granularity:    "YYYY-MM-DDThh:mm:ssZ",
+			// StyleSheet:     "/oai.xsl",
+			Backend: oaiservice.New(repo),
+			ErrorHandler: func(err error) { // TODO
+				logger.Error("oai error", "error", err)
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		sruServer := &sru.Server{
+			Index: index,
+			Host:  config.Host,
+			Port:  config.Port,
+		}
+
 		handler, err := app.NewApp(
 			config.BaseURL,
 			config.Env,
@@ -80,9 +120,9 @@ var startCmd = &cobra.Command{
 			repo,
 			store,
 			index,
-			config.OIDC.IssuerURL,
-			config.OIDC.ClientID,
-			config.OIDC.ClientSecret,
+			authProvider,
+			oaiProvider,
+			sruServer,
 			config.Centrifuge.Transport.URL,
 			[]byte(config.Centrifuge.HMACSecret),
 			exportWorksTask, // TOOD how best to pass tasks to handlers?
