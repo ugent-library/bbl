@@ -407,6 +407,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("GET /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeList)))
 	mux.Handle("POST /backoffice/list/{id}/items", userChain.then(wrap(getAppCtx, app.backofficeCreateListItems)))
 	mux.Handle("DELETE /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeDeleteList)))
+	mux.Handle("POST /backoffice/list/{id}/export/{format}", userChain.then(wrap(getAppCtx, app.backofficeExportList)))
 
 	mux.Handle("GET /backoffice", userChain.then(wrap(getAppCtx, app.backofficeHome)))
 

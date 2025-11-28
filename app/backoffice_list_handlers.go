@@ -2,9 +2,12 @@ package app
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/ugent-library/bbl/app/urls"
+	"github.com/ugent-library/bbl/app/views"
 	listviews "github.com/ugent-library/bbl/app/views/backoffice/lists"
+	"github.com/ugent-library/bbl/workflows"
 	"github.com/ugent-library/htmx"
 )
 
@@ -57,6 +60,29 @@ func (app *App) backofficeDeleteList(w http.ResponseWriter, r *http.Request, c *
 	htmx.Redirect(w, urls.BackofficeLists())
 
 	return nil
+}
+
+// TODO check rights
+func (app *App) backofficeExportList(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	id := r.PathValue("id")
+	format := r.PathValue("format")
+
+	// TODO do something with ref
+	_, err := app.exportWorksTask.RunNoWait(r.Context(), workflows.ExportWorksInput{
+		UserID: c.User.ID,
+		ListID: id,
+		Format: format,
+	})
+	if err != nil {
+		return err
+	}
+
+	return views.AddFlash(views.FlashArgs{
+		Type:         views.FlashInfo,
+		Title:        "Export started",
+		Text:         "You will be notified when your export is ready.",
+		DismissAfter: 5 * time.Second,
+	}).Render(r.Context(), w)
 }
 
 // TODO check rights
