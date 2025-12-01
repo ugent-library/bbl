@@ -12,7 +12,7 @@ type Server struct {
 	Port           int
 }
 
-// TODO error handling
+// TODO error handling, logging
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	op := r.URL.Query().Get("operation")
 
@@ -29,6 +29,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Version:         "2.0",
 			NumberOfRecords: total,
 			Record:          make([]record, len(recs)),
+		}
+		if total > len(recs) {
+			res.NextRecordPosition = len(recs) + 1
 		}
 		for i, rec := range recs {
 			res.Record[i] = record{
@@ -64,8 +67,8 @@ type response struct {
 	XMLName            xml.Name
 	Version            string   `xml:"version"`
 	NumberOfRecords    int      `xml:"numberOfRecords"`
-	NextRecordPosition int      `xml:"nextRecordPosition"`
-	Record             []record `xml:"record"`
+	NextRecordPosition int      `xml:"nextRecordPosition,omitempty"`
+	Record             []record `xml:"record,omitempty"`
 }
 
 type record struct {
