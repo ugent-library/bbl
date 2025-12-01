@@ -47,6 +47,7 @@
 
         ```sh
         cp .env.example .env
+        cp .envrc.example .envrc
         ```
 
     2. Add secrets to the `.env` file.
