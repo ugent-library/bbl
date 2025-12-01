@@ -1,8 +1,6 @@
 package bbl
 
 import (
-	"encoding/json"
-	"log"
 	"slices"
 
 	participle "github.com/alecthomas/participle/v2"
@@ -134,8 +132,8 @@ func ParseQueryFilter(str string) (*QueryFilter, error) {
 	}
 
 	// TODO remove this
-	j, _ := json.MarshalIndent(qf, "", "  ")
-	log.Printf("parsed queryfilter: %s", j)
+	// j, _ := json.MarshalIndent(qf, "", "  ")
+	// log.Printf("parsed queryfilter: %s", j)
 
 	return qf, nil
 }
