@@ -55,7 +55,6 @@ type CompletionHighlight struct {
 	Completion string `json:"completion"`
 }
 
-// TODO make a subfield only containing the query, filter, size (export context etc)?
 type SearchOpts struct {
 	Query       string       `json:"query,omitempty"`
 	QueryFilter *QueryFilter `json:"query_filter,omitempty"`

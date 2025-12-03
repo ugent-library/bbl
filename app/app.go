@@ -245,6 +245,7 @@ type App struct {
 	authProvider            AuthProvider
 	centrifugeURL           string
 	generateCentrifugeToken func(string, []string, int64) (string, error)
+	addListItemsTask        *hatchet.StandaloneTask
 	exportWorksTask         *hatchet.StandaloneTask
 }
 
@@ -261,6 +262,7 @@ func NewApp(
 	sruServer http.Handler,
 	centrifugeURL string,
 	centrifugeHMACSecret []byte,
+	addListItemsTask *hatchet.StandaloneTask,
 	exportWorksTask *hatchet.StandaloneTask,
 ) (*App, error) {
 	assets, err := parseManifest()
@@ -300,7 +302,8 @@ func NewApp(
 			}
 			return token, nil
 		},
-		exportWorksTask: exportWorksTask,
+		addListItemsTask: addListItemsTask,
+		exportWorksTask:  exportWorksTask,
 	}
 
 	return app, nil
@@ -373,7 +376,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("GET /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeLists)))
 	mux.Handle("GET /backoffice/lists/_new", userChain.then(wrap(getAppCtx, app.backofficeNewList)))
 	mux.Handle("POST /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeCreateList)))
-	mux.Handle("GET /backoffice/lists/_add_item", userChain.then(wrap(getAppCtx, app.backofficeAddListItem)))
+	mux.Handle("GET /backoffice/lists/_add_items", userChain.then(wrap(getAppCtx, app.backofficeAddListItems)))
 
 	mux.Handle("GET /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeList)))
 	mux.Handle("POST /backoffice/list/{id}/items", userChain.then(wrap(getAppCtx, app.backofficeCreateListItems)))

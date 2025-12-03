@@ -181,19 +181,16 @@ func (r *Repo) AddListItems(ctx context.Context, listID string, workIDs []string
 		return fmt.Errorf("AddListItems: %w", err)
 	}
 
-	rows := make([][]any, len(workIDs))
-
+	batch := &pgx.Batch{}
 	for i, workID := range workIDs {
-		rows[i] = []any{listID, workID, positions[i]}
+		batch.Queue(`
+			INSERT INTO bbl_list_items (list_id, work_id, pos)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (list_id, work_id) DO NOTHING;`,
+			listID, workID, positions[i])
 	}
 
-	_, err = tx.CopyFrom(
-		ctx,
-		pgx.Identifier{"bbl_list_items"},
-		[]string{"list_id", "work_id", "pos"},
-		pgx.CopyFromRows(rows),
-	)
-	if err != nil {
+	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
 		return fmt.Errorf("AddListItems: %w", err)
 	}
 

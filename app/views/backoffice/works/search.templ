@@ -166,6 +166,21 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 							</div>
 							<div class="bc-toolbar-right">
 								<div class="c-button-toolbar">
+									<div class="btn-group">
+										<button type="button" class="btn btn-tertiary">Add all to list</button>
+										<button
+											type="button"
+											class="btn btn- dropdown-toggle dropdown-toggle-split"
+											data-bs-toggle="dropdown"
+											aria-expanded="false"
+											hx-get={ urls.BackofficeAddListItems() }
+											hx-include="#work-search-form"
+											hx-target="next"
+										>
+											<span class="visually-hidden">Toggle Dropdown</span>
+										</button>
+										<ul class="dropdown-menu"></ul>
+									</div>
 									<div class="dropdown">
 										<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 											<i class="if if-more"></i>
@@ -200,7 +215,7 @@ templ Search(c views.Ctx, scope string, hits *bbl.RecHits[*bbl.Work]) {
 										class="btn btn- dropdown-toggle dropdown-toggle-split"
 										data-bs-toggle="dropdown"
 										aria-expanded="false"
-										hx-get={ urls.BackofficeAddListItem() }
+										hx-get={ urls.BackofficeAddListItems() }
 										hx-vals={ fmt.Sprintf(`{"work_id": %q}`, hit.Rec.ID) }
 										hx-target="next"
 									>

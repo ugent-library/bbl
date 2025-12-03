@@ -172,6 +172,6 @@ func BackofficeListItems(listID string) string {
 	return "/backoffice/list/" + url.PathEscape(listID) + "/items"
 }
 
-func BackofficeAddListItem() string {
-	return "/backoffice/lists/_add_item"
+func BackofficeAddListItems() string {
+	return "/backoffice/lists/_add_items"
 }

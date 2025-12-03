@@ -62,6 +62,7 @@ var startCmd = &cobra.Command{
 		}
 
 		addRepresentationsTask := workflows.AddRepresentations(hatchetClient, repo, index)
+		addListItemsTask := workflows.AddListItems(hatchetClient, repo, index)
 		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
 		changeWorksTask := workflows.ChangeWorks(hatchetClient, repo, index)
 		exportWorksTask := workflows.ExportWorks(hatchetClient, store, repo, index, centrifugeClient)
@@ -144,7 +145,8 @@ var startCmd = &cobra.Command{
 			sruServer,
 			config.Centrifuge.Transport.URL,
 			[]byte(config.Centrifuge.HMACSecret),
-			exportWorksTask, // TOOD how best to pass tasks to handlers?
+			addListItemsTask, // TOOD how best to pass tasks to handlers?
+			exportWorksTask,  // TOOD how best to pass tasks to handlers?
 		)
 		if err != nil {
 			return err
@@ -293,6 +295,7 @@ var startCmd = &cobra.Command{
 		group.Go(func() error {
 			logger.Info("starting hatchet worker")
 			worker, err := hatchetClient.NewWorker("worker", hatchet.WithWorkflows(
+				addListItemsTask,
 				addRepresentationsTask,
 				catbirdGCTask,
 				changeWorksTask,

@@ -7,6 +7,7 @@ import (
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
 	listviews "github.com/ugent-library/bbl/app/views/backoffice/lists"
+	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/workflows"
 	"github.com/ugent-library/htmx"
 )
@@ -85,25 +86,60 @@ func (app *App) backofficeExportList(w http.ResponseWriter, r *http.Request, c *
 	}).Render(r.Context(), w)
 }
 
-// TODO check rights
-func (app *App) backofficeAddListItem(w http.ResponseWriter, r *http.Request, c *appCtx) error {
-	workID := r.FormValue("work_id")
+func (app *App) backofficeAddListItems(w http.ResponseWriter, r *http.Request, c *appCtx) error {
+	r.ParseForm()
 
 	lists, err := app.repo.GetUserLists(r.Context(), c.User.ID)
 	if err != nil {
 		return err
 	}
 
-	return listviews.AddItem(c.viewCtx(), lists, workID).Render(r.Context(), w)
+	return listviews.AddItem(c.viewCtx(), lists, r.Form).Render(r.Context(), w)
 }
 
 // TODO check rights
 func (app *App) backofficeCreateListItems(w http.ResponseWriter, r *http.Request, c *appCtx) error {
 	r.ParseForm()
-	listID := r.PathValue("id")
-	workIDs := r.Form["work_id"]
+	targetListID := r.PathValue("id")
 
-	if err := app.repo.AddListItems(r.Context(), listID, workIDs); err != nil {
+	input := workflows.AddListItemsInput{
+		UserID:       c.User.ID,
+		TargetListID: targetListID,
+	}
+
+	if workIDs := r.Form["work_id"]; len(workIDs) > 0 {
+		input.WorkIDs = workIDs
+	} else if listID := r.FormValue("list_id"); listID != "" {
+		input.ListID = listID
+	} else {
+		// TODO this duplicates backofficeExportWorks
+		scope := r.FormValue("scope")
+		if scope == "" {
+			if can.Curate(c.User) {
+				scope = "curator"
+			} else {
+				scope = "contributor"
+			}
+
+		}
+
+		opts, err := app.bindSearchWorksOpts(r, c, scope)
+		if err != nil {
+			return err
+		}
+
+		// TODO
+		opts.From = 0
+		opts.Cursor = ""
+		opts.Size = 100
+		opts.Facets = nil
+
+		input.SearchOpts = opts
+	}
+
+	// TODO do something with ref
+	_, err := app.addListItemsTask.RunNoWait(r.Context(), input)
+	if err != nil {
 		return err
 	}
 

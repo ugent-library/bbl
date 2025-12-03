@@ -2,6 +2,7 @@ package lists
 
 import (
 	"fmt"
+	"net/url"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
@@ -53,6 +54,21 @@ templ Show(c views.Ctx, list *bbl.List, listItems []*bbl.ListItem) {
 						<div class="bc-toolbar">
 							<div class="bc-toolbar-right">
 								<div class="c-button-toolbar">
+									<div class="btn-group">
+										<button type="button" class="btn btn-tertiary">Add all to other list</button>
+										<button
+											type="button"
+											class="btn btn- dropdown-toggle dropdown-toggle-split"
+											data-bs-toggle="dropdown"
+											aria-expanded="false"
+											hx-get={ urls.BackofficeAddListItems() }
+											hx-vals={ fmt.Sprintf(`{"list_id": %q}`, list.ID) }
+											hx-target="next"
+										>
+											<span class="visually-hidden">Toggle Dropdown</span>
+										</button>
+										<ul class="dropdown-menu"></ul>
+									</div>
 									<div class="dropdown">
 										<button class="btn btn-tertiary btn-lg-only-responsive" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 											<i class="if if-more"></i>
@@ -114,13 +130,13 @@ templ New(c views.Ctx) {
 	</div>
 }
 
-templ AddItem(c views.Ctx, lists []*bbl.List, workID string) {
+templ AddItem(c views.Ctx, lists []*bbl.List, vals url.Values) {
 	for _, list := range lists {
 		<li>
 			<button
 				class="dropdown-item"
 				hx-post={ urls.BackofficeListItems(list.ID) }
-				hx-vals={ fmt.Sprintf(`{"work_id": %q}`, workID) }
+				hx-vals={ templ.JSONString(vals) }
 				hx-swap="none"
 			>{ list.Name }</button>
 		</li>
