@@ -3,9 +3,9 @@ package cli
 import (
 	"encoding/json"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 )
 
 func init() {
@@ -72,29 +72,16 @@ var reindexPeopleCmd = &cobra.Command{
 		}
 		defer close()
 
-		index, err := newIndex(cmd.Context())
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ReindexPeopleName,
+			tasks.ReindexPeopleInput{},
+			catbird.RunTaskOpts{DeduplicationID: tasks.ReindexPeopleName},
+		)
 		if err != nil {
 			return err
 		}
 
-		hatchetClient, err := hatchet.NewClient()
-		if err != nil {
-			return err
-		}
-
-		task := workflows.ReindexPeople(hatchetClient, repo, index)
-
-		res, err := task.Run(cmd.Context(), workflows.ReindexPeopleInput{})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ReindexPeopleOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 

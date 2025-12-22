@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 )
 
 func init() {
@@ -83,24 +83,16 @@ var importUserSourceCmd = &cobra.Command{
 		}
 		defer close()
 
-		hatchetClient, err := hatchet.NewClient()
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ImportUserSourceName,
+			tasks.ImportUserSourceInput{Source: source},
+			catbird.RunTaskOpts{},
+		)
 		if err != nil {
 			return err
 		}
 
-		task := workflows.ImportUserSource(hatchetClient, repo)
-
-		res, err := task.Run(cmd.Context(), workflows.ImportUserSourceInput{Source: source})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ImportUserSourceOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 
@@ -114,29 +106,16 @@ var reindexUsersCmd = &cobra.Command{
 		}
 		defer close()
 
-		index, err := newIndex(cmd.Context())
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ReindexUsersName,
+			tasks.ReindexUsersInput{},
+			catbird.RunTaskOpts{DeduplicationID: tasks.ReindexUsersName},
+		)
 		if err != nil {
 			return err
 		}
 
-		hatchetClient, err := hatchet.NewClient()
-		if err != nil {
-			return err
-		}
-
-		task := workflows.ReindexUsers(hatchetClient, repo, index)
-
-		res, err := task.Run(cmd.Context(), workflows.ReindexUsersInput{})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ReindexUsersOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 

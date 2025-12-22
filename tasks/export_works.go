@@ -1,6 +1,7 @@
-package workflows
+package tasks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,13 +10,15 @@ import (
 	"time"
 
 	"github.com/centrifugal/gocent/v3"
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app/views"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
+	"github.com/ugent-library/catbird"
 	"golang.org/x/sync/errgroup"
 )
+
+const ExportWorksName = "export_works"
 
 type ExportWorksInput struct {
 	UserID     string          `json:"user_id,omitempty"`
@@ -29,8 +32,8 @@ type ExportWorksOutput struct {
 	FileID string `json:"file_id"`
 }
 
-func ExportWorks(client *hatchet.Client, store *s3store.Store, repo *pgxrepo.Repo, index bbl.Index, centrifugeClient *gocent.Client) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("export_works", func(ctx hatchet.Context, input ExportWorksInput) (ExportWorksOutput, error) {
+func ExportWorks(store *s3store.Store, repo *pgxrepo.Repo, index bbl.Index, centrifugeClient *gocent.Client) *catbird.Task {
+	return catbird.NewTask(ExportWorksName, func(ctx context.Context, input ExportWorksInput) (ExportWorksOutput, error) {
 		out := ExportWorksOutput{}
 
 		pr, pw := io.Pipe()
@@ -137,5 +140,8 @@ func ExportWorks(client *hatchet.Client, store *s3store.Store, repo *pgxrepo.Rep
 		}
 		return out, nil
 	},
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

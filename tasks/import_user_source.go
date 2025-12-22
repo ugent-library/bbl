@@ -1,11 +1,16 @@
-package workflows
+package tasks
 
 import (
-	"github.com/hatchet-dev/hatchet/pkg/client/types"
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
+	"context"
+	"log/slog"
+	"time"
+
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/catbird"
 )
+
+const ImportUserSourceName = "import_user_source"
 
 type ImportUserSourceInput struct {
 	Source string `json:"source"`
@@ -16,8 +21,8 @@ type ImportUserSourceOutput struct {
 	Failed   int `json:"failed"`
 }
 
-func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("import_user_source", func(ctx hatchet.Context, input ImportUserSourceInput) (ImportUserSourceOutput, error) {
+func ImportUserSource(repo *pgxrepo.Repo, log *slog.Logger) *catbird.Task {
+	return catbird.NewTask(ImportUserSourceName, func(ctx context.Context, input ImportUserSourceInput) (ImportUserSourceOutput, error) {
 		us := bbl.GetUserSource(input.Source)
 
 		var err error
@@ -34,7 +39,7 @@ func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 			})
 
 			if err := repo.AddRev(ctx, rev); err != nil {
-				ctx.Log(err.Error()) // TODO
+				log.ErrorContext(ctx, err.Error())
 				out.Failed++
 			} else {
 				out.Imported++
@@ -43,9 +48,8 @@ func ImportUserSource(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stand
 
 		return out, err
 	},
-		hatchet.WithWorkflowConcurrency(types.Concurrency{
-			Expression:    "input.source",
-			LimitStrategy: &strategyCancelNewest,
-		}),
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

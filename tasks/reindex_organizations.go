@@ -1,23 +1,24 @@
-package workflows
+package tasks
 
 import (
 	"context"
 	"encoding/json"
 	"time"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/catbird"
 	"golang.org/x/sync/errgroup"
 )
 
+const ReindexOrganizationsName = "reindex_organizations"
+
 type ReindexOrganizationsInput struct{}
 
 type ReindexOrganizationsOutput struct{}
 
-func ReindexOrganizations(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("reindex_organizations", func(ctx hatchet.Context, input ReindexOrganizationsInput) (ReindexOrganizationsOutput, error) {
+func ReindexOrganizations(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
+	return catbird.NewTask(ReindexOrganizationsName, func(ctx context.Context, input ReindexOrganizationsInput) (ReindexOrganizationsOutput, error) {
 		out := ReindexOrganizationsOutput{}
 		queue := "organizations_reindexer_" + time.Now().UTC().Format(timeFormat)
 		topic := bbl.OrganizationChangedTopic
@@ -37,8 +38,9 @@ func ReindexOrganizations(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.
 			queueOpts := catbird.QueueOpts{
 				DeleteAt: time.Now().Add(30 * time.Minute),
 				Unlogged: true,
+				Topics:   []string{topic},
 			}
-			if err := repo.Catbird.CreateQueue(groupCtx, queue, []string{topic}, queueOpts); err != nil {
+			if err := repo.Catbird.CreateQueue(groupCtx, queue, queueOpts); err != nil {
 				return err
 			}
 
@@ -98,8 +100,8 @@ func ReindexOrganizations(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.
 
 		return out, group.Wait()
 	},
-	// hatchet.WithWorkflowConcurrency(types.Concurrency{
-	// 	LimitStrategy: &strategyCancelNewest,
-	// }),
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

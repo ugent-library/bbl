@@ -1,10 +1,15 @@
-package workflows
+package tasks
 
 import (
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
+	"context"
+	"time"
+
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/catbird"
 )
+
+const ImportWorkName = "import_work"
 
 type ImportWorkInput struct {
 	Source string `json:"source"`
@@ -15,8 +20,8 @@ type ImportWorkOutput struct {
 	WorkID string `json:"work_id"`
 }
 
-func ImportWork(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("import_work", func(ctx hatchet.Context, input ImportWorkInput) (ImportWorkOutput, error) {
+func ImportWork(repo *pgxrepo.Repo) *catbird.Task {
+	return catbird.NewTask(ImportWorkName, func(ctx context.Context, input ImportWorkInput) (ImportWorkOutput, error) {
 		out := ImportWorkOutput{}
 
 		rec, err := bbl.ImportWork(input.Source, input.ID)
@@ -34,5 +39,8 @@ func ImportWork(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.StandaloneT
 
 		return out, nil
 	},
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

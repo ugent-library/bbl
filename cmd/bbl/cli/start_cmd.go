@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/centrifugal/gocent/v3"
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
 	"github.com/ugent-library/bbl/oaipmh"
 	"github.com/ugent-library/bbl/oaiservice"
 	"github.com/ugent-library/bbl/sru"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 	"github.com/ugent-library/oidc"
 	"golang.org/x/sync/errgroup"
 )
@@ -33,7 +33,7 @@ var startCmd = &cobra.Command{
 	Short: "Start the server",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := newLogger(cmd.OutOrStdout())
+		log := newLogger(cmd.OutOrStdout())
 
 		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
@@ -55,26 +55,6 @@ var startCmd = &cobra.Command{
 			Addr: config.Centrifuge.API.URL,
 			Key:  config.Centrifuge.API.Key,
 		})
-
-		hatchetClient, err := hatchet.NewClient()
-		if err != nil {
-			return err
-		}
-
-		addRepresentationsTask := workflows.AddRepresentations(hatchetClient, repo, index)
-		addListItemsTask := workflows.AddListItems(hatchetClient, repo, index)
-		catbirdGCTask := workflows.CatbirdGC(hatchetClient, repo.Catbird)
-		changeWorksTask := workflows.ChangeWorks(hatchetClient, repo, index)
-		exportWorksTask := workflows.ExportWorks(hatchetClient, store, repo, index, centrifugeClient)
-		importUserSourceTask := workflows.ImportUserSource(hatchetClient, repo)
-		importWorkSourceTask := workflows.ImportWorkSource(hatchetClient, repo)
-		importWorkTask := workflows.ImportWork(hatchetClient, repo)
-		notifySubscribersTask := workflows.NotifySubscribers(hatchetClient, repo)
-		reindexUsersTask := workflows.ReindexUsers(hatchetClient, repo, index)
-		reindexOrganizationsTask := workflows.ReindexOrganizations(hatchetClient, repo, index)
-		reindexPeopleTask := workflows.ReindexPeople(hatchetClient, repo, index)
-		reindexProjectsTask := workflows.ReindexProjects(hatchetClient, repo, index)
-		reindexWorksTask := workflows.ReindexWorks(hatchetClient, repo, index)
 
 		authProvider, err := oidc.NewAuth(cmd.Context(), oidc.Config{
 			IssuerURL:        config.OIDC.IssuerURL,
@@ -99,7 +79,7 @@ var startCmd = &cobra.Command{
 			// StyleSheet:     "/oai.xsl",
 			Backend: oaiservice.New(repo),
 			ErrorHandler: func(err error) { // TODO
-				logger.Error("oai error", "error", err)
+				log.Error("oai error", "error", err)
 			},
 		})
 		if err != nil {
@@ -134,7 +114,7 @@ var startCmd = &cobra.Command{
 		handler, err := app.NewApp(
 			config.BaseURL,
 			config.Env,
-			logger,
+			log,
 			[]byte(config.HashSecret),
 			[]byte(config.Secret),
 			repo,
@@ -145,8 +125,6 @@ var startCmd = &cobra.Command{
 			sruServer,
 			config.Centrifuge.Transport.URL,
 			[]byte(config.Centrifuge.HMACSecret),
-			addListItemsTask, // TOOD how best to pass tasks to handlers?
-			exportWorksTask,  // TOOD how best to pass tasks to handlers?
 		)
 		if err != nil {
 			return err
@@ -166,7 +144,7 @@ var startCmd = &cobra.Command{
 		group, groupCtx := errgroup.WithContext(signalCtx)
 
 		group.Go(func() error {
-			logger.Info("server listening", "host", config.Host, "port", config.Port)
+			log.Info("server listening", "host", config.Host, "port", config.Port)
 
 			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 				return err
@@ -177,14 +155,14 @@ var startCmd = &cobra.Command{
 		group.Go(func() error {
 			<-groupCtx.Done()
 
-			logger.Info("gracefully stopping server")
+			log.Info("gracefully stopping server")
 
 			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 5*time.Second)
 			defer timeoutRelease()
 
 			err := server.Shutdown(timeoutCtx)
 			if err == nil {
-				logger.Info("gracefully stopped server")
+				log.Info("gracefully stopped server")
 				return nil
 			}
 			return err
@@ -272,10 +250,16 @@ var startCmd = &cobra.Command{
 							if err := index.Works().Add(groupCtx, rec); err != nil {
 								return err
 							}
-						}
-
-						if err := hatchetClient.Events().Push(groupCtx, msg.Topic, msg); err != nil {
-							return err
+							_, err = repo.Catbird.RunTask(groupCtx,
+								tasks.AddRepresentationsName,
+								tasks.AddRepresentationsInput{WorkID: payload.ID},
+								catbird.RunTaskOpts{DeduplicationID: payload.ID},
+							)
+							_, err = repo.Catbird.RunTask(groupCtx,
+								tasks.NotifySubscribersName,
+								tasks.NotifySubscribersInput{Topic: msg.Topic, Payload: msg.Payload},
+								catbird.RunTaskOpts{DeduplicationID: payload.ID},
+							)
 						}
 
 						if _, err := repo.Catbird.Delete(groupCtx, bbl.OutboxQueue, msg.ID); err != nil {
@@ -291,41 +275,45 @@ var startCmd = &cobra.Command{
 
 		})
 
-		// Run Hatchet worker
+		// Run catbird worker
 		group.Go(func() error {
-			logger.Info("starting hatchet worker")
-			worker, err := hatchetClient.NewWorker("worker", hatchet.WithWorkflows(
-				addListItemsTask,
-				addRepresentationsTask,
-				catbirdGCTask,
-				changeWorksTask,
-				exportWorksTask,
-				importUserSourceTask,
-				importWorkSourceTask,
-				importWorkTask,
-				notifySubscribersTask,
-				reindexUsersTask,
-				reindexOrganizationsTask,
-				reindexPeopleTask,
-				reindexProjectsTask,
-				reindexWorksTask,
-			))
+			log.Info("starting catbird worker")
+
+			worker, err := repo.Catbird.NewWorker(catbird.WorkerOpts{
+				Log: log,
+				Tasks: []*catbird.Task{
+					repo.Catbird.GCTask(),
+					tasks.AddListItems(repo, index),
+					tasks.AddRepresentations(repo, index),
+					tasks.ChangeWorks(repo, index, log),
+					tasks.ExportWorks(store, repo, index, centrifugeClient),
+					tasks.ImportUserSource(repo, log),
+					tasks.ImportWork(repo),
+					tasks.ImportWorkSource(repo),
+					tasks.NotifySubscribers(repo),
+					tasks.ReindexOrganizations(repo, index),
+					tasks.ReindexPeople(repo, index),
+					tasks.ReindexProjects(repo, index),
+					tasks.ReindexWorks(repo, index),
+					tasks.ReindexUsers(repo, index),
+				},
+			})
 			if err != nil {
-				return fmt.Errorf("failed to create hatchet worker: %w", err)
+				return fmt.Errorf("failed to create catbird worker: %w", err)
 			}
-			err = worker.StartBlocking(groupCtx)
+			err = worker.Start(groupCtx)
 			if err != nil {
-				return fmt.Errorf("failed to start hatchet worker: %w", err)
+				return fmt.Errorf("failed to start catbird worker: %w", err)
 			}
 			return nil
 		})
 
 		if err := group.Wait(); err != nil {
-			logger.Error("stopped with error", "error", err)
+			log.Error("stopped with error", "error", err)
 			return err
 		}
 
-		logger.Info("stopped")
+		log.Info("stopped")
 
 		return nil
 	},

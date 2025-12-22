@@ -40,5 +40,4 @@
 * Opensearch
 * S3 compatible store
 * OIDC provider
-* Hatchett
 * Centrifugal

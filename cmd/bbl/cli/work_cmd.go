@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 	"github.com/ugent-library/vo"
 )
 
@@ -134,24 +134,16 @@ var importWorkCmd = &cobra.Command{
 		}
 		defer close()
 
-		hatchetClient, err := hatchet.NewClient()
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ImportWorkName,
+			tasks.ImportWorkInput{Source: source, ID: id},
+			catbird.RunTaskOpts{},
+		)
 		if err != nil {
 			return err
 		}
 
-		task := workflows.ImportWork(hatchetClient, repo)
-
-		res, err := task.Run(cmd.Context(), workflows.ImportWorkInput{Source: source, ID: id})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ImportWorkOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 
@@ -172,24 +164,16 @@ var importWorkSourceCmd = &cobra.Command{
 		}
 		defer close()
 
-		hatchetClient, err := hatchet.NewClient()
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ImportWorkSourceName,
+			tasks.ImportWorkSourceInput{Source: source},
+			catbird.RunTaskOpts{},
+		)
 		if err != nil {
 			return err
 		}
 
-		task := workflows.ImportWorkSource(hatchetClient, repo)
-
-		res, err := task.Run(cmd.Context(), workflows.ImportWorkSourceInput{Source: source})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ImportWorkSourceOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 
@@ -204,29 +188,16 @@ var reindexWorksCmd = &cobra.Command{
 		}
 		defer close()
 
-		index, err := newIndex(cmd.Context())
+		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+			tasks.ReindexWorksName,
+			tasks.ReindexWorksInput{},
+			catbird.RunTaskOpts{DeduplicationID: tasks.ReindexWorksName},
+		)
 		if err != nil {
 			return err
 		}
 
-		hatchetClient, err := hatchet.NewClient()
-		if err != nil {
-			return err
-		}
-
-		task := workflows.ReindexWorks(hatchetClient, repo, index)
-
-		res, err := task.Run(cmd.Context(), workflows.ReindexWorksInput{})
-		if err != nil {
-			return err
-		}
-
-		out := workflows.ReindexWorksOutput{}
-		if err := res.Into(&out); err != nil {
-			return err
-		}
-
-		return writeData(cmd, out)
+		return writeData(cmd, info)
 	},
 }
 

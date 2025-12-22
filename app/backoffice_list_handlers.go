@@ -8,7 +8,8 @@ import (
 	"github.com/ugent-library/bbl/app/views"
 	listviews "github.com/ugent-library/bbl/app/views/backoffice/lists"
 	"github.com/ugent-library/bbl/can"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 	"github.com/ugent-library/htmx"
 )
 
@@ -69,11 +70,11 @@ func (app *App) backofficeExportList(w http.ResponseWriter, r *http.Request, c *
 	format := r.PathValue("format")
 
 	// TODO do something with ref
-	_, err := app.exportWorksTask.RunNoWait(r.Context(), workflows.ExportWorksInput{
+	_, err := app.repo.Catbird.RunTask(r.Context(), "export_works", tasks.ExportWorksInput{
 		UserID: c.User.ID,
 		ListID: id,
 		Format: format,
-	})
+	}, catbird.RunTaskOpts{})
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func (app *App) backofficeCreateListItems(w http.ResponseWriter, r *http.Request
 	r.ParseForm()
 	targetListID := r.PathValue("id")
 
-	input := workflows.AddListItemsInput{
+	input := tasks.AddListItemsInput{
 		UserID:       c.User.ID,
 		TargetListID: targetListID,
 	}
@@ -138,7 +139,7 @@ func (app *App) backofficeCreateListItems(w http.ResponseWriter, r *http.Request
 	}
 
 	// TODO do something with ref
-	_, err := app.addListItemsTask.RunNoWait(r.Context(), input)
+	_, err := app.repo.Catbird.RunTask(r.Context(), tasks.AddListItemsName, input, catbird.RunTaskOpts{})
 	if err != nil {
 		return err
 	}

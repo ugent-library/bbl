@@ -1,15 +1,17 @@
-package workflows
+package tasks
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
-	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/catbird"
 )
+
+const NotifySubscribersName = "notify_subscribers"
 
 type NotifySubscribersInput struct {
 	Topic   string          `json:"topic"`
@@ -22,12 +24,12 @@ type NotifySubscribersOutput struct{}
 // TODO allow custom headers for auth etc
 // TODO add signature header (  const hmac = crypto.createHmac('sha256', process.env.ZOOM_WEBHOOK_SECRET).update(ctx.rawBody).digest('hex'); )
 // TODO send each notification only once with subtasks + dedup
-func NotifySubscribers(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.StandaloneTask {
+func NotifySubscribers(repo *pgxrepo.Repo) *catbird.Task {
 	httpClient := &http.Client{
 		Timeout: 3 * time.Second,
 	}
 
-	return client.NewStandaloneTask("notify_subscribers", func(ctx hatchet.Context, input NotifySubscribersInput) (NotifySubscribersOutput, error) {
+	return catbird.NewTask(NotifySubscribersName, func(ctx context.Context, input NotifySubscribersInput) (NotifySubscribersOutput, error) {
 		out := NotifySubscribersOutput{}
 
 		var err error
@@ -51,6 +53,8 @@ func NotifySubscribers(client *hatchet.Client, repo *pgxrepo.Repo) *hatchet.Stan
 
 		return out, err
 	},
-		hatchet.WithWorkflowEvents(bbl.WorkChangedTopic),
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

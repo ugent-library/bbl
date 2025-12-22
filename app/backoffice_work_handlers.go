@@ -16,7 +16,8 @@ import (
 	"github.com/ugent-library/bbl/bind"
 	"github.com/ugent-library/bbl/can"
 	"github.com/ugent-library/bbl/httperr"
-	"github.com/ugent-library/bbl/workflows"
+	"github.com/ugent-library/bbl/tasks"
+	"github.com/ugent-library/catbird"
 )
 
 func (app *App) bindSearchWorksOpts(r *http.Request, c *appCtx, scope string) (*bbl.SearchOpts, error) {
@@ -101,11 +102,13 @@ func (app *App) backofficeExportWorks(w http.ResponseWriter, r *http.Request, c 
 	opts.Facets = nil
 
 	// TODO do something with ref
-	_, err = app.exportWorksTask.RunNoWait(r.Context(), workflows.ExportWorksInput{
+
+	// TODO do something with ref
+	_, err = app.repo.Catbird.RunTask(r.Context(), "export_works", tasks.ExportWorksInput{
 		UserID:     c.User.ID,
 		SearchOpts: opts,
 		Format:     format,
-	})
+	}, catbird.RunTaskOpts{})
 	if err != nil {
 		return err
 	}

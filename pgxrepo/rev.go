@@ -98,7 +98,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			}
 
-			if err := catbird.EnqueueSend(batch, bbl.UserChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
+			if err := catbird.EnqueueDispatch(batch, bbl.UserChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.SaveOrganization:
@@ -207,7 +207,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 			}
 
-			if err := catbird.EnqueueSend(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
+			if err := catbird.EnqueueDispatch(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.SavePerson:
@@ -275,7 +275,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				enqueueInsertChange(batch, "person", revID, rec.ID, diff)
 			}
 
-			if err := catbird.EnqueueSend(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
+			if err := catbird.EnqueueDispatch(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.SaveProject:
@@ -343,7 +343,7 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				enqueueInsertChange(batch, "project", revID, rec.ID, diff)
 			}
 
-			if err := catbird.EnqueueSend(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
+			if err := catbird.EnqueueDispatch(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
 		case *bbl.SaveWork:
@@ -611,7 +611,7 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		}
 	}
 
-	if err := catbird.EnqueueSend(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.SendOpts{}); err != nil {
+	if err := catbird.EnqueueDispatch(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
 

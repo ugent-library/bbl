@@ -1,28 +1,29 @@
-package workflows
+package tasks
 
 import (
 	"context"
 	"encoding/json"
 	"time"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/catbird"
 	"golang.org/x/sync/errgroup"
 )
 
-type ReindexPeopleInput struct{}
+const ReindexProjectsName = "reindex_projects"
 
-type ReindexPeopleOutput struct{}
+type ReindexProjectsInput struct{}
 
-func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("reindex_people", func(ctx hatchet.Context, input ReindexPeopleInput) (ReindexPeopleOutput, error) {
-		out := ReindexPeopleOutput{}
-		queue := "people_reindexer_" + time.Now().UTC().Format(timeFormat)
-		topic := bbl.PersonChangedTopic
+type ReindexProjectsOutput struct{}
 
-		switcher, err := index.People().NewSwitcher(ctx)
+func ReindexProjects(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
+	return catbird.NewTask(ReindexProjectsName, func(ctx context.Context, input ReindexProjectsInput) (ReindexProjectsOutput, error) {
+		out := ReindexProjectsOutput{}
+		queue := "projects_reindexer_" + time.Now().UTC().Format(timeFormat)
+		topic := bbl.ProjectChangedTopic
+
+		switcher, err := index.Projects().NewSwitcher(ctx)
 		if err != nil {
 			return out, err
 		}
@@ -37,8 +38,9 @@ func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) 
 			queueOpts := catbird.QueueOpts{
 				DeleteAt: time.Now().Add(30 * time.Minute),
 				Unlogged: true,
+				Topics:   []string{topic},
 			}
-			if err := repo.Catbird.CreateQueue(groupCtx, queue, []string{topic}, queueOpts); err != nil {
+			if err := repo.Catbird.CreateQueue(groupCtx, queue, queueOpts); err != nil {
 				return err
 			}
 
@@ -58,11 +60,11 @@ func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) 
 							return err
 						}
 
-						rec, err := repo.GetPerson(groupCtx, payload.ID)
+						rec, err := repo.GetProject(groupCtx, payload.ID)
 						if err != nil {
 							return err
 						}
-						if err = index.People().Add(groupCtx, rec); err != nil {
+						if err = index.Projects().Add(groupCtx, rec); err != nil {
 							return err
 						}
 
@@ -82,11 +84,13 @@ func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) 
 			defer cancel()
 
 			var err error
-			for rec := range repo.PeopleIter(groupCtx, &err) {
+
+			for rec := range repo.ProjectsIter(groupCtx, &err) {
 				if err = switcher.Add(groupCtx, rec); err != nil {
 					return err
 				}
 			}
+
 			if err != nil {
 				return err
 			}
@@ -96,8 +100,8 @@ func ReindexPeople(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) 
 
 		return out, group.Wait()
 	},
-	// hatchet.WithWorkflowConcurrency(types.Concurrency{
-	// 	LimitStrategy: &strategyCancelNewest,
-	// }),
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

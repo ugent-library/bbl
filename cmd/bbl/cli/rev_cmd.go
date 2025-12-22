@@ -23,7 +23,7 @@ var addRevCmd = &cobra.Command{
 	Short: "Add revision",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := newLogger(cmd.OutOrStdout())
+		log := newLogger(cmd.OutOrStdout())
 
 		repo, close, err := newRepo(cmd.Context())
 		if err != nil {
@@ -39,10 +39,10 @@ var addRevCmd = &cobra.Command{
 			if err := dec.Decode(rev); err == io.EOF {
 				break
 			} else if err != nil {
-				logger.Error("error decoding rev", "pos", pos, "error", err)
+				log.Error("error decoding rev", "pos", pos, "error", err)
 			}
 			if err := repo.AddRev(cmd.Context(), rev); err != nil {
-				logger.Error("error adding rev", "pos", pos, "error", err)
+				log.Error("error adding rev", "pos", pos, "error", err)
 			}
 		}
 

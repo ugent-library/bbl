@@ -1,13 +1,17 @@
-package workflows
+package tasks
 
 import (
+	"context"
 	"iter"
 	"slices"
+	"time"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/catbird"
 )
+
+const AddListItemsName = "add_list_items"
 
 type AddListItemsInput struct {
 	UserID       string               `json:"user_id,omitempty"`
@@ -20,8 +24,8 @@ type AddListItemsInput struct {
 
 type AddListItemsOutput struct{}
 
-func AddListItems(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("add_list_items", func(ctx hatchet.Context, input AddListItemsInput) (AddListItemsOutput, error) {
+func AddListItems(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
+	return catbird.NewTask(AddListItemsName, func(ctx context.Context, input AddListItemsInput) (AddListItemsOutput, error) {
 		out := AddListItemsOutput{}
 
 		var err error
@@ -68,5 +72,8 @@ func AddListItems(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *
 
 		return out, err
 	},
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

@@ -1,13 +1,18 @@
-package workflows
+package tasks
 
 import (
+	"context"
 	"iter"
+	"log/slog"
 	"slices"
+	"time"
 
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/catbird"
 )
+
+const ChangeWorksName = "change_works"
 
 type ChangeWorksInput struct {
 	UserID     string               `json:"user_id,omitempty"`
@@ -22,8 +27,8 @@ type ChangeWorksOutput struct {
 	Failed  int `json:"failed"`
 }
 
-func ChangeWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *hatchet.StandaloneTask {
-	return client.NewStandaloneTask("change_works", func(ctx hatchet.Context, input ChangeWorksInput) (ChangeWorksOutput, error) {
+func ChangeWorks(repo *pgxrepo.Repo, index bbl.Index, log *slog.Logger) *catbird.Task {
+	return catbird.NewTask(ChangeWorksName, func(ctx context.Context, input ChangeWorksInput) (ChangeWorksOutput, error) {
 		out := ChangeWorksOutput{}
 
 		changers, err := bbl.LoadWorkChangers(input.Changers)
@@ -57,7 +62,7 @@ func ChangeWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *h
 			rev := &bbl.Rev{UserID: input.UserID}
 			rev.Add(&bbl.ChangeWork{WorkID: workID, Changes: changers})
 			if err := repo.AddRev(ctx, rev); err != nil {
-				ctx.Log(err.Error()) // TODO
+				log.ErrorContext(ctx, err.Error())
 				out.Failed++
 			} else {
 				out.Changed++
@@ -66,5 +71,8 @@ func ChangeWorks(client *hatchet.Client, repo *pgxrepo.Repo, index bbl.Index) *h
 
 		return out, err
 	},
+		catbird.TaskOpts{
+			HideFor: 1 * time.Minute,
+		},
 	)
 }

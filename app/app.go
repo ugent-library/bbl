@@ -14,7 +14,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/securecookie"
-	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
 	"github.com/leonelquinteros/gotext"
 	sloghttp "github.com/samber/slog-http"
 	"github.com/ugent-library/bbl"
@@ -23,6 +22,7 @@ import (
 	"github.com/ugent-library/bbl/i18n"
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/bbl/s3store"
+	"github.com/ugent-library/catbird/dashboard"
 	"github.com/ugent-library/crypt"
 )
 
@@ -233,7 +233,7 @@ func (c *appCtx) ClearCookie(w http.ResponseWriter, name string) {
 
 type App struct {
 	env                     string
-	logger                  *slog.Logger
+	log                     *slog.Logger
 	repo                    *pgxrepo.Repo
 	store                   *s3store.Store
 	index                   bbl.Index
@@ -245,14 +245,12 @@ type App struct {
 	authProvider            AuthProvider
 	centrifugeURL           string
 	generateCentrifugeToken func(string, []string, int64) (string, error)
-	addListItemsTask        *hatchet.StandaloneTask
-	exportWorksTask         *hatchet.StandaloneTask
 }
 
 func NewApp(
 	baseURL string,
 	env string,
-	logger *slog.Logger,
+	log *slog.Logger,
 	hashSecret, secret []byte,
 	repo *pgxrepo.Repo,
 	store *s3store.Store,
@@ -262,8 +260,6 @@ func NewApp(
 	sruServer http.Handler,
 	centrifugeURL string,
 	centrifugeHMACSecret []byte,
-	addListItemsTask *hatchet.StandaloneTask,
-	exportWorksTask *hatchet.StandaloneTask,
 ) (*App, error) {
 	assets, err := parseManifest()
 	if err != nil {
@@ -275,7 +271,7 @@ func NewApp(
 
 	app := &App{
 		env:           env,
-		logger:        logger,
+		log:           log,
 		repo:          repo,
 		store:         store,
 		index:         index,
@@ -294,7 +290,6 @@ func NewApp(
 			if exp > 0 {
 				claims["exp"] = exp
 			}
-			log.Printf("generating centrifuge token for user %s, channels: %v, exp: %d, secret: %s", userID, channels, exp, centrifugeHMACSecret)
 
 			token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(centrifugeHMACSecret)
 			if err != nil {
@@ -302,8 +297,6 @@ func NewApp(
 			}
 			return token, nil
 		},
-		addListItemsTask: addListItemsTask,
-		exportWorksTask:  exportWorksTask,
 	}
 
 	return app, nil
@@ -312,7 +305,7 @@ func NewApp(
 func (app *App) Handler() http.Handler {
 	baseChain := chain{
 		sloghttp.Recovery,
-		sloghttp.NewWithConfig(app.logger.WithGroup("http"), sloghttp.Config{
+		sloghttp.NewWithConfig(app.log.WithGroup("http"), sloghttp.Config{
 			WithRequestID: true,
 		}),
 		http.NewCrossOriginProtection().Handler,
@@ -324,13 +317,20 @@ func (app *App) Handler() http.Handler {
 
 	mux := http.NewServeMux()
 
+	// TODO secure this
+	mux.Handle("/catbird/", http.StripPrefix("/catbird", dashboard.New(dashboard.Config{
+		Client:     app.repo.Catbird,
+		Log:        app.log.WithGroup("catbird-dashboard"),
+		PathPrefix: "/catbird",
+	}).Handler()))
+
 	mux.Handle("GET /oai", app.oaiProvider)
 
 	mux.Handle("GET /sru", app.sruServer)
 
 	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
 
-	mux.Handle("GET /", appChain.then(wrap(getAppCtx, app.home)))
+	mux.Handle("/", appChain.then(wrap(getAppCtx, app.home)))
 
 	mux.Handle("GET /work/{id}", appChain.then(wrap(getAppCtx, app.work)))
 	mux.Handle("GET /works", appChain.then(wrap(getAppCtx, app.works)))

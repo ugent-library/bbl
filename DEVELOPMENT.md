@@ -52,16 +52,6 @@
 
     2. Add secrets to the `.env` file.
 
-6. Add Hatchett client token to `.env`
-
-    1. Point your browser to the [Hatchett admin UI](http://localhost:8888/auth/login) and sign in with `admin@example.com` / `Admin123!!`.
-    2. In Settings / API Tokens, choose Create API Token.
-    3. Add the token to your `.env` file.
-    4. Run
-        ```sh
-        direnv allow
-        ```
-
 7. Create database structure
 
     ```sh

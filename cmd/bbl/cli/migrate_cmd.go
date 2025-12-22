@@ -5,8 +5,11 @@ import (
 	"github.com/ugent-library/bbl/pgxrepo"
 )
 
+var migrationVersion int
+
 func init() {
 	rootCmd.AddCommand(migrateCmd)
+	migrateCmd.Flags().IntVar(&migrationVersion, "version", 0, "")
 }
 
 var migrateCmd = &cobra.Command{
@@ -16,8 +19,14 @@ var migrateCmd = &cobra.Command{
 	ValidArgs: []string{"up", "down"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if args[0] == "up" {
+			if migrationVersion > 0 {
+				return pgxrepo.MigrateUpTo(cmd.Context(), config.PgConn, migrationVersion)
+			}
 			return pgxrepo.MigrateUp(cmd.Context(), config.PgConn)
 		} else {
+			if migrationVersion > 0 {
+				return pgxrepo.MigrateDownTo(cmd.Context(), config.PgConn, migrationVersion)
+			}
 			return pgxrepo.MigrateDown(cmd.Context(), config.PgConn)
 		}
 	},
