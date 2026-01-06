@@ -290,6 +290,7 @@ var startCmd = &cobra.Command{
 					tasks.ImportUserSource(repo, log),
 					tasks.ImportWork(repo),
 					tasks.ImportWorkSource(repo),
+					tasks.NotifySubscriber(repo),
 					tasks.NotifySubscribers(repo),
 					tasks.ReindexOrganizations(repo, index),
 					tasks.ReindexPeople(repo, index),
