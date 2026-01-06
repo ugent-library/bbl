@@ -21,13 +21,13 @@ require (
 	github.com/opensearch-project/opensearch-go/v4 v4.5.0
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/samber/slog-http v1.9.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/pretty v1.2.1
 	github.com/tidwall/sjson v1.2.5
-	github.com/ugent-library/catbird v0.0.0-20251222095806-3137baac79a4
+	github.com/ugent-library/catbird v0.0.0-20260106092244-2911001ad4c6
 	github.com/ugent-library/crypt v0.0.0-20240701114746-756866c44cb9
 	github.com/ugent-library/htmx v0.0.0-20240118150818-64e3e65fb690
 	github.com/ugent-library/oidc v0.1.0
