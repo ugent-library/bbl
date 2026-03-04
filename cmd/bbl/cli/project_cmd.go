@@ -72,16 +72,20 @@ var reindexProjectsCmd = &cobra.Command{
 		}
 		defer close()
 
-		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+		h, err := repo.Catbird.RunTask(cmd.Context(),
 			tasks.ReindexProjectsName,
 			tasks.ReindexProjectsInput{},
-			catbird.RunTaskOpts{DeduplicationID: tasks.ReindexProjectsName},
+			catbird.RunTaskOpts{ConcurrencyKey: tasks.ReindexProjectsName},
 		)
 		if err != nil {
 			return err
 		}
+		var out tasks.ReindexProjectsOutput
+		if err := h.WaitForOutput(cmd.Context(), &out); err != nil {
+			return err
+		}
 
-		return writeData(cmd, info)
+		return writeData(cmd, out)
 	},
 }
 

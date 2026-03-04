@@ -4,7 +4,6 @@ import (
 	"context"
 	"iter"
 	"slices"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -25,7 +24,7 @@ type AddListItemsInput struct {
 type AddListItemsOutput struct{}
 
 func AddListItems(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
-	return catbird.NewTask(AddListItemsName, func(ctx context.Context, input AddListItemsInput) (AddListItemsOutput, error) {
+	return catbird.NewTask(AddListItemsName).Do(func(ctx context.Context, input AddListItemsInput) (AddListItemsOutput, error) {
 		out := AddListItemsOutput{}
 
 		var err error
@@ -71,9 +70,5 @@ func AddListItems(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 		}
 
 		return out, err
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

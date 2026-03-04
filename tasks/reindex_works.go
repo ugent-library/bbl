@@ -18,7 +18,7 @@ type ReindexWorksInput struct{}
 type ReindexWorksOutput struct{}
 
 func ReindexWorks(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
-	return catbird.NewTask(ReindexWorksName, func(ctx context.Context, input ReindexWorksInput) (ReindexWorksOutput, error) {
+	return catbird.NewTask(ReindexWorksName).Do(func(ctx context.Context, input ReindexWorksInput) (ReindexWorksOutput, error) {
 		out := ReindexWorksOutput{}
 		queue := "works_reindexer_" + time.Now().UTC().Format(timeFormat)
 		topic := bbl.WorkChangedTopic
@@ -36,11 +36,12 @@ func ReindexWorks(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 			hideFor := 10 * time.Second
 
 			queueOpts := catbird.QueueOpts{
-				DeleteAt: time.Now().Add(30 * time.Minute),
-				Unlogged: true,
-				Topics:   []string{topic},
+				ExpiresAt: time.Now().Add(30 * time.Minute),
 			}
 			if err := repo.Catbird.CreateQueue(groupCtx, queue, queueOpts); err != nil {
+				return err
+			}
+			if err := repo.Catbird.Bind(groupCtx, queue, topic); err != nil {
 				return err
 			}
 
@@ -99,9 +100,5 @@ func ReindexWorks(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 		})
 
 		return out, group.Wait()
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

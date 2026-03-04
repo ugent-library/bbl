@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -20,7 +19,7 @@ type ImportWorkSourceOutput struct {
 }
 
 func ImportWorkSource(repo *pgxrepo.Repo) *catbird.Task {
-	return catbird.NewTask(ImportWorkSourceName, func(ctx context.Context, input ImportWorkSourceInput) (ImportWorkSourceOutput, error) {
+	return catbird.NewTask(ImportWorkSourceName).Do(func(ctx context.Context, input ImportWorkSourceInput) (ImportWorkSourceOutput, error) {
 		ws := bbl.GetWorkSource(input.Source)
 
 		seq, finish := ws.Iter(ctx)
@@ -54,9 +53,5 @@ func ImportWorkSource(repo *pgxrepo.Repo) *catbird.Task {
 		}
 
 		return out, finish()
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

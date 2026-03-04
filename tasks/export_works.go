@@ -33,7 +33,7 @@ type ExportWorksOutput struct {
 }
 
 func ExportWorks(store *s3store.Store, repo *pgxrepo.Repo, index bbl.Index, centrifugeClient *gocent.Client) *catbird.Task {
-	return catbird.NewTask(ExportWorksName, func(ctx context.Context, input ExportWorksInput) (ExportWorksOutput, error) {
+	return catbird.NewTask(ExportWorksName).Do(func(ctx context.Context, input ExportWorksInput) (ExportWorksOutput, error) {
 		out := ExportWorksOutput{}
 
 		pr, pw := io.Pipe()
@@ -139,9 +139,5 @@ func ExportWorks(store *s3store.Store, repo *pgxrepo.Repo, index bbl.Index, cent
 			}
 		}
 		return out, nil
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

@@ -13,7 +13,7 @@ func init() {
 }
 
 func addCatbirdUp(ctx context.Context, db *sql.DB) error {
-	return catbird.MigrateUpTo(ctx, db, 2)
+	return catbird.MigrateUpTo(ctx, db, 3)
 }
 
 func addCatbirdDown(ctx context.Context, db *sql.DB) error {

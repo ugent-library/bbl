@@ -18,7 +18,7 @@ type ReindexPeopleInput struct{}
 type ReindexPeopleOutput struct{}
 
 func ReindexPeople(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
-	return catbird.NewTask(string(ReindexPeopleName), func(ctx context.Context, input ReindexPeopleInput) (ReindexPeopleOutput, error) {
+	return catbird.NewTask(ReindexPeopleName).Do(func(ctx context.Context, input ReindexPeopleInput) (ReindexPeopleOutput, error) {
 		out := ReindexPeopleOutput{}
 		queue := "people_reindexer_" + time.Now().UTC().Format(timeFormat)
 		topic := bbl.PersonChangedTopic
@@ -36,11 +36,12 @@ func ReindexPeople(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 			hideFor := 10 * time.Second
 
 			queueOpts := catbird.QueueOpts{
-				DeleteAt: time.Now().Add(30 * time.Minute),
-				Unlogged: true,
-				Topics:   []string{topic},
+				ExpiresAt: time.Now().Add(30 * time.Minute),
 			}
 			if err := repo.Catbird.CreateQueue(groupCtx, queue, queueOpts); err != nil {
+				return err
+			}
+			if err := repo.Catbird.Bind(groupCtx, queue, topic); err != nil {
 				return err
 			}
 
@@ -97,9 +98,5 @@ func ReindexPeople(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 		})
 
 		return out, group.Wait()
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

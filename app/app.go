@@ -320,7 +320,7 @@ func (app *App) Handler() http.Handler {
 	// TODO secure this
 	mux.Handle("/catbird/", http.StripPrefix("/catbird", dashboard.New(dashboard.Config{
 		Client:     app.repo.Catbird,
-		Log:        app.log.WithGroup("catbird-dashboard"),
+		Logger:     app.log.WithGroup("catbird-dashboard"),
 		PathPrefix: "/catbird",
 	}).Handler()))
 

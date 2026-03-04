@@ -28,7 +28,7 @@ func NotifySubscriber(repo *pgxrepo.Repo) *catbird.Task {
 		Timeout: 3 * time.Second,
 	}
 
-	return catbird.NewTask(NotifySubscriberName, func(ctx context.Context, input NotifySubscriberInput) (NotifySubscriberOutput, error) {
+	return catbird.NewTask(NotifySubscriberName).Do(func(ctx context.Context, input NotifySubscriberInput) (NotifySubscriberOutput, error) {
 		out := NotifySubscriberOutput{}
 
 		var err error
@@ -55,10 +55,5 @@ func NotifySubscriber(repo *pgxrepo.Repo) *catbird.Task {
 		}
 
 		return out, err
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-			Retries: 2,
-		},
-	)
+	})
 }

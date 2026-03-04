@@ -3,7 +3,6 @@ package tasks
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	"github.com/ugent-library/bbl/pgxrepo"
 	"github.com/ugent-library/catbird"
@@ -19,8 +18,9 @@ type NotifySubscribersInput struct {
 type NotifySubscribersOutput struct{}
 
 // TODO work:changed only if public
+// TODO batch run task
 func NotifySubscribers(repo *pgxrepo.Repo) *catbird.Task {
-	return catbird.NewTask(NotifySubscribersName, func(ctx context.Context, input NotifySubscribersInput) (NotifySubscribersOutput, error) {
+	return catbird.NewTask(NotifySubscribersName).Do(func(ctx context.Context, input NotifySubscribersInput) (NotifySubscribersOutput, error) {
 		out := NotifySubscribersOutput{}
 
 		var err error
@@ -35,9 +35,5 @@ func NotifySubscribers(repo *pgxrepo.Repo) *catbird.Task {
 		}
 
 		return out, err
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

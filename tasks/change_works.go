@@ -5,7 +5,6 @@ import (
 	"iter"
 	"log/slog"
 	"slices"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -28,7 +27,7 @@ type ChangeWorksOutput struct {
 }
 
 func ChangeWorks(repo *pgxrepo.Repo, index bbl.Index, log *slog.Logger) *catbird.Task {
-	return catbird.NewTask(ChangeWorksName, func(ctx context.Context, input ChangeWorksInput) (ChangeWorksOutput, error) {
+	return catbird.NewTask(ChangeWorksName).Do(func(ctx context.Context, input ChangeWorksInput) (ChangeWorksOutput, error) {
 		out := ChangeWorksOutput{}
 
 		changers, err := bbl.LoadWorkChangers(input.Changers)
@@ -70,9 +69,5 @@ func ChangeWorks(repo *pgxrepo.Repo, index bbl.Index, log *slog.Logger) *catbird
 		}
 
 		return out, err
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

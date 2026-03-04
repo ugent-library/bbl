@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -20,7 +19,7 @@ type AddRepresentationsOutput struct {
 
 // TODO only if public, set deleted otherwise
 func AddRepresentations(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
-	return catbird.NewTask(string(AddRepresentationsName), func(ctx context.Context, input AddRepresentationsInput) (AddRepresentationsOutput, error) {
+	return catbird.NewTask(AddRepresentationsName).Do(func(ctx context.Context, input AddRepresentationsInput) (AddRepresentationsOutput, error) {
 		out := AddRepresentationsOutput{}
 
 		rec, err := repo.GetWork(ctx, input.WorkID)
@@ -40,9 +39,5 @@ func AddRepresentations(repo *pgxrepo.Repo, index bbl.Index) *catbird.Task {
 		}
 
 		return out, nil
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

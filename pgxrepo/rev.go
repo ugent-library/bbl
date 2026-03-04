@@ -98,9 +98,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 
 			}
 
-			if err := catbird.EnqueueDispatch(batch, bbl.UserChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
+			q, args, err := catbird.PublishQuery(bbl.UserChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.PublishOpts{IdempotencyKey: rec.ID})
+			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+			batch.Queue(q, args...)
 		case *bbl.SaveOrganization:
 			rec := a.Organization
 
@@ -207,9 +209,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				}
 			}
 
-			if err := catbird.EnqueueDispatch(batch, bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
+			q, args, err := catbird.PublishQuery(bbl.OrganizationChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.PublishOpts{IdempotencyKey: rec.ID})
+			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+			batch.Queue(q, args...)
 		case *bbl.SavePerson:
 			rec := a.Person
 
@@ -275,9 +279,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				enqueueInsertChange(batch, "person", revID, rec.ID, diff)
 			}
 
-			if err := catbird.EnqueueDispatch(batch, bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
+			q, args, err := catbird.PublishQuery(bbl.PersonChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.PublishOpts{IdempotencyKey: rec.ID})
+			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+			batch.Queue(q, args...)
 		case *bbl.SaveProject:
 			rec := a.Project
 
@@ -343,9 +349,11 @@ func (r *Repo) AddRev(ctx context.Context, rev *bbl.Rev) error {
 				enqueueInsertChange(batch, "project", revID, rec.ID, diff)
 			}
 
-			if err := catbird.EnqueueDispatch(batch, bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
+			q, args, err := catbird.PublishQuery(bbl.ProjectChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.PublishOpts{IdempotencyKey: rec.ID})
+			if err != nil {
 				return fmt.Errorf("AddRev: %w", err)
 			}
+			batch.Queue(q, args...)
 		case *bbl.SaveWork:
 			rec := a.Work
 
@@ -611,9 +619,11 @@ func saveWork(ctx context.Context, conn Conn, batch *pgx.Batch, revID, userID st
 		}
 	}
 
-	if err := catbird.EnqueueDispatch(batch, bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.DispatchOpts{DeduplicationID: rec.ID}); err != nil {
+	q, args, err := catbird.PublishQuery(bbl.WorkChangedTopic, bbl.RecordChangedPayload{ID: rec.ID, Rev: revID}, catbird.PublishOpts{IdempotencyKey: rec.ID})
+	if err != nil {
 		return fmt.Errorf("AddRev: %w", err)
 	}
+	batch.Queue(q, args...)
 
 	return nil
 }

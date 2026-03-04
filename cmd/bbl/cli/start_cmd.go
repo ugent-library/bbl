@@ -56,6 +56,32 @@ var startCmd = &cobra.Command{
 			Key:  config.Centrifuge.API.Key,
 		})
 
+		worker := repo.Catbird.NewWorker().WithLogger(log)
+
+		workerTasks := []*catbird.Task{
+			tasks.AddListItems(repo, index),
+			tasks.AddRepresentations(repo, index),
+			tasks.ChangeWorks(repo, index, log),
+			tasks.ExportWorks(store, repo, index, centrifugeClient),
+			tasks.ImportUserSource(repo, log),
+			tasks.ImportWork(repo),
+			tasks.ImportWorkSource(repo),
+			tasks.NotifySubscriber(repo),
+			tasks.NotifySubscribers(repo),
+			tasks.ReindexOrganizations(repo, index),
+			tasks.ReindexPeople(repo, index),
+			tasks.ReindexProjects(repo, index),
+			tasks.ReindexWorks(repo, index),
+			tasks.ReindexUsers(repo, index),
+		}
+
+		for _, task := range workerTasks {
+			if err := repo.Catbird.CreateTask(cmd.Context(), task); err != nil {
+				return err
+			}
+			worker.AddTask(task)
+		}
+
 		authProvider, err := oidc.NewAuth(cmd.Context(), oidc.Config{
 			IssuerURL:        config.OIDC.IssuerURL,
 			ClientID:         config.OIDC.ClientID,
@@ -253,12 +279,12 @@ var startCmd = &cobra.Command{
 							_, err = repo.Catbird.RunTask(groupCtx,
 								tasks.AddRepresentationsName,
 								tasks.AddRepresentationsInput{WorkID: payload.ID},
-								catbird.RunTaskOpts{DeduplicationID: payload.ID},
+								catbird.RunTaskOpts{ConcurrencyKey: payload.ID},
 							)
 							_, err = repo.Catbird.RunTask(groupCtx,
 								tasks.NotifySubscribersName,
 								tasks.NotifySubscribersInput{Topic: msg.Topic, Payload: msg.Payload},
-								catbird.RunTaskOpts{DeduplicationID: payload.ID},
+								catbird.RunTaskOpts{ConcurrencyKey: payload.ID},
 							)
 						}
 
@@ -279,31 +305,7 @@ var startCmd = &cobra.Command{
 		group.Go(func() error {
 			log.Info("starting catbird worker")
 
-			worker, err := repo.Catbird.NewWorker(catbird.WorkerOpts{
-				Log: log,
-				Tasks: []*catbird.Task{
-					repo.Catbird.GCTask(),
-					tasks.AddListItems(repo, index),
-					tasks.AddRepresentations(repo, index),
-					tasks.ChangeWorks(repo, index, log),
-					tasks.ExportWorks(store, repo, index, centrifugeClient),
-					tasks.ImportUserSource(repo, log),
-					tasks.ImportWork(repo),
-					tasks.ImportWorkSource(repo),
-					tasks.NotifySubscriber(repo),
-					tasks.NotifySubscribers(repo),
-					tasks.ReindexOrganizations(repo, index),
-					tasks.ReindexPeople(repo, index),
-					tasks.ReindexProjects(repo, index),
-					tasks.ReindexWorks(repo, index),
-					tasks.ReindexUsers(repo, index),
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create catbird worker: %w", err)
-			}
-			err = worker.Start(groupCtx)
-			if err != nil {
+			if err = worker.Start(groupCtx); err != nil {
 				return fmt.Errorf("failed to start catbird worker: %w", err)
 			}
 			return nil

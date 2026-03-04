@@ -26,15 +26,20 @@ type Repo struct {
 func New(ctx context.Context, conn Conn) (*Repo, error) {
 	catbirdClient := catbird.New(conn)
 
-	err := catbirdClient.CreateQueue(ctx, bbl.OutboxQueue, catbird.QueueOpts{
-		Topics: []string{
-			bbl.OrganizationChangedTopic,
-			bbl.PersonChangedTopic,
-			bbl.ProjectChangedTopic,
-			bbl.WorkChangedTopic,
-		},
-	})
+	err := catbirdClient.CreateQueue(ctx, bbl.OutboxQueue)
 	if err != nil {
+		return nil, err
+	}
+	if err := catbirdClient.Bind(ctx, bbl.OutboxQueue, bbl.OrganizationChangedTopic); err != nil {
+		return nil, err
+	}
+	if err := catbirdClient.Bind(ctx, bbl.OutboxQueue, bbl.PersonChangedTopic); err != nil {
+		return nil, err
+	}
+	if err := catbirdClient.Bind(ctx, bbl.OutboxQueue, bbl.ProjectChangedTopic); err != nil {
+		return nil, err
+	}
+	if err := catbirdClient.Bind(ctx, bbl.OutboxQueue, bbl.WorkChangedTopic); err != nil {
 		return nil, err
 	}
 

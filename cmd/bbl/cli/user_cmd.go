@@ -83,16 +83,19 @@ var importUserSourceCmd = &cobra.Command{
 		}
 		defer close()
 
-		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+		h, err := repo.Catbird.RunTask(cmd.Context(),
 			tasks.ImportUserSourceName,
 			tasks.ImportUserSourceInput{Source: source},
-			catbird.RunTaskOpts{},
 		)
 		if err != nil {
 			return err
 		}
+		var out tasks.ImportUserSourceOutput
+		if err := h.WaitForOutput(cmd.Context(), &out); err != nil {
+			return err
+		}
 
-		return writeData(cmd, info)
+		return writeData(cmd, out)
 	},
 }
 
@@ -106,16 +109,20 @@ var reindexUsersCmd = &cobra.Command{
 		}
 		defer close()
 
-		info, err := repo.Catbird.RunTaskWait(cmd.Context(),
+		h, err := repo.Catbird.RunTask(cmd.Context(),
 			tasks.ReindexUsersName,
 			tasks.ReindexUsersInput{},
-			catbird.RunTaskOpts{DeduplicationID: tasks.ReindexUsersName},
+			catbird.RunTaskOpts{ConcurrencyKey: tasks.ReindexUsersName},
 		)
 		if err != nil {
 			return err
 		}
+		var out tasks.ReindexUsersOutput
+		if err := h.WaitForOutput(cmd.Context(), &out); err != nil {
+			return err
+		}
 
-		return writeData(cmd, info)
+		return writeData(cmd, out)
 	},
 }
 

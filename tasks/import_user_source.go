@@ -3,7 +3,6 @@ package tasks
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -22,7 +21,7 @@ type ImportUserSourceOutput struct {
 }
 
 func ImportUserSource(repo *pgxrepo.Repo, log *slog.Logger) *catbird.Task {
-	return catbird.NewTask(ImportUserSourceName, func(ctx context.Context, input ImportUserSourceInput) (ImportUserSourceOutput, error) {
+	return catbird.NewTask(ImportUserSourceName).Do(func(ctx context.Context, input ImportUserSourceInput) (ImportUserSourceOutput, error) {
 		us := bbl.GetUserSource(input.Source)
 
 		var err error
@@ -47,9 +46,5 @@ func ImportUserSource(repo *pgxrepo.Repo, log *slog.Logger) *catbird.Task {
 		}
 
 		return out, err
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }

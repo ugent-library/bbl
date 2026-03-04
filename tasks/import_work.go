@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"time"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/pgxrepo"
@@ -21,7 +20,7 @@ type ImportWorkOutput struct {
 }
 
 func ImportWork(repo *pgxrepo.Repo) *catbird.Task {
-	return catbird.NewTask(ImportWorkName, func(ctx context.Context, input ImportWorkInput) (ImportWorkOutput, error) {
+	return catbird.NewTask(ImportWorkName).Do(func(ctx context.Context, input ImportWorkInput) (ImportWorkOutput, error) {
 		out := ImportWorkOutput{}
 
 		rec, err := bbl.ImportWork(input.Source, input.ID)
@@ -38,9 +37,5 @@ func ImportWork(repo *pgxrepo.Repo) *catbird.Task {
 		out.WorkID = rec.ID
 
 		return out, nil
-	},
-		catbird.TaskOpts{
-			HideFor: 1 * time.Minute,
-		},
-	)
+	})
 }
