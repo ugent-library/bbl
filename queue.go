@@ -3,11 +3,11 @@ package bbl
 const (
 	OutboxQueue = "outbox"
 
-	UserChangedTopic         = "user:changed"
-	OrganizationChangedTopic = "organization:changed"
-	PersonChangedTopic       = "person:changed"
-	ProjectChangedTopic      = "project:changed"
-	WorkChangedTopic         = "work:changed"
+	UserChangedTopic         = "user.changed"
+	OrganizationChangedTopic = "organization.changed"
+	PersonChangedTopic       = "person.changed"
+	ProjectChangedTopic      = "project.changed"
+	WorkChangedTopic         = "work.changed"
 )
 
 type RecordChangedPayload struct {

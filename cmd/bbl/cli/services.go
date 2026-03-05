@@ -3,9 +3,11 @@ package cli
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
@@ -24,9 +26,33 @@ func newLogger(w io.Writer) *slog.Logger {
 		return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 }
+func newPool(ctx context.Context, connStr string, minConns, maxConns int32) (*pgxpool.Pool, error) {
+	cfg, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, fmt.Errorf("parse pgx config: %w", err)
+	}
+
+	cfg.MinConns = minConns
+	cfg.MaxConns = maxConns
+	cfg.MaxConnLifetime = 1 * time.Hour
+	cfg.MaxConnIdleTime = 15 * time.Minute
+	cfg.HealthCheckPeriod = 30 * time.Second
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("create pgx pool: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("ping pgx pool: %w", err)
+	}
+
+	return pool, nil
+}
 
 func newRepo(ctx context.Context) (*pgxrepo.Repo, func(), error) {
-	conn, err := pgxpool.New(ctx, config.PgConn)
+	conn, err := newPool(ctx, config.PgConn, 4, 20)
 	if err != nil {
 		return nil, nil, err
 	}
