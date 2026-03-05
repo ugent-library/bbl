@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -20,9 +20,10 @@ type Config struct {
 }
 
 type Store struct {
-	client        *s3.Client
-	presignClient *s3.PresignClient
-	bucket        string
+	client          *s3.Client
+	presignClient   *s3.PresignClient
+	transferManager *transfermanager.Client
+	bucket          string
 }
 
 func New(c Config) (*Store, error) {
@@ -32,12 +33,16 @@ func New(c Config) (*Store, error) {
 		o.UsePathStyle = true
 	})
 
-	presignClient := s3.NewPresignClient(client)
+	transferManager := transfermanager.New(client, func(o *transfermanager.Options) {
+		o.PartSizeBytes = 16 * 1024 * 1024
+		o.Concurrency = 4
+	})
 
 	return &Store{
-		client:        client,
-		presignClient: presignClient,
-		bucket:        c.Bucket,
+		client:          client,
+		presignClient:   s3.NewPresignClient(client),
+		transferManager: transferManager,
+		bucket:          c.Bucket,
 	}, nil
 }
 
@@ -68,8 +73,7 @@ func (s *Store) NewDownloadURL(ctx context.Context, id string, ttl time.Duration
 }
 
 func (s *Store) Upload(ctx context.Context, id string, r io.Reader) error {
-	uploader := manager.NewUploader(s.client)
-	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	_, err := s.transferManager.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(id),
 		Body:   r,

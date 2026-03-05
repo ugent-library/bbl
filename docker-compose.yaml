@@ -29,38 +29,19 @@ services:
       retries: 5
       start_period: 10s
 
-  minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
-    command: server /data -address ":3371" --console-address ":3372"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio-data:/data
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.83
+    command: "server -s3 -ip=seaweedfs -dir=/data -volume.max=0"
     ports:
-      - 3371:3371
-      - 3372:3372
+      - "3371:8333"
+    volumes:
+      - seaweedfs-data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3371/minio/health/live"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8333 || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 10s
-
-  mc:
-    image: minio/mc
-    depends_on:
-      - minio
-      # minio:
-      #   condition: service_healthy
-    restart: on-failure
-    entrypoint:
-      - sh
-      - -c
-      - |
-        sleep 2;
-        mc alias set docker http://minio:3371 minioadmin minioadmin;
-        mc mb docker/bbl --ignore-existing;
 
   opensearch-node1:
     image: opensearchproject/opensearch:3.3.2
@@ -148,7 +129,7 @@ services:
 volumes:
   postgres-data:
     driver: local
-  minio-data:
+  seaweedfs-data:
     driver: local
   opensearch-data1:
     driver: local

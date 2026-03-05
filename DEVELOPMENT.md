@@ -71,7 +71,7 @@
     Run these commands in another terminal window while the application is running:
 
     ```sh
-    go run biblio/main.go users import-source ugent_ldap
+    go run biblio/main.go users import-source ugent_ldap # only works on UGent network
     cat ~/tmp/bbl_organizations.jsonl | go run biblio/main.go rev add
     cat ~/tmp/bbl_people.jsonl | go run biblio/main.go rev add
     cat ~/tmp/bbl_projects.jsonl | go run biblio/main.go rev add
