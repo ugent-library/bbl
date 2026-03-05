@@ -52,13 +52,13 @@
 
     2. Add secrets to the `.env` file.
 
-7. Create database structure
+6. Create database structure
 
     ```sh
     go run cmd/bbl/main.go migrate up
     ```
 
-8. Start the application in development mode
+7. Start the application in development mode
 
     ```sh
     make live
@@ -66,7 +66,7 @@
 
     In development mode the application will reload itself after a `.go` source file, a `.templ` template, a file in the assets directory, a `.po` translation file or a profile `.json` file has changed.
 
-9. Load application data
+8. Load application data
 
     Run these commands in another terminal window while the application is running:
 
