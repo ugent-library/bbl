@@ -66,7 +66,8 @@ CREATE COLLATION bbl_case_insensitive (
 -- ============================================================
 -- SOURCE REGISTRY
 -- Defines known import sources and their trust priority.
--- Higher priority = wins field-level conflicts during resolution.
+-- priority is informational: ingest paths use it to rank sources when populating
+-- provenance.field_source; it does not trigger automatic field overwrites.
 -- ============================================================
 
 CREATE TABLE bbl_sources (
@@ -82,17 +83,13 @@ CREATE TABLE bbl_sources (
 -- person_identity_id is the explicit link to the canonical person authority record.
 -- It is nullable (service/admin accounts have no person identity) and unique
 -- (two accounts cannot claim the same identity).
--- Set and removed through AddRev commands; audited in bbl_changes.
+-- Set and removed through user management commands; audited in bbl_user_events.
 -- Forward FK added via ALTER TABLE after bbl_person_identities is defined below.
 -- ============================================================
 
 CREATE TABLE bbl_users (
     id                 uuid PRIMARY KEY,
-    version            int NOT NULL,
     created_at         timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    updated_at         timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    created_by_id      uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    updated_by_id      uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     username           text NOT NULL UNIQUE,
     email              text NOT NULL COLLATE bbl_case_insensitive,
     name               text NOT NULL,
@@ -100,6 +97,22 @@ CREATE TABLE bbl_users (
     deactivate_at      timestamptz,
     person_identity_id uuid UNIQUE  -- FK added below: REFERENCES bbl_person_identities (id) ON DELETE SET NULL
 );
+
+-- Lightweight security audit log for user account events.
+-- Separate from bbl_changes: user mutations are access-control history,
+-- not domain history; different retention and access characteristics.
+-- kind: 'role_changed' | 'deactivated' | 'reactivated' |
+--       'identity_linked' | 'identity_unlinked' | 'proxy_granted' | 'proxy_revoked'
+CREATE TABLE bbl_user_events (
+    id         uuid PRIMARY KEY,
+    user_id    uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+    kind       text NOT NULL,
+    actor_id   uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    payload    jsonb NOT NULL DEFAULT '{}',  -- e.g. old/new role, identity id, proxy target
+    created_at timestamptz NOT NULL DEFAULT transaction_timestamp()
+);
+
+CREATE INDEX ON bbl_user_events (user_id);
 
 -- Authentication identifiers only: SSO claims (e.g. OIDC sub, ugent_id from LDAP).
 -- Used to match incoming login tokens to a bbl_users row.
@@ -127,6 +140,7 @@ CREATE TABLE bbl_user_proxies (
     CHECK (user_id <> proxy_user_id)
 );
 
+CREATE INDEX ON bbl_user_proxies (user_id);
 CREATE INDEX ON bbl_user_proxies (proxy_user_id);
 
 -- ============================================================
@@ -167,7 +181,7 @@ CREATE TABLE bbl_grants (
 
 CREATE INDEX ON bbl_grants (user_id);
 CREATE INDEX ON bbl_grants (scope_type, scope_id);
-CREATE INDEX ON bbl_grants (user_id) WHERE expires_at IS NULL;  -- active global/permanent grants
+CREATE INDEX ON bbl_grants (user_id) WHERE revoked_at IS NULL AND expires_at IS NULL;  -- active permanent grants
 CREATE INDEX ON bbl_grants (expires_at) WHERE expires_at IS NOT NULL;
 
 -- ============================================================
@@ -513,7 +527,7 @@ CREATE TABLE bbl_work_contributors (
     person_identity_id       uuid REFERENCES bbl_person_identities (id) ON DELETE SET NULL,
     person_identity_snapshot jsonb NOT NULL DEFAULT '{}',  -- name, role etc at time of entry
     role                     text,                          -- 'author' | 'editor' | 'translator' | ...
-    attrs                    jsonb NOT NULL DEFAULT '{}',
+    attrs                    jsonb NOT NULL DEFAULT '{}',  -- extra source-specific fields not covered by snapshot/role
     PRIMARY KEY (work_id, pos)
 );
 
@@ -614,6 +628,8 @@ CREATE TABLE bbl_work_collection_works (
     PRIMARY KEY (collection_id, work_id)
 );
 
+CREATE INDEX ON bbl_work_collection_works (work_id);
+
 -- ============================================================
 -- AUDIT: REVS + CHANGES
 -- ============================================================
@@ -641,8 +657,7 @@ CREATE TABLE bbl_revs (
 CREATE TABLE bbl_changes (
     id          bigserial PRIMARY KEY,
     rev_id      uuid NOT NULL REFERENCES bbl_revs (id),  -- no cascade: revs are immutable
-    entity_type text NOT NULL,   -- 'user' | 'organization'
-                                 -- | 'person_identity' | 'person_record' | 'project' | 'work'
+    entity_type text NOT NULL,   -- 'organization' | 'person_identity' | 'person_record' | 'project' | 'work'
     entity_id   uuid NOT NULL,
     op_type     text NOT NULL,   -- 'create' | 'update' | 'delete'
     diff        jsonb NOT NULL
@@ -650,7 +665,6 @@ CREATE TABLE bbl_changes (
 
 CREATE INDEX ON bbl_changes (rev_id);
 CREATE INDEX ON bbl_changes (entity_type, entity_id);
-CREATE INDEX ON bbl_changes (entity_id);
 
 -- ============================================================
 -- LISTS & SUBSCRIPTIONS
@@ -686,9 +700,6 @@ CREATE TABLE bbl_list_items (
 CREATE INDEX ON bbl_list_items (entity_type, entity_id);
 
 -- topic is a structured event kind e.g. 'work.updated', 'person_identity.merged'.
--- entity_type/entity_id optionally scope the subscription to a specific entity;
--- NULL entity_type = global topic subscription.
--- On entity delete, subscriptions scoped to that entity are removed in the same AddRev transaction.
 --
 -- Webhook delivery:
 --   webhook_url NULL  = internal notification only (centrifugo / catbird); other webhook columns ignored.
@@ -710,8 +721,6 @@ CREATE TABLE bbl_subscriptions (
     id                  uuid PRIMARY KEY,
     user_id             uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
     topic               text NOT NULL,
-    entity_type         text,
-    entity_id           uuid,
     webhook_url         text,                              -- NULL = internal only
     webhook_secret      text,                              -- HMAC-SHA256 signing secret; encrypted at rest
     webhook_headers     jsonb NOT NULL DEFAULT '{}',       -- extra headers; values encrypted at rest
@@ -721,13 +730,10 @@ CREATE TABLE bbl_subscriptions (
     last_succeeded_at   timestamptz,
     created_at          timestamptz NOT NULL DEFAULT transaction_timestamp(),
     updated_at          timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    CHECK ((entity_type IS NULL) = (entity_id IS NULL)),
     CHECK (webhook_url IS NOT NULL OR (webhook_secret IS NULL AND webhook_headers = '{}'))
 );
 
 CREATE INDEX ON bbl_subscriptions (user_id);
-CREATE INDEX ON bbl_subscriptions (topic);
-CREATE INDEX ON bbl_subscriptions (entity_type, entity_id) WHERE entity_type IS NOT NULL;
 CREATE INDEX ON bbl_subscriptions (topic) WHERE status = 'active';  -- delivery dispatcher
 
 -- Delivery log, retry scheduling, and per-attempt history are handled by catbird
