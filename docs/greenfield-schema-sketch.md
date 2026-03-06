@@ -73,7 +73,7 @@ CREATE COLLATION bbl_case_insensitive (
 CREATE TABLE bbl_sources (
     id          text PRIMARY KEY,              -- e.g. 'ugent_ldap', 'orcid', 'plato', 'manual'
     label       text NOT NULL,
-    priority    int NOT NULL DEFAULT 0,        -- higher = preferred when multiple sources write the same field; used by ingest path to populate provenance, and by B+C guards to determine if a source may overwrite a curator edit
+    priority    int NOT NULL DEFAULT 0,        -- higher = preferred; informational ranking for provenance.field_source; does not trigger automatic field overwrites
     description text
 );
 
@@ -263,7 +263,7 @@ CREATE INDEX ON bbl_organization_sources (source, source_record_id);
 --
 -- A record belongs to at most one active identity.
 -- Enforced in command logic, not a hard DB constraint (policy not yet stable).
--- All mutations go through AddRev; decided_rev_id provides the audit trail.
+-- All mutations go through AddRev; the audit trail is in bbl_changes.
 -- ============================================================
 
 CREATE TABLE bbl_person_identities (
@@ -422,7 +422,7 @@ CREATE TABLE bbl_person_project_roles (
     valid_from     date,
     valid_to       date,
     source         text REFERENCES bbl_sources (id),
-    UNIQUE (person_id, project_id, role)
+    UNIQUE (person_id, project_id, role, valid_from)  -- valid_from in key allows same role after a gap
 );
 
 CREATE INDEX ON bbl_person_project_roles (person_id);
@@ -454,7 +454,7 @@ CREATE TABLE bbl_works (
     created_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     updated_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     kind           text NOT NULL,     -- 'journal_article' | 'book' | 'dataset' | ...
-    status         text NOT NULL,     -- 'draft' | 'public' | 'deleted'
+    status         text NOT NULL,     -- 'draft' | 'submitted' | 'public' | 'deleted'
     delete_kind    text,              -- 'withdrawn' | 'retracted' | 'takedown'; set with status='deleted'
     deleted_at     timestamptz,       -- set when status transitions to 'deleted'
     deleted_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
@@ -536,10 +536,10 @@ CREATE INDEX ON bbl_work_contributors (person_identity_id) WHERE person_identity
 -- Work ↔ organization links (affiliation at time of work, not temporal).
 CREATE TABLE bbl_work_organizations (
     work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    idx             int NOT NULL,
+    seq             int NOT NULL,
     organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE RESTRICT,
     role            text,
-    PRIMARY KEY (work_id, idx),
+    PRIMARY KEY (work_id, seq),
     UNIQUE (work_id, organization_id)
 );
 
@@ -548,9 +548,9 @@ CREATE INDEX ON bbl_work_organizations (organization_id);
 -- Work ↔ project links.
 CREATE TABLE bbl_work_projects (
     work_id    uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    idx        int NOT NULL,
+    seq        int NOT NULL,
     project_id uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE RESTRICT,
-    PRIMARY KEY (work_id, idx),
+    PRIMARY KEY (work_id, seq),
     UNIQUE (work_id, project_id)
 );
 
@@ -565,10 +565,10 @@ CREATE INDEX ON bbl_work_projects (project_id);
 -- Both sides are indexed; the partial index on rel_work_id covers reverse lookups.
 CREATE TABLE bbl_work_rels (
     work_id      uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    idx          int NOT NULL,
+    seq          int NOT NULL,
     kind         text NOT NULL,
     rel_work_id  uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    PRIMARY KEY (work_id, idx),
+    PRIMARY KEY (work_id, seq),
     CHECK (work_id <> rel_work_id)
 );
 
@@ -577,7 +577,7 @@ CREATE INDEX ON bbl_work_rels (rel_work_id);
 -- Files: includes checksum, upload status, and access control.
 CREATE TABLE bbl_work_files (
     work_id       uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    idx           int NOT NULL,
+    seq           int NOT NULL,
     object_id     uuid NOT NULL,
     name          text NOT NULL,
     content_type  text NOT NULL,
@@ -585,10 +585,49 @@ CREATE TABLE bbl_work_files (
     sha256        text,           -- populated after upload confirmation
     upload_status text NOT NULL DEFAULT 'pending',  -- pending | complete | failed
     access_kind         text NOT NULL DEFAULT 'open',  -- open | restricted | closed
-    embargo_until       timestamptz,                   -- when access transitions to embargo_access_kind
-    embargo_access_kind text,                          -- e.g. 'open' or 'restricted'; NULL when no embargo
-    PRIMARY KEY (work_id, idx)
+    embargo_until       timestamptz,     -- planned lift date; preserved after lift as bibliographic record
+    embargo_access_kind text,            -- access kind after lift; preserved after lift
+    embargo_lifted_at   timestamptz,     -- NULL = embargo active (or never embargoed); set when Catbird applies the transition
+    PRIMARY KEY (work_id, seq)
 );
+
+-- Self-deposit submission rounds. These tables are the authoritative record of
+-- every submission attempt and any curator/submitter exchange. All state lives
+-- here; Catbird is used only to dispatch notifications as a side effect of
+-- commands — it holds no workflow state of its own.
+-- Curators see submitted works via a plain queue (WHERE status='submitted') and
+-- may PublishWork directly without any messages. A back-and-forth conversation
+-- (AddWorkReviewComment, ReturnToDraft) appends messages here before Catbird
+-- sends the notification. PublishWork or ReturnToDraft close the workflow.
+CREATE TABLE bbl_work_reviews (
+    id           uuid PRIMARY KEY,
+    work_id      uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    status       text NOT NULL DEFAULT 'open',  -- open | published | returned
+    opened_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    closed_at    timestamptz,
+    opened_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL  -- the submitter
+);
+CREATE INDEX ON bbl_work_reviews (work_id);
+
+-- Append-only message sequence within a review workflow. Only present when the
+-- curator initiated a review conversation; workflows closed by a direct
+-- PublishWork may have zero messages. seq assigned at insert time (1, 2, 3 …).
+-- kind: 'submitted'      = cover note from submitter (seq=1, optional)
+--       'review_comment' = curator or submitter comment mid-review
+--       'returned'       = curator closes workflow, returns to draft; body is reason
+--       'published'      = curator closes workflow after back-and-forth; optional note
+CREATE TABLE bbl_work_review_messages (
+    id          uuid PRIMARY KEY,
+    workflow_id uuid NOT NULL REFERENCES bbl_work_reviews (id) ON DELETE CASCADE,
+    seq         int  NOT NULL,
+    rev_id      uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
+    author_id   uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    kind        text NOT NULL,
+    body        text NOT NULL DEFAULT '',
+    created_at  timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    UNIQUE (workflow_id, seq)
+);
+CREATE INDEX ON bbl_work_review_messages (workflow_id);
 
 -- Work-level permissions (bbl_work_permissions in the current schema) are subsumed
 -- by bbl_grants with scope_type='work', scope_id=<work_id>.
@@ -625,7 +664,9 @@ CREATE INDEX ON bbl_work_representations (updated_at);
 CREATE TABLE bbl_work_collection_works (
     collection_id uuid NOT NULL REFERENCES bbl_work_collections (id) ON DELETE CASCADE,
     work_id       uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    PRIMARY KEY (collection_id, work_id)
+    pos           text NOT NULL COLLATE "C",  -- fracdex; display order within collection
+    PRIMARY KEY (collection_id, work_id),
+    UNIQUE (collection_id, pos)
 );
 
 CREATE INDEX ON bbl_work_collection_works (work_id);
@@ -870,13 +911,16 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 | `GetWorkHistory(id)` | query | `bbl_changes` rows for a work ordered by rev |
 | `CreateWork(kind, attrs)` | command | New draft work; inserts `bbl_grants` owner row for creating user |
 | `UpdateWork(id, attrs)` | command | Update metadata |
-| `PublishWork(id)` | command | Transition `draft → public` |
+| `SubmitWork(id)` | command | Transition `draft → submitted`; opens a new `review_workflows` row; no Catbird flow |
+| `PublishWork(id)` | command | Transition `submitted → public`; closes workflow (`status='published'`); no messages required |
+| `ReturnToDraft(id, message)` | command | Transition `submitted → draft`; closes workflow (`status='returned'`); appends `kind='returned'` message; Catbird notifies submitter |
 | `WithdrawWork(id)` | command | Transition `public → deleted`, `delete_kind='withdrawn'` |
 | `RetractWork(id)` | command | Transition `public → deleted`, `delete_kind='retracted'` |
 | `DeleteDraftWork(id)` | command | Hard-delete; only valid while `status='draft'`; deletes `bbl_changes` rows in same transaction |
 | `AddWorkContributor(workID, pos, attrs)` | command | Add contributor row; resolves identity link if possible |
 | `UpdateWorkContributor(workID, pos, attrs)` | command | Update contributor attrs or identity link |
 | `RemoveWorkContributor(workID, pos)` | command | Remove contributor by position |
+| `AddWorkReviewComment(id, message)` | command | Curator or submitter appends `kind='review_comment'` message to the open workflow; Catbird notifies the other party |
 | `AddWorkSource(workID, source, sourceRecordID, candidateID)` | command | Record import provenance |
 | `UpdateWorkSource(workID, source, sourceRecordID)` | command | Update source record ID after re-sync |
 
@@ -930,13 +974,13 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 | Method | Type | Description |
 |---|---|---|
 | `ListSubscriptions(userID)` | query | All subscriptions for a user |
-| `GetSubscriptionsForTopic(topic, entityType, entityID)` | query | Active subscriptions matching a fired event; used by catbird dispatcher |
-| `CreateSubscription(userID, topic, entityType, entityID, webhookURL, secret, headers)` | command | New subscription |
+| `GetSubscriptionsForTopic(topic)` | query | Active subscriptions matching a fired event; used by catbird dispatcher |
+| `CreateSubscription(userID, topic, webhookURL, secret, headers)` | command | New subscription |
 | `UpdateSubscription(id, attrs)` | command | Change URL, headers, or topic |
-| `EnableSubscription(id)` | command | Clear `suspended_at`, reset `failure_count`, set `enabled=true` |
-| `DisableSubscription(id)` | command | Set `enabled=false` |
+| `EnableSubscription(id)` | command | Set `status='active'`, reset `failure_count` |
+| `DisableSubscription(id)` | command | Set `status='disabled'` |
 | `DeleteSubscription(id)` | command | Hard-delete |
-| `RecordSubscriptionDelivery(id, succeeded, httpStatus, err)` | command | Update `failure_count`, `suspended_at`, `last_attempted_at`, `last_succeeded_at`; called by catbird job handler |
+| `RecordSubscriptionDelivery(id, succeeded, httpStatus, err)` | command | Update `failure_count`, `status`, `last_attempted_at`, `last_succeeded_at`; called by catbird job handler |
 
 ### Representations
 
@@ -1128,8 +1172,8 @@ The greenfield model makes the link explicit:
   Nullable covers service and admin accounts that have no research identity.
   `UNIQUE` ensures two accounts cannot both claim the same canonical person.
   `ON DELETE SET NULL` so retiring a person identity doesn't cascade-delete the user.
-- The column is set and cleared through `AddRev` commands (`LinkUserToIdentity`,
-  `UnlinkUserFromIdentity`), leaving a full audit trail in `bbl_changes`.
+- The column is set and cleared through user management commands (`LinkUserToIdentity`,
+  `UnlinkUserFromIdentity`), leaving a full audit trail in `bbl_user_events`.
 - `bbl_user_identifiers` is scoped to authentication claims only (OIDC `sub`,
   `ugent_id` from LDAP, etc.). It plays no role in person authority matching.
   Authority matching signals live exclusively in `bbl_person_record_identifiers`.
