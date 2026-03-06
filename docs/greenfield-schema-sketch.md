@@ -21,7 +21,7 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | Work contributors | No publication-time attribution snapshot; rendering a work requires joining to the current identity state, which may differ from what was recorded at time of entry (identity renamed, relinked, or deliberately unlinked by a curator) |
 | Work contributors | No role distinction (author vs editor vs translator etc.) at schema level |
 | Work files | No checksum, no upload status, no per-file access control |
-| Representations | Hard FK to `bbl_works` — no equivalent cache for persons, organizations, or projects even though their serialized forms (VCARD, org XML, CSL) can be equally expensive to compute |
+| Representations | Hard FK to `bbl_works` — work-only; other entity types added when needed |
 | Representations | No staleness signal — no way to know if a cached representation is still current without comparing to the entity's `updated_at` |
 | Work permissions | No PK, no timestamps, no expiry |
 | Permissions | Rights are scattered across `bbl_users.role`, `bbl_work_permissions`, and implicit creator logic — no single query can show what a user is allowed to do |
@@ -72,7 +72,7 @@ CREATE COLLATION bbl_case_insensitive (
 CREATE TABLE bbl_sources (
     id          text PRIMARY KEY,              -- e.g. 'ugent_ldap', 'orcid', 'plato', 'manual'
     label       text NOT NULL,
-    priority    int NOT NULL DEFAULT 0,        -- higher = more authoritative
+    priority    int NOT NULL DEFAULT 0,        -- higher = preferred when multiple sources write the same field; used by ingest path to populate provenance, and by B+C guards to determine if a source may overwrite a curator edit
     description text
 );
 
@@ -172,88 +172,51 @@ CREATE INDEX ON bbl_grants (expires_at) WHERE expires_at IS NOT NULL;
 
 -- ============================================================
 -- ORGANIZATIONS
--- Two-layer model: source records + canonical identities.
--- Mirrors the people dedup model.
+-- Single curated table. Orgs come from one source at a time (unlike people);
+-- no records+identities split needed.
+-- Names and renames are stored in attrs.names as a multilingual array:
+--   [{"lang": "nl", "name": "..."}, {"lang": "en", "name": "..."}]
+-- lang follows BCP 47; null = language-neutral (e.g. abbreviations).
+-- A name change that represents a new org unit gets a new row + successor_of rel.
 -- ============================================================
 
--- Canonical institutional identity (the durable "real-world org").
--- Survives renames, reorganizations, and mergers.
-CREATE TABLE bbl_organization_identities (
-    id                  uuid PRIMARY KEY,
-    version             int NOT NULL,
-    created_at          timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    updated_at          timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    created_by_id       uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    updated_by_id       uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    kind                text NOT NULL,          -- 'faculty' | 'department' | 'research_group' | ...
-    resolved_attrs      jsonb NOT NULL DEFAULT '{}',
-    resolved_provenance jsonb NOT NULL DEFAULT '{}'
+CREATE TABLE bbl_organizations (
+    id            uuid PRIMARY KEY,
+    version       int NOT NULL,
+    created_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    updated_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    kind          text NOT NULL,   -- 'faculty' | 'department' | 'research_group' | ...
+    attrs               jsonb NOT NULL DEFAULT '{}',
+    provenance          jsonb NOT NULL DEFAULT '{}',   -- {field: source} informational; set by ingest path
+    attrs_locked_fields text[] NOT NULL DEFAULT '{}'   -- fields a curator has locked; ingest skips these
 );
 
--- Source avatars: one row per imported or manually created org payload.
-CREATE TABLE bbl_organization_records (
-    id               uuid PRIMARY KEY,
-    version          int NOT NULL,
-    created_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    updated_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    created_by_id    uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    updated_by_id    uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    source           text NOT NULL REFERENCES bbl_sources (id),
-    source_record_id text NOT NULL,
-    attrs            jsonb NOT NULL DEFAULT '{}',
-    UNIQUE (source, source_record_id)
-);
-
--- Record → identity membership with audit.
-CREATE TABLE bbl_organization_identity_members (
-    identity_id        uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE CASCADE,
-    record_id          uuid NOT NULL REFERENCES bbl_organization_records (id) ON DELETE CASCADE,
-    PRIMARY KEY (identity_id, record_id),
-    status             text NOT NULL DEFAULT 'active',   -- active | pending | rejected
-    link_kind          text NOT NULL,                    -- auto | manual | imported
-    confidence         numeric,
-    decided_by_user_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    decided_rev_id     uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
-    created_at         timestamptz NOT NULL DEFAULT transaction_timestamp()
-);
-
-CREATE INDEX ON bbl_organization_identity_members (record_id);
-CREATE INDEX ON bbl_organization_identity_members (status);
-
--- Identifiers with normalized value and temporal validity.
--- One identifier may move between orgs over time (identifier reuse).
+-- Time-bounded identifiers; valid_from/valid_to handle reuse across splits/mergers.
 CREATE TABLE bbl_organization_identifiers (
-    id         uuid PRIMARY KEY,
-    scheme     text NOT NULL,
-    value_norm text NOT NULL,
-    issuer     text NOT NULL DEFAULT '',
-    UNIQUE (scheme, value_norm, issuer)
+    id              uuid PRIMARY KEY,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    scheme          text NOT NULL,
+    value           text NOT NULL,
+    valid_from      timestamptz,
+    valid_to        timestamptz,
+    revoked_at      timestamptz
 );
 
-CREATE INDEX ON bbl_organization_identifiers (scheme, value_norm);
+CREATE INDEX ON bbl_organization_identifiers (organization_id);
+CREATE INDEX ON bbl_organization_identifiers (scheme, value);
 
-CREATE TABLE bbl_organization_record_identifiers (
-    record_id     uuid NOT NULL REFERENCES bbl_organization_records (id) ON DELETE CASCADE,
-    identifier_id uuid NOT NULL REFERENCES bbl_organization_identifiers (id) ON DELETE CASCADE,
-    PRIMARY KEY (record_id, identifier_id),
-    valid_from    timestamptz,
-    valid_to      timestamptz,
-    revoked_at    timestamptz
-);
-
-CREATE INDEX ON bbl_organization_record_identifiers (identifier_id);
-
--- Temporal hierarchical relationships between organization identities.
--- Supports parent/child, mergers, splits, and renames over time.
+-- Temporal hierarchical relationships.
+-- Supports parent/child, mergers, splits, and successor links over time.
 -- kind: 'part_of' | 'merged_into' | 'split_from' | 'successor_of'
 CREATE TABLE bbl_organization_rels (
-    id               uuid PRIMARY KEY,
-    organization_id  uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE CASCADE,
-    rel_organization_id uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE CASCADE,
-    kind             text NOT NULL,
-    valid_from       timestamptz,
-    valid_to         timestamptz,
-    decided_rev_id   uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
+    id                  uuid PRIMARY KEY,
+    organization_id     uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    rel_organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    kind                text NOT NULL,
+    valid_from          timestamptz,
+    valid_to            timestamptz,
     CHECK (organization_id <> rel_organization_id)
 );
 
@@ -262,16 +225,26 @@ CREATE INDEX ON bbl_organization_rels (rel_organization_id);
 -- Current active relationships:
 CREATE INDEX ON bbl_organization_rels (organization_id) WHERE valid_to IS NULL;
 
+CREATE TABLE bbl_organization_sources (
+    organization_id  uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    source           text NOT NULL REFERENCES bbl_sources (id),
+    source_record_id text NOT NULL,
+    ingested_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    PRIMARY KEY (organization_id, source)
+);
+
+CREATE INDEX ON bbl_organization_sources (source, source_record_id);
+
 -- ============================================================
 -- PEOPLE
 -- Approach: MDM consolidation with durable source records.
 --
 -- person_records  = immutable-ish source avatars (one per import payload)
 -- person_identities = canonical golden records (one per real-world person)
--- person_identity_members = the consolidation link; carries process metadata
+-- person_identity_records = the consolidation link; carries process metadata
 --
 -- [source A]──┐
--- [source B]──┼──► person_records ──► person_identity_members ──► person_identities
+-- [source B]──┼──► person_records ──► person_identity_records ──► person_identities
 -- [manual  ]──┘                            (link process)            (golden record)
 --
 -- A record belongs to at most one active identity.
@@ -286,8 +259,8 @@ CREATE TABLE bbl_person_identities (
     updated_at          timestamptz NOT NULL DEFAULT transaction_timestamp(),
     created_by_id       uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     updated_by_id       uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    resolved_attrs      jsonb NOT NULL DEFAULT '{}',
-    resolved_provenance jsonb NOT NULL DEFAULT '{}'
+    attrs      jsonb NOT NULL DEFAULT '{}',
+    provenance jsonb NOT NULL DEFAULT '{}'
 );
 
 -- Resolve the forward reference declared on bbl_users above.
@@ -310,7 +283,7 @@ CREATE TABLE bbl_person_records (
     UNIQUE (source, source_record_id)
 );
 
-CREATE TABLE bbl_person_identity_members (
+CREATE TABLE bbl_person_identity_records (
     identity_id        uuid NOT NULL REFERENCES bbl_person_identities (id) ON DELETE CASCADE,
     record_id          uuid NOT NULL REFERENCES bbl_person_records (id) ON DELETE CASCADE,
     PRIMARY KEY (identity_id, record_id),
@@ -318,31 +291,25 @@ CREATE TABLE bbl_person_identity_members (
     link_kind          text NOT NULL,
     confidence         numeric,
     decided_by_user_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    decided_rev_id     uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
     created_at         timestamptz NOT NULL DEFAULT transaction_timestamp()
 );
 
-CREATE INDEX ON bbl_person_identity_members (record_id);
-CREATE INDEX ON bbl_person_identity_members (status);
+CREATE INDEX ON bbl_person_identity_records (record_id);
+CREATE INDEX ON bbl_person_identity_records (status);
 
 CREATE TABLE bbl_person_identifiers (
     id         uuid PRIMARY KEY,
     scheme     text NOT NULL,
-    value_norm text NOT NULL,
-    issuer     text NOT NULL DEFAULT '',
-    UNIQUE (scheme, value_norm, issuer)
+    value text NOT NULL,
+    UNIQUE (scheme, value)
 );
 
-CREATE INDEX ON bbl_person_identifiers (scheme, value_norm);
+CREATE INDEX ON bbl_person_identifiers (scheme, value);
 
 CREATE TABLE bbl_person_record_identifiers (
     record_id     uuid NOT NULL REFERENCES bbl_person_records (id) ON DELETE CASCADE,
     identifier_id uuid NOT NULL REFERENCES bbl_person_identifiers (id) ON DELETE CASCADE,
-    PRIMARY KEY (record_id, identifier_id),
-    confidence    numeric,
-    valid_from    timestamptz,
-    valid_to      timestamptz,
-    revoked_at    timestamptz
+    PRIMARY KEY (record_id, identifier_id)
 );
 
 CREATE INDEX ON bbl_person_record_identifiers (identifier_id);
@@ -352,12 +319,11 @@ CREATE INDEX ON bbl_person_record_identifiers (identifier_id);
 CREATE TABLE bbl_person_affiliations (
     id              uuid PRIMARY KEY,
     person_id       uuid NOT NULL REFERENCES bbl_person_identities (id) ON DELETE CASCADE,
-    organization_id uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     role            text,                   -- e.g. 'researcher', 'professor', 'phd_student'
     valid_from      timestamptz,
     valid_to        timestamptz,
-    source          text REFERENCES bbl_sources (id),
-    created_rev_id  uuid REFERENCES bbl_revs (id) ON DELETE SET NULL
+    source          text REFERENCES bbl_sources (id)
 );
 
 CREATE INDEX ON bbl_person_affiliations (person_id);
@@ -373,7 +339,6 @@ CREATE TABLE bbl_person_match_candidates (
     confidence         numeric NOT NULL,
     created_at         timestamptz NOT NULL DEFAULT transaction_timestamp(),
     decided_by_user_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    decided_rev_id     uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
     CHECK (record_id_a <> record_id_b)
 );
 
@@ -403,30 +368,33 @@ CREATE TABLE bbl_projects (
     created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     updated_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     status        text NOT NULL DEFAULT 'active',
-    starts_on     date,
-    ends_on       date,
-    attrs         jsonb NOT NULL DEFAULT '{}'
+    starts_on           date,
+    ends_on             date,
+    attrs               jsonb NOT NULL DEFAULT '{}',
+    provenance          jsonb NOT NULL DEFAULT '{}',   -- {field: source} informational; set by ingest path
+    attrs_locked_fields text[] NOT NULL DEFAULT '{}'   -- fields a curator has locked; ingest skips these
 );
 
--- Normalized project identifiers with source and validity.
 CREATE TABLE bbl_project_identifiers (
     id         uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     scheme     text NOT NULL,
-    value_norm text NOT NULL,
-    issuer     text NOT NULL DEFAULT '',
-    UNIQUE (scheme, value_norm, issuer)
+    value      text NOT NULL,
+    UNIQUE (project_id, scheme, value)
 );
 
-CREATE TABLE bbl_project_record_identifiers (
-    project_id    uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    identifier_id uuid NOT NULL REFERENCES bbl_project_identifiers (id) ON DELETE CASCADE,
-    PRIMARY KEY (project_id, identifier_id),
-    source        text REFERENCES bbl_sources (id),
-    valid_from    timestamptz,
-    valid_to      timestamptz
+CREATE INDEX ON bbl_project_identifiers (project_id);
+CREATE INDEX ON bbl_project_identifiers (scheme, value);
+
+CREATE TABLE bbl_project_sources (
+    project_id       uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
+    source           text NOT NULL REFERENCES bbl_sources (id),
+    source_record_id text NOT NULL,
+    ingested_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    PRIMARY KEY (project_id, source)
 );
 
-CREATE INDEX ON bbl_project_record_identifiers (identifier_id);
+CREATE INDEX ON bbl_project_sources (source, source_record_id);
 
 -- Person ↔ project roles.
 -- A work-centric join (bbl_work_projects + bbl_work_contributors) cannot express PIs
@@ -440,7 +408,6 @@ CREATE TABLE bbl_person_project_roles (
     valid_from     date,
     valid_to       date,
     source         text REFERENCES bbl_sources (id),
-    created_rev_id uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
     UNIQUE (person_id, project_id, role)
 );
 
@@ -458,15 +425,13 @@ CREATE INDEX ON bbl_person_project_roles (person_id) WHERE valid_to IS NULL;
 -- their bbl_changes rows can be deleted in the same transaction with no special ceremony.
 --
 -- For legally-mandated takedowns (GDPR, patent, right to be forgotten) the row
--- stays but attrs is purged (set to '{}'); attrs_purged_at records when this happened.
--- For GDPR erasure / right-to-be-forgotten specifically, bbl_changes rows for the
--- entity may also need to be deleted (diff can contain personal data). This is tracked
--- separately — changes_purged_at in bbl_work_takedowns records that obligation.
+-- stays but attrs is purged (set to '{}'). Whether attrs, changes history, or both
+-- are purged is tracked in bbl_work_takedowns (attrs_purged_at, changes_purged_at).
 -- delete_kind distinguishes routine editorial events from legal obligations:
---   'withdrawn'  = author/editor request post-publication; tombstone only, attrs kept, changes kept
---   'retracted'  = post-publication integrity issue; tombstone only, attrs kept, changes kept
---   'takedown'   = legal obligation; attrs purged, bbl_work_takedowns row required
---                  changes history may also be purged depending on legal_basis
+--   'withdrawn'  = author/editor request post-publication; tombstone only, no purge
+--   'retracted'  = post-publication integrity issue; tombstone only, no purge
+--   'takedown'   = legal obligation; bbl_work_takedowns row required; attrs and/or
+--                  changes history purged depending on legal_basis
 CREATE TABLE bbl_works (
     id             uuid PRIMARY KEY,
     version        int NOT NULL,
@@ -475,41 +440,37 @@ CREATE TABLE bbl_works (
     created_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     updated_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     kind           text NOT NULL,     -- 'journal_article' | 'book' | 'dataset' | ...
-    subkind        text,
-    status         text NOT NULL,     -- 'draft' | 'suggestion' | 'public' | 'deleted'
+    status         text NOT NULL,     -- 'draft' | 'public' | 'deleted'
     delete_kind    text,              -- 'withdrawn' | 'retracted' | 'takedown'; set with status='deleted'
     deleted_at     timestamptz,       -- set when status transitions to 'deleted'
     deleted_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    attrs_purged_at timestamptz,      -- set when attrs was legally scrubbed; implies attrs = '{}'
-    attrs          jsonb NOT NULL DEFAULT '{}'
+    attrs               jsonb NOT NULL DEFAULT '{}',  -- '{}' when attrs have been purged via takedown
+    provenance          jsonb NOT NULL DEFAULT '{}',  -- {field: source} informational; set by ingest path
+    attrs_locked_fields text[] NOT NULL DEFAULT '{}'  -- fields a curator has locked; ingest skips these
 );
 
 CREATE INDEX ON bbl_works (status);
-CREATE INDEX ON bbl_works (status) WHERE status = 'deleted' AND attrs_purged_at IS NULL;  -- tombstones with content
 
 -- Legal takedown record. One row per takedown decision.
--- Tracks the legal basis and request provenance; this row survives even after attrs
--- is purged and is itself subject to data retention policies.
+-- Survives after purging; subject to its own data retention policy.
 -- legal_basis: 'gdpr_erasure' | 'right_to_be_forgotten' | 'patent' | 'court_order' | 'other'
+-- attrs_purged_at / changes_purged_at: NULL = not yet purged; set when each purge is executed.
+-- Both may be set, either, or neither depending on legal_basis and policy.
 CREATE TABLE bbl_work_takedowns (
-    id             uuid PRIMARY KEY,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id),  -- intentionally no CASCADE
-    legal_basis    text NOT NULL,
-    reference      text,              -- external case/ticket/dossier reference
-    requested_at   timestamptz NOT NULL,
-    requested_by   text,              -- name or org of requesting party (free text, may be redacted)
-    decided_at     timestamptz,
-    decided_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    decided_rev_id uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
-    attrs_purged_at   timestamptz,      -- when bbl_works.attrs was set to '{}'
-    changes_purged_at timestamptz,      -- when bbl_changes rows for this work were deleted;
-                                        -- only required for gdpr_erasure / right_to_be_forgotten;
-                                        -- NULL = changes history retained (patent, court_order, etc.)
-    notes          text               -- internal curator notes; not exposed publicly
+    id                uuid PRIMARY KEY,
+    work_id           uuid NOT NULL REFERENCES bbl_works (id),  -- intentionally no CASCADE
+    legal_basis       text NOT NULL,
+    reference         text,            -- external case/ticket reference
+    requested_at      timestamptz NOT NULL,
+    requested_by      text,            -- name/org of requesting party; free text
+    decided_at        timestamptz,
+    decided_by_id     uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    attrs_purged_at   timestamptz,     -- when bbl_works.attrs was set to '{}'
+    changes_purged_at timestamptz,     -- when bbl_changes rows for this work were deleted
+    notes             text
 );
 
 CREATE INDEX ON bbl_work_takedowns (work_id);
-CREATE INDEX ON bbl_work_takedowns (legal_basis);
 
 -- Source provenance: which external systems contributed to this work.
 -- One row per (work, source). Multiple rows when the same work is ingested
@@ -530,25 +491,17 @@ CREATE TABLE bbl_work_sources (
 CREATE INDEX ON bbl_work_sources (source, source_record_id);
 CREATE INDEX ON bbl_work_sources (candidate_id) WHERE candidate_id IS NOT NULL;
 
--- Work identifiers: normalized, with source and validity.
 CREATE TABLE bbl_work_identifiers (
-    id         uuid PRIMARY KEY,
-    scheme     text NOT NULL,
-    value_norm text NOT NULL,
-    issuer     text NOT NULL DEFAULT '',
-    UNIQUE (scheme, value_norm, issuer)
+    id      uuid PRIMARY KEY,
+    work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    scheme  text NOT NULL,
+    value   text NOT NULL,
+    source  text REFERENCES bbl_sources (id),
+    UNIQUE (work_id, scheme, value)
 );
 
-CREATE TABLE bbl_work_record_identifiers (
-    work_id       uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    identifier_id uuid NOT NULL REFERENCES bbl_work_identifiers (id) ON DELETE CASCADE,
-    PRIMARY KEY (work_id, identifier_id),
-    idx           int NOT NULL,
-    source        text REFERENCES bbl_sources (id),
-    UNIQUE (work_id, idx)
-);
-
-CREATE INDEX ON bbl_work_record_identifiers (identifier_id);
+CREATE INDEX ON bbl_work_identifiers (work_id);
+CREATE INDEX ON bbl_work_identifiers (scheme, value);
 
 -- Contributors: person_identity_id links to canonical identity.
 -- person_identity_snapshot preserves name/role as recorded at time of contribution
@@ -570,7 +523,7 @@ CREATE INDEX ON bbl_work_contributors (person_identity_id) WHERE person_identity
 CREATE TABLE bbl_work_organizations (
     work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     idx             int NOT NULL,
-    organization_id uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE RESTRICT,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE RESTRICT,
     role            text,
     PRIMARY KEY (work_id, idx),
     UNIQUE (work_id, organization_id)
@@ -607,7 +560,7 @@ CREATE TABLE bbl_work_rels (
 
 CREATE INDEX ON bbl_work_rels (rel_work_id);
 
--- Files: includes checksum and upload status.
+-- Files: includes checksum, upload status, and access control.
 CREATE TABLE bbl_work_files (
     work_id       uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     idx           int NOT NULL,
@@ -615,18 +568,11 @@ CREATE TABLE bbl_work_files (
     name          text NOT NULL,
     content_type  text NOT NULL,
     size          int NOT NULL,
-    sha256        text,          -- populated after upload confirmation
+    sha256        text,           -- populated after upload confirmation
     upload_status text NOT NULL DEFAULT 'pending',  -- pending | complete | failed
-    PRIMARY KEY (work_id, idx)
-);
-
--- Per-work-file access control (open | restricted | embargo | closed).
-CREATE TABLE bbl_work_file_access (
-    work_id       uuid NOT NULL,
-    idx           int NOT NULL,
-    kind          text NOT NULL DEFAULT 'open',
-    embargo_until timestamptz,
-    FOREIGN KEY (work_id, idx) REFERENCES bbl_work_files (work_id, idx) ON DELETE CASCADE,
+    access_kind         text NOT NULL DEFAULT 'open',  -- open | restricted | closed
+    embargo_until       timestamptz,                   -- when access transitions to embargo_access_kind
+    embargo_access_kind text,                          -- e.g. 'open' or 'restricted'; NULL when no embargo
     PRIMARY KEY (work_id, idx)
 );
 
@@ -637,41 +583,35 @@ CREATE TABLE bbl_work_file_access (
 
 -- ============================================================
 -- REPRESENTATIONS & SETS
--- Generalized to cover any entity type, not just works.
--- entity_type mirrors bbl_changes: 'work' | 'person_identity' | 'organization_identity' | ...
--- entity_version is the entity.version captured at render time;
--- a background worker (catbird) can detect stale reps with:
---   SELECT r.* FROM bbl_representations r
---   JOIN bbl_works e ON r.entity_id = e.id
---   WHERE r.entity_type = 'work' AND r.entity_version < e.version
+-- Precomputed serialization cache for works (OAI-PMH, CSL, MODS, ...).
+-- entity_version is the work.version at render time; stale when work.version > this.
+-- record_sha256 detects no-op re-renders: UpsertWorkRepresentation skips the write
+-- and does not advance updated_at when the hash matches.
 -- ============================================================
 
-CREATE TABLE bbl_sets (
+CREATE TABLE bbl_work_collections (
     id          uuid PRIMARY KEY,
     name        text NOT NULL UNIQUE,
     description text
 );
 
-CREATE TABLE bbl_representations (
-    id             uuid PRIMARY KEY,
-    entity_type    text NOT NULL,    -- 'work' | 'person_identity' | 'organization_identity' | ...
-    entity_id      uuid NOT NULL,
-    scheme         text NOT NULL,    -- 'oai_dc' | 'mods' | 'csl' | 'vcard' | ...
+CREATE TABLE bbl_work_representations (
+    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    scheme         text NOT NULL,    -- 'oai_dc' | 'mods' | 'csl' | ...
     record         bytea NOT NULL,
-    entity_version int NOT NULL,     -- entity.version at render time; stale when entity.version > this
+    record_sha256  bytea NOT NULL,
+    work_version   int NOT NULL,
     updated_at     timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    UNIQUE (entity_type, entity_id, scheme)
+    PRIMARY KEY (work_id, scheme)
 );
 
-CREATE INDEX ON bbl_representations (entity_type, entity_id);
-CREATE INDEX ON bbl_representations (updated_at);
+CREATE INDEX ON bbl_work_representations (updated_at);
 
--- Sets group work representations for OAI-PMH set membership.
--- Keyed by representation id; set members are always entity_type='work' reps.
-CREATE TABLE bbl_set_representations (
-    set_id            uuid NOT NULL REFERENCES bbl_sets (id) ON DELETE CASCADE,
-    representation_id uuid NOT NULL REFERENCES bbl_representations (id) ON DELETE CASCADE,
-    UNIQUE (set_id, representation_id)
+-- Named work groups (OAI-PMH sets, open access subsets, faculty feeds, ...).
+CREATE TABLE bbl_work_collection_works (
+    collection_id uuid NOT NULL REFERENCES bbl_work_collections (id) ON DELETE CASCADE,
+    work_id       uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    PRIMARY KEY (collection_id, work_id)
 );
 
 -- ============================================================
@@ -701,7 +641,7 @@ CREATE TABLE bbl_revs (
 CREATE TABLE bbl_changes (
     id          bigserial PRIMARY KEY,
     rev_id      uuid NOT NULL REFERENCES bbl_revs (id),  -- no cascade: revs are immutable
-    entity_type text NOT NULL,   -- 'user' | 'organization_identity' | 'organization_record'
+    entity_type text NOT NULL,   -- 'user' | 'organization'
                                  -- | 'person_identity' | 'person_record' | 'project' | 'work'
     entity_id   uuid NOT NULL,
     op_type     text NOT NULL,   -- 'create' | 'update' | 'delete'
@@ -723,10 +663,12 @@ CREATE INDEX ON bbl_changes (entity_id);
 
 CREATE TABLE bbl_lists (
     id            uuid PRIMARY KEY,
+    version       int NOT NULL,
     name          text NOT NULL,
     public        boolean NOT NULL DEFAULT false,
     entity_type   text,                -- NULL = heterogeneous; set to lock list to one type
     created_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    updated_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
     created_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL
 );
 
@@ -734,7 +676,7 @@ CREATE INDEX ON bbl_lists (created_by_id);
 
 CREATE TABLE bbl_list_items (
     list_id     uuid NOT NULL REFERENCES bbl_lists (id) ON DELETE CASCADE,
-    entity_type text NOT NULL,   -- 'work' | 'person_identity' | 'organization_identity' | ...
+    entity_type text NOT NULL,   -- 'work' | 'person_identity' | 'organization' | ...
     entity_id   uuid NOT NULL,
     pos         text NOT NULL COLLATE "C",
     UNIQUE (list_id, entity_type, entity_id),
@@ -756,8 +698,7 @@ CREATE INDEX ON bbl_list_items (entity_type, entity_id);
 --                       Bearer <token>, or any integration-specific header. Values stored encrypted.
 --
 -- Reliability:
---   enabled           = false suspends delivery without deletion; set by user or auto-set on excess failures.
---   suspended_at      = set automatically when failure_count exceeds the application threshold.
+--   status            = 'active' | 'disabled' (user) | 'suspended' (auto on excess failures)
 --   failure_count     = consecutive delivery failures; reset to 0 on any successful delivery.
 --   last_attempted_at / last_succeeded_at = updated by the catbird dispatcher after each job.
 --
@@ -774,8 +715,7 @@ CREATE TABLE bbl_subscriptions (
     webhook_url         text,                              -- NULL = internal only
     webhook_secret      text,                              -- HMAC-SHA256 signing secret; encrypted at rest
     webhook_headers     jsonb NOT NULL DEFAULT '{}',       -- extra headers; values encrypted at rest
-    enabled             boolean NOT NULL DEFAULT true,
-    suspended_at        timestamptz,                       -- set on auto-suspend from repeated failures
+    status              text NOT NULL DEFAULT 'active',    -- active | disabled | suspended
     failure_count       int NOT NULL DEFAULT 0,
     last_attempted_at   timestamptz,
     last_succeeded_at   timestamptz,
@@ -788,7 +728,7 @@ CREATE TABLE bbl_subscriptions (
 CREATE INDEX ON bbl_subscriptions (user_id);
 CREATE INDEX ON bbl_subscriptions (topic);
 CREATE INDEX ON bbl_subscriptions (entity_type, entity_id) WHERE entity_type IS NOT NULL;
-CREATE INDEX ON bbl_subscriptions (topic, enabled) WHERE enabled = true;  -- delivery dispatcher
+CREATE INDEX ON bbl_subscriptions (topic) WHERE status = 'active';  -- delivery dispatcher
 
 -- Delivery log, retry scheduling, and per-attempt history are handled by catbird
 -- (PostgreSQL-backed job queue). Each event enqueues one catbird job per matching
@@ -811,7 +751,7 @@ All mutations go through `AddRev`; one rev = one transaction.
 | `UnlinkRecordFromIdentity(record_id, identity_id)` | Detach a record; identity remains |
 | `AcceptMatchCandidate(candidate_id)` | Accept a proposed link; triggers `LinkRecordToIdentity` |
 | `RejectMatchCandidate(candidate_id)` | Dismiss a proposed link |
-| `ResolveIdentityProfile(identity_id)` | Recompute `resolved_attrs` + `resolved_provenance` from active members |
+| `ResolveIdentityProfile(identity_id)` | Recompute `attrs` + `provenance` from active records |
 
 ---
 
@@ -823,6 +763,36 @@ A single `Repository` backed by one PostgreSQL connection pool. All commands go 
 
 A split into multiple repos is not warranted: `AddRev` is a shared primitive, queries
 join across entity boundaries, and `bbl_grants`/`bbl_changes` are genuinely cross-entity.
+
+#### Identifier-based addressing
+
+Commands that reference related entities (e.g. `AddWorkProject`, `MergeAttrs` on a
+work ingested by a harvester) require an internal UUID. External callers — harvesters,
+importers, API clients — often know only a domain identifier: a project grant number,
+an ORCID, a DOI, a WoS ID.
+
+The resolution model keeps the core command layer UUID-only:
+
+```
+Ref = uuid | {scheme: text, value: text}
+```
+
+A `ResolveRef(entityType, ref) → uuid` helper runs inside the same transaction before
+the command executes. If the identifier maps to no entity, the caller may choose to
+create one first (`IngestPersonRecord`, `CreateProject`, …) or treat the absence as a
+validation error. The resolved UUID is what gets stored in `bbl_changes.diff` — the
+audit trail is always in terms of internal IDs.
+
+Examples:
+```
+AddWorkProject(workID, Ref{scheme: "fwo_grant", value: "G001234N"})
+  → resolves to project uuid, then proceeds as AddWorkProject(workID, <uuid>)
+
+MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
+  → resolves to work uuid, then proceeds as MergeAttrs(<uuid>, attrs)
+```
+
+`ResolveRef` is a thin lookup against the relevant `bbl_*_identifiers` table. It does not create entities.
 
 ### Users
 
@@ -844,15 +814,13 @@ join across entity boundaries, and `bbl_grants`/`bbl_changes` are genuinely cros
 
 | Method | Type | Description |
 |---|---|---|
-| `GetOrganizationIdentity(id)` | query | Fetch canonical identity with resolved attrs |
-| `GetOrganizationRecord(id)` | query | Fetch a source record |
-| `ListOrganizationIdentities(opts)` | query | Paginated list with filters (kind, search) |
+| `GetOrganization(id)` | query | Fetch org with identifiers |
+| `ListOrganizations(opts)` | query | Paginated list with filters (kind, search) |
 | `GetOrganizationTree(id, at)` | query | Ancestor/descendant walk via `bbl_organization_rels` at a point in time |
-| `IngestOrganizationRecord(source, sourceRecordID, attrs)` | command | Import or refresh a source record |
-| `CreateOrganizationIdentity()` | command | New canonical identity |
-| `LinkOrgRecordToIdentity(recordID, identityID, linkKind, confidence)` | command | Attach record to identity |
-| `UnlinkOrgRecordFromIdentity(recordID, identityID)` | command | Detach record; identity remains |
-| `ResolveOrganizationProfile(identityID)` | command | Recompute `resolved_attrs` + `resolved_provenance` from active members |
+| `CreateOrganization(kind, attrs)` | command | New org |
+| `UpdateOrganization(id, attrs)` | command | Update attrs (including names) |
+| `AddOrganizationIdentifier(orgID, scheme, value, validFrom, validTo)` | command | Add a time-bounded identifier |
+| `RevokeOrganizationIdentifier(id)` | command | Set `revoked_at` |
 | `AddOrganizationRel(orgID, relOrgID, kind, validFrom, validTo)` | command | Add temporal hierarchy or merger fact |
 | `RemoveOrganizationRel(id)` | command | End or delete a relationship |
 
@@ -871,7 +839,7 @@ join across entity boundaries, and `bbl_grants`/`bbl_changes` are genuinely cros
 | `UnlinkPersonRecordFromIdentity(recordID, identityID)` | command | Detach record; identity remains |
 | `AcceptPersonMatchCandidate(candidateID)` | command | Accept proposed link; triggers `LinkPersonRecordToIdentity` |
 | `RejectPersonMatchCandidate(candidateID)` | command | Dismiss proposed link |
-| `ResolvePersonProfile(identityID)` | command | Recompute `resolved_attrs` + `resolved_provenance` from active members |
+| `ResolvePersonProfile(identityID)` | command | Recompute `attrs` + `provenance` from active records |
 | `AddPersonAffiliation(personID, orgID, role, validFrom, validTo, source)` | command | Record org affiliation |
 | `RemovePersonAffiliation(id)` | command | End or delete an affiliation |
 | `AddPersonProjectRole(personID, projectID, role, validFrom, validTo)` | command | Record project membership |
@@ -970,7 +938,7 @@ join across entity boundaries, and `bbl_grants`/`bbl_changes` are genuinely cros
 |---|---|---|
 | `GetRepresentation(entityType, entityID, scheme)` | query | Fetch cached serialized form |
 | `ListStaleRepresentations(entityType)` | query | Rows where `entity_version < current entity.version`; drives catbird batch re-render |
-| `UpsertRepresentation(entityType, entityID, scheme, record, entityVersion)` | command | Insert or replace cache; sets `updated_at` |
+| `UpsertRepresentation(entityType, entityID, scheme, record, entityVersion)` | command | Insert or replace cache; computes SHA-256 of `record`, skips write if hash matches stored `record_sha256`; advances `updated_at` only when content changes |
 | `DeleteRepresentation(entityType, entityID, scheme)` | command | Invalidate cache entry; next render re-populates it |
 
 ---
@@ -998,10 +966,11 @@ the sets involved.
 The current schema stores identifiers as `(idx, scheme, val)` arrays per entity with no
 source or validity. This makes temporal queries and reuse tracking impossible.
 
-The greenfield approach normalizes identifiers into a shared catalog
-(`bbl_*_identifiers`) with `value_norm`, then links records to them via a join table
-with `valid_from/to` and `revoked_at`. One identifier can appear on multiple records
-over time without data conflicts.
+The greenfield approach normalizes identifiers into per-entity catalog tables
+(`bbl_*_identifiers`) linked via join tables. One identifier value can appear on
+multiple entities without data conflicts. Org identifiers carry `valid_from/to` to
+handle reuse across splits and mergers; person, project, and work identifier join
+tables are plain — wrong identifiers are deleted, not soft-revoked.
 
 ### Organization tree over time
 `bbl_organization_rels` adds `valid_from/to` and `kind` so that mergers, splits, and
@@ -1030,34 +999,109 @@ cache capturing name, role, and other attribution at time of entry:
 - **Linked contributor**: snapshot holds attribution at link time. If the link is later
   changed or cleared, the snapshot provides stable display without touching `bbl_changes`.
 
+### Curation-only identities
+
+The MDM records→identity model for people is designed for entities that arrive from
+multiple external authority sources (ORCID, ISNI, Scopus). But some valid person
+identities have no external source — a medieval historian, a pseudonymous author, a
+historic local figure. Forcing a `source = 'manual'` record through the full MDM
+stack just to create one identity is unnecessary machinery.
+
+The pattern: a `bbl_person_identity` can have zero linked records. The identity row
+itself is the authoritative edit surface. Curator commands write directly to `attrs`;
+`provenance` is absent or `{}`. `ResolveIdentityProfile` is never called — there are
+no records to aggregate from.
+
+This is already compatible with the current schema. No structural change is needed;
+it is an operational mode. The distinction:
+
+| | Authority-aggregated | Curation-only |
+|---|---|---|
+| Records | ≥1 external source records | none |
+| `attrs` | synthesised by resolution step | written directly by curator |
+| `provenance` | `{field: source}` map | `{}` or absent |
+| Re-resolution trigger | source record update | never (no sources) |
+| Match candidates | generated by matching agents | not applicable |
+
+Curation-only identities live in the same tables and participate in the same
+contributor links. The only difference is that the resolution machinery is never
+invoked for them.
+
+The people model degrades gracefully: an identity that starts as curation-only can
+gain external records later (a researcher claims their ORCID), at which point it
+transitions to authority-aggregated without any row migration.
+
+Note: `bbl_organizations` is always curator-managed — no records layer, no resolution
+step. It is structurally the simpler model for the same reason: orgs arrive from at
+most one source at a time and do not require cross-source deduplication.
+
 ### bbl_changes redesign
 The current `CHECK` sum constraint works but is brittle for adding new entity types.
 The greenfield model uses explicit `entity_type text` + `entity_id uuid` columns plus
 an `op_type` field. This makes cross-entity queries natural and is easier to extend.
 
-### Representations
-The current `bbl_representations` table is a work-only precomputed serialization cache
-primarily for OAI-PMH. The same need exists for other entities: a person identity's
-VCARD, an organization's XML export, a CSL/BibTeX rendering of a work. Computing these
-at request time is expensive enough to justify a cache.
+#### diff envelope
 
-The generalized model uses `(entity_type, entity_id, scheme)` — the same discriminator
-pattern as `bbl_changes` — so all entity types share one table without a FK proliferation.
-No hard FK to entity tables: the cache is intentionally soft-linked, and a missing or
-stale row is never a correctness problem, only a performance one.
+Every `diff` value follows a single command envelope:
 
-`entity_version` captures the entity's `version` counter at render time. Staleness
-detection is a simple join:
-```sql
-SELECT r.entity_id FROM bbl_representations r
-JOIN bbl_works e ON r.entity_id = e.id
-WHERE r.entity_type = 'work' AND r.entity_version < e.version;
+```json
+{
+  "name": "SetTitle",
+  "args": { "title": "New Title" },
+  "prev": { "title": "Old Title" }
+}
 ```
-A catbird background task uses this to drive batch re-renders, keeping the cache
-eventually consistent without synchronous coupling to the write path.
 
-`bbl_set_representations` remains a work-only concept (OAI sets group works), but now
-references the generalized table by `representation_id` without needing to change shape.
+- **`name`** — the command name, matching the Repository method that produced the change.
+- **`args`** — the new values for the fields the command writes. Only the fields actually
+  touched are present; unaffected fields are absent.
+- **`prev`** — the prior values of those same fields, captured before the write. Present
+  for all `update` ops. Omitted (or `{}`) for `create`; `args` is omitted for `delete`.
+
+In practice two kinds of commands write to this table:
+
+**Discrete curator/user commands** — each has a specific name and a small, bounded
+`args`/`prev` set:
+```json
+{ "name": "SetTitle",        "args": {"title": "New"},         "prev": {"title": "Old"} }
+{ "name": "Publish",         "args": {"status": "public"},     "prev": {"status": "draft"} }
+{ "name": "AddContributor",  "args": {"pos": "a", "name": "J. Doe"} }
+```
+
+**System bulk commands** — harvesters and importers that push a partial or complete new
+document version use the same envelope with a conventional name:
+```json
+{ "name": "MergeAttrs",   "args": {"title": "X", "year": 2024}, "prev": {"title": "Y", "year": 2023} }
+{ "name": "ReplaceAttrs", "args": {<full attrs>},               "prev": {<full attrs>} }
+```
+
+`MergeAttrs` is a partial update (only supplied fields change); `ReplaceAttrs` is a
+full swap of the `attrs` blob. Both exclude protected fields (`status`, `delete_kind`,
+`deleted_at`, `deleted_by_id`, `attrs_purged_at`) — those fields are only ever written
+by their own named commands.
+
+The human-vs-system distinction is already carried by `bbl_revs`: `user_id` is non-NULL
+for human actions, `source` is non-NULL for system actions. No `diff_kind` discriminator
+is needed in the diff body itself.
+
+`prev` enables GDPR field-level reasoning: to purge a specific personal data field (e.g.
+a name value) from the change history, scan `diff->>'name'` and zero out only the
+relevant key in `args` and `prev` — no need to inspect or rewrite the full `attrs` blob.
+
+### Representations
+`bbl_work_representations` is a precomputed serialization cache keyed by `(work_id, scheme)`.
+`work_version` captures `bbl_works.version` at render time; a catbird background task
+detects stale rows with `WHERE work_version < bbl_works.version` and queues re-renders.
+
+`record_sha256` detects no-op re-renders: `UpsertWorkRepresentation` hashes the
+incoming bytes, compares to the stored hash, and skips the write when they match.
+`updated_at` only advances on content change — a curator editing a field that a scheme
+does not expose produces no spurious bump and triggers no downstream OAI-PMH or webhook
+consumers.
+
+`bbl_work_collection_works` links works to named collections (OAI-PMH sets, open access
+subsets, faculty feeds). Collections are administratively defined, distinct from
+user-curated `bbl_lists`. The representation is looked up at serve time by scheme.
 
 ### bbl_revs source field
 Automated imports should be distinguishable from human edits in the audit log.
@@ -1126,11 +1170,10 @@ are expressed exclusively through `bbl_grants`.
 transferable (`UPDATE bbl_grants SET user_id = ...`), revocable, and fully audited via
 `bbl_changes`. `created_by_id` on the work row remains a pure creation audit column.
 
-**Proxy scope**  
-`bbl_user_proxies` handles full-person delegation (leave coverage). If scoped delegation
-is needed later (a PA who should only curate works, not act on approvals), an
-`optional scope_type/scope_id` pair can be added to `bbl_user_proxies` without
-changing its existing rows.
+**Proxy delegation**
+`bbl_user_proxies` handles full-person delegation (leave coverage). A proxy inherits
+the proxied user's entire effective grant set dynamically for the duration of the
+window — no grant copying required.
 
 **`note` field**  
 Every grant row carries an optional `note text`. This turns the grants table into a
@@ -1173,6 +1216,25 @@ Science · last updated 2025-01-10").
 This is intentionally lighter than the full MDM records/identities model used for
 people. Work deduplication happens at the candidate stage via identifier matching;
 no separate records layer is needed.
+
+### MergeAttrs and source precedence
+
+Once a work is accepted, `bbl_works.attrs` is the curator's authoritative version —
+not an aggregate of source inputs. A subsequent harvester `MergeAttrs` must not
+silently overwrite curator edits. Two complementary mechanisms enforce this:
+
+**C — No direct `MergeAttrs` on accepted works**
+Harvesters update the source candidate record rather than `bbl_works.attrs` directly.
+A separate resolution step (human or automated) synthesises `bbl_works.attrs` from
+the candidate set. This is the structural safeguard.
+
+**B — Curator-locked fields (`attrs_locked_fields text[]`)**
+A curator can explicitly lock individual fields (e.g. `["title", "year"]`). Any
+`MergeAttrs` that does reach an accepted work (e.g. a privileged admin path) silently
+skips locked fields. No priority ordering required.
+
+C is the default; B is the per-field escape hatch when automated resolution still
+needs to refresh most fields but the curator has fixed specific ones.
 
 ---
 
@@ -1223,11 +1285,11 @@ CREATE INDEX ON bbl_work_candidates (work_id) WHERE work_id IS NOT NULL;
 CREATE TABLE bbl_work_candidate_identifiers (
     candidate_id uuid NOT NULL REFERENCES bbl_work_candidates (id) ON DELETE CASCADE,
     scheme       text NOT NULL,
-    value_norm   text NOT NULL,
+    value   text NOT NULL,
     PRIMARY KEY (candidate_id, scheme)
 );
 
-CREATE INDEX ON bbl_work_candidate_identifiers (scheme, value_norm);
+CREATE INDEX ON bbl_work_candidate_identifiers (scheme, value);
 
 -- Candidate → person identity suggestions.
 -- Populated by harvesting/matching agents (catbird).
@@ -1248,7 +1310,7 @@ CREATE INDEX ON bbl_work_candidate_persons (person_identity_id, confidence);
 -- Powers the backoffice review queue: "show pending candidates for faculty X".
 CREATE TABLE bbl_work_candidate_organizations (
     candidate_id    uuid NOT NULL REFERENCES bbl_work_candidates (id) ON DELETE CASCADE,
-    organization_id uuid NOT NULL REFERENCES bbl_organization_identities (id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     confidence      numeric NOT NULL,
     match_signal    text,
     PRIMARY KEY (candidate_id, organization_id)
@@ -1292,9 +1354,14 @@ background job (catbird):
 
 ## Open questions
 
-- **`bbl_people` / `bbl_organizations` migration**: treat existing rows as `source = 'manual'`
-  records, or run old and new models in parallel during transition?
-- **Organization dedup**: apply the same match candidate + scores tables as for people?
+- **`bbl_people` migration**: treat existing rows as curation-only person identities
+  (no records), or run old and new models in parallel during transition?
+- **Org name snapshot at link time**: `bbl_work_organizations` links a work to an org by
+  UUID. If the org is later renamed (same UUID, updated `attrs.names`), the link still
+  resolves but the name shown will differ from the name at time of authorship. Options:
+  (a) accept it — org renames are rare and current name is good enough for display;
+  (b) add `organization_snapshot jsonb` to `bbl_work_organizations`, same pattern as
+  `person_identity_snapshot` on contributors. Decide before implementation.
 - **`bbl_changes` entity_id type**: `uuid` works for all current entities but breaks if
   non-UUID entity types are added later.
 - **`bbl_changes` table size and partitioning**: at institutional scale this table will
