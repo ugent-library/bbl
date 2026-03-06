@@ -599,7 +599,7 @@ CREATE TABLE bbl_work_files (
 -- may PublishWork directly without any messages. A back-and-forth conversation
 -- (AddWorkReviewComment, ReturnToDraft) appends messages here before Catbird
 -- sends the notification. PublishWork or ReturnToDraft close the workflow.
-CREATE TABLE bbl_work_reviews (
+CREATE TABLE bbl_work_review_rounds (
     id           uuid PRIMARY KEY,
     work_id      uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     status       text NOT NULL DEFAULT 'open',  -- open | published | returned
@@ -607,7 +607,7 @@ CREATE TABLE bbl_work_reviews (
     closed_at    timestamptz,
     opened_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL  -- the submitter
 );
-CREATE INDEX ON bbl_work_reviews (work_id);
+CREATE INDEX ON bbl_work_review_rounds (work_id);
 
 -- Append-only message sequence within a review workflow. Only present when the
 -- curator initiated a review conversation; workflows closed by a direct
@@ -618,7 +618,7 @@ CREATE INDEX ON bbl_work_reviews (work_id);
 --       'published'      = curator closes workflow after back-and-forth; optional note
 CREATE TABLE bbl_work_review_messages (
     id          uuid PRIMARY KEY,
-    workflow_id uuid NOT NULL REFERENCES bbl_work_reviews (id) ON DELETE CASCADE,
+    workflow_id uuid NOT NULL REFERENCES bbl_work_review_rounds (id) ON DELETE CASCADE,
     seq         int  NOT NULL,
     rev_id      uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
     author_id   uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
