@@ -137,22 +137,72 @@ canonical identifiers that i18n files reference.
 See `greenfield-schema-sketch.md → Field model and profiles` for the full design,
 including the `bbl profile diff` safety check and change classification.
 
+### Profile structure
+
+Fields are an ordered array — array order is the render order in forms. Each entry
+names a field, declares its type from the Go field catalog, and sets behavioural flags:
+
+```yaml
+kinds:
+  journal_article:
+    fields:
+      - name: title
+        type: text
+        required: true
+      - name: contributors
+        type: contributor_list
+      - name: identifiers
+        type: identifier_list
+        schemes:
+          - name: doi
+            uri: 'https://doi.org/{val}'
+          - name: issn
+      - name: journal_title
+        type: text
+        required: true
+        locked: true        # harvester cannot overwrite
+      - name: publication_year
+        type: year
+        required: true
+    subkinds:
+      - subkind: proceedings_paper
+        fields:
+          - name: conference
+            type: text
+
+  # New kind — no Go changes required; uses existing field types
+  research_report:
+    fields:
+      - name: title
+        type: text
+        required: true
+      - name: contributors
+        type: contributor_list
+      - name: publication_year
+        type: year
+```
+
+Kinds and field instances are profile-only. Only new field *types* (a new structured
+data shape not already in the Go catalog) require a Go change and a bbl release.
+
 ### What can be customized
 
 - Which work kinds are active (and which are deprecated)
 - Defining new work kinds — any combination of fields from the Go field catalog
-- Which fields are active per kind, and their required/optional status
-- Field display order (declaration order in YAML)
-- Which fields are locked (protected from harvester overwrite)
-- Validation rules — constraints beyond required/optional expressed as CEL expressions
-  in the profile (e.g. allowed values, max length, cross-field rules) *(planned;
-  profiles without rules work unchanged)*
+- Which fields are active per kind, their required/optional status, and render order
+- Which fields are `locked` (harvester cannot overwrite; per-field in the profile,
+  separate from per-work curator locks)
+- Identifier and classification schemes per kind, with optional validation patterns
+  and link-out URI templates
+- Subkind overrides — add fields, override flags, or remove inherited fields (`remove: [field_name]`)
+- Validation rules — CEL expressions for constraints beyond required/optional
+  *(planned; profiles without rules work unchanged)*
 
 ### What cannot be customized via profile
 
 - Field labels, help text, or submission guidelines — those live in i18n
-- Adding entirely new field *types* not present in the Go model — requires a Go change
-  and a bbl release
+- Adding entirely new field *types* not present in the Go catalog — requires a Go
+  change and a bbl release
 - Changing field semantics or structural schema
 
 ---

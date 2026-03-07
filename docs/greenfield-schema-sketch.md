@@ -1184,23 +1184,70 @@ These commands help operators author a correct profile before deploying:
 **Profile structure — one document, per-kind sections:**
 
 A single YAML document with a section per work kind. Applied atomically as one
-snapshot. Fields listed in declaration order, which is also the render order in forms.
-Shared fields (title, abstract, contributors) are explicit in each kind's section —
-no implicit inheritance.
+snapshot. Shared fields (title, abstract, contributors) are explicit in each kind's
+section — no implicit inheritance.
+
+Fields are an **ordered array**, not a map. Array order is the render order in forms;
+YAML map key order is not guaranteed across parsers.
+
+Each field entry has:
+- `name` — canonical key; referenced by i18n files
+- `type` — field type from the Go field catalog (e.g. `text`, `year`, `contributor_list`, `identifier_list`)
+- `required` / `optional` / `locked` — behavioural flags; `locked` means harvester cannot overwrite
+- type-specific config (e.g. `schemes` for identifier/classification fields)
 
 ```yaml
 kinds:
   journal_article:
     fields:
-      title:    { required: true }
-      abstract: { optional: true }
-      volume:   { optional: true }
-      issue:    { optional: true }
+      - name: title
+        type: text
+        required: true
+      - name: abstract
+        type: text
+      - name: contributors
+        type: contributor_list
+      - name: identifiers
+        type: identifier_list
+        schemes:
+          - name: doi
+            uri: 'https://doi.org/{val}'
+          - name: issn
+          - name: arxiv
+      - name: journal_title
+        type: text
+        required: true
+      - name: publication_year
+        type: year
+        required: true
+      - name: volume
+        type: text
+      - name: issue
+        type: text
+    subkinds:
+      - subkind: proceedings_paper
+        fields:
+          - name: conference
+            type: text
+        remove: [article_number]   # explicitly drops a parent field
+
   book:
     fields:
-      title:    { required: true }
-      isbn:     { optional: true }
+      - name: title
+        type: text
+        required: true
+      - name: identifiers
+        type: identifier_list
+        schemes:
+          - name: isbn
+      - name: publication_year
+        type: year
+        required: true
 ```
+
+**Subkind inheritance:** a subkind starts from its parent's field list, then applies
+its own `fields` (add or override) and `remove` (drop by name). The resolved field
+list, not the raw YAML, is what the app sees at runtime.
 
 **Kind deprecation:**
 
@@ -1222,13 +1269,13 @@ load_profile_for_kind(work.kind)
   → kind deprecated:
       render read-only view of all stored attrs fields
   → kind active:
-      for each field in profile[kind].fields (declaration order):
-        render_field(name, required, work.attrs[name])
+      for each field in profile[kind].fields (array order):
+        render_field(field.name, field.required, work.attrs[field.name])
 ```
 
 Fields absent from the profile are not rendered but their data in `attrs` is
-untouched. Required fields are marked in the form. No separate ordering mechanism
-is needed — the profile config is the authoritative render order.
+untouched. Required fields are marked in the form. Array order is the authoritative
+render order — no separate ordering mechanism needed.
 
 ### Ordering (fracdex)
 Fracdex keys (`pos text NOT NULL COLLATE "C"`) support arbitrary insertion and reordering
