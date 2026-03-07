@@ -18,7 +18,7 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | Identifiers | `idx`-ordered arrays everywhere; no source, no validity, no normalization |
 | Work candidates | Modeled as works with a special status; pollutes the works table and indexes with large volumes of stale, low-quality rows; can't prune without losing rejection history |
 | Work candidates | No source provenance on accepted works — once a candidate is accepted there is no way to trace which source system(s) contributed to a work or re-sync with them |
-| Work contributors | No publication-time attribution snapshot; rendering a work requires joining to the current identity state, which may differ from what was recorded at time of entry (identity renamed, relinked, or deliberately unlinked by a curator) |
+| Work contributors | No publication-time attribution snapshot; rendering a work requires joining to the current identity state, which may differ from what was recorded at time of entry (identity renamed, relinked, or deliberately unlinked by a curator) — addressed by inlining contributor display data in the work row JSONB |
 | Work contributors | No role distinction (author vs editor vs translator etc.) at schema level |
 | Work files | No checksum, no upload status, no per-file access control |
 | Representations | Hard FK to `bbl_works` — work-only; other entity types added when needed |
@@ -495,7 +495,8 @@ CREATE TABLE bbl_works (
     deleted_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     attrs               jsonb NOT NULL DEFAULT '{}',  -- '{}' when attrs have been purged via takedown
     provenance          jsonb NOT NULL DEFAULT '{}',  -- {field: source} informational; set by ingest path
-    attrs_locked_fields text[] NOT NULL DEFAULT '{}'  -- fields a curator has locked; ingest skips these
+    attrs_locked_fields text[] NOT NULL DEFAULT '{}', -- fields a curator has locked; ingest skips these
+    doc                 jsonb NOT NULL DEFAULT '{}'   -- inlined display data; written on every AddRev (see design decisions)
 );
 
 CREATE INDEX ON bbl_works (status);
@@ -552,17 +553,15 @@ CREATE TABLE bbl_work_identifiers (
 CREATE INDEX ON bbl_work_identifiers (work_id);
 CREATE INDEX ON bbl_work_identifiers (scheme, value);
 
--- Contributors: person_identity_id links to canonical identity.
--- person_identity_snapshot preserves name/role as recorded at time of contribution
--- so contributor attribution survives renames and dedup merges.
--- person_identity_id nullable: unmatched contributors remain without a link.
+-- Contributors: query surface for person-centric queries ("all works by person P").
+-- Display data (name, identifiers, etc.) lives in the inlined work JSONB on bbl_works,
+-- not here. person_identity_id nullable: unmatched contributors remain without a link.
 CREATE TABLE bbl_work_contributors (
-    work_id                  uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    pos                      text NOT NULL COLLATE "C",  -- fracdex; author order is semantically meaningful
-    person_identity_id       uuid REFERENCES bbl_person_identities (id) ON DELETE SET NULL,
-    person_identity_snapshot jsonb NOT NULL DEFAULT '{}',  -- name, role etc at time of entry
-    role                     text,                          -- 'author' | 'editor' | 'translator' | ...
-    attrs                    jsonb NOT NULL DEFAULT '{}',  -- extra source-specific fields not covered by snapshot/role
+    work_id            uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    pos                text NOT NULL COLLATE "C",  -- fracdex; author order is semantically meaningful
+    person_identity_id uuid REFERENCES bbl_person_identities (id) ON DELETE SET NULL,
+    role               text,                       -- 'author' | 'editor' | 'translator' | ...
+    attrs              jsonb NOT NULL DEFAULT '{}',
     PRIMARY KEY (work_id, pos)
 );
 
@@ -1264,7 +1263,40 @@ renames are first-class temporal facts rather than destructive mutations.
 `kind` values like `merged_into` and `split_from` make the organizational history
 navigable.
 
+### Work `doc` column — inlined display data
+
+`bbl_works` carries a `doc jsonb` column that is written on every `AddRev` call. It
+aggregates all data needed to render or export a work without any further joins:
+
+```
+doc = {
+  "identifiers":    [...],
+  "contributors":   [{ "person_identity_id": "...", "name": "...", "role": "author", ... }],
+  "files":          [...],
+  "rels":           [...],
+  "organizations":  [...],
+  "projects":       [...],
+  "permissions":    [...]
+}
+```
+
+The normalized sub-tables are kept for **FK integrity and consistency** — they are the
+authoritative, constraint-checked store. `doc` is a derived cache, not the source of
+truth. All writes go to the normalized tables first; `doc` is computed from the
+resulting in-memory state and written in the same transaction.
+
+The read path for a single work is a primary-key lookup on `bbl_works` — no joins, no
+lateral aggregation. The view in `bbl_works_view` (lateral joins) is retained for
+ad-hoc and backoffice queries where `doc` is not sufficient.
+
+`doc` is populated from the in-memory state already present at the end of `AddRev`
+(the same state used to build the search document). No extra DB read.
+
+For works with very large sub-arrays (3000+ authors), `doc` will be TOASTed. This adds
+one extra page read but is still faster than aggregating N lateral subqueries.
+
 ### Work contributors
+
 A contributor known only by name — an external co-author not in the authority database —
 is a valid, expected state. `person_identity_id` is intentionally nullable; there is
 nothing to fix there.
@@ -1273,17 +1305,18 @@ Changing or nullifying `person_identity_id` is also a routine curator action (fi
 wrong link). The forensic history of those changes is preserved in `bbl_mutations`, so
 there is no data loss concern.
 
-The actual gap is **rendering**: without a publication-time snapshot on the contributor
-row, displaying a work requires joining to the current state of the linked identity,
-which may differ from what was recorded at entry time (identity renamed, merged, or
-deliberately unlinked).
+`bbl_work_contributors` is a **query surface only** — it drives "all works by person P"
+queries via the `person_identity_id` index. Display data lives in `doc` on `bbl_works`.
 
-The greenfield model adds `person_identity_snapshot jsonb` as a denormalized display
-cache capturing name, role, and other attribution at time of entry:
-- **Unlinked contributor**: snapshot holds the raw attributed name; `person_identity_id`
-  is NULL and stays NULL.
-- **Linked contributor**: snapshot holds attribution at link time. If the link is later
-  changed or cleared, the snapshot provides stable display without touching `bbl_mutations`.
+- **Unlinked contributor**: display data (raw attributed name) lives in `doc`;
+  `person_identity_id` is NULL.
+- **Linked contributor**: display data captured at link time is written into `doc`. If
+  the linked identity is later renamed, a Catbird job re-writes `doc` directly on all
+  affected works (not through `AddRev` — this is a cache refresh, not a business event).
+  Eventually consistent; lag bounded by job queue.
+
+If the link is changed or cleared by a curator, that goes through `AddRev` and is
+recorded in `bbl_mutations`. `doc` is rewritten as part of that mutation.
 
 ### Curation-only identities
 
@@ -1881,11 +1914,10 @@ Catbird passes the async variant.
 - **`bbl_people` migration**: treat existing rows as curation-only person identities
   (no records), or run old and new models in parallel during transition?
 - **Org name snapshot at link time**: `bbl_work_organizations` links a work to an org by
-  UUID. If the org is later renamed (same UUID, updated `attrs.names`), the link still
-  resolves but the name shown will differ from the name at time of authorship. Options:
-  (a) accept it — org renames are rare and current name is good enough for display;
-  (b) add `organization_snapshot jsonb` to `bbl_work_organizations`, same pattern as
-  `person_identity_snapshot` on contributors. Decide before implementation.
+  UUID. If the org is later renamed, the displayed name diverges from the name at time of
+  authorship. Given that the contributor snapshot + async refresh pattern is now established,
+  adding `organization_snapshot jsonb` to `bbl_work_organizations` follows the same model.
+  Decide before implementation; the pattern is clear, the question is priority.
 - **`bbl_mutations` entity_id type**: `uuid` works for all current entities but breaks if
   non-UUID entity types are added later.
 - **`bbl_mutations` table size and partitioning**: at institutional scale this table will
