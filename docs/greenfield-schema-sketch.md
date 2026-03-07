@@ -825,12 +825,29 @@ All mutations go through `AddRev`; one rev = one transaction.
 
 ## Repository — method surface
 
-A single `Repository` backed by one PostgreSQL connection pool. All commands go through
-`AddRev(ctx, userID, source, func(rev) error) (revID, error)` — one transaction, one
+A single `Repo` struct backed by one PostgreSQL connection pool. All commands go through
+`AddRev(ctx, userID, source, []Mutation) (revID, error)` — one transaction, one
 `bbl_revs` row, one or more `bbl_mutations` rows. Queries are plain reads, no rev needed.
 
 A split into multiple repos is not warranted: `AddRev` is a shared primitive, queries
 join across entity boundaries, and `bbl_grants`/`bbl_mutations` are genuinely cross-entity.
+
+**No repository interface**
+
+The prototype defines a `Repo` interface in `repo.go` backed by a single `pgxrepo/`
+implementation. This abstraction serves no practical purpose: the implementation uses
+PostgreSQL features pervasively (`jsonb`, fracdex collation, partial indexes, CTEs for
+tree walks, pgx pipelining in `AddRev`) and there are no plans to support another
+database. A swappable interface is a fictional guarantee here.
+
+The abstraction costs are real: every new method requires a signature in two places,
+mock-based tests are less reliable than tests against a real Postgres, and the interface
+is already leaky (pgx-specific errors, pgx batch types).
+
+The greenfield model uses a concrete `Repo` struct directly. No parallel interface.
+Testing is done against a real Postgres instance (testcontainers or local). The method
+surface (commands as `AddRev` + named mutations, queries as plain reads) provides a
+clean API boundary without requiring an interface to enforce it.
 
 #### Identifier-based addressing
 
@@ -1741,6 +1758,123 @@ background job (catbird):
   refreshes.
 - **No FK from work to candidate**: work is authoritative after acceptance; link is
   candidate-side only.
+
+## Search indexing
+
+### Engine
+
+OpenSearch. Typesense is faster and simpler at low document counts but its all-in-RAM
+model becomes expensive beyond ~1-2M documents (~8-10GB at 500k works, ~80-100GB at
+5M). OpenSearch's disk+cache model scales more predictably for institutional and
+federated use.
+
+Eventual consistency is accepted: the search index reflects writes with a short lag.
+The UI is designed to not re-query search immediately after a write — post-save
+redirects go to the entity detail page (served from Postgres, always consistent).
+
+### Minimising GUI edit latency
+
+The `AddRev` cycle already performs a full entity read for validation before the DB
+write. Mutations are applied in Go against that state, producing the complete
+post-mutation view — contributors, orgs, keywords, identifiers — without any
+additional DB read. After commit, the search document is built from this in-memory
+state at essentially no extra cost.
+
+```
+full entity read (validation)         ← required anyway
+apply mutations in Go → post-state
+write to DB + commit
+build search document from post-state ← free
+send to OpenSearch
+```
+
+The only fields not known in Go post-commit are DB-computed (`updated_at`, `version`).
+These are not search or facet fields and can be omitted from the search document
+without loss.
+
+**`AddRev` is the single write call site — always.** A bulk variant would complicate
+the audit trail and error handling. The indexing behaviour is controlled by a mode
+parameter instead:
+
+```go
+type IndexMode int
+
+const (
+    IndexSync  IndexMode = iota  // refresh=wait_for — GUI path
+    IndexAsync                   // Catbird job     — normal path
+    IndexSkip                    // no indexing     — bulk import path
+)
+
+AddRev(ctx, userID, source, mutations, IndexMode)
+```
+
+**Three-tier indexing path:**
+
+- **GUI writes** (`IndexSync`) — index inline with `refresh=wait_for`. Searchable
+  within one refresh cycle (~200-500ms). No extra DB round-trips.
+- **Normal writes** (`IndexAsync`) — enqueue a Catbird job after commit. OpenSearch
+  1s refresh cycle handles it. No write latency impact.
+- **Bulk imports** (`IndexSkip`) — `AddRev` writes to Postgres only. A Catbird batch
+  job picks up recently modified works (via `updated_at` or a lightweight outbox) and
+  calls the OpenSearch bulk API in one shot. Same pattern as the stale representation
+  re-render job. The harvester calls `AddRev` N times with `IndexSkip`; one Catbird
+  job indexes the whole batch efficiently.
+
+### Document structure
+
+Denormalized — no joins at search time. Abstract is indexed for full-text search but
+not stored in OpenSearch (fetched from Postgres for display), keeping index size down.
+
+```json
+{
+  "id": "...",
+  "kind": "journal_article",
+  "status": "public",
+  "title": "...",
+  "abstract": "...",
+  "publication_year": 2024,
+  "language": "en",
+  "keywords": ["..."],
+  "contributor_names": ["Smith, J.", "Doe, A."],
+  "contributor_identity_ids": ["uuid1", "uuid2"],
+  "organization_ids": ["uuid3"],
+  "organization_names": ["Faculty of Sciences"],
+  "identifier_values": ["10.1000/xyz"]
+}
+```
+
+### Field mapping
+
+| Field | Type | Purpose |
+|---|---|---|
+| `title` | `text` + `keyword` subfield | Full-text search + sort |
+| `abstract` | `text`, not stored | Full-text search only |
+| `contributor_names` | `text` array | Full-text author search |
+| `contributor_identity_ids` | `keyword` array | Filter by person |
+| `kind`, `status`, `language` | `keyword` | Facet |
+| `publication_year` | `integer` | Range facet |
+| `organization_ids` | `keyword` array | Filter by org |
+| `identifier_values` | `keyword` array | Exact match (DOI etc.) |
+
+### Indexing as an extension point
+
+The indexer is a registered component — the default ships with bbl, a custom binary
+can replace or augment it (Typesense, Meilisearch, a second cluster):
+
+```go
+app.RegisterWorkIndexer(indexer WorkIndexer)
+
+type WorkIndexer interface {
+    Index(ctx context.Context, doc *WorkSearchDocument) error
+    Delete(ctx context.Context, id uuid.UUID) error
+}
+```
+
+The `refresh` strategy (wait vs. async) is a parameter on the call site, not part
+of the interface — the `AddRev` cycle passes `refresh=wait_for` for GUI writes,
+Catbird passes the async variant.
+
+---
 
 ## Open questions
 

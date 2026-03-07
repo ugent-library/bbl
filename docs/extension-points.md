@@ -219,20 +219,52 @@ type MutationState struct {
 RegisterMutation(name string, impl MutationImpl)
 ```
 
-`AddRev(ctx, userID, source, []Mutation)` applies a slice of mutations in one
-transaction:
+`AddRev(ctx, userID, source, []Mutation, IndexMode)` applies a slice of mutations
+in one transaction:
 
 1. Call `Needs` on all mutations → union requirements
-2. One batch read per entity type (pgx pipeline)
+2. Full entity read for validation + state prefetch (one batch, pgx pipeline)
 3. Build `MutationState`
 4. Call `Apply` on each mutation → collect diffs
 5. One batch write: entity updates + `bbl_mutations` rows
+6. Post-commit: index according to `IndexMode`
 
-Two DB round-trips regardless of mutation count. `Apply` is pure and testable
-without a DB connection.
+One read round-trip + one write round-trip regardless of mutation count. `Apply`
+is pure and testable without a DB connection.
 
 Mutations are plain data — buildable inline, from JSON, from an API payload, or
 by a harvester pipeline — and passed to `AddRev` unchanged.
+
+`IndexMode` controls search indexing behaviour after commit:
+
+```go
+type IndexMode int
+
+const (
+    IndexSync  IndexMode = iota  // refresh=wait_for — GUI writes
+    IndexAsync                   // Catbird job     — normal writes
+    IndexSkip                    // no indexing     — bulk imports
+)
+```
+
+---
+
+## Search indexing
+
+The work indexer is a registered component — the default OpenSearch implementation
+ships with bbl; a custom binary can replace it:
+
+```go
+app.RegisterWorkIndexer(indexer WorkIndexer)
+
+type WorkIndexer interface {
+    Index(ctx context.Context, doc *WorkSearchDocument) error
+    Delete(ctx context.Context, id uuid.UUID) error
+}
+```
+
+`refresh` strategy (`wait_for` vs. async) is passed by the `AddRev` call site via
+`IndexMode`, not part of the interface.
 
 ---
 

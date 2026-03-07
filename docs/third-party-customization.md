@@ -159,10 +159,6 @@ including the `bbl profile diff` safety check and change classification.
 
 ## Advanced customization — custom binary (Go required)
 
-For the full technical reference on extension interfaces, registries, and hooks,
-see `extension-points.md`.
-
-
 For changes that go beyond file overrides, institutions build their own binary that
 imports bbl as a Go library. This avoids forks: bbl is tracked as a normal Go module
 dependency and upgraded like any other library. Breaking changes surface at compile
@@ -174,14 +170,15 @@ package main
 
 import (
     "github.com/ugent-library/bbl"
-    "github.com/myinstitution/mybbl/kinds"
-    "github.com/myinstitution/mybbl/integrations"
+    "github.com/myinstitution/mybbl/pure"
+    "github.com/myinstitution/mybbl/datacite"
 )
 
 func main() {
     app := bbl.New(bbl.Config{ /* ... */ })
-    app.RegisterWorkKind(kinds.Dataset)
-    app.RegisterIntegration(integrations.PureHarvester)
+    app.RegisterWorkSource("pure", pure.NewSource(cfg))
+    app.RegisterWorkFormat("datacite_4", datacite.Format{})
+    app.RegisterAuthProvider(oidc.NewProvider("ugent_oidc", cfg))
     app.Run()
 }
 ```
@@ -189,12 +186,18 @@ func main() {
 What can be registered this way:
 
 - **New field types** — add to Go model, register with app; then usable in profiles
-- **New integrations** — harvesters, exporters, authentication providers
-- **Role additions** — built-in roles (admin, curator, submitter, reviewer) cover
-  most cases; extra roles registered at startup
+- **Work sources** — harvesters that feed the candidate pipeline
+- **Work formats** — encoders/decoders for new representation schemes
+- **Auth providers** — new login flows (OIDC, SAML, magic link, etc.)
+- **Mutations** — custom named state changes beyond the built-in set
+- **UI slots** — inject components into named extension points in base templates
+- **Routes** — add entirely new pages
 
 The registration API is the stable extension surface. bbl maintains backwards
 compatibility on registered interfaces across minor versions.
+
+For the full technical reference on all interfaces and registries, see
+`extension-points.md`.
 
 **Note on plugins**: Go's runtime plugin mechanism (`plugin` package) is fragile,
 platform-limited, and requires exact version alignment between host and plugin. The
