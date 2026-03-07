@@ -31,8 +31,8 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | Permissions | Ad-hoc grants (`bbl_work_permissions`) apply only to works — no equivalent for person records, projects, or other entities |
 | User proxies | No temporal bounds, no reason |
 | `bbl_revs` | No source/context field (which system made this change?) |
-| `bbl_changes` | `diff jsonb` is opaque; no `op_type` (create/update/delete) |
-| `bbl_changes` | SUM check constraint is fragile; no explicit `entity_type` discriminator |
+| `bbl_mutations` | `diff jsonb` is opaque; no `op_type` (create/update/delete) |
+| `bbl_mutations` | SUM check constraint is fragile; no explicit `entity_type` discriminator |
 | Projects | No temporal bounds at schema level (start/end dates only in attrs) |
 | Lists | `bbl_list_items` hard-codes `work_id` — no support for lists of persons, organizations, or projects |
 | Lists | A list has no declared type constraint — nothing prevents mixing entity types unless enforced in application code |
@@ -40,7 +40,7 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | General | `idx int` ordering requires renumbering all following rows on any insertion or reorder — every user-reorderable list pays that cost |
 | Work rels | Directional — querying all works related to X requires checking both `work_id = X` and `rel_work_id = X`; `kind` semantics (symmetric vs asymmetric) are undocumented at schema level |
 | Works | No tombstone metadata — `status='deleted'` provides the tombstone but there is no `deleted_at` / `deleted_by_id` to record when or by whom a work was withdrawn or retracted; no `delete_kind` to distinguish routine withdrawal from a legally-mandated takedown (GDPR, patent, right to be forgotten), and no record of when personal data was purged from `attrs` |
-| `bbl_changes` | The audit trail is an invariant everywhere, but GDPR right-to-erasure and right-to-be-forgotten may legally oblige purging change history rows for a specific entity too — `diff` can contain personal data captured at the time of each mutation |
+| `bbl_mutations` | The audit trail is an invariant everywhere, but GDPR right-to-erasure and right-to-be-forgotten may legally oblige purging change history rows for a specific entity too — `diff` can contain personal data captured at the time of each mutation |
 | Person ↔ project | No direct person–project membership table; PI, co-PI, and researcher roles can only be inferred through works, which loses people who have no publications yet |
 | User proxies | PK is `(user_id, proxy_user_id)` — prevents two separate time-bounded proxy arrangements for the same pair (e.g. two distinct leave periods) |
 | Grants | No `revoked_at` — cannot distinguish "grant expired naturally" from "grant was explicitly revoked before expiry"; matters for compliance audits |
@@ -99,7 +99,7 @@ CREATE TABLE bbl_users (
 );
 
 -- Lightweight security audit log for user account events.
--- Separate from bbl_changes: user mutations are access-control history,
+-- Separate from bbl_mutations: user mutations are access-control history,
 -- not domain history; different retention and access characteristics.
 -- kind: 'role_changed' | 'deactivated' | 'reactivated' |
 --       'identity_linked' | 'identity_unlinked' | 'proxy_granted' | 'proxy_revoked'
@@ -124,6 +124,41 @@ CREATE TABLE bbl_user_identifiers (
     PRIMARY KEY (user_id, scheme),
     UNIQUE (scheme, val)
 );
+
+-- Source provenance for users. One row per (user, source).
+-- last_seen_at is stamped by the ingest layer on every harvest sweep.
+-- expires_at NULL = permanent (one-time imports, manually added users);
+-- recurring sources set expires_at so Catbird can detect absent users.
+-- Catbird staleness sweep: last_seen_at < sweep_started_at AND expires_at IS NOT NULL
+-- → set bbl_users.deactivate_at.
+CREATE TABLE bbl_user_sources (
+    user_id          uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+    source           text NOT NULL REFERENCES bbl_sources (id),
+    source_record_id text NOT NULL,
+    last_seen_at     timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    expires_at       timestamptz,   -- NULL = permanent; set by recurring sources
+    PRIMARY KEY (user_id, source)
+);
+
+CREATE INDEX ON bbl_user_sources (source, last_seen_at) WHERE expires_at IS NOT NULL;
+
+-- Auth methods: which named auth provider a user authenticates through.
+-- provider references a registered AuthProvider by its ID (e.g. 'ugent_oidc',
+-- 'orcid_oidc', 'magic_link') — not a generic protocol name.
+-- Using named providers allows a user to have both 'ugent_oidc' and 'orcid_oidc'.
+-- identifier is the provider-specific handle (e.g. OIDC sub, email).
+-- Auto-associated by the ingest layer when a UserSource harvests a user;
+-- can also be set manually by an admin.
+CREATE TABLE bbl_user_auth_methods (
+    user_id    uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+    provider   text NOT NULL,   -- registered AuthProvider ID
+    identifier text NOT NULL,   -- provider-specific handle
+    created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    PRIMARY KEY (user_id, provider),
+    UNIQUE (provider, identifier)
+);
+
+CREATE INDEX ON bbl_user_auth_methods (provider, identifier);
 
 -- Proxy access: user A can act on behalf of user B, within a time window.
 -- Surrogate PK allows multiple distinct time-bounded arrangements for the same pair
@@ -263,7 +298,7 @@ CREATE INDEX ON bbl_organization_sources (source, source_record_id);
 --
 -- A record belongs to at most one active identity.
 -- Enforced in command logic, not a hard DB constraint (policy not yet stable).
--- All mutations go through AddRev; the audit trail is in bbl_changes.
+-- All mutations go through AddRev; the audit trail is in bbl_mutations.
 -- ============================================================
 
 CREATE TABLE bbl_person_identities (
@@ -436,11 +471,11 @@ CREATE INDEX ON bbl_person_project_roles (person_id) WHERE valid_to IS NULL;
 -- The row is NEVER hard-deleted once a work has been public. External citations, DOIs,
 -- OAI-PMH tombstones, and persistent URLs require the id to remain resolvable indefinitely.
 -- Draft works (status='draft', never transitioned to 'public') may be hard-deleted freely;
--- their bbl_changes rows can be deleted in the same transaction with no special ceremony.
+-- their bbl_mutations rows can be deleted in the same transaction with no special ceremony.
 --
 -- For legally-mandated takedowns (GDPR, patent, right to be forgotten) the row
 -- stays but attrs is purged (set to '{}'). Whether attrs, changes history, or both
--- are purged is tracked in bbl_work_takedowns (attrs_purged_at, changes_purged_at).
+-- are purged is tracked in bbl_work_takedowns (attrs_purged_at, mutations_purged_at).
 -- delete_kind distinguishes routine editorial events from legal obligations:
 --   'withdrawn'  = author/editor request post-publication; tombstone only, no purge
 --   'retracted'  = post-publication integrity issue; tombstone only, no purge
@@ -468,7 +503,7 @@ CREATE INDEX ON bbl_works (status);
 -- Legal takedown record. One row per takedown decision.
 -- Survives after purging; subject to its own data retention policy.
 -- legal_basis: 'gdpr_erasure' | 'right_to_be_forgotten' | 'patent' | 'court_order' | 'other'
--- attrs_purged_at / changes_purged_at: NULL = not yet purged; set when each purge is executed.
+-- attrs_purged_at / mutations_purged_at: NULL = not yet purged; set when each purge is executed.
 -- Both may be set, either, or neither depending on legal_basis and policy.
 CREATE TABLE bbl_work_takedowns (
     id                uuid PRIMARY KEY,
@@ -480,7 +515,7 @@ CREATE TABLE bbl_work_takedowns (
     decided_at        timestamptz,
     decided_by_id     uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     attrs_purged_at   timestamptz,     -- when bbl_works.attrs was set to '{}'
-    changes_purged_at timestamptz,     -- when bbl_changes rows for this work were deleted
+    mutations_purged_at timestamptz,     -- when bbl_mutations rows for this work were deleted
     notes             text
 );
 
@@ -591,43 +626,27 @@ CREATE TABLE bbl_work_files (
     PRIMARY KEY (work_id, seq)
 );
 
--- Self-deposit submission rounds. These tables are the authoritative record of
--- every submission attempt and any curator/submitter exchange. All state lives
--- here; Catbird is used only to dispatch notifications as a side effect of
--- commands — it holds no workflow state of its own.
--- Curators see submitted works via a plain queue (WHERE status='submitted') and
--- may PublishWork directly without any messages. A back-and-forth conversation
--- (AddWorkReviewComment, ReturnToDraft) appends messages here before Catbird
--- sends the notification. PublishWork or ReturnToDraft close the workflow.
-CREATE TABLE bbl_work_review_rounds (
-    id           uuid PRIMARY KEY,
-    work_id      uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    status       text NOT NULL DEFAULT 'open',  -- open | published | returned
-    opened_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    closed_at    timestamptz,
-    opened_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL  -- the submitter
-);
-CREATE INDEX ON bbl_work_review_rounds (work_id);
-
--- Append-only message sequence within a review workflow. Only present when the
--- curator initiated a review conversation; workflows closed by a direct
--- PublishWork may have zero messages. seq assigned at insert time (1, 2, 3 …).
--- kind: 'submitted'      = cover note from submitter (seq=1, optional)
---       'review_comment' = curator or submitter comment mid-review
---       'returned'       = curator closes workflow, returns to draft; body is reason
---       'published'      = curator closes workflow after back-and-forth; optional note
+-- Review message thread for a work. Only populated when there is back-and-forth
+-- between curator and submitter; a direct PublishWork leaves no row here.
+-- Submission history (who submitted when) is in bbl_revs/bbl_mutations.
+-- Catbird is used only to dispatch notifications as a side effect of commands.
+-- seq is append-only (1, 2, 3 …); messages are never reordered.
+-- kind: 'submitted'      = cover note from submitter (optional)
+--       'review_comment' = curator or submitter comment
+--       'returned'       = curator returned to draft; body is reason
+--       'published'      = curator note on publish (optional)
 CREATE TABLE bbl_work_review_messages (
-    id          uuid PRIMARY KEY,
-    workflow_id uuid NOT NULL REFERENCES bbl_work_review_rounds (id) ON DELETE CASCADE,
-    seq         int  NOT NULL,
-    rev_id      uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
-    author_id   uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    kind        text NOT NULL,
-    body        text NOT NULL DEFAULT '',
-    created_at  timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    UNIQUE (workflow_id, seq)
+    id         uuid PRIMARY KEY,
+    work_id    uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    seq        int  NOT NULL,
+    rev_id     uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
+    author_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    kind       text NOT NULL,
+    body       text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+    UNIQUE (work_id, seq)
 );
-CREATE INDEX ON bbl_work_review_messages (workflow_id);
+CREATE INDEX ON bbl_work_review_messages (work_id);
 
 -- Work-level permissions (bbl_work_permissions in the current schema) are subsumed
 -- by bbl_grants with scope_type='work', scope_id=<work_id>.
@@ -683,29 +702,31 @@ CREATE TABLE bbl_revs (
     source     text REFERENCES bbl_sources (id)  -- set for automated import revs
 );
 
--- Changes: explicit entity_type discriminator + op_type instead of sum check.
--- Easier to query, easier to add new entity types, no CHECK arithmetic.
+-- Mutations: one row per named mutation applied in a rev.
+-- name matches the registered MutationImpl ('SetTitle', 'PublishWork', ...).
+-- Explicit entity_type discriminator + op_type; no CHECK arithmetic.
 --
--- Legal exception: bbl_changes rows for a specific entity_id MAY be hard-deleted in
+-- Legal exception: bbl_mutations rows for a specific entity_id MAY be hard-deleted in
 -- two sanctioned cases:
 --   1. The work is still a draft (status='draft', never public): hard-delete the work
---      row and its changes in the same transaction; no special tracking needed.
+--      row and its mutations in the same transaction; no special tracking needed.
 --   2. A GDPR erasure or right-to-be-forgotten takedown is actioned on a public work:
 --      diff can contain personal data captured at mutation time. The decision and
---      timestamp are recorded in bbl_work_takedowns.changes_purged_at before rows
+--      timestamp are recorded in bbl_work_takedowns.mutations_purged_at before rows
 --      are removed.
 -- These are the only sanctioned hard-delete paths in the schema.
-CREATE TABLE bbl_changes (
+CREATE TABLE bbl_mutations (
     id          bigserial PRIMARY KEY,
     rev_id      uuid NOT NULL REFERENCES bbl_revs (id),  -- no cascade: revs are immutable
-    entity_type text NOT NULL,   -- 'organization' | 'person_identity' | 'person_record' | 'project' | 'work'
+    name        text NOT NULL,       -- registered MutationImpl name
+    entity_type text NOT NULL,       -- 'organization' | 'person_identity' | 'person_record' | 'project' | 'work'
     entity_id   uuid NOT NULL,
-    op_type     text NOT NULL,   -- 'create' | 'update' | 'delete'
-    diff        jsonb NOT NULL
+    op_type     text NOT NULL,       -- 'create' | 'update' | 'delete'
+    diff        jsonb NOT NULL       -- {args: {...}, prev: {...}}
 );
 
-CREATE INDEX ON bbl_changes (rev_id);
-CREATE INDEX ON bbl_changes (entity_type, entity_id);
+CREATE INDEX ON bbl_mutations (rev_id);
+CREATE INDEX ON bbl_mutations (entity_type, entity_id);
 
 -- ============================================================
 -- LISTS & SUBSCRIPTIONS
@@ -806,10 +827,10 @@ All mutations go through `AddRev`; one rev = one transaction.
 
 A single `Repository` backed by one PostgreSQL connection pool. All commands go through
 `AddRev(ctx, userID, source, func(rev) error) (revID, error)` — one transaction, one
-`bbl_revs` row, one or more `bbl_changes` rows. Queries are plain reads, no rev needed.
+`bbl_revs` row, one or more `bbl_mutations` rows. Queries are plain reads, no rev needed.
 
 A split into multiple repos is not warranted: `AddRev` is a shared primitive, queries
-join across entity boundaries, and `bbl_grants`/`bbl_changes` are genuinely cross-entity.
+join across entity boundaries, and `bbl_grants`/`bbl_mutations` are genuinely cross-entity.
 
 #### Identifier-based addressing
 
@@ -827,7 +848,7 @@ Ref = uuid | {scheme: text, value: text}
 A `ResolveRef(entityType, ref) → uuid` helper runs inside the same transaction before
 the command executes. If the identifier maps to no entity, the caller may choose to
 create one first (`IngestPersonRecord`, `CreateProject`, …) or treat the absence as a
-validation error. The resolved UUID is what gets stored in `bbl_changes.diff` — the
+validation error. The resolved UUID is what gets stored in `bbl_mutations.diff` — the
 audit trail is always in terms of internal IDs.
 
 Examples:
@@ -847,13 +868,17 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 |---|---|---|
 | `GetUser(id)` | query | Fetch by primary key |
 | `GetUserByUsername(username)` | query | Login lookup |
-| `GetUserByIdentifier(scheme, val)` | query | Match incoming OIDC/LDAP claim |
+| `GetUserByAuthMethod(provider, identifier)` | query | Match incoming auth claim to a user |
 | `ListUsers(opts)` | query | Paginated list with filters (role, deactivated, search) |
+| `ListStaleUserSources(source, sweepStartedAt)` | query | Users from source with `last_seen_at < sweepStartedAt AND expires_at IS NOT NULL`; drives Catbird deactivation sweep |
 | `CreateUser(attrs)` | command | New application account |
 | `UpdateUser(id, attrs)` | command | Profile update |
 | `DeactivateUser(id)` | command | Set `deactivate_at`; does not hard-delete |
 | `LinkUserToIdentity(userID, identityID)` | command | Set `bbl_users.person_identity_id`; clears previous link |
 | `UnlinkUserFromIdentity(userID)` | command | Null out `person_identity_id` |
+| `UpsertUserSource(userID, source, sourceRecordID, expiresAt)` | command | Stamp `last_seen_at`; insert on first sight |
+| `AddUserAuthMethod(userID, provider, identifier)` | command | Associate a named auth provider with a user |
+| `RemoveUserAuthMethod(userID, provider)` | command | Deassociate a provider |
 | `SetUserProxy(userID, proxyUserID, validFrom, validTo)` | command | Grant full proxy delegation |
 | `RemoveUserProxy(id)` | command | Remove a proxy row by surrogate PK |
 
@@ -908,15 +933,15 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 |---|---|---|
 | `GetWork(id)` | query | Fetch work with contributors, files, orgs, projects |
 | `ListWorks(opts)` | query | Paginated/cursor list with filters (kind, status, person, org, project) |
-| `GetWorkHistory(id)` | query | `bbl_changes` rows for a work ordered by rev |
+| `GetWorkHistory(id)` | query | `bbl_mutations` rows for a work ordered by rev |
 | `CreateWork(kind, attrs)` | command | New draft work; inserts `bbl_grants` owner row for creating user |
 | `UpdateWork(id, attrs)` | command | Update metadata |
-| `SubmitWork(id)` | command | Transition `draft → submitted`; opens a new `review_workflows` row; no Catbird flow |
-| `PublishWork(id)` | command | Transition `submitted → public`; closes workflow (`status='published'`); no messages required |
-| `ReturnToDraft(id, message)` | command | Transition `submitted → draft`; closes workflow (`status='returned'`); appends `kind='returned'` message; Catbird notifies submitter |
+| `SubmitWork(id)` | command | Transition `draft → submitted`; appends `kind='submitted'` message to the work's review thread; no Catbird flow |
+| `PublishWork(id)` | command | Transition `submitted → public`; no message required |
+| `ReturnToDraft(id, message)` | command | Transition `submitted → draft`; appends `kind='returned'` message with curator reason; Catbird notifies submitter |
 | `WithdrawWork(id)` | command | Transition `public → deleted`, `delete_kind='withdrawn'` |
 | `RetractWork(id)` | command | Transition `public → deleted`, `delete_kind='retracted'` |
-| `DeleteDraftWork(id)` | command | Hard-delete; only valid while `status='draft'`; deletes `bbl_changes` rows in same transaction |
+| `DeleteDraftWork(id)` | command | Hard-delete; only valid while `status='draft'`; deletes `bbl_mutations` rows in same transaction |
 | `AddWorkContributor(workID, pos, attrs)` | command | Add contributor row; resolves identity link if possible |
 | `UpdateWorkContributor(workID, pos, attrs)` | command | Update contributor attrs or identity link |
 | `RemoveWorkContributor(workID, pos)` | command | Remove contributor by position |
@@ -933,7 +958,7 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 | `RequestTakedown(workID, legalBasis, reference, requestedAt, requestedBy)` | command | Open a takedown request |
 | `DecideTakedown(id, decided)` | command | Accept or reject the request |
 | `PurgeWorkAttrs(takedownID)` | command | Set `bbl_works.attrs = '{}'`, record `attrs_purged_at`; only after decision |
-| `PurgeWorkChanges(takedownID)` | command | Delete `bbl_changes` rows for the work, record `changes_purged_at`; only for gdpr/rtbf legal bases |
+| `PurgeWorkMutations(takedownID)` | command | Delete `bbl_mutations` rows for the work, record `mutations_purged_at`; only for gdpr/rtbf legal bases |
 
 ### Candidates
 
@@ -995,6 +1020,200 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 
 ## Key design decisions and rationale
 
+### Field model and profiles
+
+Bibliographic metadata for works lives in `attrs jsonb`. Go types define the full
+universe of possible fields per entity kind — what can exist. Profile configuration
+(which fields are active, required, optional, or locked for a given work kind at a
+given installation) lives in a config file (YAML/TOML), not in Go struct tags or the
+database, so third-party installations can customize profiles without editing source
+code.
+
+**Responsibilities:**
+- **Go types** — define the complete field surface; the DB accepts `attrs` as opaque
+  jsonb and Go enforces its shape
+- **Config file** — defines profiles per work kind (active/required/optional/locked
+  fields); the customization point for third-party installations
+- **Go startup validation** — any field name in the config that is not a known Go
+  field is a startup error, preventing silent drift
+- **Search engine** — handles queryability of metadata fields; promoting attrs fields
+  to SQL columns is only warranted for constraint enforcement or partial-index
+  efficiency, not for SQL queryability
+
+**End-user visibility of the field model:**
+- *Form generation* — the work edit form renders only the fields active in the loaded
+  profile for that work kind; this is the primary user-facing expression of profiles
+- *Submission guidelines* — a page per work kind listing expected fields, rendered
+  from the loaded profile config; replaces hand-maintained documentation
+- *Field reference (backoffice)* — a data dictionary page showing active fields,
+  labels, and constraints per work kind; useful for curators and admins
+- *API endpoint* — `GET /api/work-kinds/{kind}/profile` returning the active field
+  list for external tools and import mappers
+
+Go can emit a reference config listing all available fields and their defaults; this
+serves as the field catalog and documentation for operators and third-party installers.
+
+**Model evolution conventions:**
+
+Profile changes are infrequent, consequential, and made by content specialists or
+third-party maintainers — not necessarily Go developers. Three independent axes evolve
+at different rates and require different handling:
+
+*SQL schema* — structural column changes use standard goose migrations: add nullable
+columns first, backfill, then add constraints. Never rename a column in a single step.
+The `attrs jsonb` column itself never changes.
+
+*Go model* — field additions are free; old records read missing fields as zero/absent
+values (use `Opt[T]` to distinguish missing-in-DB from zero). Field renames and
+removals are two-phase: add new name / migrate data / remove old, across separate
+releases. Be lenient on read (ignore unknown fields in attrs), strict on write (only
+write known fields). A profile deactivation should always precede a Go model removal:
+deactivate first (data preserved in attrs), confirm no active reliance, then remove
+from Go with a scrub migration.
+
+*Profile edits* — deactivation hides a field from the UI but never deletes its data
+from attrs. Purge is an explicit separate operation (`bbl work scrub-field --field=x`).
+Making an optional field required is blocked until existing records are clean or an
+explicit override is given.
+
+**Profile loading:**
+
+The profile is loaded from the config file at startup and held in memory for the
+lifetime of the process. No hot reload — the profile is fixed for the lifetime of a
+running process, avoiding mid-session form inconsistency.
+
+There is no separate apply command. Profile changes follow the normal deploy cycle:
+edit the config file, run `bbl profile check` (see below), commit, deploy, restart.
+Git is the audit trail.
+
+**`bbl profile diff` — read-only preview before deploying a change:**
+
+Before committing and deploying a profile change, operators run `bbl profile diff`
+against the live DB to understand data impact. Read-only; produces no side effects.
+
+```
+bbl profile diff profile.yaml
+
+  + journal_article: field 'lay_summary' added (optional)         [safe]
+  - journal_article: field 'conference_name' removed              [warn]
+      1,247 works have non-empty values — data preserved in attrs
+  ~ book: 'isbn' optional → required                              [warn]
+      89 works have no isbn value — they will be grandfathered
+  ! field name 'jounal_title' not in Go model                     [error]
+```
+
+Change classification:
+
+| Change | Class | Notes |
+|---|---|---|
+| Field added | Safe | Existing records simply lack the field |
+| Field removed | Warn | Data preserved in attrs; count of affected records shown |
+| Required → optional | Warn | Validation loosened; no data impact |
+| Optional → required | Warn | Count of records missing the field shown; existing records grandfathered |
+| Kind deprecated | Warn | New works blocked; existing read-only |
+| Field name not in Go type | Error | Blocked unconditionally — fix config or Go model first |
+
+**`bbl profile check` — conflict resolution and enforcement gate:**
+
+`bbl profile diff` tells you what changed. But for warnings, *the profile itself must
+carry the resolution* — otherwise there is no way to proceed. The `accept:` block in
+the profile file is the machine-readable acknowledgment of each warning. It is
+committed to git, so the audit trail lives with the config, not in a runtime log.
+
+```yaml
+# profile.yaml
+
+accept:
+  - journal_article.conference_name.removed
+      # 1,247 works have data in attrs; field no longer collected; data preserved
+  - book.isbn.optional_to_required
+      # 89 works without isbn are grandfathered; new submissions will require it
+
+kinds:
+  journal_article:
+    fields:
+      title:    { required: true }
+      abstract: { optional: true }
+      # conference_name removed — see accept block above
+      volume:   { optional: true }
+      issue:    { optional: true }
+  book:
+    fields:
+      title: { required: true }
+      isbn:  { required: true }
+```
+
+**Startup behavior:**
+
+At startup bbl validates the loaded profile against the current DB state:
+
+- Any `[error]` → refuse to start unconditionally (fix config or Go model).
+- Any `[warn]` without a matching `accept:` entry → refuse to start.
+- All clear → start normally.
+
+No separate DB table or checksum needed. The profile file is self-contained: it
+describes the structure and carries its own conflict resolutions in `accept:`. Startup
+is the enforcement gate; `bbl profile diff` and `bbl profile check` are authoring
+helpers (see below).
+
+**`bbl profile` commands — authoring helpers:**
+
+These commands help operators author a correct profile before deploying:
+
+- **`bbl profile diff`** — read-only preview of data impact; use before editing.
+- **`bbl profile check`** — validates the profile is conflict-free against the live
+  DB (same check startup performs, without starting the server). Useful as a pre-deploy
+  sanity check and in CI. Exit 0 = clean; non-zero = errors or unresolved warnings.
+
+**Profile structure — one document, per-kind sections:**
+
+A single YAML document with a section per work kind. Applied atomically as one
+snapshot. Fields listed in declaration order, which is also the render order in forms.
+Shared fields (title, abstract, contributors) are explicit in each kind's section —
+no implicit inheritance.
+
+```yaml
+kinds:
+  journal_article:
+    fields:
+      title:    { required: true }
+      abstract: { optional: true }
+      volume:   { optional: true }
+      issue:    { optional: true }
+  book:
+    fields:
+      title:    { required: true }
+      isbn:     { optional: true }
+```
+
+**Kind deprecation:**
+
+Removing a kind from the profile blocks creation of new works of that kind but does
+not affect existing works. To handle existing works gracefully, kinds should be marked
+deprecated rather than silently dropped:
+
+```yaml
+  conference_paper:
+    deprecated: true   # no new works; existing works shown read-only
+```
+
+**Form generation:**
+
+```
+load_profile_for_kind(work.kind)
+  → kind unknown (not in profile, not deprecated):
+      render read-only attrs dump; show warning
+  → kind deprecated:
+      render read-only view of all stored attrs fields
+  → kind active:
+      for each field in profile[kind].fields (declaration order):
+        render_field(name, required, work.attrs[name])
+```
+
+Fields absent from the profile are not rendered but their data in `attrs` is
+untouched. Required fields are marked in the form. No separate ordering mechanism
+is needed — the profile config is the authoritative render order.
+
 ### Ordering (fracdex)
 Fracdex keys (`pos text NOT NULL COLLATE "C"`) support arbitrary insertion and reordering
 with a single-row `UPDATE` — no renumbering of adjacent rows. This only matters when the
@@ -1034,7 +1253,7 @@ is a valid, expected state. `person_identity_id` is intentionally nullable; ther
 nothing to fix there.
 
 Changing or nullifying `person_identity_id` is also a routine curator action (fixing a
-wrong link). The forensic history of those changes is preserved in `bbl_changes`, so
+wrong link). The forensic history of those changes is preserved in `bbl_mutations`, so
 there is no data loss concern.
 
 The actual gap is **rendering**: without a publication-time snapshot on the contributor
@@ -1047,7 +1266,7 @@ cache capturing name, role, and other attribution at time of entry:
 - **Unlinked contributor**: snapshot holds the raw attributed name; `person_identity_id`
   is NULL and stays NULL.
 - **Linked contributor**: snapshot holds attribution at link time. If the link is later
-  changed or cleared, the snapshot provides stable display without touching `bbl_changes`.
+  changed or cleared, the snapshot provides stable display without touching `bbl_mutations`.
 
 ### Curation-only identities
 
@@ -1085,10 +1304,83 @@ Note: `bbl_organizations` is always curator-managed — no records layer, no res
 step. It is structurally the simpler model for the same reason: orgs arrive from at
 most one source at a time and do not require cross-source deduplication.
 
-### bbl_changes redesign
+### Mutation model
+
+**Mutations as first-class serializable values**
+
+The prototype has two overlapping concepts — `Action` (outer envelope in `repo.go`)
+and `WorkChanger` (inner work-specific mutation) — with duplicated JSON
+deserialization at both levels. The greenfield model collapses these into a single
+`Mutation` type: a named, serializable unit of intent.
+
+```go
+type Mutation struct {
+    Name       string          // "SetTitle" | "PublishWork" | "AddContributor" | ...
+    EntityType string          // "work" | "person_identity" | "organization" | ...
+    EntityID   uuid.UUID
+    Args       json.RawMessage
+}
+```
+
+Mutations are plain data. They can be built inline, deserialized from JSON (API,
+batch file), constructed by a harvester pipeline, or assembled by a batch builder —
+and then passed to `AddRev` unchanged.
+
+```go
+AddRev(ctx, userID, source, []Mutation) (revID uuid.UUID, error)
+```
+
+**MutationImpl — declare needs, then apply**
+
+Each named mutation is backed by a registered `MutationImpl`:
+
+```go
+type MutationImpl interface {
+    // Needs declares what state must be pre-fetched. Computable from args alone.
+    Needs(m Mutation) MutationNeeds
+
+    // Apply is pure: no DB access. Receives pre-fetched state, returns diff.
+    Apply(state MutationState, m Mutation) (Diff, error)
+}
+
+type MutationNeeds struct {
+    WorkIDs    []uuid.UUID
+    PersonRefs []Ref
+    // ... other entity types
+}
+
+type MutationState struct {
+    Works   map[uuid.UUID]*Work
+    Persons map[uuid.UUID]*PersonIdentity
+    // ...
+}
+
+RegisterMutation(name string, impl MutationImpl)
+```
+
+**AddRev — two-phase, two round-trips regardless of mutation count**
+
+```
+1. Call Needs() on all mutations → union into one MutationNeeds
+2. One batch read per entity type (WHERE id = ANY($1)) — pgx pipeline
+3. Build MutationState from results
+4. Call Apply() on each mutation → collect Diffs
+5. One batch write: entity updates + INSERT INTO bbl_mutations rows
+```
+
+A rev with 50 mutations costs the same in DB round-trips as a rev with 1. The work
+is in the Go layer (unioning needs, applying diffs), not in the DB.
+
+`Apply` is pure and has no DB dependency — fully testable without a connection.
+
+**RegisterMutation** replaces `WorkChangers` map and `Action` switch. One registry,
+one deserialization path, no nesting.
+
+### bbl_mutations table
 The current `CHECK` sum constraint works but is brittle for adding new entity types.
 The greenfield model uses explicit `entity_type text` + `entity_id uuid` columns plus
-an `op_type` field. This makes cross-entity queries natural and is easier to extend.
+an `op_type` field, and adds `name` (the registered `MutationImpl`). This makes
+cross-entity queries natural and is easier to extend.
 
 #### diff envelope
 
@@ -1157,6 +1449,54 @@ user-curated `bbl_lists`. The representation is looked up at serve time by schem
 Automated imports should be distinguishable from human edits in the audit log.
 `source` on `bbl_revs` links to `bbl_sources`, making this a first-class fact.
 
+### User sources, staleness, and auth methods
+
+**User sources and staleness detection**
+
+Users can arrive from multiple sources: recurring directory sweeps (LDAP, SCIM),
+one-time bulk imports, or manual admin creation. `bbl_user_sources` tracks provenance
+per `(user, source)` and drives staleness detection without requiring the ingest layer
+to hold a full set in memory.
+
+The ingest layer stamps `last_seen_at` for each user yielded during a sweep.
+A Catbird job after the sweep queries:
+
+```sql
+SELECT user_id FROM bbl_user_sources
+WHERE source = $1
+  AND expires_at IS NOT NULL
+  AND last_seen_at < $sweep_started_at
+```
+
+Users absent from the sweep get `deactivate_at` set. `expires_at IS NULL` marks
+permanent rows (one-time imports, manually added users) — the staleness sweep skips
+these.
+
+`UserSource` itself is a pure stream; it has no knowledge of staleness. The ingest
+layer owns the `UpsertUserSource` stamp; Catbird owns the deactivation sweep. The
+source just harvests.
+
+**Pluggable auth providers**
+
+`bbl_user_auth_methods` associates users with named auth provider instances —
+`"ugent_oidc"`, `"orcid_oidc"`, `"magic_link"` — not generic protocol types. Using
+named instances allows a user to have multiple OIDC providers simultaneously.
+
+```go
+type AuthProvider interface {
+    ID() string
+    BeginAuth(w http.ResponseWriter, r *http.Request) error
+    CompleteAuth(w http.ResponseWriter, r *http.Request) (Claims, error)
+}
+
+RegisterAuthProvider(provider AuthProvider)
+```
+
+Login flow: look up `bbl_user_auth_methods` by provider + identifier, dispatch to the
+registered provider. When a `UserSource` harvests a user, the ingest layer
+auto-associates the auth provider configured for that source — no manual wiring
+required for directory-sourced users.
+
 ### User ↔ person identity link
 The current implicit model derives the user↔person connection by matching shared
 identifiers at query time. This has several problems:
@@ -1218,7 +1558,7 @@ are expressed exclusively through `bbl_grants`.
 **Explicit ownership**  
 `kind='owner'` with `scope_type='work'` replaces implicit creator rights. Ownership is
 transferable (`UPDATE bbl_grants SET user_id = ...`), revocable, and fully audited via
-`bbl_changes`. `created_by_id` on the work row remains a pure creation audit column.
+`bbl_mutations`. `created_by_id` on the work row remains a pure creation audit column.
 
 **Proxy delegation**
 `bbl_user_proxies` handles full-person delegation (leave coverage). A proxy inherits
@@ -1243,7 +1583,7 @@ person identity, organization, or project includes a `DELETE FROM bbl_grants WHE
 scope_type = $type AND scope_id = $id` as part of the same transaction. Since all
 mutation is concentrated in a small number of command functions (the existing pattern),
 every delete path passes through the same code and the cleanup cannot be silently
-skipped. The grant deletions are recorded in `bbl_changes` under the same rev as the
+skipped. The grant deletions are recorded in `bbl_mutations` under the same rev as the
 entity delete, keeping the audit trail intact.
 
 A periodic catbird sweep acts as a safety net in case of direct-SQL operations or
@@ -1412,21 +1752,22 @@ background job (catbird):
   (a) accept it — org renames are rare and current name is good enough for display;
   (b) add `organization_snapshot jsonb` to `bbl_work_organizations`, same pattern as
   `person_identity_snapshot` on contributors. Decide before implementation.
-- **`bbl_changes` entity_id type**: `uuid` works for all current entities but breaks if
+- **`bbl_mutations` entity_id type**: `uuid` works for all current entities but breaks if
   non-UUID entity types are added later.
-- **`bbl_changes` table size and partitioning**: at institutional scale this table will
+- **`bbl_mutations` table size and partitioning**: at institutional scale this table will
   be very large. Three options worth evaluating before the first migration: (1) keep the
   `bigserial` PK and add time-range partitioning — global monotonic order is preserved
   via a shared sequence, old partitions detach to cold storage, but per-entity queries
   scan all partitions without a time filter; (2) drop the sequence and use
   `(rev_id, entity_type, entity_id)` as PK, ordering via `bbl_revs.created_at` —
   freely partitionable, no sequence bottleneck, but "all changes since cursor X" becomes
-  a join; (3) keep `bbl_changes` as-is and add a separate lightweight `bbl_events`
+  a join; (3) keep `bbl_mutations` as-is and add a separate lightweight `bbl_events`
   outbox table with a `bigserial` for external consumers (event stream, webhooks) that
-  can be pruned after acknowledgement — `bbl_changes` stays large but is only queried
+  can be pruned after acknowledgement — `bbl_mutations` stays large but is only queried
   per-entity. Option 2 is preferred unless an external event stream cursor is needed,
   in which case option 3 adds that without polluting the audit table.
 - **Work identifier exclusivity**: enforce unique active DOI ownership at DB level once
   policy is defined?
 - **File access control granularity**: per-file (as sketched) or per-work-file-group?
 - **Events/conferences as a structured entity**: currently a conference venue can be stored as a free-text field on a work (no schema change needed for basic use). If conferences need deduplication across sources, the same records/identities split used for orgs/persons applies — one flat table vs six. Journal/series editorship is a clean add via `bbl_person_affiliations.kind` or a dedicated link table. Per-work editorship already works via `bbl_work_contributors.role`. The authority model question (flat vs MDM) should be decided before any conference table is added, because it determines the shape of the work-event link and whether a venue-name snapshot is needed on that link row.
+- **attrs fields worth promoting to SQL columns**: search is handled by the search engine so SQL queryability of metadata is not the primary driver. However, a small number of `attrs` fields may still be worth promoting to real columns for constraint enforcement or partial-index efficiency — candidates are `publication_year` (range filters in backoffice), `language` (coverage reporting), and potentially `access_kind` at the work level (distinct from file-level access). Decide per field whether the benefit outweighs the migration cost.
