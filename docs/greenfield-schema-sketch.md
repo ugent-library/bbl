@@ -39,6 +39,7 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | General | No source registry / import precedence table |
 | General | `idx int` ordering requires renumbering all following rows on any insertion or reorder — every user-reorderable list pays that cost |
 | Work rels | Directional — querying all works related to X requires checking both `work_id = X` and `rel_work_id = X`; `kind` semantics (symmetric vs asymmetric) are undocumented at schema level |
+| Works | `status` conflates visibility with review state — a submitted work has a special status but is not yet public; no way to represent a public work under re-review — addressed by splitting into `status` (`private\|public\|deleted`) and `review_status` |
 | Works | No tombstone metadata — `status='deleted'` provides the tombstone but there is no `deleted_at` / `deleted_by_id` to record when or by whom a work was withdrawn or retracted; no `delete_kind` to distinguish routine withdrawal from a legally-mandated takedown (GDPR, patent, right to be forgotten), and no record of when personal data was purged from `attrs` |
 | `bbl_mutations` | The audit trail is an invariant everywhere, but GDPR right-to-erasure and right-to-be-forgotten may legally oblige purging change history rows for a specific entity too — `diff` can contain personal data captured at the time of each mutation |
 | Person ↔ project | No direct person–project membership table; PI, co-PI, and researcher roles can only be inferred through works, which loses people who have no publications yet |
@@ -489,7 +490,8 @@ CREATE TABLE bbl_works (
     created_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     updated_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     kind           text NOT NULL,     -- 'journal_article' | 'book' | 'dataset' | ...
-    status         text NOT NULL,     -- 'draft' | 'submitted' | 'public' | 'deleted'
+    status         text NOT NULL,     -- 'private' | 'public' | 'deleted'
+    review_status  text,              -- NULL | 'pending' | 'in_review' | 'returned'
     delete_kind    text,              -- 'withdrawn' | 'retracted' | 'takedown'; set with status='deleted'
     deleted_at     timestamptz,       -- set when status transitions to 'deleted'
     deleted_by_id  uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
@@ -500,6 +502,7 @@ CREATE TABLE bbl_works (
 );
 
 CREATE INDEX ON bbl_works (status);
+CREATE INDEX ON bbl_works (review_status) WHERE review_status IS NOT NULL;
 
 -- Legal takedown record. One row per takedown decision.
 -- Survives after purging; subject to its own data retention policy.
@@ -952,12 +955,13 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 | `GetWorkHistory(id)` | query | `bbl_mutations` rows for a work ordered by rev |
 | `CreateWork(kind, attrs)` | command | New draft work; inserts `bbl_grants` owner row for creating user |
 | `UpdateWork(id, attrs)` | command | Update metadata |
-| `SubmitWork(id)` | command | Transition `draft → submitted`; appends `kind='submitted'` message to the work's review thread; no Catbird flow |
-| `PublishWork(id)` | command | Transition `submitted → public`; no message required |
-| `ReturnToDraft(id, message)` | command | Transition `submitted → draft`; appends `kind='returned'` message with curator reason; Catbird notifies submitter |
-| `WithdrawWork(id)` | command | Transition `public → deleted`, `delete_kind='withdrawn'` |
-| `RetractWork(id)` | command | Transition `public → deleted`, `delete_kind='retracted'` |
-| `DeleteDraftWork(id)` | command | Hard-delete; only valid while `status='draft'`; deletes `bbl_mutations` rows in same transaction |
+| `SubmitWork(id)` | command | `review_status → 'pending'`; appends `kind='submitted'` message; `status` unchanged |
+| `PublishWork(id)` | command | `status → 'public'`, `review_status → NULL`; no message required |
+| `ReturnToDraft(id, message)` | command | `review_status → 'returned'`; appends `kind='returned'` message with curator reason; Catbird notifies submitter; `status` unchanged |
+| `ResubmitWork(id)` | command | `review_status → 'pending'` after a return; appends `kind='submitted'` message |
+| `WithdrawWork(id)` | command | `status → 'deleted'`, `delete_kind='withdrawn'`, `review_status → NULL` |
+| `RetractWork(id)` | command | `status → 'deleted'`, `delete_kind='retracted'`, `review_status → NULL` |
+| `DeleteDraftWork(id)` | command | Hard-delete; only valid while `status='private'` and `review_status IS NULL`; deletes `bbl_mutations` rows in same transaction |
 | `AddWorkContributor(workID, pos, attrs)` | command | Add contributor row; resolves identity link if possible |
 | `UpdateWorkContributor(workID, pos, attrs)` | command | Update contributor attrs or identity link |
 | `RemoveWorkContributor(workID, pos)` | command | Remove contributor by position |
@@ -1958,6 +1962,13 @@ Catbird passes the async variant.
 
 ## Open questions
 
+- **`restricted` status (candidate)**: a fourth `status` value — visible to authenticated
+  community members but not the world — is a plausible need. Not included yet because its
+  access control semantics are unresolved: (a) application logic checks `bbl_users.role`
+  or community membership on every request — simple but scattered; (b) tie it to the
+  grants model (`bbl_grants` with an institution-level scope) — consistent but requires
+  defining a community scope type. Resolve the grants model first; `restricted` can be
+  added as a non-breaking migration once the enforcement mechanism is clear.
 - **`bbl_people` migration**: treat existing rows as curation-only person identities
   (no records), or run old and new models in parallel during transition?
 - **Org name snapshot at link time**: `bbl_work_organizations` links a work to an org by
