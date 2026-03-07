@@ -46,7 +46,6 @@ Reference schema: `pgxrepo/migrations/00001_initial_migration.sql`.
 | User proxies | PK is `(user_id, proxy_user_id)` — prevents two separate time-bounded proxy arrangements for the same pair (e.g. two distinct leave periods) |
 | Grants | No `revoked_at` — cannot distinguish "grant expired naturally" from "grant was explicitly revoked before expiry"; matters for compliance audits |
 | Subscriptions | `topic` is untyped free text with no entity binding and no cleanup when a referenced entity is deleted |
-| DDL ordering | `bbl_work_sources.candidate_id` FK references `bbl_work_candidates` which is defined later; FK must be deferred to the candidates migration |
 | Subscriptions | `bbl_subscriptions` is too thin for webhook delivery: no headers, no HMAC secret, no enabled flag, no retry tracking |
 
 ---
@@ -108,7 +107,7 @@ CREATE TABLE bbl_user_events (
     id         uuid PRIMARY KEY,
     user_id    uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
     kind       text NOT NULL,
-    actor_id   uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    performed_by_id uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     payload    jsonb NOT NULL DEFAULT '{}',  -- e.g. old/new role, identity id, proxy target
     created_at timestamptz NOT NULL DEFAULT transaction_timestamp()
 );
@@ -118,12 +117,15 @@ CREATE INDEX ON bbl_user_events (user_id);
 -- Authentication identifiers only: SSO claims (e.g. OIDC sub, ugent_id from LDAP).
 -- Used to match incoming login tokens to a bbl_users row.
 -- Not used as signals for person authority matching — that is bbl_person_record_identifiers.
+-- source is the owner: ImportUser deletes the source's previous set and inserts the
+-- current one, so stale identifiers are removed on every sweep.
 CREATE TABLE bbl_user_identifiers (
     user_id uuid NOT NULL REFERENCES bbl_users (id) ON DELETE CASCADE,
+    source  text NOT NULL REFERENCES bbl_sources (id),
     scheme  text NOT NULL,
     val     text NOT NULL,
-    PRIMARY KEY (user_id, scheme),
-    UNIQUE (scheme, val)
+    PRIMARY KEY (user_id, source, scheme, val),  -- a user may hold multiple vals per scheme, per source
+    UNIQUE (scheme, val)                          -- each val belongs to at most one user
 );
 
 -- Source provenance for users. One row per (user, source).
@@ -138,7 +140,8 @@ CREATE TABLE bbl_user_sources (
     source_record_id text NOT NULL,
     last_seen_at     timestamptz NOT NULL DEFAULT transaction_timestamp(),
     expires_at       timestamptz,   -- NULL = permanent; set by recurring sources
-    PRIMARY KEY (user_id, source)
+    PRIMARY KEY (user_id, source),
+    UNIQUE (source, source_record_id)  -- lookup key for ImportUser
 );
 
 CREATE INDEX ON bbl_user_sources (source, last_seen_at) WHERE expires_at IS NOT NULL;
@@ -537,7 +540,6 @@ CREATE TABLE bbl_work_sources (
     source_record_id text NOT NULL,
     candidate_id     uuid,   -- soft ref to bbl_work_candidates; FK added via ALTER TABLE in the candidates migration (forward reference)
     ingested_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    ingested_rev_id  uuid REFERENCES bbl_revs (id) ON DELETE SET NULL,
     PRIMARY KEY (work_id, source)
 );
 
@@ -886,18 +888,15 @@ MergeAttrs(Ref{scheme: "doi", value: "10.1000/xyz"}, attrs)
 | Method | Type | Description |
 |---|---|---|
 | `GetUser(id)` | query | Fetch by primary key |
-| `GetUserByUsername(username)` | query | Login lookup |
-| `GetUserByAuthMethod(provider, identifier)` | query | Match incoming auth claim to a user |
+| `GetUserByIdentifier(scheme, val)` | query | Login lookup via `bbl_user_identifiers` UNIQUE(scheme, val) |
 | `ListUsers(opts)` | query | Paginated list with filters (role, deactivated, search) |
 | `ListStaleUserSources(source, sweepStartedAt)` | query | Users from source with `last_seen_at < sweepStartedAt AND expires_at IS NOT NULL`; drives Catbird deactivation sweep |
-| `CreateUser(attrs)` | command | New application account |
-| `UpdateUser(id, attrs)` | command | Profile update |
+| `ImportUsers(src UserSource)` | command | Batch ingest path: streams from src, imports in batches of 250 via `pgx.Batch`. Find-or-create by `(source, source_record_id)`, syncs profile, stamps source, replaces identifier set, appends auth provider. Role set on creation only. |
+| `CreateUser(attrs)` | command | Admin manual creation |
+| `UpdateUser(id, attrs)` | command | Admin profile update |
 | `DeactivateUser(id)` | command | Set `deactivate_at`; does not hard-delete |
 | `LinkUserToIdentity(userID, identityID)` | command | Set `bbl_users.person_identity_id`; clears previous link |
 | `UnlinkUserFromIdentity(userID)` | command | Null out `person_identity_id` |
-| `UpsertUserSource(userID, source, sourceRecordID, expiresAt)` | command | Stamp `last_seen_at`; insert on first sight |
-| `AddUserAuthMethod(userID, provider, identifier)` | command | Associate a named auth provider with a user |
-| `RemoveUserAuthMethod(userID, provider)` | command | Deassociate a provider |
 | `SetUserProxy(userID, proxyUserID, validFrom, validTo)` | command | Grant full proxy delegation |
 | `RemoveUserProxy(id)` | command | Remove a proxy row by surrogate PK |
 
@@ -1573,9 +1572,64 @@ Users absent from the sweep get `deactivate_at` set. `expires_at IS NULL` marks
 permanent rows (one-time imports, manually added users) — the staleness sweep skips
 these.
 
-`UserSource` itself is a pure stream; it has no knowledge of staleness. The ingest
-layer owns the `UpsertUserSource` stamp; Catbird owns the deactivation sweep. The
-source just harvests.
+`UserSource` itself is a pure stream — it has no knowledge of staleness and no
+scheduling opinion. Polling interval and scheduling are owned by the workflow
+scheduler (Catbird), not the source. The source just harvests.
+
+```go
+// UserSource is implemented by packages that stream user records from an
+// external directory (LDAP, SCIM, CSV, …). Iter connects eagerly and returns
+// a fatal setup error (e.g. connection refused, bad credentials) as the second
+// return value. Per-entry errors are yielded inline so the caller can skip
+// individual bad records without aborting the sweep.
+type UserSource interface {
+    Iter(ctx context.Context) (iter.Seq2[*ImportUserInput, error], error)
+}
+```
+
+The `ldap` package provides a ready-made implementation:
+
+```go
+src := ldap.New(ldap.Config{
+    URL:      "ldaps://ldap.example.com:636",
+    Username: "cn=readonly,...",
+    Password: "...",
+    Base:     "ou=people,dc=example,dc=com",
+    Filter:   "(objectClass=person)",
+    Attrs:    []string{"uid", "mail", "cn"},
+    MappingFunc: func(attrs map[string][]string) (*bbl.ImportUserInput, error) {
+        uid := attrs["uid"][0]
+        return &bbl.ImportUserInput{
+            Source:         "ugent_ldap",
+            SourceRecordID: uid,
+            Username:       uid,
+            Email:          attrs["mail"][0],
+            Name:           attrs["cn"][0],
+            Role:           bbl.RoleUser,
+            Identifiers:    []bbl.UserIdentifier{{Scheme: "ugent_id", Val: uid}},
+        }, nil
+    },
+})
+```
+
+The ingest layer calls `repo.ImportUser` for each record; `ImportUser` owns the
+`bbl_user_sources` stamp. Catbird owns the deactivation sweep.
+
+```go
+seq, err := src.Iter(ctx)
+if err != nil {
+    return fmt.Errorf("ldap sweep: %w", err)
+}
+for in, err := range seq {
+    if err != nil {
+        log.Warn("ldap entry skipped", "err", err)
+        continue
+    }
+    if _, err := repo.ImportUser(ctx, *in); err != nil {
+        return fmt.Errorf("ldap sweep: %w", err)
+    }
+}
+```
 
 **Pluggable auth providers**
 
@@ -1593,10 +1647,16 @@ type AuthProvider interface {
 RegisterAuthProvider(provider AuthProvider)
 ```
 
-Login flow: look up `bbl_user_auth_methods` by provider + identifier, dispatch to the
-registered provider. When a `UserSource` harvests a user, the ingest layer
-auto-associates the auth provider configured for that source — no manual wiring
-required for directory-sourced users.
+The two tables have distinct namespaces:
+- `bbl_user_identifiers.scheme` — identifier types: `'ugent_id'`, `'orcid'`, `'sub'`, etc.
+- `bbl_user_auth_methods.provider` — named auth provider instances: `'ugent_oidc'`, `'orcid_oidc'`, `'magic_link'`, etc.
+
+Login flow: `CompleteAuth` yields a claim (identifier scheme + value); look up the user
+via `bbl_user_identifiers` UNIQUE(scheme, val) — single-row seek, no provider name
+involved. `bbl_user_auth_methods` is used for profile display ("you can log in with
+ugent_oidc and orcid_oidc") and provider management, not the login lookup itself.
+When a `UserSource` harvests a user, the ingest layer auto-associates the auth provider
+configured for that source — no manual wiring required for directory-sourced users.
 
 ### User ↔ person identity link
 The current implicit model derives the user↔person connection by matching shared
