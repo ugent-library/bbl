@@ -1587,28 +1587,38 @@ type UserSource interface {
 }
 ```
 
-The `ldap` package provides a ready-made implementation:
+The `ldap` package provides a ready-made implementation. Field mapping is declared
+in the TOML config — no Go code required for the common case. The required LDAP
+attributes are derived automatically from the non-empty mapping fields.
+
+```toml
+[user_sources.ugent]
+type         = "ldap"
+auth_provider = "ugent_oidc"
+
+[user_sources.ugent.config]
+url      = "ldaps://ldap.example.com:636"
+username = "cn=readonly,dc=example,dc=com"
+password = "..."
+base     = "ou=people,dc=example,dc=com"
+filter   = "(objectClass=person)"
+
+[user_sources.ugent.config.mapping]
+source_record_id = "uid"
+username         = "uid"
+email            = "mail"
+name             = "cn"
+
+[user_sources.ugent.config.mapping.identifiers]
+ugent_id = "ugentID"
+```
+
+For sources that need custom transformation logic beyond simple attribute mapping,
+use `RegisterUserSource` in the custom binary's `main.go`:
 
 ```go
-src := ldap.New(ldap.Config{
-    URL:      "ldaps://ldap.example.com:636",
-    Username: "cn=readonly,...",
-    Password: "...",
-    Base:     "ou=people,dc=example,dc=com",
-    Filter:   "(objectClass=person)",
-    Attrs:    []string{"uid", "mail", "cn"},
-    MappingFunc: func(attrs map[string][]string) (*bbl.ImportUserInput, error) {
-        uid := attrs["uid"][0]
-        return &bbl.ImportUserInput{
-            Source:         "ugent_ldap",
-            SourceRecordID: uid,
-            Username:       uid,
-            Email:          attrs["mail"][0],
-            Name:           attrs["cn"][0],
-            Role:           bbl.RoleUser,
-            Identifiers:    []bbl.UserIdentifier{{Scheme: "ugent_id", Val: uid}},
-        }, nil
-    },
+cli.RegisterUserSource(&reg, "custom", func(c MySourceConfig) (bbl.UserSource, error) {
+    return mypackage.NewSource(c), nil
 })
 ```
 
