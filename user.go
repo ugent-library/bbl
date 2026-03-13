@@ -1,89 +1,54 @@
 package bbl
 
-import (
-	"slices"
-	"time"
-
-	"github.com/ugent-library/vo"
-)
+import "time"
 
 const (
-	AdminRole   = "admin"
-	CuratorRole = "curator"
-	UserRole    = "user"
-
-	ViewPermission = "view"
-	EditPermission = "edit"
+	RoleAdmin = "admin"
+	RoleUser  = "user"
 )
 
-var UserRoles = []string{
-	AdminRole,
-	CuratorRole,
-	UserRole,
-}
-
-var UserPermissions = []string{
-	ViewPermission,
-	EditPermission,
+// AuthProvider is an entry in User.AuthProviders.
+// Stored as a jsonb array to allow additional fields (e.g. added_at) in future.
+type AuthProvider struct {
+	Provider string `json:"provider"`
 }
 
 type User struct {
-	Header
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	Name         string    `json:"name"`
-	Role         string    `json:"role"`
-	DeactivateAt time.Time `json:"deactivate_at,omitzero"`
+	ID            ID
+	CreatedAt     time.Time
+	Username      string
+	Email         string
+	Name          string
+	Role          string
+	DeactivateAt  *time.Time
+	PersonID      *ID
+	AuthProviders []AuthProvider
 }
 
-type Permission struct {
-	UserID string `json:"user_id"`
-	Kind   string `json:"kind"`
+type UserAttrs struct {
+	Username string
+	Email    string
+	Name     string
+	Role     string
 }
 
-func (rec *User) Validate() error {
-	v := vo.New(
-		vo.NotBlank("username", rec.Username),
-		vo.EmailAddress("email", rec.Email),
-		vo.NotBlank("name", rec.Name),
-		vo.OneOf("role", rec.Role, UserRoles),
-	)
-
-	for i, ident := range rec.Identifiers {
-		v.In("identifiers").Index(i).Add(
-			vo.NotBlank("scheme", ident.Scheme),
-			vo.NotBlank("val", ident.Val),
-		)
-	}
-
-	return v.Validate().ToError()
+// UserIdentifier is an auth claim identifier (e.g. scheme="ugent_id", val="abc123").
+type UserIdentifier struct {
+	Scheme string `json:"scheme"`
+	Val    string `json:"val"`
 }
 
-func (rec *User) Diff(rec2 *User) map[string]any {
-	changes := map[string]any{}
-
-	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
-		changes["identifiers"] = rec.Identifiers
-	}
-	if rec.Username != rec2.Username {
-		changes["username"] = rec.Username
-	}
-	if rec.Email != rec2.Email {
-		changes["email"] = rec.Email
-	}
-	if rec.Name != rec2.Name {
-		changes["name"] = rec.Name
-	}
-	if rec.Role != rec2.Role {
-		changes["role"] = rec.Role
-	}
-	if !rec.DeactivateAt.Equal(rec2.DeactivateAt) {
-		if rec.DeactivateAt.IsZero() {
-			changes["deactivate_at"] = nil
-		} else {
-			changes["deactivate_at"] = rec.DeactivateAt
-		}
-	}
-
-	return changes
+// ImportUserInput carries all data for one user record arriving from a source.
+// Role is only applied on creation; subsequent imports do not overwrite a role
+// set by an admin.
+type ImportUserInput struct {
+	Source       string           `json:"source,omitempty"`
+	SourceID    string           `json:"source_id"`
+	ExpiresAt   *time.Time       `json:"expires_at,omitempty"` // nil = permanent; set for recurring directory sources
+	Username    string           `json:"username"`
+	Email       string           `json:"email"`
+	Name        string           `json:"name"`
+	Role        string           `json:"role,omitempty"`
+	Identifiers []UserIdentifier `json:"identifiers,omitempty"`
+	AuthProvider string          `json:"auth_provider,omitempty"` // optional — name of the auth provider this source drives (e.g. "ugent_oidc")
 }

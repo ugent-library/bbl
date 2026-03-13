@@ -1,0 +1,338 @@
+package views
+
+import (
+	"fmt"
+	"net/url"
+	"strconv"
+
+	"github.com/ugent-library/bbl"
+)
+
+// Discovery search views
+
+templ SearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
+	@Layout("Works") {
+		<main>
+			<h1>Works</h1>
+			@searchForm(opts, "/works")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Kind</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/works/" + h.ID.String()) }>{ h.Title }</a></td>
+								<td>{ h.Kind }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/works")
+			}
+		</main>
+	}
+}
+
+templ SearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
+	@Layout("People") {
+		<main>
+			<h1>People</h1>
+			@searchForm(opts, "/people")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/people/" + h.ID.String()) }>{ h.Name }</a></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/people")
+			}
+		</main>
+	}
+}
+
+templ SearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
+	@Layout("Projects") {
+		<main>
+			<h1>Projects</h1>
+			@searchForm(opts, "/projects")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/projects/" + h.ID.String()) }>{ h.Title }</a></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/projects")
+			}
+		</main>
+	}
+}
+
+templ SearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
+	@Layout("Organizations") {
+		<main>
+			<h1>Organizations</h1>
+			@searchForm(opts, "/organizations")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Kind</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/organizations/" + h.ID.String()) }>{ h.Name }</a></td>
+								<td>{ h.Kind }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/organizations")
+			}
+		</main>
+	}
+}
+
+// Backoffice search views
+
+templ BackofficeSearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
+	@Layout("Works - Backoffice") {
+		<main>
+			<h1>Works</h1>
+			@searchForm(opts, "/backoffice/works")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Kind</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/backoffice/works/" + h.ID.String()) }>{ h.Title }</a></td>
+								<td>{ h.Kind }</td>
+								<td>{ h.Status }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/backoffice/works")
+			}
+		</main>
+	}
+}
+
+templ BackofficeSearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
+	@Layout("People - Backoffice") {
+		<main>
+			<h1>People</h1>
+			@searchForm(opts, "/backoffice/people")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/backoffice/people/" + h.ID.String()) }>{ h.Name }</a></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/backoffice/people")
+			}
+		</main>
+	}
+}
+
+templ BackofficeSearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
+	@Layout("Projects - Backoffice") {
+		<main>
+			<h1>Projects</h1>
+			@searchForm(opts, "/backoffice/projects")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/backoffice/projects/" + h.ID.String()) }>{ h.Title }</a></td>
+								<td>{ h.Status }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/backoffice/projects")
+			}
+		</main>
+	}
+}
+
+templ BackofficeSearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
+	@Layout("Organizations - Backoffice") {
+		<main>
+			<h1>Organizations</h1>
+			@searchForm(opts, "/backoffice/organizations")
+			@searchSummary(hits.Total, opts)
+			if len(hits.Hits) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Kind</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, h := range hits.Hits {
+							<tr>
+								<td><a href={ templ.SafeURL("/backoffice/organizations/" + h.ID.String()) }>{ h.Name }</a></td>
+								<td>{ h.Kind }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@pagination(hits.Total, opts, "/backoffice/organizations")
+			}
+		</main>
+	}
+}
+
+// Shared components
+
+templ searchForm(opts *bbl.SearchOpts, action string) {
+	<form action={ templ.SafeURL(action) } method="get">
+		<input type="search" name="q" value={ opts.Query } placeholder="Search..."/>
+		<button type="submit">Search</button>
+	</form>
+}
+
+templ searchSummary(total int, opts *bbl.SearchOpts) {
+	<p>
+		if total == 0 {
+			No results found.
+		} else {
+			{ fmt.Sprintf("Showing %d\u2013%d of %d", opts.Offset+1, min(opts.Offset+opts.Size, total), total) }
+		}
+	</p>
+}
+
+templ pagination(total int, opts *bbl.SearchOpts, baseURL string) {
+	if pages := paginationPages(opts.Size, opts.Offset, total, 10); len(pages) > 1 {
+		<nav aria-label="Pagination">
+			if opts.Offset > 0 {
+				<a href={ paginationURL(baseURL, opts.Query, opts.Offset-opts.Size) }>Previous</a>
+			}
+			for _, p := range pages {
+				{ " " }
+				if p.Current {
+					<strong>{ strconv.Itoa(p.Number) }</strong>
+				} else {
+					<a href={ paginationURL(baseURL, opts.Query, p.Offset) }>{ strconv.Itoa(p.Number) }</a>
+				}
+			}
+			{ " " }
+			if opts.Offset+opts.Size < total {
+				<a href={ paginationURL(baseURL, opts.Query, opts.Offset+opts.Size) }>Next</a>
+			}
+		</nav>
+	}
+}
+
+type paginationPage struct {
+	Number  int
+	Offset  int
+	Current bool
+}
+
+// paginationPages returns a sliding window of page numbers centered on the
+// current page. Uses clamp-and-shift: centers the window on the current page,
+// then shifts it to stay within [1, totalPages], keeping the window full.
+func paginationPages(size, offset, total, window int) []paginationPage {
+	if size <= 0 || total <= 0 {
+		return nil
+	}
+
+	totalPages := (total + size - 1) / size
+	currentPage := (offset / size) + 1
+	if currentPage > totalPages {
+		currentPage = totalPages
+	}
+
+	window = min(window, totalPages)
+
+	start := max(1, currentPage-(window-1)/2)
+	end := start + window - 1
+	if end > totalPages {
+		end = totalPages
+		start = end - window + 1
+	}
+
+	pages := make([]paginationPage, 0, window)
+	for n := start; n <= end; n++ {
+		pages = append(pages, paginationPage{
+			Number:  n,
+			Offset:  (n - 1) * size,
+			Current: n == currentPage,
+		})
+	}
+
+	return pages
+}
+
+func paginationURL(baseURL, query string, offset int) templ.SafeURL {
+	params := url.Values{}
+	if query != "" {
+		params.Set("q", query)
+	}
+	if offset > 0 {
+		params.Set("offset", strconv.Itoa(offset))
+	}
+	u := baseURL
+	if encoded := params.Encode(); encoded != "" {
+		u += "?" + encoded
+	}
+	return templ.SafeURL(u)
+}

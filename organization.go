@@ -1,73 +1,74 @@
 package bbl
 
 import (
-	"slices"
+	"context"
+	"iter"
+	"time"
+)
 
-	"github.com/ugent-library/vo"
+const (
+	OrganizationStatusPublic  = "public"
+	OrganizationStatusDeleted = "deleted"
 )
 
 type Organization struct {
-	Header
-	Kind              string            `json:"kind"`
-	Rels              []OrganizationRel `json:"rels,omitempty"`
-	OrganizationAttrs `json:"attrs"`
+	ID          ID
+	Version     int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	CreatedByID *ID
+	UpdatedByID *ID
+	Kind        string
+	Status      string
+	StartDate   *time.Time
+	EndDate     *time.Time
+	DeletedAt   *time.Time
+	DeletedByID *ID
+
+	// Relations — populated from the cache column on read.
+	Identifiers []Identifier      `json:"identifiers,omitempty"`
+	Names       []Text            `json:"names,omitempty"`
+	Rels        []OrganizationRel `json:"rels,omitempty"`
 }
 
-type OrganizationAttrs struct {
-	Names []Text `json:"names,omitempty"`
-}
-
+// OrganizationRel links two organizations with a typed, optionally temporal relationship.
 type OrganizationRel struct {
-	Kind           string        `json:"kind"`
-	OrganizationID string        `json:"organization_id"`
-	Organization   *Organization `json:"organization,omitempty"`
+	ID                ID         `json:"id"`
+	OrganizationID    ID         `json:"organization_id"`
+	RelOrganizationID ID         `json:"rel_organization_id"`
+	Kind              string     `json:"kind"`
+	StartDate         *time.Time `json:"start_date,omitempty"`
+	EndDate           *time.Time `json:"end_date,omitempty"`
+	Source            string     `json:"source,omitempty"`
 }
 
-func (rec *Organization) Validate() error {
-	v := vo.New(
-		vo.NotBlank("kind", rec.Kind),
-		vo.NotEmpty("names", rec.Names),
-	)
+// ImportOrganizationInput carries all data for one organization record arriving from a source.
+type ImportOrganizationInput struct {
+	ID        *ID        `json:"id,omitempty"`
+	SourceID  string     `json:"source_id"`
+	Kind      string     `json:"kind"`
+	StartDate *time.Time `json:"start_date,omitempty"`
+	EndDate   *time.Time `json:"end_date,omitempty"`
 
-	for i, ident := range rec.Identifiers {
-		v.In("identifiers").Index(i).Add(
-			vo.NotBlank("scheme", ident.Scheme),
-			vo.NotBlank("val", ident.Val),
-		)
-	}
+	// Org names are language-keyed relations (bbl_organization_names).
+	Names []Text `json:"names,omitempty"`
 
-	for i, text := range rec.Names {
-		v.In("names").Index(i).Add(
-			vo.ISO639_2("lang", text.Lang),
-			vo.NotBlank("val", text.Val),
-		)
-	}
+	Identifiers []Identifier            `json:"identifiers,omitempty"`
+	Rels        []ImportOrganizationRel `json:"rels,omitempty"`
 
-	return v.Validate().ToError()
+	// SourceRecord is the original payload from the source (XML, JSON, etc.).
+	SourceRecord []byte `json:"-"`
 }
 
-func (rec *Organization) Diff(rec2 *Organization) map[string]any {
-	changes := map[string]any{}
-	if rec.Kind != rec2.Kind {
-		changes["kind"] = rec.Kind
-	}
-	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
-		changes["identifiers"] = rec.Identifiers
-	}
-	if !slices.Equal(rec.Names, rec2.Names) {
-		changes["names"] = rec.Names
-	}
-	if !slices.EqualFunc(rec.Rels, rec2.Rels, func(r1, r2 OrganizationRel) bool {
-		return r1.Kind == r2.Kind && r1.OrganizationID == r2.OrganizationID
-	}) {
-		changes["rels"] = rec.Rels
-	}
-	return changes
+// ImportOrganizationRel describes a relationship to another organization.
+type ImportOrganizationRel struct {
+	Ref       Ref        `json:"ref"`
+	Kind      string     `json:"kind"`
+	StartDate *time.Time `json:"start_date,omitempty"`
+	EndDate   *time.Time `json:"end_date,omitempty"`
 }
 
-func (rec *Organization) GetName() string {
-	if len(rec.Names) > 0 {
-		return rec.Names[0].Val
-	}
-	return ""
+// OrganizationSource is the interface implemented by organization import sources.
+type OrganizationSource interface {
+	Iter(ctx context.Context) (iter.Seq2[*ImportOrganizationInput, error], error)
 }

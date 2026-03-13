@@ -2,322 +2,124 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/gocent/v3"
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/oaipmh"
-	"github.com/ugent-library/bbl/oaiservice"
-	"github.com/ugent-library/bbl/sru"
-	"github.com/ugent-library/bbl/tasks"
-	"github.com/ugent-library/catbird"
-	"github.com/ugent-library/oidc"
+	"github.com/ugent-library/bbl/oidcauth"
 	"golang.org/x/sync/errgroup"
 )
 
-func init() {
-	rootCmd.AddCommand(startCmd)
-}
+func newStartCmd(e *env) *cobra.Command {
+	host := envStrOr("BBL_HOST", "localhost")
+	port := envIntOr("BBL_PORT", 3000)
+	var dev bool
 
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start the server",
-	Args:  cobra.ExactArgs(0),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		log := newLogger(cmd.OutOrStdout())
-
-		repo, close, err := newRepo(cmd.Context())
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		store, err := newStore()
-		if err != nil {
-			return err
-		}
-
-		index, err := newIndex(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		centrifugeClient := gocent.New(gocent.Config{
-			Addr: config.Centrifuge.API.URL,
-			Key:  config.Centrifuge.API.Key,
-		})
-
-		worker := repo.Catbird.NewWorker().WithLogger(log)
-
-		workerTasks := []*catbird.Task{
-			tasks.AddListItems(repo, index),
-			tasks.AddRepresentations(repo, index),
-			tasks.ChangeWorks(repo, index, log),
-			tasks.ExportWorks(store, repo, index, centrifugeClient),
-			tasks.ImportUserSource(repo, log),
-			tasks.ImportWork(repo),
-			tasks.ImportWorkSource(repo),
-			tasks.NotifySubscriber(repo),
-			tasks.NotifySubscribers(repo),
-			tasks.ReindexOrganizations(repo, index),
-			tasks.ReindexPeople(repo, index),
-			tasks.ReindexProjects(repo, index),
-			tasks.ReindexWorks(repo, index),
-			tasks.ReindexUsers(repo, index),
-		}
-
-		for _, task := range workerTasks {
-			if err := repo.Catbird.CreateTask(cmd.Context(), task); err != nil {
+	cmd := &cobra.Command{
+		Use:   "start",
+		Short: "Start the HTTP server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			svc, err := e.services(ctx)
+			if err != nil {
 				return err
 			}
-			worker.AddTask(task)
-		}
+			defer svc.Repo.Close()
 
-		authProvider, err := oidc.NewAuth(cmd.Context(), oidc.Config{
-			IssuerURL:        config.OIDC.IssuerURL,
-			ClientID:         config.OIDC.ClientID,
-			ClientSecret:     config.OIDC.ClientSecret,
-			RedirectURL:      config.BaseURL + "/backoffice/auth/callback",
-			CookieInsecure:   config.Env == "development",
-			CookiePrefix:     "bbl.oidc.",
-			CookieHashSecret: []byte(config.HashSecret),
-			CookieSecret:     []byte(config.Secret),
-		})
-		if err != nil {
-			return err
-		}
-
-		oaiProvider, err := oaipmh.NewProvider(oaipmh.ProviderConfig{
-			RepositoryName: "Ghent University Institutional Repository",
-			BaseURL:        "http://localhost:3000/oai",
-			AdminEmails:    []string{"nicolas.steenlant@ugent.be"},
-			DeletedRecord:  "persistent",
-			Granularity:    "YYYY-MM-DDThh:mm:ssZ",
-			// StyleSheet:     "/oai.xsl",
-			Backend: oaiservice.New(repo),
-			ErrorHandler: func(err error) { // TODO
-				log.Error("oai error", "error", err)
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		sruServer := &sru.Server{
-			Host: config.Host,
-			Port: config.Port,
-			SearchProvider: func(q string, size int) ([][]byte, int, error) {
-				hits, err := index.Works().Search(cmd.Context(), &bbl.SearchOpts{
-					Query: q,
-					Size:  size,
-				})
+			// Build auth providers: registered factories first, then built-in types.
+			authProviders := make(map[string]app.AuthProvider)
+			for name, factory := range e.reg.authProviderFactories {
+				provider, err := factory(e.cfg)
 				if err != nil {
-					return nil, 0, err
+					return fmt.Errorf("auth provider %q: %w", name, err)
 				}
-
-				recs := make([][]byte, len(hits.Hits))
-				for i, hit := range hits.Hits {
-					b, err := bbl.EncodeWork(hit.Rec, "oai_dc")
-					if err != nil {
-						return nil, 0, err
+				authProviders[name] = provider
+			}
+			for name, ac := range e.cfg.AuthProviders {
+				if _, ok := authProviders[name]; ok {
+					continue
+				}
+				switch ac.Type {
+				case "oidc":
+					var c oidcauth.Config
+					if err := ac.Config.Decode(&c); err != nil {
+						return fmt.Errorf("auth provider %q: decode config: %w", name, err)
 					}
-					recs[i] = b
+					if c.RedirectURL == "" && e.cfg.RootURL != "" {
+						c.RedirectURL = e.cfg.RootURL + "/backoffice/auth/callback/" + name
+					}
+					provider, err := oidcauth.New(ctx, c, []byte(e.cfg.HashSecret), []byte(e.cfg.Secret), e.cfg.Secure)
+					if err != nil {
+						return fmt.Errorf("auth provider %q: %w", name, err)
+					}
+					authProviders[name] = provider
+				default:
+					return fmt.Errorf("auth provider %q: unknown type %q", name, ac.Type)
 				}
+			}
 
-				return recs, hits.Total, nil
-			},
-		}
-
-		handler, err := app.NewApp(
-			config.BaseURL,
-			config.Env,
-			log,
-			[]byte(config.HashSecret),
-			[]byte(config.Secret),
-			repo,
-			store,
-			index,
-			authProvider,
-			oaiProvider,
-			sruServer,
-			config.Centrifuge.Transport.URL,
-			[]byte(config.Centrifuge.HMACSecret),
-		)
-		if err != nil {
-			return err
-		}
-
-		server := &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
-			WriteTimeout: time.Second * 15,
-			ReadTimeout:  time.Second * 15,
-			IdleTimeout:  time.Second * 60,
-			Handler:      handler.Handler(),
-		}
-
-		signalCtx, signalRelease := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-		defer signalRelease()
-
-		group, groupCtx := errgroup.WithContext(signalCtx)
-
-		group.Go(func() error {
-			log.Info("server listening", "host", config.Host, "port", config.Port)
-
-			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			a, err := app.New(app.Config{
+				Logger:     slog.Default(),
+				Services:   svc,
+				RootURL:    e.cfg.RootURL,
+				Dev:        dev,
+				Auth:       authProviders,
+				HashSecret: []byte(e.cfg.HashSecret),
+				Secret:     []byte(e.cfg.Secret),
+				Secure:     e.cfg.Secure,
+			})
+			if err != nil {
 				return err
 			}
-			return nil
-		})
+			addr := fmt.Sprintf("%s:%d", host, port)
 
-		group.Go(func() error {
-			<-groupCtx.Done()
-
-			log.Info("gracefully stopping server")
-
-			timeoutCtx, timeoutRelease := context.WithTimeout(cmd.Context(), 5*time.Second)
-			defer timeoutRelease()
-
-			err := server.Shutdown(timeoutCtx)
-			if err == nil {
-				log.Info("gracefully stopped server")
-				return nil
+			server := &http.Server{
+				Addr:         addr,
+				Handler:      a.Handler(),
+				ReadTimeout:  15 * time.Second,
+				WriteTimeout: 15 * time.Second,
+				IdleTimeout:  60 * time.Second,
 			}
-			return err
-		})
 
-		// Run outbox reader
-		// TODO split off command?
-		// TODO use long polling / cdc
-		// TODO max attempts / dead letter box
-		// TODO log instead of returning where appropriate
-		// TODO check if latest rev?
-		group.Go(func() error {
-			n := 100
-			hideFor := 10 * time.Second
+			ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+			defer stop()
 
-			for {
-				select {
-				case <-groupCtx.Done():
-					return nil
-				default:
-					msgs, err := repo.Catbird.Read(groupCtx, bbl.OutboxQueue, n, hideFor)
-					if err != nil {
-						return err
-					}
+			g, ctx := errgroup.WithContext(ctx)
 
-					for _, msg := range msgs {
-						switch msg.Topic {
-						case bbl.UserChangedTopic:
-							var payload bbl.RecordChangedPayload
-							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-								return err
-							}
-							rec, err := repo.GetUser(groupCtx, payload.ID)
-							if err != nil {
-								return err
-							}
-							if err := index.Users().Add(groupCtx, rec); err != nil {
-								return err
-							}
-						case bbl.OrganizationChangedTopic:
-							var payload bbl.RecordChangedPayload
-							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-								return err
-							}
-							rec, err := repo.GetOrganization(groupCtx, payload.ID)
-							if err != nil {
-								return err
-							}
-							if err := index.Organizations().Add(groupCtx, rec); err != nil {
-								return err
-							}
-						case bbl.PersonChangedTopic:
-							var payload bbl.RecordChangedPayload
-							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-								return err
-							}
-							rec, err := repo.GetPerson(groupCtx, payload.ID)
-							if err != nil {
-								return err
-							}
-							if err := index.People().Add(groupCtx, rec); err != nil {
-								return err
-							}
-						case bbl.ProjectChangedTopic:
-							var payload bbl.RecordChangedPayload
-							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-								return err
-							}
-							rec, err := repo.GetProject(groupCtx, payload.ID)
-							if err != nil {
-								return err
-							}
-							if err := index.Projects().Add(groupCtx, rec); err != nil {
-								return err
-							}
-						case bbl.WorkChangedTopic:
-							var payload bbl.RecordChangedPayload
-							if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-								return err
-							}
-							rec, err := repo.GetWork(groupCtx, payload.ID)
-							if err != nil {
-								return err
-							}
-							if err := index.Works().Add(groupCtx, rec); err != nil {
-								return err
-							}
-							_, err = repo.Catbird.RunTask(groupCtx,
-								tasks.AddRepresentationsName,
-								tasks.AddRepresentationsInput{WorkID: payload.ID},
-								catbird.RunTaskOpts{ConcurrencyKey: payload.ID},
-							)
-							_, err = repo.Catbird.RunTask(groupCtx,
-								tasks.NotifySubscribersName,
-								tasks.NotifySubscribersInput{Topic: msg.Topic, Payload: msg.Payload},
-								catbird.RunTaskOpts{ConcurrencyKey: payload.ID},
-							)
-						}
-
-						if _, err := repo.Catbird.Delete(groupCtx, bbl.OutboxQueue, msg.ID); err != nil {
-							return err
-						}
-					}
-
-					if len(msgs) < n {
-						time.Sleep(500 * time.Millisecond)
-					}
+			g.Go(func() error {
+				slog.Info("server starting", "addr", addr)
+				if err := server.ListenAndServe(); err != http.ErrServerClosed {
+					return err
 				}
+				return nil
+			})
+
+			g.Go(func() error {
+				<-ctx.Done()
+				stop()
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				return server.Shutdown(shutdownCtx)
+			})
+
+			// Future: g.Go(func() error { return worker.Run(ctx) })
+
+			if err := g.Wait(); err != nil {
+				return err
 			}
-
-		})
-
-		// Run catbird worker
-		group.Go(func() error {
-			log.Info("starting catbird worker")
-
-			if err = worker.Start(groupCtx); err != nil {
-				return fmt.Errorf("failed to start catbird worker: %w", err)
-			}
+			slog.Info("server stopped")
 			return nil
-		})
+		},
+	}
 
-		if err := group.Wait(); err != nil {
-			log.Error("stopped with error", "error", err)
-			return err
-		}
+	cmd.Flags().StringVar(&host, "host", host, "Listen host [$BBL_HOST]")
+	cmd.Flags().IntVar(&port, "port", port, "Listen port [$BBL_PORT]")
+	cmd.Flags().BoolVar(&dev, "dev", false, "Dev mode: serve assets from disk, no caching")
 
-		log.Info("stopped")
-
-		return nil
-	},
+	return cmd
 }

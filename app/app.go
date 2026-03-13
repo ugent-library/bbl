@@ -1,445 +1,128 @@
 package app
 
 import (
-	"context"
-	"embed"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
-	"slices"
-	"time"
+	"net/url"
+	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/securecookie"
-	"github.com/leonelquinteros/gotext"
 	sloghttp "github.com/samber/slog-http"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/urls"
 	"github.com/ugent-library/bbl/app/views"
-	"github.com/ugent-library/bbl/i18n"
-	"github.com/ugent-library/bbl/pgxrepo"
-	"github.com/ugent-library/bbl/s3store"
-	"github.com/ugent-library/catbird/dashboard"
-	"github.com/ugent-library/crypt"
 )
 
-const (
-	sessionCookieName = "bbl.session"
-)
+type Config struct {
+	Logger   *slog.Logger
+	Services *bbl.Services
+	RootURL  string // public root URL (e.g. "https://biblio.ugent.be/bbl")
+	Dev      bool   // dev mode: serve assets from disk, re-read manifest on every request
 
-//go:embed static
-var staticFS embed.FS
-
-type SessionCookie struct {
-	UserID       string `json:"u,omitempty"`
-	ViewAsUserID string `json:"v,omitempty"`
-}
-
-type AuthProvider interface {
-	BeginAuth(http.ResponseWriter, *http.Request) error
-	CompleteAuth(http.ResponseWriter, *http.Request, any) error
-}
-
-func parseManifest() (map[string]string, error) {
-	manifest, err := staticFS.ReadFile("static/manifest.json")
-	if err != nil {
-		return nil, fmt.Errorf("couldn't read asset manifest: %w", err)
-	}
-	assets := make(map[string]string)
-	if err := json.Unmarshal(manifest, &assets); err != nil {
-		return nil, fmt.Errorf("couldn't parse asset manifest: %w", err)
-	}
-
-	return assets, nil
-}
-
-type chain []func(http.Handler) http.Handler
-
-func (c chain) with(mw ...func(http.Handler) http.Handler) chain {
-	return append(c, mw...)
-}
-
-func (c chain) then(h http.Handler) http.Handler {
-	for _, mw := range slices.Backward(c) {
-		h = mw(h)
-	}
-	return h
-}
-
-type handlerCtx interface {
-	HandleError(http.ResponseWriter, *http.Request, error)
-}
-
-func wrap[T handlerCtx](getCtx func(*http.Request) (T, error), h func(http.ResponseWriter, *http.Request, T) error) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c, err := getCtx(r)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-		if err = h(w, r, c); err != nil {
-			c.HandleError(w, r, err)
-		}
-	})
-}
-
-type ctxKey string
-
-func (c ctxKey) String() string {
-	return string(c)
-}
-
-func getCtx[T handlerCtx](r *http.Request, key ctxKey) (T, error) {
-	v := r.Context().Value(key)
-	c, ok := v.(T)
-	if !ok {
-		var t T
-		return t, fmt.Errorf("getCtx %s: expected %T but got %T", key, t, v)
-	}
-	return c, nil
-}
-
-func setCtx[T handlerCtx](key ctxKey, newCtx func(r *http.Request) (T, error)) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c, err := newCtx(r)
-			if err != nil { // TODO better error handling
-				log.Printf("setCtx error: %s", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			r = r.WithContext(context.WithValue(r.Context(), key, c))
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-const appCtxKey ctxKey = "appCtx"
-
-func getAppCtx(r *http.Request) (*appCtx, error) {
-	return getCtx[*appCtx](r, appCtxKey)
-}
-
-type appCtx struct {
-	insecure                bool
-	assets                  map[string]string
-	crypt                   *crypt.Crypt
-	cookies                 *securecookie.SecureCookie
-	User                    *bbl.User
-	ViewAsUser              *bbl.User
-	channels                []string
-	loc                     *gotext.Locale
-	centrifugeURL           string
-	generateCentrifugeToken func(string, []string, int64) (string, error)
-}
-
-func (c *appCtx) generateUserCentrifugeToken() (string, error) {
-	return c.generateCentrifugeToken(c.User.ID, c.channels, time.Now().Add(24*time.Hour).Unix())
-}
-
-func (c *appCtx) viewCtx() views.Ctx {
-	return views.Ctx{
-		AssetPath:               c.AssetPath,
-		Loc:                     c.loc,
-		User:                    c.User,
-		ViewAsUser:              c.ViewAsUser,
-		CentrifugeURL:           c.centrifugeURL,
-		GenerateCentrifugeToken: c.generateUserCentrifugeToken,
-	}
-}
-
-// TODO handl ehttp status errors properly
-func (c *appCtx) HandleError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Println("error:", err) // TODO proper logging
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-}
-
-func (c *appCtx) AddChannel(ch string) {
-	if !slices.Contains(c.channels, ch) {
-		c.channels = append(c.channels, ch)
-	}
-}
-
-func (c *appCtx) AssetPath(asset string) string {
-	a, ok := c.assets[asset]
-	if !ok {
-		panic(fmt.Errorf("asset '%s' not found in manifest", asset))
-	}
-	return a
-}
-
-func (c *appCtx) SaveSession(w http.ResponseWriter) error {
-	val := &SessionCookie{}
-
-	if c.User != nil {
-		val.UserID = c.User.ID
-	}
-	if c.ViewAsUser != nil {
-		val.ViewAsUserID = c.ViewAsUser.ID
-	}
-
-	err := c.SetCookie(w, sessionCookieName, val, 30*24*time.Hour)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *appCtx) GetCookie(r *http.Request, name string, val any) error {
-	cookie, err := r.Cookie(name)
-	if err != nil {
-		return fmt.Errorf("can't get cookie %s: %w", name, err)
-	}
-	if err := c.cookies.Decode(name, cookie.Value, val); err != nil {
-		return fmt.Errorf("can't decode cookie %s: %w", name, err)
-	}
-	return nil
-}
-
-func (c *appCtx) SetCookie(w http.ResponseWriter, name string, val any, ttl time.Duration) error {
-	v, err := c.cookies.Encode(name, val)
-	if err != nil {
-		return fmt.Errorf("can't encode cookie %s: %w", name, err)
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    v,
-		Path:     "/",
-		Expires:  time.Now().Add(ttl),
-		HttpOnly: true,
-		Secure:   !c.insecure,
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	return nil
-}
-
-func (c *appCtx) ClearCookie(w http.ResponseWriter, name string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   !c.insecure,
-		SameSite: http.SameSiteStrictMode,
-	})
+	// Auth — all nil-safe. Without auth, session is not created,
+	// User is always nil, and login/callback return 404.
+	// Keyed by provider name (e.g. "ugent_oidc").
+	Auth       map[string]AuthProvider
+	HashSecret []byte // HMAC key for session cookie signing
+	Secret     []byte // encryption key for session cookie
+	Secure     bool   // true = HTTPS-only cookies
 }
 
 type App struct {
-	env                     string
-	log                     *slog.Logger
-	repo                    *pgxrepo.Repo
-	store                   *s3store.Store
-	index                   bbl.Index
-	oaiProvider             http.Handler
-	sruServer               http.Handler
-	crypt                   *crypt.Crypt
-	assets                  map[string]string
-	cookies                 *securecookie.SecureCookie
-	authProvider            AuthProvider
-	centrifugeURL           string
-	generateCentrifugeToken func(string, []string, int64) (string, error)
+	log        *slog.Logger
+	services   *bbl.Services
+	rootURL    string // without trailing slash
+	pathPrefix string // path component of rootURL (e.g. "/bbl" or "")
+	assets     *assets
+	auth       map[string]AuthProvider
+	session    *session // nil when no auth configured
 }
 
-func NewApp(
-	baseURL string,
-	env string,
-	log *slog.Logger,
-	hashSecret, secret []byte,
-	repo *pgxrepo.Repo,
-	store *s3store.Store,
-	index bbl.Index,
-	authProvider AuthProvider,
-	oaiProvider http.Handler,
-	sruServer http.Handler,
-	centrifugeURL string,
-	centrifugeHMACSecret []byte,
-) (*App, error) {
-	assets, err := parseManifest()
+func New(cfg Config) (*App, error) {
+	log := cfg.Logger
+	if log == nil {
+		log = slog.Default()
+	}
+
+	rootURL := strings.TrimRight(cfg.RootURL, "/")
+	var pathPrefix string
+	if rootURL != "" {
+		if u, err := url.Parse(rootURL); err == nil {
+			pathPrefix = strings.TrimRight(u.Path, "/")
+		}
+	}
+
+	a, err := loadAssets(pathPrefix, cfg.Dev)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load assets: %w", err)
 	}
-
-	cookies := securecookie.New(hashSecret, secret)
-	cookies.SetSerializer(securecookie.JSONEncoder{})
-
 	app := &App{
-		env:           env,
-		log:           log,
-		repo:          repo,
-		store:         store,
-		index:         index,
-		oaiProvider:   oaiProvider,
-		sruServer:     sruServer,
-		authProvider:  authProvider,
-		crypt:         crypt.New(secret),
-		assets:        assets,
-		cookies:       cookies,
-		centrifugeURL: centrifugeURL,
-		generateCentrifugeToken: func(userID string, channels []string, exp int64) (string, error) {
-			claims := jwt.MapClaims{
-				"sub":      userID,
-				"channels": channels,
-			}
-			if exp > 0 {
-				claims["exp"] = exp
-			}
-
-			token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(centrifugeHMACSecret)
-			if err != nil {
-				return "", err
-			}
-			return token, nil
-		},
+		log:        log,
+		services:   cfg.Services,
+		rootURL:    rootURL,
+		pathPrefix: pathPrefix,
+		assets:     a,
+		auth:       cfg.Auth,
 	}
-
+	if len(cfg.Auth) > 0 {
+		app.session = newSession(cfg.HashSecret, cfg.Secret, cfg.Secure)
+	}
 	return app, nil
 }
 
 func (app *App) Handler() http.Handler {
-	baseChain := chain{
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Static assets (CSS, JS) with immutable cache headers.
+	mux.Handle("GET /static/", http.StripPrefix("/static/", app.assets.fileServer()))
+
+	base := chain{
 		sloghttp.Recovery,
 		sloghttp.NewWithConfig(app.log.WithGroup("http"), sloghttp.Config{
 			WithRequestID: true,
 		}),
-		http.NewCrossOriginProtection().Handler,
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ctx := views.WithAssetPath(r.Context(), app.assets.Path)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			})
+		},
 	}
 
-	appChain := chain{setCtx(appCtxKey, app.newAppCtx)}
+	// Discovery — public, anonymous. User loaded from session if present.
+	discovery := newGroup(base, app.newCtx, app.htmlError)
+	mux.Handle("GET /", discovery.handle(app.home))
+	mux.Handle("GET /works", discovery.handle(app.searchWorks))
+	mux.Handle("GET /works/{id}", discovery.handle(app.showWork))
+	mux.Handle("GET /people", discovery.handle(app.searchPeople))
+	mux.Handle("GET /people/{id}", discovery.handle(app.showPerson))
+	mux.Handle("GET /projects", discovery.handle(app.searchProjects))
+	mux.Handle("GET /projects/{id}", discovery.handle(app.showProject))
+	mux.Handle("GET /organizations", discovery.handle(app.searchOrganizations))
+	mux.Handle("GET /organizations/{id}", discovery.handle(app.showOrganization))
 
-	userChain := appChain.with(requireUser)
+	// Auth routes — anonymous (login/callback don't require a session).
+	mux.Handle("GET /backoffice/login", discovery.handle(app.login))
+	mux.Handle("GET /backoffice/login/{provider}", discovery.handle(app.loginProvider))
+	mux.Handle("GET /backoffice/auth/callback/{provider}", discovery.handle(app.authCallback))
 
-	mux := http.NewServeMux()
+	// Backoffice — requires authenticated user.
+	backoffice := newGroup(base, app.newAuthCtx, app.htmlError)
+	mux.Handle("GET /backoffice", backoffice.handle(app.backofficeHome))
+	mux.Handle("GET /backoffice/works", backoffice.handle(app.backofficeSearchWorks))
+	mux.Handle("GET /backoffice/works/{id}", backoffice.handle(app.backofficeShowWork))
+	mux.Handle("GET /backoffice/works/{id}/edit", backoffice.handle(app.backofficeEditWork))
+	mux.Handle("POST /backoffice/works/{id}/edit", backoffice.handle(app.backofficeUpdateWork))
+	mux.Handle("GET /backoffice/people", backoffice.handle(app.backofficeSearchPeople))
+	mux.Handle("GET /backoffice/people/{id}", backoffice.handle(app.backofficeShowPerson))
+	mux.Handle("GET /backoffice/projects", backoffice.handle(app.backofficeSearchProjects))
+	mux.Handle("GET /backoffice/projects/{id}", backoffice.handle(app.backofficeShowProject))
+	mux.Handle("GET /backoffice/organizations", backoffice.handle(app.backofficeSearchOrganizations))
+	mux.Handle("GET /backoffice/organizations/{id}", backoffice.handle(app.backofficeShowOrganization))
+	mux.Handle("POST /backoffice/logout", backoffice.handle(app.logout))
 
-	// TODO secure this
-	mux.Handle("/catbird/", http.StripPrefix("/catbird", dashboard.New(dashboard.Config{
-		Client:     app.repo.Catbird,
-		Logger:     app.log.WithGroup("catbird-dashboard"),
-		PathPrefix: "/catbird",
-	}).Handler()))
-
-	mux.Handle("GET /oai", app.oaiProvider)
-
-	mux.Handle("GET /sru", app.sruServer)
-
-	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
-
-	mux.Handle("/", appChain.then(wrap(getAppCtx, app.home)))
-
-	mux.Handle("GET /work/{id}", appChain.then(wrap(getAppCtx, app.work)))
-	mux.Handle("GET /works", appChain.then(wrap(getAppCtx, app.works)))
-
-	mux.Handle("GET /backoffice/login", appChain.then(wrap(getAppCtx, app.login)))
-	mux.Handle("GET /backoffice/auth/callback", appChain.then(wrap(getAppCtx, app.authCallback)))
-	mux.Handle("GET /backoffice/logout", userChain.then(wrap(getAppCtx, app.logout)))
-	mux.Handle("POST /backoffice/view_as", userChain.then(wrap(getAppCtx, app.viewAs)))
-
-	mux.Handle("GET /backoffice/users", userChain.then(wrap(getAppCtx, app.backofficeUsers))) // TODO access control
-
-	mux.Handle("GET /backoffice/organizations", userChain.then(wrap(getAppCtx, app.backofficeOrganizations)))
-
-	mux.Handle("GET /backoffice/people", userChain.then(wrap(getAppCtx, app.backofficePeople)))
-
-	mux.Handle("GET /backoffice/projects", userChain.then(wrap(getAppCtx, app.backofficeProjects)))
-
-	mux.Handle("GET /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeWorks)))
-	mux.Handle("GET /backoffice/works/_suggest", userChain.then(wrap(getAppCtx, app.backofficeWorksSuggest)))
-	mux.Handle("POST /backoffice/works/export/{format}", userChain.then(wrap(getAppCtx, app.backofficeExportWorks)))
-	mux.Handle("GET /backoffice/works/add", userChain.then(wrap(getAppCtx, app.backofficeAddWork)))
-	mux.Handle("POST /backoffice/works", userChain.then(wrap(getAppCtx, app.backofficeCreateWork)))
-	mux.Handle("GET /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchEditWorks)))
-	mux.Handle("POST /backoffice/works/batch_edit", userChain.then(wrap(getAppCtx, app.backofficeBatchUpdateWorks)))
-
-	mux.Handle("POST /backoffice/works/_add_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkAddContributor)))
-	mux.Handle("GET /backoffice/works/_add_contributor_suggest", userChain.then(wrap(getAppCtx, app.backofficeWorkAddContributorSuggest)))
-	mux.Handle("POST /backoffice/works/_edit_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkEditContributor)))
-	mux.Handle("GET /backoffice/works/_edit_contributor_suggest", userChain.then(wrap(getAppCtx, app.backofficeWorkEditContributorSuggest)))
-	mux.Handle("POST /backoffice/works/_update_contributor/{idx}", userChain.then(wrap(getAppCtx, app.backofficeWorkUpdateContributor)))
-	mux.Handle("POST /backoffice/works/_remove_contributor", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveContributor)))
-	mux.Handle("POST /backoffice/works/_add_files", userChain.then(wrap(getAppCtx, app.backofficeWorkAddFiles)))
-	mux.Handle("POST /backoffice/works/_remove_file", userChain.then(wrap(getAppCtx, app.backofficeWorkRemoveFile)))
-
-	mux.Handle("GET /backoffice/work/{id}/changes", userChain.then(wrap(getAppCtx, app.backofficeWorkChanges)))
-	mux.Handle("GET /backoffice/work/{id}/edit", userChain.then(wrap(getAppCtx, app.backofficeEditWork)))
-	mux.Handle("POST /backoffice/work/{id}", userChain.then(wrap(getAppCtx, app.backofficeUpdateWork)))
-	mux.Handle("POST /backoffice/work/{id}/publish", userChain.then(wrap(getAppCtx, app.backofficePublishWork)))
-	mux.Handle("POST /backoffice/work/{id}/_change_kind", userChain.then(wrap(getAppCtx, app.backofficeWorkChangeKind)))
-
-	mux.Handle("POST /backoffice/files/upload_url", userChain.then(wrap(getAppCtx, app.createFileUploadURL)))
-
-	mux.Handle("GET /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeLists)))
-	mux.Handle("GET /backoffice/lists/_new", userChain.then(wrap(getAppCtx, app.backofficeNewList)))
-	mux.Handle("POST /backoffice/lists", userChain.then(wrap(getAppCtx, app.backofficeCreateList)))
-	mux.Handle("GET /backoffice/lists/_add_items", userChain.then(wrap(getAppCtx, app.backofficeAddListItems)))
-
-	mux.Handle("GET /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeList)))
-	mux.Handle("POST /backoffice/list/{id}/items", userChain.then(wrap(getAppCtx, app.backofficeCreateListItems)))
-	mux.Handle("DELETE /backoffice/list/{id}", userChain.then(wrap(getAppCtx, app.backofficeDeleteList)))
-	mux.Handle("POST /backoffice/list/{id}/export/{format}", userChain.then(wrap(getAppCtx, app.backofficeExportList)))
-
-	mux.Handle("GET /backoffice", userChain.then(wrap(getAppCtx, app.backofficeHome)))
-
-	return baseChain.then(mux)
-}
-
-func (app *App) newAppCtx(r *http.Request) (*appCtx, error) {
-	c := &appCtx{
-		insecure:                app.env == "development",
-		assets:                  app.assets,
-		crypt:                   app.crypt,
-		cookies:                 app.cookies,
-		loc:                     i18n.Locales["en"],
-		centrifugeURL:           app.centrifugeURL,
-		generateCentrifugeToken: app.generateCentrifugeToken,
-	}
-
-	// load session
-	session := SessionCookie{}
-	err := c.GetCookie(r, sessionCookieName, &session)
-	if err != nil && !errors.Is(err, http.ErrNoCookie) {
-		return nil, err
-	}
-	if err == nil {
-		if session.UserID != "" {
-			user, err := app.repo.GetUser(r.Context(), session.UserID)
-			if err != nil {
-				return nil, err
-			}
-			c.User = user
-			c.AddChannel("users")
-			c.AddChannel("users#" + user.ID)
-		}
-		if session.ViewAsUserID != "" {
-			user, err := app.repo.GetUser(r.Context(), session.ViewAsUserID)
-			if err != nil {
-				return nil, err
-			}
-			c.ViewAsUser = user
-		}
-	}
-
-	return c, nil
-}
-
-func requireUser(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c, err := getAppCtx(r)
-		if err != nil { // TODO log error
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		if c.User == nil {
-			http.Redirect(w, r, urls.BackofficeLogin(), http.StatusFound)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+	return mux
 }

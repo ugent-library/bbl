@@ -1,33 +1,39 @@
 package cli
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
-	"github.com/ugent-library/bbl/pgxrepo"
+	"github.com/ugent-library/bbl"
 )
 
-var migrationVersion int
+func newMigrateCmd(cfg *config) *cobra.Command {
+	var version int
 
-func init() {
-	rootCmd.AddCommand(migrateCmd)
-	migrateCmd.Flags().IntVar(&migrationVersion, "version", 0, "")
-}
+	cmd := &cobra.Command{
+		Use:       "migrate [up|down]",
+		Short:     "Run database migrations",
+		Args:      cobra.ExactArgs(1),
+		ValidArgs: []string{"up", "down"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if cfg.Conn == "" {
+				return errors.New("database connection string required (--conn or $BBL_CONN)")
+			}
+			ctx := cmd.Context()
+			if args[0] == "up" {
+				if version > 0 {
+					return bbl.MigrateUpTo(ctx, cfg.Conn, version)
+				}
+				return bbl.MigrateUp(ctx, cfg.Conn)
+			}
+			if version > 0 {
+				return bbl.MigrateDownTo(ctx, cfg.Conn, version)
+			}
+			return bbl.MigrateDown(ctx, cfg.Conn)
+		},
+	}
 
-var migrateCmd = &cobra.Command{
-	Use:       "migrate [up|down]",
-	Short:     "Run database migrations",
-	Args:      cobra.ExactArgs(1),
-	ValidArgs: []string{"up", "down"},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if args[0] == "up" {
-			if migrationVersion > 0 {
-				return pgxrepo.MigrateUpTo(cmd.Context(), config.PgConn, migrationVersion)
-			}
-			return pgxrepo.MigrateUp(cmd.Context(), config.PgConn)
-		} else {
-			if migrationVersion > 0 {
-				return pgxrepo.MigrateDownTo(cmd.Context(), config.PgConn, migrationVersion)
-			}
-			return pgxrepo.MigrateDown(cmd.Context(), config.PgConn)
-		}
-	},
+	cmd.Flags().IntVar(&version, "version", 0, "target migration version (default: latest)")
+
+	return cmd
 }

@@ -1,0 +1,69 @@
+# UGent-specific bbl configuration.
+# Values like ${VAR} are expanded from the process environment.
+
+# PostgreSQL connection string.
+conn: "${PG_CONN}"
+
+# Path to the profile definitions.
+profiles: "ugent/profiles.yaml"
+
+# Public root URL (used for generating links, redirect URIs, etc.).
+root_url: "https://biblio.ugent.be"
+
+# HMAC key for cookie signing (hex-encoded, 32 bytes / 64 hex chars).
+hash_secret: "${HASH_SECRET}"
+# Encryption key for cookie values (hex-encoded, 16 bytes / 32 hex chars).
+secret: "${SECRET}"
+# AES-256-GCM key for encrypting user tokens at rest (hex-encoded, 32 bytes / 64 hex chars).
+token_secret: "${TOKEN_SECRET}"
+
+# OpenSearch connection.
+opensearch:
+  addresses:
+    - "http://localhost:3352"
+
+# User source: UGent LDAP.
+# Syncs user accounts from the UGent LDAP directory.
+user_sources:
+  ugent_ldap:
+    type: ldap
+    auth_provider: ugent_oidc  # links users from this source to the ugent_oidc auth provider
+    config:
+      username: "${UGENT_LDAP_USERNAME}"
+      password: "${UGENT_LDAP_PASSWORD}"
+      url: "ldaps://ldap.ugent.be:636"
+      base: "ou=people,dc=ugent,dc=be"
+      filter: "(&(uid=*)(|(objectclass=ugentEmployee)(objectclass=uzEmployee)(objectclass=ugentStudent)(ugentextcategorycode=alum)))"
+      # Maps LDAP attributes to user fields.
+      mapping:
+        source_id: ugentPersonID
+        username: uid
+        email: mail
+        name: displayName
+        # Maps LDAP attributes to user identifier schemes.
+        identifiers:
+          ugent_id: ugentIDs
+
+# Work source: Plato API.
+# Imports bibliographic records from the Plato research information system.
+work_sources:
+  plato:
+    type: plato
+    config:
+      url: "${PLATO_URL}"
+      username: "${PLATO_USERNAME}"
+      password: "${PLATO_PASSWORD}"
+
+# Auth provider: UGent OIDC.
+# OpenID Connect authentication via the UGent identity provider.
+auth:
+  ugent_oidc:
+    type: oidc
+    config:
+      issuer_url: "https://login.ugent.be"
+      client_id: "${OIDC_CLIENT_ID}"
+      client_secret: "${OIDC_CLIENT_SECRET}"
+      # How to match the OIDC token claim to a bbl user.
+      # "username" matches against bbl_users.username;
+      # an identifier scheme (e.g. "ugent_id") matches against bbl_user_identifiers.
+      match: username

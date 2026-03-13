@@ -1,0 +1,14 @@
+{
+  "name": "bbl",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch"
+  },
+  "dependencies": {
+    "htmx.org": "^2.0.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.2"
+  }
+}

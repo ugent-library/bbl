@@ -1,39 +1,47 @@
 package cli
 
 import (
-	"encoding/json"
+	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tidwall/pretty"
-	"github.com/ugent-library/bbl"
 )
 
-var (
-	prettify    = false
-	searchOpts  = &bbl.SearchOpts{}
-	queryFilter = ""
-)
+func NewRootCmd(reg *Registry) *cobra.Command {
+	cfgFile := os.Getenv("BBL_CONFIG")
+	cfg := &config{}
+	e := &env{cfg: cfg, reg: reg}
 
-func init() {
-	rootCmd.PersistentFlags().BoolVar(&prettify, "pretty", false, "")
-}
-
-var rootCmd = &cobra.Command{
-	Use: "bbl",
-}
-
-func writeData(cmd *cobra.Command, data any) error {
-	b, err := json.Marshal(data)
-	if err != nil {
-		return err
+	root := &cobra.Command{
+		Use:           "bbl",
+		Short:         "bbl repository CLI",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if cfgFile != "" {
+				if err := loadConfig(cfgFile, e.cfg); err != nil {
+					return err
+				}
+			}
+			// --conn flag overrides config file value.
+			if cmd.Flags().Changed("conn") {
+				e.cfg.Conn, _ = cmd.Flags().GetString("conn")
+			}
+			return nil
+		},
 	}
-	return writeJSON(cmd, b)
-}
 
-func writeJSON(cmd *cobra.Command, b []byte) error {
-	if prettify {
-		b = pretty.Color(pretty.Pretty(b), pretty.TerminalStyle)
-	}
-	_, err := cmd.OutOrStdout().Write(b)
-	return err
+	root.PersistentFlags().String("conn", "", "PostgreSQL connection string")
+	root.PersistentFlags().StringVarP(&cfgFile, "config", "c", cfgFile, "Config file path [$BBL_CONFIG]")
+
+	root.AddCommand(newMigrateCmd(e.cfg))
+	root.AddCommand(newUsersCmd(e))
+	root.AddCommand(newOrganizationsCmd(e))
+	root.AddCommand(newPeopleCmd(e))
+	root.AddCommand(newProjectsCmd(e))
+	root.AddCommand(newWorksCmd(e))
+	root.AddCommand(newReindexCmd(e))
+	root.AddCommand(newSeedCmd(e))
+	root.AddCommand(newStartCmd(e))
+
+	return root
 }

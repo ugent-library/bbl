@@ -1,11 +1,26 @@
-live/server:
+# Development
+
+dev:
+	@make -j2 dev/server dev/assets
+
+dev/server:
 	@go tool wgo \
-	-file=.go -file=.templ -file=.po -file work_profiles.json -file app/static/manifest.json -xfile=_templ.go \
-	-xdir=app/assets -xdir=app/node_modules \
-	go tool templ generate :: go run biblio/main.go start
+	  -file=.go -file=.templ -xfile=_templ.go \
+	  -xdir=app/assets -xdir=app/static -xdir=node_modules -xdir=_prototype \
+	  go tool templ generate -log-level error :: \
+	  sh -c 'mkdir -p .tmp && go build -o .tmp/bbl-dev ./ugent/cmd/bbl && exec ./.tmp/bbl-dev start --dev' \
+	  2>&1 | sed 's/^/[server] /'
 
-live/assets:
-	@env -C app -S node esbuild.mjs --watch
+dev/assets:
+	@npm run --silent watch 2>&1 | sed 's/^/[assets] /'
 
-live: 
-	@make -j2 live/server live/assets
+# Build
+
+build/assets:
+	@npm run build
+
+build/templ:
+	@go tool templ generate
+
+build: build/assets build/templ
+	@go build ./...

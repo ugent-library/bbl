@@ -7,11 +7,15 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "text",
+        "index": false
+      },
       "completion": {
         "type": "search_as_you_type"
-      },
-      "rec": {
-        "enabled": false
       }
     }
   }

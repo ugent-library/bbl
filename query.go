@@ -6,10 +6,30 @@ import (
 	participle "github.com/alecthomas/participle/v2"
 )
 
+// QueryFilter represents a conjunction of conditions for search filtering.
+//
+// Filter expressions select documents by field values using a simple query language:
+//
+//	field=value             exact match
+//	field=val1|val2         match any of the values
+//	field=a field=b         AND (both must match)
+//	field=a or field=b      OR (either must match)
+//	(field=a or field=b)    grouping with parentheses
+//
+// Examples:
+//
+//	status=public
+//	status=public kind=book|article
+//	kind=book or kind=conference_paper
+//	status=public (kind=book or kind=article)
+//	(status=public and kind=book) or (status=private and kind=article)
+//
+// Use [ParseQueryFilter] to parse a filter expression string into a QueryFilter.
 type QueryFilter struct {
 	And []*AndCondition `json:"and"`
 }
 
+// HasTerm returns true if the filter contains a terms filter for the given field and term.
 func (qf *QueryFilter) HasTerm(field, term string) bool {
 	if qf == nil {
 		return false
@@ -22,21 +42,25 @@ func (qf *QueryFilter) HasTerm(field, term string) bool {
 	return false
 }
 
+// AndCondition is a single clause in a conjunction. It is either an OR group or a terms filter.
 type AndCondition struct {
 	Or    []*OrCondition `json:"or,omitempty"`
 	Terms *TermsFilter   `json:"terms,omitempty"`
 }
 
+// OrCondition is a single clause in a disjunction. It is either an AND group or a terms filter.
 type OrCondition struct {
 	And   []*AndCondition `json:"and,omitempty"`
 	Terms *TermsFilter    `json:"terms,omitempty"`
 }
 
+// TermsFilter matches documents where the field contains any of the given terms.
 type TermsFilter struct {
 	Field string   `json:"field"`
 	Terms []string `json:"terms"`
 }
 
+// Parser grammar types (internal).
 type grammar struct {
 	Or []*orCondition `parser:"@@ ( ('or' | 'OR') @@ )*"`
 }
@@ -56,13 +80,40 @@ type filter struct {
 	Terms []string `parser:"( @Ident | @String ) ( '|' ( @Ident | @String ) )*"`
 }
 
-// TODO handle >=, >, <=, < operators
-// TODO add negation
 var queryParser = participle.MustBuild[grammar](
 	participle.Unquote("String"),
 )
 
-// TODO optimize "status=draft or kind=book or status=public" to "status=draft|public or kind=book"
+// ParseQueryFilter parses a search filter expression like "status=public kind=book|article".
+func ParseQueryFilter(str string) (*QueryFilter, error) {
+	g, err := queryParser.ParseString("", str)
+	if err != nil {
+		return nil, err
+	}
+
+	cond := &AndCondition{}
+	for _, c := range g.Or {
+		cond.Or = append(cond.Or, visitOrCondition(c))
+	}
+	if len(cond.Or) == 1 && cond.Or[0].Terms != nil {
+		cond.Terms = cond.Or[0].Terms
+		cond.Or = nil
+	}
+
+	qf := &QueryFilter{}
+	if len(cond.Or) == 1 {
+		if cond.Or[0].Terms != nil {
+			qf.And = []*AndCondition{{Terms: cond.Or[0].Terms}}
+		} else {
+			qf.And = cond.Or[0].And
+		}
+	} else {
+		qf.And = []*AndCondition{cond}
+	}
+
+	return qf, nil
+}
+
 func visitAndCondition(o *andCondition) *AndCondition {
 	cond := &AndCondition{}
 
@@ -103,37 +154,4 @@ func visitOrCondition(o *orCondition) *OrCondition {
 	}
 
 	return cond
-}
-
-func ParseQueryFilter(str string) (*QueryFilter, error) {
-	g, err := queryParser.ParseString("", str)
-	if err != nil {
-		return nil, err
-	}
-
-	cond := &AndCondition{}
-	for _, c := range g.Or {
-		cond.Or = append(cond.Or, visitOrCondition(c))
-	}
-	if len(cond.Or) == 1 && cond.Or[0].Terms != nil {
-		cond.Terms = cond.Or[0].Terms
-		cond.Or = nil
-	}
-
-	qf := &QueryFilter{}
-	if len(cond.Or) == 1 {
-		if cond.Or[0].Terms != nil {
-			qf.And = []*AndCondition{{Terms: cond.Or[0].Terms}}
-		} else {
-			qf.And = cond.Or[0].And
-		}
-	} else {
-		qf.And = []*AndCondition{cond}
-	}
-
-	// TODO remove this
-	// j, _ := json.MarshalIndent(qf, "", "  ")
-	// log.Printf("parsed queryfilter: %s", j)
-
-	return qf, nil
 }

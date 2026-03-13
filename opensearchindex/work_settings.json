@@ -7,13 +7,7 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
-      "identifiers": {
-        "type": "keyword"
-      },
-      "created_by_id": {
-        "type": "keyword"
-      },
-      "person_id": {
+      "id": {
         "type": "keyword"
       },
       "kind": {
@@ -22,11 +16,18 @@
       "status": {
         "type": "keyword"
       },
+      "title": {
+        "type": "text",
+        "index": false
+      },
+      "identifiers": {
+        "type": "keyword"
+      },
+      "person_ids": {
+        "type": "keyword"
+      },
       "completion": {
         "type": "search_as_you_type"
-      },
-      "rec": {
-        "enabled": false
       }
     }
   }

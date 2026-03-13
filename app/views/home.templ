@@ -1,0 +1,34 @@
+package views
+
+templ Home() {
+	@Layout("Home") {
+		<main>
+			<h1>bbl</h1>
+			<p>Bibliographic repository</p>
+			<nav>
+				<ul>
+					<li><a href="/works">Works</a></li>
+					<li><a href="/people">People</a></li>
+					<li><a href="/projects">Projects</a></li>
+					<li><a href="/organizations">Organizations</a></li>
+				</ul>
+			</nav>
+		</main>
+	}
+}
+
+templ BackofficeHome() {
+	@Layout("Backoffice") {
+		<main>
+			<h1>Backoffice</h1>
+			<nav>
+				<ul>
+					<li><a href="/backoffice/works">Works</a></li>
+					<li><a href="/backoffice/people">People</a></li>
+					<li><a href="/backoffice/projects">Projects</a></li>
+					<li><a href="/backoffice/organizations">Organizations</a></li>
+				</ul>
+			</nav>
+		</main>
+	}
+}

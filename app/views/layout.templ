@@ -1,0 +1,17 @@
+package views
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title } - bbl</title>
+			<link rel="stylesheet" href={ AssetPath(ctx, "app.css") }/>
+			<script src={ AssetPath(ctx, "app.js") }></script>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}

@@ -2,7 +2,6 @@ package opensearchindex
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/ugent-library/bbl"
 )
@@ -10,115 +9,75 @@ import (
 //go:embed work_settings.json
 var workSettings string
 
-type workDoc struct {
-	Identifiers []string  `json:"identifiers,omitempty"`
-	CreatedByID string    `json:"created_by_id,omitempty"`
-	PersonID    []string  `json:"person_id,omitempty"`
-	Kind        string    `json:"kind"`
-	Status      string    `json:"status"`
-	Completion  []string  `json:"completion"`
-	Rec         *bbl.Work `json:"rec"`
-}
-
-var workTermsFilters = map[string]string{
-	"creator":     "created_by_id",
-	"contributor": "person_id",
+var workFilterDefs = map[string]string{
 	"kind":        "kind",
 	"status":      "status",
+	"contributor": "person_ids",
 }
 
-func workToDoc(rec *bbl.Work) any {
-	doc := workDoc{
-		Identifiers: []string{rec.ID},
-		CreatedByID: rec.CreatedByID,
-		Kind:        rec.Kind,
-		Status:      rec.Status,
-		Rec:         rec,
-	}
-	for _, iden := range rec.Identifiers {
-		doc.Identifiers = append(doc.Identifiers, iden.String())
-	}
-	for _, con := range rec.Contributors {
-		if con.PersonID != "" {
-			doc.PersonID = append(doc.PersonID, con.PersonID)
-		}
-	}
-	for _, text := range rec.Titles {
-		doc.Completion = append(doc.Completion, text.Val)
-	}
-	return &doc
+var workFacetDefs = map[string]facetDef{
+	"kind":   {Field: "kind", Size: 50},
+	"status": {Field: "status", Size: 10},
 }
 
-func generateWorkQuery(q string) (string, error) {
-	jQ, err := jsonString(q)
-	if err != nil {
-		return "", err
+func workToDoc(w *bbl.Work) (id string, version int, doc map[string]any) {
+	title := ""
+	var completion []string
+	for _, t := range w.Titles {
+		if title == "" {
+			title = t.Val
+		}
+		completion = append(completion, t.Val)
 	}
 
-	j := `{
-		"bool": {
-			"minimum_should_match": "1",
-			"should": [
-				{
-					"term": {
-						"identifiers": {
-							"value": "` + jQ + `",
-							"boost": 100.0,
-							"_name": "identity"
-						}
-					}
-				},
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"type": "bool_prefix",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				},
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"fuzziness": "AUTO",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				}
-			]
+	var identifiers []string
+	for _, ident := range w.Identifiers {
+		identifiers = append(identifiers, ident.Scheme+":"+ident.Val)
+	}
+
+	var personIDs []string
+	for _, c := range w.Contributors {
+		if c.PersonID != nil {
+			personIDs = append(personIDs, c.PersonID.String())
 		}
-	}`
-	return j, nil
+	}
+
+	idStr := w.ID.String()
+	return idStr, w.Version, map[string]any{
+		"id":          idStr,
+		"kind":        w.Kind,
+		"status":      w.Status,
+		"title":       title,
+		"identifiers": identifiers,
+		"person_ids":  personIDs,
+		"completion":  completion,
+	}
 }
 
-func generateWorkAggs(facets []string) (map[string]string, error) {
-	m := map[string]string{}
-	for _, facet := range facets {
-		switch facet {
-		case "kind":
-			m["kind"] = `{
-				"terms": {
-					"field": "kind",
-					"size": ` + fmt.Sprint(len(bbl.WorkKinds)) + `,
-					"min_doc_count": 0
-				}
-			}`
-		case "status":
-			m["status"] = `{
-				"terms": {
-					"field": "status",
-					"size": ` + fmt.Sprint(len(bbl.WorkStatuses)) + `,
-					"min_doc_count": 0
-				}
-			}`
-		default:
-			return nil, fmt.Errorf("unknown facet %s", facet)
-		}
+func workToHit(id string, doc map[string]any) bbl.WorkHit {
+	hit := bbl.WorkHit{}
+	hit.ID.UnmarshalText([]byte(id))
+
+	if v, ok := doc["kind"].(string); ok {
+		hit.Kind = v
 	}
-	return m, nil
+	if v, ok := doc["status"].(string); ok {
+		hit.Status = v
+	}
+	if v, ok := doc["title"].(string); ok {
+		hit.Title = v
+	}
+	return hit
+}
+
+func buildWorkQuery(q string) map[string]any {
+	completionFields := []string{"completion", "completion._2gram", "completion._3gram"}
+	return boolQuery(
+		should(
+			termQuery("identifiers", q),
+			multiMatch(q, completionFields, "bool_prefix"),
+			fuzzyMultiMatch(q, completionFields),
+		),
+		minimumShouldMatch(1),
+	)
 }

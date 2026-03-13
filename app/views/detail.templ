@@ -1,0 +1,154 @@
+package views
+
+import "github.com/ugent-library/bbl"
+
+// Discovery detail views
+
+templ ShowWork(work *bbl.Work) {
+	@Layout("Work") {
+		<main>
+			<p><a href="/works">Back to works</a></p>
+			<h1>{ workTitle(work) }</h1>
+			<dl>
+				<dt>Kind</dt>
+				<dd>{ work.Kind }</dd>
+				<dt>Status</dt>
+				<dd>{ work.Status }</dd>
+			</dl>
+		</main>
+	}
+}
+
+templ ShowPerson(person *bbl.Person) {
+	@Layout("Person") {
+		<main>
+			<p><a href="/people">Back to people</a></p>
+			<h1>{ personName(person) }</h1>
+		</main>
+	}
+}
+
+templ ShowProject(project *bbl.Project) {
+	@Layout("Project") {
+		<main>
+			<p><a href="/projects">Back to projects</a></p>
+			<h1>{ projectTitle(project) }</h1>
+			<dl>
+				<dt>Status</dt>
+				<dd>{ project.Status }</dd>
+			</dl>
+		</main>
+	}
+}
+
+templ ShowOrganization(org *bbl.Organization) {
+	@Layout("Organization") {
+		<main>
+			<p><a href="/organizations">Back to organizations</a></p>
+			<h1>{ organizationName(org) }</h1>
+			<dl>
+				<dt>Kind</dt>
+				<dd>{ org.Kind }</dd>
+			</dl>
+		</main>
+	}
+}
+
+// Backoffice detail views
+
+templ BackofficeShowWork(work *bbl.Work) {
+	@Layout("Work - Backoffice") {
+		<main>
+			<p><a href="/backoffice/works">Back to works</a></p>
+			<h1>{ workTitle(work) }</h1>
+			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/edit") }>Edit</a></p>
+			<dl>
+				<dt>Kind</dt>
+				<dd>{ work.Kind }</dd>
+				<dt>Status</dt>
+				<dd>{ work.Status }</dd>
+			</dl>
+		</main>
+	}
+}
+
+templ BackofficeShowPerson(person *bbl.Person) {
+	@Layout("Person - Backoffice") {
+		<main>
+			<p><a href="/backoffice/people">Back to people</a></p>
+			<h1>{ personName(person) }</h1>
+		</main>
+	}
+}
+
+templ BackofficeShowProject(project *bbl.Project) {
+	@Layout("Project - Backoffice") {
+		<main>
+			<p><a href="/backoffice/projects">Back to projects</a></p>
+			<h1>{ projectTitle(project) }</h1>
+			<dl>
+				<dt>Status</dt>
+				<dd>{ project.Status }</dd>
+			</dl>
+		</main>
+	}
+}
+
+templ BackofficeShowOrganization(org *bbl.Organization) {
+	@Layout("Organization - Backoffice") {
+		<main>
+			<p><a href="/backoffice/organizations">Back to organizations</a></p>
+			<h1>{ organizationName(org) }</h1>
+			<dl>
+				<dt>Kind</dt>
+				<dd>{ org.Kind }</dd>
+			</dl>
+		</main>
+	}
+}
+
+// Helper functions for display names.
+
+func projectTitle(p *bbl.Project) string {
+	for _, t := range p.Titles {
+		if t.Val != "" {
+			return t.Val
+		}
+	}
+	return "(untitled)"
+}
+
+func workTitle(w *bbl.Work) string {
+	for _, t := range w.Titles {
+		if t.Val != "" {
+			return t.Val
+		}
+	}
+	return "(untitled)"
+}
+
+func personName(p *bbl.Person) string {
+	if p.Name != "" {
+		return p.Name
+	}
+	name := p.GivenName
+	if p.FamilyName != "" {
+		if name != "" {
+			name += " "
+		}
+		name += p.FamilyName
+	}
+	if name != "" {
+		return name
+	}
+	return "(unnamed)"
+}
+
+func organizationName(o *bbl.Organization) string {
+	for _, n := range o.Names {
+		if n.Val != "" {
+			return n.Val
+		}
+	}
+	return "(unnamed)"
+}

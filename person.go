@@ -1,54 +1,68 @@
 package bbl
 
 import (
-	"slices"
+	"context"
+	"iter"
+	"time"
+)
 
-	"github.com/ugent-library/vo"
+const (
+	PersonStatusPublic  = "public"
+	PersonStatusDeleted = "deleted"
 )
 
 type Person struct {
-	Header
-	PersonAttrs `json:"attrs"`
+	ID          ID
+	Version     int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	CreatedByID *ID
+	UpdatedByID *ID
+	Status      string
+	DeletedAt   *time.Time
+	DeletedByID *ID
+
+	// Populated from the cache column on read.
+	Name          string               `json:"name"`
+	GivenName     string               `json:"given_name,omitempty"`
+	MiddleName    string               `json:"middle_name,omitempty"`
+	FamilyName    string               `json:"family_name,omitempty"`
+	Identifiers   []Identifier         `json:"identifiers,omitempty"`
+	Organizations []PersonOrganization `json:"organizations,omitempty"`
 }
 
-type PersonAttrs struct {
-	Name       string `json:"name"`
+// PersonOrganization is an affiliation read from the cache column.
+type PersonOrganization struct {
+	OrganizationID ID     `json:"organization_id"`
+	Role           string `json:"role,omitempty"`
+	Source         string `json:"source,omitempty"`
+}
+
+// ImportPersonInput carries all data for one person record arriving from a source.
+type ImportPersonInput struct {
+	ID       *ID    `json:"id,omitempty"`
+	SourceID string `json:"source_id"`
+
+	// Scalar fields.
+	Name       string `json:"name,omitempty"`
 	GivenName  string `json:"given_name,omitempty"`
 	MiddleName string `json:"middle_name,omitempty"`
 	FamilyName string `json:"family_name,omitempty"`
+
+	Identifiers  []Identifier              `json:"identifiers,omitempty"`
+	Affiliations []ImportPersonAffiliation `json:"affiliations,omitempty"`
+
+	// SourceRecord is the original payload from the source (XML, JSON, etc.).
+	SourceRecord []byte `json:"-"`
 }
 
-func (rec *Person) Validate() error {
-	v := vo.New(
-		vo.NotBlank("name", rec.Name),
-	)
-
-	for i, ident := range rec.Identifiers {
-		v.In("identifiers").Index(i).Add(
-			vo.NotBlank("scheme", ident.Scheme),
-			vo.NotBlank("val", ident.Val),
-		)
-	}
-
-	return v.Validate().ToError()
+// ImportPersonAffiliation links a person to an organization during import.
+type ImportPersonAffiliation struct {
+	Ref  Ref    `json:"ref"`
+	Role string `json:"role,omitempty"`
 }
 
-func (rec *Person) Diff(rec2 *Person) map[string]any {
-	changes := map[string]any{}
-	if !slices.Equal(rec.Identifiers, rec2.Identifiers) {
-		changes["identifiers"] = rec.Identifiers
-	}
-	if rec.Name != rec2.Name {
-		changes["name"] = rec.Name
-	}
-	if rec.GivenName != rec2.GivenName {
-		changes["given_name"] = rec.GivenName
-	}
-	if rec.MiddleName != rec2.MiddleName {
-		changes["middle_name"] = rec.MiddleName
-	}
-	if rec.FamilyName != rec2.FamilyName {
-		changes["family_name"] = rec.FamilyName
-	}
-	return changes
+// PersonSource is the interface implemented by person import sources.
+type PersonSource interface {
+	Iter(ctx context.Context) (iter.Seq2[*ImportPersonInput, error], error)
 }

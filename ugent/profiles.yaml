@@ -1,0 +1,288 @@
+work_kinds:
+  - name: journal_article
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, issn, arxiv, pubmed]
+      - name: classifications
+      - name: journal_title
+        required: true
+      - name: journal_abbreviation
+      - name: publication_year
+        required: true
+      - name: volume
+      - name: issue
+      - name: pages
+      - name: article_number
+      - name: publication_status
+      - name: keywords
+      - name: notes
+
+  - name: book
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: classifications
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: edition
+      - name: series_title
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: book_chapter
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: classifications
+      - name: book_title
+        required: true
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: edition
+      - name: series_title
+      - name: pages
+      - name: keywords
+      - name: notes
+
+  - name: conference_paper
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi]
+      - name: classifications
+      - name: conference
+      - name: publication_year
+        required: true
+      - name: pages
+      - name: book_title
+      - name: publisher
+      - name: keywords
+      - name: notes
+
+  - name: dissertation
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, isbn]
+      - name: classifications
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: preprint
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, arxiv]
+      - name: classifications
+      - name: publication_year
+        required: true
+      - name: series_title
+      - name: report_number
+      - name: keywords
+      - name: notes
+
+  - name: report
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, isbn]
+      - name: classifications
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: series_title
+      - name: report_number
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: working_paper
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi]
+      - name: classifications
+      - name: publisher
+      - name: publication_year
+        required: true
+      - name: series_title
+      - name: report_number
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: patent
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi]
+      - name: classifications
+      - name: publication_year
+        required: true
+      - name: keywords
+      - name: notes
+
+  - name: newspaper_article
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, issn]
+      - name: classifications
+      - name: journal_title
+        required: true
+      - name: publication_year
+        required: true
+      - name: issue
+      - name: pages
+      - name: keywords
+      - name: notes
+
+  - name: encyclopedia_article
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: classifications
+      - name: book_title
+        required: true
+      - name: publisher
+      - name: publication_year
+        required: true
+      - name: edition
+      - name: pages
+      - name: keywords
+      - name: notes
+
+  - name: book_review
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi, issn]
+      - name: classifications
+      - name: journal_title
+        required: true
+      - name: publication_year
+        required: true
+      - name: volume
+      - name: issue
+      - name: pages
+      - name: keywords
+      - name: notes
+
+  - name: edited_book
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: classifications
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: edition
+      - name: series_title
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: conference_proceeding
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: classifications
+      - name: conference
+      - name: publisher
+      - name: place_of_publication
+      - name: publication_year
+        required: true
+      - name: series_title
+      - name: total_pages
+      - name: keywords
+      - name: notes
+
+  - name: conference_poster
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi]
+      - name: classifications
+      - name: conference
+      - name: publication_year
+        required: true
+      - name: keywords
+      - name: notes
+
+  - name: miscellaneous
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: contributors
+      - name: identifiers
+        schemes: [doi]
+      - name: classifications
+      - name: publisher
+      - name: publication_year
+        required: true
+      - name: keywords
+      - name: notes

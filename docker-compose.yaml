@@ -1,13 +1,26 @@
 services:  
   oidc:
-    image: ugentlib/oidc-mock:latest
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
     ports:
       - 3350:3350
     environment:
-      PORT: 3350
-      CLIENT_ID: bbl
-      CLIENT_SECRET: bbl
-      REDIRECT_URI: http://localhost:3000/backoffice/auth/callback
+      SERVER_PORT: 3350
+      JSON_CONFIG: >
+        {
+          "interactiveLogin": true,
+          "tokenCallbacks": [{
+            "issuerId": "default",
+            "tokenExpiry": 3600,
+            "requestMappings": [{
+              "requestParam": "scope",
+              "match": "*",
+              "claims": {
+                "sub": "$${subject}",
+                "name": "$${subject}"
+              }
+            }]
+          }]
+        }
 
   postgres:
     image: postgres:16-alpine
@@ -29,22 +42,17 @@ services:
       retries: 5
       start_period: 10s
 
-  seaweedfs:
-    image: chrislusf/seaweedfs:3.83
-    command: "server -s3 -ip=seaweedfs -dir=/data -volume.max=0"
+  localstack:
+    image: localstack/localstack
     ports:
-      - "3371:8333"
+      - "3371:4566"
+    environment:
+      - SERVICES=s3
     volumes:
-      - seaweedfs-data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8333 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      - localstack-data:/var/lib/localstack
 
   opensearch-node1:
-    image: opensearchproject/opensearch:3.3.2
+    image: opensearchproject/opensearch:3.4.0
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
@@ -74,7 +82,7 @@ services:
       start_period: 10s
 
   opensearch-node2:
-    image: opensearchproject/opensearch:3.3.2
+    image: opensearchproject/opensearch:3.4.0
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node2
@@ -129,7 +137,7 @@ services:
 volumes:
   postgres-data:
     driver: local
-  seaweedfs-data:
+  localstack-data:
     driver: local
   opensearch-data1:
     driver: local

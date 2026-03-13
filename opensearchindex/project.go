@@ -9,54 +9,52 @@ import (
 //go:embed project_settings.json
 var projectSettings string
 
-type projectDoc struct {
-	Completion []string     `json:"completion"`
-	Rec        *bbl.Project `json:"rec"`
+var projectFilterDefs = map[string]string{
+	"status": "status",
 }
 
-func projectToDoc(rec *bbl.Project) any {
-	doc := projectDoc{
-		Completion: make([]string, len(rec.Names)),
-		Rec:        rec,
-	}
-	for i, text := range rec.Names {
-		doc.Completion[i] = text.Val
-	}
-	return &doc
+var projectFacetDefs = map[string]facetDef{
+	"status": {Field: "status", Size: 10},
 }
 
-func generateProjectQuery(q string) (string, error) {
-	jQ, err := jsonString(q)
-	if err != nil {
-		return "", err
-	}
-	j := `{
-		"bool": {
-			"should": [
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"type": "bool_prefix",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				},
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"fuzziness": "AUTO",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				}
-			]
+func projectToDoc(p *bbl.Project) (id string, version int, doc map[string]any) {
+	idStr := p.ID.String()
+	var title string
+	var completion []string
+	for _, t := range p.Titles {
+		if title == "" {
+			title = t.Val
 		}
-	}`
-	return j, nil
+		completion = append(completion, t.Val)
+	}
+	return idStr, p.Version, map[string]any{
+		"id":         idStr,
+		"status":     p.Status,
+		"title":      title,
+		"completion": completion,
+	}
+}
+
+func projectToHit(id string, doc map[string]any) bbl.ProjectHit {
+	hit := bbl.ProjectHit{}
+	hit.ID.UnmarshalText([]byte(id))
+
+	if v, ok := doc["status"].(string); ok {
+		hit.Status = v
+	}
+	if v, ok := doc["title"].(string); ok {
+		hit.Title = v
+	}
+	return hit
+}
+
+func buildProjectQuery(q string) map[string]any {
+	completionFields := []string{"completion", "completion._2gram", "completion._3gram"}
+	return boolQuery(
+		should(
+			multiMatch(q, completionFields, "bool_prefix"),
+			fuzzyMultiMatch(q, completionFields),
+		),
+		minimumShouldMatch(1),
+	)
 }

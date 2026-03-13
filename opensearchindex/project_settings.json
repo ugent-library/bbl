@@ -7,11 +7,18 @@
   "mappings": {
     "dynamic": "false",
     "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "status": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text",
+        "index": false
+      },
       "completion": {
         "type": "search_as_you_type"
-      },
-      "rec": {
-        "enabled": false
       }
     }
   }

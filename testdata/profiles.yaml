@@ -1,0 +1,27 @@
+work_kinds:
+  - name: journal_article
+    fields:
+      - name: titles
+        required: true
+      - name: abstracts
+      - name: identifiers
+        schemes: [doi, issn]
+      - name: journal_title
+        required: true
+      - name: publication_year
+        required: true
+      - name: volume
+      - name: issue
+      - name: pages
+      - name: contributors
+
+  - name: book
+    fields:
+      - name: titles
+        required: true
+      - name: identifiers
+        schemes: [isbn, doi]
+      - name: publication_year
+        required: true
+      - name: publisher
+      - name: contributors

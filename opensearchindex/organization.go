@@ -9,57 +9,53 @@ import (
 //go:embed organization_settings.json
 var organizationSettings string
 
-type organizationDoc struct {
-	Completion []string          `json:"completion"`
-	Rec        *bbl.Organization `json:"rec"`
+var organizationFilterDefs = map[string]string{
+	"kind": "kind",
 }
 
-func organizationToDoc(rec *bbl.Organization) any {
-	doc := organizationDoc{
-		Completion: make([]string, len(rec.Names)),
-		Rec:        rec,
-	}
-	for i, text := range rec.Names {
-		doc.Completion[i] = text.Val
-	}
-	for _, iden := range rec.Identifiers {
-		doc.Completion = append(doc.Completion, iden.Val)
-	}
-	return &doc
+var organizationFacetDefs = map[string]facetDef{
+	"kind": {Field: "kind", Size: 50},
 }
 
-func generateOrganizationQuery(q string) (string, error) {
-	jQ, err := jsonString(q)
-	if err != nil {
-		return "", err
-	}
-	j := `{
-		"bool": {
-			"should": [
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"type": "bool_prefix",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				},
-				{
-					"multi_match": {
-						"query": "` + jQ + `",
-						"fuzziness": "AUTO",
-						"fields": [
-							"completion",
-							"completion._2gram",
-							"completion._3gram"
-						]
-					}
-				}
-			]
+func organizationToDoc(o *bbl.Organization) (id string, version int, doc map[string]any) {
+	name := ""
+	var completion []string
+	for _, n := range o.Names {
+		if name == "" {
+			name = n.Val
 		}
-	}`
-	return j, nil
+		completion = append(completion, n.Val)
+	}
+
+	idStr := o.ID.String()
+	return idStr, o.Version, map[string]any{
+		"id":         idStr,
+		"kind":       o.Kind,
+		"name":       name,
+		"completion": completion,
+	}
+}
+
+func organizationToHit(id string, doc map[string]any) bbl.OrganizationHit {
+	hit := bbl.OrganizationHit{}
+	hit.ID.UnmarshalText([]byte(id))
+
+	if v, ok := doc["kind"].(string); ok {
+		hit.Kind = v
+	}
+	if v, ok := doc["name"].(string); ok {
+		hit.Name = v
+	}
+	return hit
+}
+
+func buildOrganizationQuery(q string) map[string]any {
+	completionFields := []string{"completion", "completion._2gram", "completion._3gram"}
+	return boolQuery(
+		should(
+			multiMatch(q, completionFields, "bool_prefix"),
+			fuzzyMultiMatch(q, completionFields),
+		),
+		minimumShouldMatch(1),
+	)
 }
