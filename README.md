@@ -17,6 +17,7 @@ docker compose up -d
 # 2. Setup config
 cp ugent/config.yaml.example ugent/config.yaml
 export BBL_CONFIG="ugent/config.yaml"
+export UGENT_LDAP_URL="****"
 export UGENT_LDAP_USERNAME="****"
 export UGENT_LDAP_PASSWORD="****"
 export PLATO_URL="****"
