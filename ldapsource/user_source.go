@@ -1,10 +1,10 @@
-package ldap
+package ldapsource
 
 import (
 	"context"
 	"iter"
 
-	ldaplib "github.com/go-ldap/ldap/v3"
+	"github.com/go-ldap/ldap/v3"
 	"github.com/ugent-library/bbl"
 )
 
@@ -94,7 +94,7 @@ func first(vals []string) string {
 // Per-entry errors are yielded inline. The connection is closed when iteration
 // ends or is broken.
 func (s *UserSource) Iter(ctx context.Context) (iter.Seq2[*bbl.ImportUserInput, error], error) {
-	conn, err := ldaplib.DialURL(s.config.URL)
+	conn, err := ldap.DialURL(s.config.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +109,10 @@ func (s *UserSource) Iter(ctx context.Context) (iter.Seq2[*bbl.ImportUserInput, 
 	seq := func(yield func(*bbl.ImportUserInput, error) bool) {
 		defer conn.Close()
 
-		req := ldaplib.NewSearchRequest(
+		req := ldap.NewSearchRequest(
 			s.config.Base,
-			ldaplib.ScopeWholeSubtree,
-			ldaplib.NeverDerefAliases,
+			ldap.ScopeWholeSubtree,
+			ldap.NeverDerefAliases,
 			0, 0, false,
 			s.config.Filter,
 			attrs,

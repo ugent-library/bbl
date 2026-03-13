@@ -57,6 +57,13 @@ work_sources:
       username: "${PLATO_USERNAME}"
       password: "${PLATO_PASSWORD}"
 
+work_encoders:
+  cite_apa:
+    type: cite
+    config:
+      url: http://localhost:8085
+      style: apa
+
 # Auth provider: UGent OIDC.
 # OpenID Connect authentication via the UGent identity provider.
 auth:

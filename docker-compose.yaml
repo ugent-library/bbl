@@ -130,7 +130,7 @@ services:
         hard: 65535
 
   citeproc:
-    image: ugentlib/citeproc-server:latest
+    build: docker/citeproc
     ports:
       - 8085:8085
 

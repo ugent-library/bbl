@@ -2,7 +2,9 @@
 
 ## Assertion model (remaining)
 
-- [ ] Import pipeline: write mutation records to `bbl_mutations` (replayable history)
+- [ ] **Decision**: Import pipeline mutation granularity
+  - **A) Coarse records (current)**: keep single `ImportWork`/`ImportPerson`/etc. mutation records with `diff: '{}'`. Replay by re-running import from the stored source record in `*_sources`. Simpler, but pinning history is implicit.
+  - **B) Per-field records**: write `SetWorkVolume`, `SetWorkTitles`, etc. during import, same as UI mutations. Explicit field-level audit trail and pinning history, but more rows and import is slower.
 - [ ] Auto-pin integration tests (human wins over source, re-import re-evaluates, etc.)
 - [ ] Rights check: curator assertion can only be replaced by curator
 
@@ -35,10 +37,6 @@
 - [ ] SRU server (CQL queries)
 - [ ] ORCID API client
 - [ ] Webhook subscriptions + async delivery
-
-### Export / encoding
-
-- [ ] CSL encoder (external citeproc service)
 
 ### Infrastructure
 

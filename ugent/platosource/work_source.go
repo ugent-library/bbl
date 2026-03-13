@@ -1,4 +1,4 @@
-package plato
+package platosource
 
 import (
 	"context"

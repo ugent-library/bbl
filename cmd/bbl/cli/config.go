@@ -11,8 +11,11 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/bbl/app"
-	"github.com/ugent-library/bbl/arxiv"
-	"github.com/ugent-library/bbl/ldap"
+	"github.com/ugent-library/bbl/arxivsource"
+	"github.com/ugent-library/bbl/citeformat"
+	"github.com/ugent-library/bbl/csvformat"
+	"github.com/ugent-library/bbl/ldapsource"
+	"github.com/ugent-library/bbl/oaidcformat"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"gopkg.in/yaml.v3"
 )
@@ -38,6 +41,7 @@ type config struct {
 	AuthProviders map[string]authProviderConfig `yaml:"auth"`
 	UserSources   map[string]userSourceConfig   `yaml:"user_sources"`
 	WorkSources   map[string]workSourceConfig   `yaml:"work_sources"`
+	WorkEncoders  map[string]workEncoderConfig  `yaml:"work_encoders"`
 }
 
 type openSearchConfig struct {
@@ -60,6 +64,11 @@ type workSourceConfig struct {
 	Config yaml.Node `yaml:"config"` // decoded by RegisterWorkSource
 }
 
+type workEncoderConfig struct {
+	Type   string    `yaml:"type"`   // e.g. "citeproc"
+	Config yaml.Node `yaml:"config"` // decoded by RegisterWorkEncoderSource
+}
+
 // loadConfig reads the YAML config file at path, expands $VAR / ${VAR} references
 // using the process environment, then decodes the result into cfg.
 func loadConfig(path string, cfg *config) error {
@@ -72,13 +81,12 @@ func loadConfig(path string, cfg *config) error {
 
 // Registry carries code-level configuration that cannot come from a config file.
 // Pass a populated Registry to NewRootCmd in main.go.
-// Use RegisterUserSource to register custom named user sources.
-// Built-in source types (e.g. "ldap") are wired automatically from user_sources config.
 type Registry struct {
-	authProviderFactories map[string]func(*config) (app.AuthProvider, error)
-	userSourceFactories   map[string]func(*config) (bbl.UserSource, error)
-	workIterFactories     map[string]func(*config) (bbl.WorkSourceIter, error)
-	workGetterFactories   map[string]func(*config) (bbl.WorkSourceGetter, error)
+	authProviderFactories  map[string]func(*config) (app.AuthProvider, error)
+	userSourceFactories    map[string]func(*config) (bbl.UserSource, error)
+	workIterFactories      map[string]func(*config) (bbl.WorkSourceIter, error)
+	workGetterFactories    map[string]func(*config) (bbl.WorkSourceGetter, error)
+	workEncoderFactories   map[string]func(*config) (bbl.WorkEncoder, error)
 }
 
 // RegisterUserSource registers a factory for a specific named user source.
@@ -127,6 +135,23 @@ func RegisterWorkSourceGetter[C any](r *Registry, name string, fn func(C) (bbl.W
 		if sc, ok := cfg.WorkSources[name]; ok {
 			if err := sc.Config.Decode(&c); err != nil {
 				return nil, fmt.Errorf("work source %q: decode config: %w", name, err)
+			}
+		}
+		return fn(c)
+	}
+}
+
+// RegisterWorkEncoder registers a factory for a named work encoder.
+// C must match the YAML structure under work_encoders.<name>.config.
+func RegisterWorkEncoder[C any](r *Registry, name string, fn func(C) (bbl.WorkEncoder, error)) {
+	if r.workEncoderFactories == nil {
+		r.workEncoderFactories = make(map[string]func(*config) (bbl.WorkEncoder, error))
+	}
+	r.workEncoderFactories[name] = func(cfg *config) (bbl.WorkEncoder, error) {
+		var c C
+		if wc, ok := cfg.WorkEncoders[name]; ok {
+			if err := wc.Config.Decode(&c); err != nil {
+				return nil, fmt.Errorf("work encoder %q: decode config: %w", name, err)
 			}
 		}
 		return fn(c)
@@ -227,12 +252,12 @@ func (e *env) newServices(ctx context.Context) (*bbl.Services, error) {
 		var src bbl.UserSource
 		switch sc.Type {
 		case "ldap":
-			var c ldap.Config
+			var c ldapsource.Config
 			if err := sc.Config.Decode(&c); err != nil {
 				repo.Close()
 				return nil, fmt.Errorf("user source %q: decode config: %w", name, err)
 			}
-			src = ldap.New(c)
+			src = ldapsource.New(c)
 		default:
 			repo.Close()
 			return nil, fmt.Errorf("user source %q: unknown type %q", name, sc.Type)
@@ -272,7 +297,7 @@ func (e *env) newServices(ctx context.Context) (*bbl.Services, error) {
 		workGetSources[name] = src
 	}
 
-	workGetSources["arxiv"] = arxiv.NewWorkSource()
+	workGetSources["arxiv"] = arxivsource.NewWorkSource()
 
 	// Seed built-in sources (curator, self_deposit) with default priorities.
 	if err := repo.SeedBuiltinSources(ctx); err != nil {
@@ -323,6 +348,44 @@ func (e *env) newServices(ctx context.Context) (*bbl.Services, error) {
 			return nil, fmt.Errorf("opensearch index: %w", err)
 		}
 		index = idx
+	}
+
+	// --- Built-in work encoders ---
+	bbl.RegisterWorkEncoder("csv", func() bbl.WorkEncoder { return &csvformat.WorkEncoder{} })
+	bbl.RegisterWorkWriter("csv", func() bbl.WorkWriter { return &csvformat.WorkWriter{} })
+	bbl.RegisterWorkEncoder("oai_dc", func() bbl.WorkEncoder { return &oaidcformat.WorkEncoder{} })
+
+	// --- Configured work encoders ---
+	for name, factory := range reg.workEncoderFactories {
+		enc, err := factory(cfg)
+		if err != nil {
+			repo.Close()
+			return nil, fmt.Errorf("work encoder %q: %w", name, err)
+		}
+		bbl.RegisterWorkEncoder(name, func() bbl.WorkEncoder { return enc })
+	}
+
+	for name, wc := range cfg.WorkEncoders {
+		if bbl.HasWorkEncoder(name) {
+			continue
+		}
+		switch wc.Type {
+		case "cite":
+			var c citeformat.Config
+			if err := wc.Config.Decode(&c); err != nil {
+				repo.Close()
+				return nil, fmt.Errorf("work encoder %q: decode config: %w", name, err)
+			}
+			enc, err := citeformat.New(c)
+			if err != nil {
+				repo.Close()
+				return nil, fmt.Errorf("work encoder %q: %w", name, err)
+			}
+			bbl.RegisterWorkEncoder(name, func() bbl.WorkEncoder { return enc })
+		default:
+			repo.Close()
+			return nil, fmt.Errorf("work encoder %q: unknown type %q", name, wc.Type)
+		}
 	}
 
 	return &bbl.Services{

@@ -1,4 +1,4 @@
-package arxiv
+package arxivsource
 
 import (
 	"context"
