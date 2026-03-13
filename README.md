@@ -29,8 +29,8 @@ go run ./ugent/cmd/bbl seed
 make dev
 ```
 
-This starts the Go server (with templ generation) and the esbuild watcher in parallel.
-Log in via the mock OIDC provider at http://localhost:3000 (enter any username).
+This starts the Go server (with templ generation) and the esbuild watcher at http://localhost:3000.
+Log in via the mock OIDC provider at http://localhost:3000/backoffice (enter admin or researcher).
 
 ## Local services
 
