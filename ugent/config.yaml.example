@@ -1,9 +1,6 @@
 # UGent-specific bbl configuration.
 # Values like ${VAR} are expanded from the process environment.
 
-# Development mode.
-dev: true
-
 # PostgreSQL connection string.
 conn: "postgres://bbl:bbl@localhost:3351/bbl"
 
