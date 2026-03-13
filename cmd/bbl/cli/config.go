@@ -20,6 +20,7 @@ import (
 type config struct {
 	Conn       string           `yaml:"conn"`
 	RootURL    string           `yaml:"root_url"`   // public root URL (e.g. "https://bbl.ugent.be")
+	Dev        bool             `yaml:"dev"`         // dev mode: serve assets from disk, no caching
 	OpenSearch openSearchConfig `yaml:"opensearch"` // OpenSearch connection config
 
 	// Session secrets for cookie signing/encryption.

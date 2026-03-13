@@ -14,18 +14,27 @@ Institutional repository system for Ghent University Library.
 # 1. Start local services (Postgres, OpenSearch, mock OIDC, S3, etc.)
 docker compose up -d
 
-# 2. Set config path
+# 2. Setup config
+cp ugent/config.yaml.example ugent/config.yaml
 export BBL_CONFIG="ugent/config.yaml"
+export UGENT_LDAP_USERNAME="****"
+export UGENT_LDAP_PASSWORD="****"
+export PLATO_URL="****"
+export PLATO_USERNAME="****"
+export PLATO_PASSWORD="****"
 
 # 3. Install dependencies
 go mod download
 npm install
 
-# 4. Run database migrations and load seed data
+# 4. Build assets and generate templ files
+make build
+
+# 5. Run database migrations and load seed data
 go run ./ugent/cmd/bbl migrate up
 go run ./ugent/cmd/bbl seed
 
-# 5. Run (auto-reloads on file changes)
+# 6. Run (auto-reloads on file changes)
 make dev
 ```
 

@@ -18,7 +18,7 @@ import (
 func newStartCmd(e *env) *cobra.Command {
 	host := envStrOr("BBL_HOST", "localhost")
 	port := envIntOr("BBL_PORT", 3000)
-	var dev bool
+	var devFlag bool // --dev flag overrides config
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -62,6 +62,8 @@ func newStartCmd(e *env) *cobra.Command {
 					return fmt.Errorf("auth provider %q: unknown type %q", name, ac.Type)
 				}
 			}
+
+			dev := e.cfg.Dev || devFlag
 
 			a, err := app.New(app.Config{
 				Logger:     slog.Default(),
@@ -119,7 +121,7 @@ func newStartCmd(e *env) *cobra.Command {
 
 	cmd.Flags().StringVar(&host, "host", host, "Listen host [$BBL_HOST]")
 	cmd.Flags().IntVar(&port, "port", port, "Listen port [$BBL_PORT]")
-	cmd.Flags().BoolVar(&dev, "dev", false, "Dev mode: serve assets from disk, no caching")
+	cmd.Flags().BoolVar(&devFlag, "dev", false, "Dev mode: serve assets from disk, no caching")
 
 	return cmd
 }
