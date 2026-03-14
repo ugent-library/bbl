@@ -1,7 +1,11 @@
 # Development
 
 dev:
-	@make -j2 dev/server dev/assets
+	@set -m; \
+	trap 'status=$$?; trap - INT TERM EXIT; kill -TERM -- -$$server_pid -$$assets_pid 2>/dev/null || true; wait; exit $$status' INT TERM EXIT; \
+	$(MAKE) dev/server & server_pid=$$!; \
+	$(MAKE) dev/assets & assets_pid=$$!; \
+	wait
 
 dev/server:
 	@go tool wgo \
