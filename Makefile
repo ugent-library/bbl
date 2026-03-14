@@ -8,8 +8,7 @@ dev/server:
 	  -file=.go -file=.templ -xfile=_templ.go \
 	  -xdir=app/assets -xdir=app/static -xdir=node_modules -xdir=_prototype \
 	  go tool templ generate -log-level error :: \
-	  sh -c 'mkdir -p .tmp && go build -o .tmp/bbl-dev ./ugent/cmd/bbl && exec ./.tmp/bbl-dev start --dev' \
-	  2>&1
+	  sh -c 'mkdir -p .tmp && go build -o .tmp/bbl-dev ./ugent/cmd/bbl && exec ./.tmp/bbl-dev start --dev'
 
 dev/assets:
 	@npm run --silent watch
