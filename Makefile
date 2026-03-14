@@ -9,10 +9,10 @@ dev/server:
 	  -xdir=app/assets -xdir=app/static -xdir=node_modules -xdir=_prototype \
 	  go tool templ generate -log-level error :: \
 	  sh -c 'mkdir -p .tmp && go build -o .tmp/bbl-dev ./ugent/cmd/bbl && exec ./.tmp/bbl-dev start --dev' \
-	  2>&1 | sed 's/^/[server] /'
+	  2>&1
 
 dev/assets:
-	@npm run --silent watch 2>&1 | sed 's/^/[assets] /'
+	@npm run --silent watch
 
 # Build
 

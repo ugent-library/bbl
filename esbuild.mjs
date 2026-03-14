@@ -40,9 +40,9 @@ if (process.argv.includes("--watch")) {
     minify: false,
     sourcemap: true,
     entryNames: "[name]",
+    logLevel: "info",
   });
   await ctx.watch();
-  console.log("watching for changes...");
 } else {
   // Production build: content hashing for cache busting.
   // Clean output dir first.

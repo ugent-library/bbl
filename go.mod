@@ -1,6 +1,6 @@
 module github.com/ugent-library/bbl
 
-go 1.25.3
+go 1.25.8
 
 require (
 	github.com/a-h/templ v0.3.1001
@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	charm.land/log/v2 v2.0.0
 	github.com/alecthomas/participle/v2 v2.1.4
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/go-ldap/ldap/v3 v3.4.12
@@ -22,6 +23,24 @@ require (
 	github.com/ugent-library/catbird v0.0.11
 	golang.org/x/oauth2 v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	charm.land/lipgloss/v2 v2.0.1 // indirect
+	github.com/charmbracelet/colorprofile v0.4.2 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8 // indirect
+	github.com/charmbracelet/x/ansi v0.11.6 // indirect
+	github.com/charmbracelet/x/term v0.2.2 // indirect
+	github.com/charmbracelet/x/termios v0.1.1 // indirect
+	github.com/charmbracelet/x/windows v0.2.2 // indirect
+	github.com/clipperhouse/displaywidth v0.11.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
+	github.com/go-logfmt/logfmt v0.6.1 // indirect
+	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
+	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 )
 
 require (
@@ -60,7 +79,7 @@ require (
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 )

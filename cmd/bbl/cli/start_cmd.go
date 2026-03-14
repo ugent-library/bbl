@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/spf13/cobra"
 	"github.com/ugent-library/bbl/app"
 	"github.com/ugent-library/bbl/oidcauth"
@@ -65,8 +66,16 @@ func newStartCmd(e *env) *cobra.Command {
 
 			dev := e.cfg.Dev || devFlag
 
+			var logger *slog.Logger
+			if dev {
+				logger = slog.New(log.New(cmd.OutOrStdout()))
+				logger.Info("running in dev mode")
+			} else {
+				logger = slog.New(slog.NewJSONHandler(cmd.OutOrStdout(), nil))
+			}
+
 			a, err := app.New(app.Config{
-				Logger:     slog.Default(),
+				Logger:     logger,
 				Services:   svc,
 				RootURL:    e.cfg.RootURL,
 				Dev:        dev,
@@ -78,6 +87,7 @@ func newStartCmd(e *env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			addr := fmt.Sprintf("%s:%d", host, port)
 
 			server := &http.Server{
@@ -94,7 +104,7 @@ func newStartCmd(e *env) *cobra.Command {
 			g, ctx := errgroup.WithContext(ctx)
 
 			g.Go(func() error {
-				slog.Info("server starting", "addr", addr)
+				logger.Info("server starting", "addr", addr)
 				if err := server.ListenAndServe(); err != http.ErrServerClosed {
 					return err
 				}
@@ -114,7 +124,7 @@ func newStartCmd(e *env) *cobra.Command {
 			if err := g.Wait(); err != nil {
 				return err
 			}
-			slog.Info("server stopped")
+			logger.Info("server stopped")
 			return nil
 		},
 	}
