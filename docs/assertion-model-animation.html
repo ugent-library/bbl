@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BBL Assertion Model — Animated</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  #screen {
+    padding: 24px 32px;
+    min-width: 860px;
+    max-width: 920px;
+    flex: 1;
+  }
+  .controls {
+    position: sticky;
+    bottom: 0;
+    background: #1a1a2e;
+    border-top: 1px solid #333;
+    padding: 12px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    z-index: 10;
+  }
+  button {
+    background: #16213e;
+    color: #e0e0e0;
+    border: 1px solid #0f3460;
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover { background: #0f3460; }
+  button:disabled { opacity: 0.3; cursor: default; }
+  button.active { background: #e94560; border-color: #e94560; }
+  #scene-label {
+    color: #888;
+    font-size: 12px;
+    min-width: 260px;
+    text-align: center;
+  }
+  pre { margin: 0; line-height: 1.4; white-space: pre; }
+  .hl  { color: #53d8fb; }
+  .pin { color: #e94560; }
+  .src { color: #f9a826; }
+  .usr { color: #53fb9a; }
+  .dim { color: #666; }
+  .hdr { color: #fff; font-weight: bold; }
+  .rej { color: #ff5555; }
+  .cand { color: #bd93f9; }
+
+  table.ascii {
+    border-collapse: collapse;
+    font-family: inherit;
+    font-size: inherit;
+    margin: 4px 0;
+  }
+  table.ascii th,
+  table.ascii td {
+    padding: 1px 10px;
+    border: 1px solid #444;
+    white-space: nowrap;
+    text-align: left;
+    line-height: 1.5;
+  }
+  table.ascii th {
+    color: #aaa;
+    font-weight: normal;
+    border-bottom: 1px solid #666;
+    font-size: 12px;
+  }
+  table.ascii .spacer td {
+    border-left: 1px solid #444;
+    border-right: 1px solid #444;
+    border-top: none;
+    border-bottom: none;
+    padding: 2px;
+  }
+
+  .scene { display: flex; flex-direction: column; gap: 8px; }
+
+  .title-box {
+    border: 2px solid #e0e0e0;
+    padding: 20px 28px;
+    display: inline-block;
+  }
+  .title-box h1 { font-size: 18px; color: #fff; margin-bottom: 12px; letter-spacing: 3px; }
+  .title-box p { color: #888; margin: 3px 0; font-size: 13px; }
+  .title-box p.rule { color: #e0e0e0; margin-top: 10px; }
+
+  .summary-box {
+    border: 2px solid #e0e0e0;
+    padding: 16px 24px;
+    display: inline-block;
+  }
+  .summary-box h2 { font-size: 15px; color: #fff; margin-bottom: 14px; letter-spacing: 2px; }
+  .summary-box .rule { margin: 6px 0; line-height: 1.5; }
+  .summary-box .num { color: #53d8fb; }
+
+  .viz {
+    margin: 8px 0;
+    padding: 12px 16px;
+    background: #111128;
+    border: 1px solid #333;
+    border-radius: 6px;
+    line-height: 1.7;
+  }
+  .viz-title {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin: 0 2px;
+  }
+  .dot.wos     { background: #f9a826; }
+  .dot.scopus  { background: #8855cc; }
+  .dot.human   { background: #53fb9a; }
+  .dot.empty   { background: transparent; border: 1px dashed #555; }
+  .dot.pinned  { box-shadow: 0 0 0 2px #e94560, 0 0 8px #e94560aa; }
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 3px 0;
+    font-size: 13px;
+  }
+  .field-name {
+    display: inline-block;
+    width: 100px;
+    color: #aaa;
+    text-align: right;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .dot-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-right: 6px;
+  }
+  .dot-val { font-size: 11px; color: #888; vertical-align: middle; }
+  .dot-val.pinned-val { color: #e94560; font-weight: bold; }
+  .pin-arrow { color: #e94560; font-size: 10px; margin: 0 3px; }
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin: 8px 0;
+    font-size: 12px;
+    color: #888;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+
+  .entity-card {
+    border: 1px solid #444;
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-radius: 4px;
+    background: #16213e;
+    display: inline-block;
+  }
+  .entity-card .label { color: #888; font-size: 11px; }
+
+  .flow { margin: 8px 0; }
+  .flow-step { margin: 4px 0; color: #aaa; }
+  .flow-step .num { color: #53d8fb; margin-right: 4px; }
+  .flow-step .action { color: #e0e0e0; }
+
+  .mb { margin-bottom: 10px; }
+  .mt { margin-top: 10px; }
+  .caption { font-size: 12px; color: #888; margin: 4px 0; }
+
+  /* Flow diagram boxes */
+  .flow-diagram {
+    margin: 12px 0;
+    padding: 16px;
+    background: #111128;
+    border: 1px solid #333;
+    border-radius: 6px;
+  }
+  .flow-box {
+    display: inline-block;
+    border: 1px solid #555;
+    padding: 6px 14px;
+    border-radius: 4px;
+    margin: 2px 4px;
+    font-size: 13px;
+  }
+  .flow-box.source { border-color: #f9a826; color: #f9a826; }
+  .flow-box.eval   { border-color: #53d8fb; color: #53d8fb; }
+  .flow-box.reject { border-color: #ff5555; color: #ff5555; background: #2a1020; }
+  .flow-box.merge  { border-color: #53fb9a; color: #53fb9a; background: #102a1a; }
+  .flow-box.cand   { border-color: #bd93f9; color: #bd93f9; background: #1a1030; }
+  .flow-arrow { color: #555; margin: 0 6px; }
+</style>
+</head>
+<body>
+
+<div id="screen"></div>
+<div class="controls">
+  <button id="prev">&larr; Prev</button>
+  <span id="scene-label"></span>
+  <button id="next">Next &rarr;</button>
+  <button id="play">&#9654; Play</button>
+</div>
+
+<script>
+const C = {
+  hl:  s => `<span class="hl">${s}</span>`,
+  pin: s => `<span class="pin">${s}</span>`,
+  src: s => `<span class="src">${s}</span>`,
+  usr: s => `<span class="usr">${s}</span>`,
+  dim: s => `<span class="dim">${s}</span>`,
+  hdr: s => `<span class="hdr">${s}</span>`,
+  rej: s => `<span class="rej">${s}</span>`,
+  cand: s => `<span class="cand">${s}</span>`,
+};
+
+function dot(cls, val, pinned) {
+  const pclass = pinned ? ' pinned' : '';
+  const vclass = pinned ? ' pinned-val' : '';
+  const arrow = pinned ? '<span class="pin-arrow">◀</span>' : '';
+  return `<span class="dot-slot">${arrow}<span class="dot ${cls}${pclass}"></span><span class="dot-val${vclass}">${val}</span></span>`;
+}
+
+function fieldRow(name, dots) {
+  return `<div class="field-row"><span class="field-name">${name}</span>${dots}</div>`;
+}
+
+function legend(items) {
+  return '<div class="legend">' +
+    items.map(([cls, label]) =>
+      `<span class="legend-item"><span class="dot ${cls}"></span> ${label}</span>`
+    ).join('') +
+    '<span class="legend-item"><span class="dot wos pinned"></span> = pinned</span>' +
+    '</div>';
+}
+
+function tbl(headers, rows, caption) {
+  let h = '';
+  if (caption) h += `<div class="caption">${caption}</div>`;
+  h += '<table class="ascii"><thead><tr>' +
+    headers.map(x => `<th>${x}</th>`).join('') +
+    '</tr></thead><tbody>';
+  for (const row of rows) {
+    if (row === '---') {
+      h += '<tr class="spacer"><td colspan="' + headers.length + '"></td></tr>';
+    } else {
+      h += '<tr>' + row.map(c => `<td>${c}</td>`).join('') + '</tr>';
+    }
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+const fldHeaders = ['work', 'field', 'val', 'source', 'user', 'pinned'];
+const contribHeaders = ['work', 'pos', 'name', 'source', 'user', 'pinned'];
+
+const scenes = [
+
+// ─── 0: Title ───
+{
+  title: "The Assertion Model",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>THE ASSERTION MODEL</h1>
+      <p>How BBL manages competing data from multiple sources</p>
+      <p>while letting humans always have the final word.</p>
+      <p class="rule">Every field value is an ${C.hl('assertion')}.</p>
+      <p class="rule">Assertions coexist — nothing is overwritten.</p>
+      <p class="rule">One assertion per field is ${C.pin('pinned')} for display.</p>
+    </div>
+    <div class="mt">${C.dim('Press → or click Next to begin')}</div>`;
+  }
+},
+
+// ─── 1: Sources & priorities ───
+{
+  title: "Scene 1 — Sources and priorities",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Sources are registered automated data feeds, each with a priority.')}</div>` +
+    tbl(
+      ['source id', 'priority', 'description'],
+      [
+        [C.src('plato'),     C.src('20'), 'Plato (UGent internal)'],
+        [C.src('wos'),       C.src('10'), 'Web of Science'],
+        [C.src('scopus'),    C.src('5'),  'Scopus / Elsevier'],
+        [C.src('crossref'),  C.src('3'),  'Crossref DOI metadata'],
+      ],
+      C.hdr('bbl_sources')
+    ) +
+    `<div class="mt caption">Priority determines which source's value is displayed when multiple sources assert the same field.</div>
+    <div class="caption">Higher number = higher priority. ${C.src('wos (10)')} beats ${C.dim('scopus (5)')}.</div>
+
+    <div class="mt viz">
+      <div class="viz-title">Asserters — two kinds</div>
+      <div class="field-row" style="margin:6px 0">
+        <span style="width:120px;display:inline-block;color:#f9a826">Sources</span>
+        Automated feeds. Priority-ranked. Identified by FK to <code>bbl_*_sources</code>.
+      </div>
+      <div class="field-row" style="margin:6px 0">
+        <span style="width:120px;display:inline-block;color:#53fb9a">Humans</span>
+        Users and curators. ${C.usr('Always win')} over any source. Identified by <code>user_id</code>.
+      </div>
+    </div>
+    <div class="mt caption">${C.dim('Each assertion row has exactly one of source_id or user_id (CHECK constraint).')}</div>`;
+  }
+},
+
+// ─── 2: Ingestion flow ───
+{
+  title: "Scene 2 — Ingestion: the triage flow",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Every incoming record is evaluated and triaged into one of three outcomes.')}</div>
+
+    <div class="flow-diagram">
+      <div style="margin-bottom:12px">
+        <span class="flow-box source">Incoming record</span>
+        <span class="flow-arrow">───▶</span>
+        <span class="flow-box eval">Go evaluator</span>
+      </div>
+
+      <div style="margin-left:40px">
+        <div style="margin:10px 0">
+          <span style="color:#555">├──</span>
+          <span style="color:#ff5555">low confidence</span>
+          <span class="flow-arrow">──▶</span>
+          <span class="flow-box reject">Reject</span>
+          <span style="color:#666;font-size:12px;margin-left:8px">irrelevant (e.g. WoS false positive)</span>
+        </div>
+
+        <div style="margin:10px 0">
+          <span style="color:#555">├──</span>
+          <span style="color:#53fb9a">high confidence, no ambiguity</span>
+          <span class="flow-arrow">──▶</span>
+          <span class="flow-box merge">Merge</span>
+          <span style="color:#666;font-size:12px;margin-left:8px">import directly via assertions</span>
+        </div>
+
+        <div style="margin:10px 0">
+          <span style="color:#555">└──</span>
+          <span style="color:#bd93f9">ambiguous / incomplete</span>
+          <span class="flow-arrow">──▶</span>
+          <span class="flow-box cand">Candidate</span>
+          <span style="color:#666;font-size:12px;margin-left:8px">staged for human review</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">What happens in each outcome</div>
+      <div style="margin:6px 0"><span class="rej">Reject</span> — record is discarded. Logged in <code>bbl_revs</code>. No entity created.</div>
+      <div style="margin:6px 0"><span class="usr">Merge</span> — matched to existing entity (or new one created). Assertion rows written. Auto-pin evaluates. Cache rebuilt.</div>
+      <div style="margin:6px 0"><span class="cand">Candidate</span> — stored in <code>bbl_*_candidates</code>. Awaits curator review. May be promoted to merge or rejected later.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('The next scenes show what happens on the Merge path — the assertion model in action.')}</div>`;
+  }
+},
+
+// ─── 3: Empty work ───
+{
+  title: "Scene 3 — A new work arrives (merge path)",
+  build() {
+    return `
+    <div class="mb">${C.hdr('A record passed triage → merge. A new work entity is created.')}</div>
+    <div class="entity-card">
+      <div class="label">bbl_works</div>
+      <div>id: ${C.hl('W001')}  kind: journal_article  status: private</div>
+      <div>cache: ${C.dim('{}')}</div>
+    </div>
+    <div class="viz">
+      <div class="viz-title">Assertions per field</div>
+      ${fieldRow('volume', dot('empty', '—', false))}
+      ${fieldRow('year', dot('empty', '—', false))}
+      ${fieldRow('pages', dot('empty', '—', false))}
+      ${fieldRow('titles', dot('empty', '—', false))}
+      ${fieldRow('contributors', dot('empty', '—', false))}
+    </div>
+    <div class="caption">${C.dim('No assertions yet. The source is about to write its assertion rows.')}</div>`;
+  }
+},
+
+// ─── 4: First source imports ───
+{
+  title: "Scene 4 — Source 'wos' writes assertions",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Web of Science')} (${C.src('priority 10')}) writes its assertion rows.</div>
+    <div class="viz">
+      <div class="viz-title">Assertions per field — each dot is one assertion</div>
+      ${legend([['wos', 'wos (pri 10)']])}
+      ${fieldRow('volume', dot('wos', '"42"', true))}
+      ${fieldRow('year', dot('wos', '"2025"', true))}
+      ${fieldRow('titles', dot('wos', '"Quantum Effects in Graphene"', true))}
+      ${fieldRow('pages', dot('empty', '—', false))}
+      ${fieldRow('contributors', dot('wos', '[Einstein, Bohr, Curie]', true))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'volume', C.src('"42"'),   C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'), C.src('wos'), '—', C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_fields')
+    ) +
+    `<div class="mt caption">${C.dim('Auto-pin: no human assertion → highest priority source wins → wos pinned')}</div>`;
+  }
+},
+
+// ─── 5: Second source ───
+{
+  title: "Scene 5 — Source 'scopus' also imports (priority 5)",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Scopus')} (${C.dim('priority 5')}) imports the same work with slightly different data.</div>
+    <div class="viz">
+      <div class="viz-title">Assertions coexist side by side — one dot per assertion</div>
+      ${legend([['wos', 'wos (pri 10)'], ['scopus', 'scopus (pri 5)']])}
+      ${fieldRow('volume',
+        dot('wos', '"42"', true) +
+        dot('scopus', '"vol. 42"', false))}
+      ${fieldRow('year',
+        dot('wos', '"2025"', true) +
+        dot('scopus', '"2025"', false))}
+      ${fieldRow('titles',
+        dot('wos', '"Quantum Effects…"', true) +
+        dot('scopus', '"Quantum Effects…"', false))}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+      ${fieldRow('contributors',
+        dot('wos', '[Einstein, Bohr, Curie]', true) +
+        dot('scopus', '[Einstein A., Bohr N.]', false))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'volume', C.src('"42"'),       C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'),  C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'year',   C.src('"2025"'),     C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),     C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'),  C.dim('scopus'), '—', C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_fields')
+    ) +
+    `<div class="mt caption">Both assertions ${C.hdr('coexist')}. WoS wins volume/year (priority 10 > 5). Scopus is the only pages asserter → auto-pinned.</div>`;
+  }
+},
+
+// ─── 6: Human edits ───
+{
+  title: "Scene 6 — A curator corrects the volume",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Curator')} (${C.usr('U42')}) edits volume → ${C.usr('copy-on-write')}</div>
+    <div class="viz">
+      <div class="viz-title">Human assertion always wins — source dots are pushed aside</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'human (U42)']])}
+      ${fieldRow('volume',
+        dot('wos', '"42"', false) +
+        dot('scopus', '"vol. 42"', false) +
+        dot('human', '"42a"', true))}
+      ${fieldRow('year',
+        dot('wos', '"2025"', true) +
+        dot('scopus', '"2025"', false))}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+      ${fieldRow('contributors',
+        dot('wos', '[3 authors]', true) +
+        dot('scopus', '[2 authors]', false))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'volume', C.dim('"42"'),      C.dim('wos'),    '—',          ''],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'), '—',          ''],
+        [C.hl('W001'), 'volume', C.usr('"42a"'),     '—',             C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos'),    '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'), '—',          ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'), '—',          C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_fields')
+    ) +
+    `<div class="mt caption">${C.usr('Green dot')} = human assertion. It ${C.pin('always gets the pin')}, regardless of source priority.
+    Source assertions are ${C.hdr('untouched')} — the curator created a new row.</div>`;
+  }
+},
+
+// ─── 7: Re-import ───
+{
+  title: "Scene 7 — WoS re-imports with updated data",
+  build() {
+    return `
+    <div class="mb">${C.hdr('WoS re-imports')} — DELETE old wos rows + INSERT new ones</div>
+    <div class="viz">
+      <div class="viz-title">Re-import replaces only the source's own dots — human pin untouched</div>
+      ${legend([['wos', 'wos (new)'], ['scopus', 'scopus'], ['human', 'human']])}
+      ${fieldRow('volume',
+        dot('wos', '"42a" ✱new', false) +
+        dot('scopus', '"vol. 42"', false) +
+        dot('human', '"42a"', true))}
+      ${fieldRow('year',
+        dot('wos', '"2025" ✱new', true) +
+        dot('scopus', '"2025"', false))}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'volume', C.src('"42a"'),     C.src('wos ✱new'),  '—',          ''],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'),    '—',          ''],
+        [C.hl('W001'), 'volume', C.usr('"42a"'),     '—',                C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos ✱new'),  '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'),    '—',          ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'),    '—',          C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_fields')
+    ) +
+    `<div class="mt flow">
+      <div class="flow-step">${C.dim('Re-import is safe:')}</div>
+      <div class="flow-step">✓ WoS rows deleted and re-inserted (✱new)</div>
+      <div class="flow-step">✓ ${C.usr('Human pin on volume untouched')}</div>
+      <div class="flow-step">✓ Scopus rows untouched</div>
+      <div class="flow-step">✓ Auto-pin re-evaluates: volume → ${C.usr('human stays')}, year → ${C.src('wos wins')}</div>
+    </div>`;
+  }
+},
+
+// ─── 8: Delete human assertion ───
+{
+  title: "Scene 8 — Curator deletes their volume assertion",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Curator U42 deletes their volume assertion → auto-pin re-evaluates')}</div>
+    <div class="viz">
+      <div class="viz-title">Before delete</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'human']])}
+      ${fieldRow('volume',
+        dot('wos', '"42a"', false) +
+        dot('scopus', '"vol. 42"', false) +
+        dot('human', '"42a"', true))}
+      ${fieldRow('year',
+        dot('wos', '"2025"', true) +
+        dot('scopus', '"2025"', false))}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+    </div>
+    <div style="text-align:center; color:#e94560; margin: 4px 0;">▼ DELETE human assertion ▼</div>
+    <div class="viz">
+      <div class="viz-title">After delete — auto-pin re-evaluates</div>
+      ${fieldRow('volume',
+        dot('wos', '"42a"', true) +
+        dot('scopus', '"vol. 42"', false))}
+      ${fieldRow('year',
+        dot('wos', '"2025"', true) +
+        dot('scopus', '"2025"', false))}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'volume', C.src('"42a"'),     C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'), '—', C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_fields — after delete')
+    ) +
+    `<div class="mt caption">${C.dim('Human row gone. WoS auto-pinned (priority 10 > 5). If ALL assertions deleted → field absent.')}</div>`;
+  }
+},
+
+// ─── 9: Collective fields ───
+{
+  title: "Scene 9 — Collective fields (contributors)",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Collective fields')}: the ENTIRE LIST from one asserter is pinned — not individual rows.</div>
+    <div class="viz">
+      <div class="viz-title">Each dot represents a complete list, not a single person</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus']])}
+      ${fieldRow('contributors',
+        dot('wos', '', true) + '<span class="dot-val pinned-val">[Einstein, Bohr, Curie]</span>' +
+        '&nbsp;&nbsp;' +
+        dot('scopus', '', false) + '<span class="dot-val">[Einstein A., Bohr N.]</span>')}
+    </div>` +
+    tbl(contribHeaders,
+      [
+        [C.hl('W001'), '1', C.src('A. Einstein'), C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), '2', C.src('N. Bohr'),     C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), '3', C.src('M. Curie'),    C.src('wos'), '—', C.pin('★ yes')],
+        '---',
+        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('scopus'), '—', ''],
+        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('scopus'), '—', ''],
+      ],
+      C.hdr('bbl_work_contributors — wos list pinned')
+    ) +
+    `<div class="caption">WoS's 3-author list is pinned as a whole. Scopus's 2-author list is stored but not displayed.</div>
+    <div class="caption">You ${C.hdr("can't")} mix-and-match rows from different sources.</div>`;
+  }
+},
+
+// ─── 10: Collective + human edit ───
+{
+  title: "Scene 10 — Human edits contributors (copy-on-write)",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Curator U42 edits contributors')} → full ${C.usr('copy-on-write')} of the list, then adds Feynman.</div>
+    <div class="viz">
+      <div class="viz-title">Human gets a full copy — their entire list is now pinned</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'human (U42)']])}
+      ${fieldRow('contributors',
+        dot('wos', '[3]', false) +
+        dot('scopus', '[2]', false) +
+        dot('human', '', true) + '<span class="dot-val pinned-val">[Einstein, Bohr, Curie, Feynman]</span>')}
+    </div>` +
+    tbl(contribHeaders,
+      [
+        [C.hl('W001'), '1', C.usr('A. Einstein'),              '—', C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), '2', C.usr('N. Bohr'),                  '—', C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), '3', C.usr('M. Curie'),                 '—', C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), '4', C.usr('R. Feynman') + ' ← added!', '—', C.usr('U42'), C.pin('★ yes')],
+        '---',
+        [C.hl('W001'), '1', C.dim('A. Einstein'), C.dim('wos'), '—', ''],
+        [C.hl('W001'), '2', C.dim('N. Bohr'),     C.dim('wos'), '—', ''],
+        [C.hl('W001'), '3', C.dim('M. Curie'),    C.dim('wos'), '—', ''],
+        '---',
+        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('scopus'), '—', ''],
+        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('scopus'), '—', ''],
+      ],
+      C.hdr('bbl_work_contributors — all three lists coexist')
+    ) +
+    `<div class="mt caption">Source lists are preserved. If the human deletes their list, wos's 3-author list gets re-pinned.</div>`;
+  }
+},
+
+// ─── 11: The cache ───
+{
+  title: "Scene 11 — Cache rebuild",
+  build() {
+    return `
+    <div class="mb">${C.hdr('After every write, the cache is rebuilt from pinned rows.')}</div>
+    <div class="viz">
+      <div class="viz-title">Pinned values flow into the cache</div>
+      ${fieldRow('volume',
+        dot('wos', '', false) + dot('scopus', '', false) + dot('human', '"42a"', true) +
+        '<span style="color:#e94560;margin-left:8px">───▶</span>')}
+      ${fieldRow('year',
+        dot('wos', '"2025"', true) + dot('scopus', '', false) +
+        '<span style="color:#e94560;margin-left:8px">───▶</span>')}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true) +
+        '<span style="color:#e94560;margin-left:8px">───▶</span>')}
+      ${fieldRow('contributors',
+        dot('wos', '', false) + dot('scopus', '', false) + dot('human', '[4 authors]', true) +
+        '<span style="color:#e94560;margin-left:8px">───▶</span>')}
+    </div>
+    <div class="entity-card" style="border-color:#e94560;">
+      <div class="label" style="color:#e94560;">bbl_works.cache (jsonb)</div>
+      <pre style="color:#e94560;font-size:13px">{
+  "volume": "42a",
+  "year": "2025",
+  "pages": "101-115",
+  "titles": ["Quantum Effects in Graphene"],
+  "contributors": [
+    {"name": "A. Einstein"},
+    {"name": "N. Bohr"},
+    {"name": "M. Curie"},
+    {"name": "R. Feynman"}
+  ]
+}</pre>
+    </div>
+    <div class="mt caption">${C.dim('The cache is the single source of truth for display, search, and export.')}</div>
+    <div class="caption">${C.dim("Computed, never written directly — always rebuilt from pinned rows.")}</div>`;
+  }
+},
+
+// ─── 12: Candidates ───
+{
+  title: "Scene 12 — Candidates (the ambiguous path)",
+  build() {
+    return `
+    <div class="mb">${C.hdr('When the evaluator is uncertain, the record becomes a candidate.')}</div>
+
+    <div class="flow-diagram">
+      <div style="margin-bottom:8px">
+        <span class="flow-box source">WoS record #9876</span>
+        <span class="flow-arrow">───▶</span>
+        <span class="flow-box eval">Evaluator</span>
+        <span class="flow-arrow">───▶</span>
+        <span class="flow-box cand">Candidate</span>
+      </div>
+      <div style="margin-left:40px;color:#888;font-size:12px">
+        Multiple possible matches? Missing identifiers? New unknown author?
+      </div>
+    </div>` +
+
+    tbl(
+      ['id', 'source', 'source_id', 'status', 'fetched_at'],
+      [
+        [C.cand('C001'), C.src('wos'), '9876', C.cand('pending'), '2025-03-15'],
+        [C.cand('C002'), C.src('scopus'), '445521', C.cand('pending'), '2025-03-15'],
+        [C.cand('C003'), C.src('wos'), '3344', C.rej('rejected'), '2025-03-14'],
+      ],
+      C.hdr('bbl_work_candidates')
+    ) +
+
+    `<div class="mt viz">
+      <div class="viz-title">Candidate lifecycle</div>
+      <div style="margin:6px 0">
+        <span class="flow-box cand" style="font-size:12px">pending</span>
+        <span class="flow-arrow">──curator──▶</span>
+        <span class="flow-box merge" style="font-size:12px">accepted → merge</span>
+        <span style="color:#666;font-size:12px;margin-left:8px">assertions written, entity updated</span>
+      </div>
+      <div style="margin:6px 0">
+        <span class="flow-box cand" style="font-size:12px">pending</span>
+        <span class="flow-arrow">──curator──▶</span>
+        <span class="flow-box reject" style="font-size:12px">rejected</span>
+        <span style="color:#666;font-size:12px;margin-left:8px">record discarded, logged</span>
+      </div>
+    </div>
+
+    <div class="mt caption">Candidates are ${C.cand('unresolved source records')}. They don't create assertions until accepted.</div>
+    <div class="caption">Once promoted, the candidate's <code>bbl_*_sources</code> row links back via <code>candidate_id</code>.</div>`;
+  }
+},
+
+// ─── 13: Summary ───
+{
+  title: "Summary — The full picture",
+  build() {
+    return `
+    <div class="summary-box">
+      <h2>THE ASSERTION MODEL — SUMMARY</h2>
+      <div class="rule"><span class="num">1.</span> Every field value is an ${C.hl('assertion row')} with an origin (${C.src('source')} or ${C.usr('human')}). Nothing is overwritten.</div>
+      <div class="rule"><span class="num">2.</span> One assertion per grouping key is ${C.pin('pinned')} for display. Pinning is implicit — a side effect of writes.</div>
+      <div class="rule"><span class="num">3.</span> ${C.usr('Human always wins')} over any source. No human? Highest ${C.src('priority source')} wins.</div>
+      <div class="rule"><span class="num">4.</span> Humans create their own rows (${C.usr('copy-on-write')}). Never modify a source's assertion directly.</div>
+      <div class="rule"><span class="num">5.</span> Re-import replaces only the source's own rows. ${C.usr('Human pins are never disturbed.')}</div>
+      <div class="rule"><span class="num">6.</span> Delete → re-evaluate → next best gets pinned (or field absent).</div>
+      <div class="rule"><span class="num">7.</span> ${C.pin('Cache')} rebuilt from pinned rows on every write.</div>
+    </div>
+
+    <div class="mt flow-diagram" style="padding:12px 16px">
+      <div class="viz-title">The full ingestion flow</div>
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  incoming record
+    │
+    ▼
+  ${C.hl('evaluator')}
+    ├── ${C.rej('reject')}    → logged, discarded
+    ├── ${C.cand('candidate')} → staged for review ──┐
+    │                                   │
+    └── ${C.usr('merge')} ◀─── curator accepts ──────┘
+          │
+          ├─ write assertion rows (${C.src('source_id')} or ${C.usr('user_id')})
+          ├─ auto-pin re-evaluates
+          └─ ${C.pin('cache rebuilt')}</pre>
+    </div>`;
+  }
+}
+
+];
+
+// ─── Renderer ───
+const screen = document.getElementById('screen');
+const label = document.getElementById('scene-label');
+const prevBtn = document.getElementById('prev');
+const nextBtn = document.getElementById('next');
+const playBtn = document.getElementById('play');
+let current = 0;
+let playing = false;
+let timer = null;
+
+function render(idx) {
+  current = idx;
+  const scene = scenes[idx];
+  label.textContent = `${idx + 1} / ${scenes.length}  —  ${scene.title}`;
+  screen.innerHTML = '<div class="scene">' + scene.build() + '</div>';
+  prevBtn.disabled = idx === 0;
+  nextBtn.disabled = idx === scenes.length - 1;
+  window.scrollTo(0, 0);
+}
+
+function next() {
+  if (current < scenes.length - 1) render(current + 1);
+  else stopPlay();
+}
+function prev() {
+  if (current > 0) render(current - 1);
+}
+
+function startPlay() {
+  playing = true;
+  playBtn.textContent = '⏸ Pause';
+  playBtn.classList.add('active');
+  timer = setInterval(() => {
+    if (current < scenes.length - 1) next();
+    else stopPlay();
+  }, 5000);
+}
+function stopPlay() {
+  playing = false;
+  playBtn.textContent = '▶ Play';
+  playBtn.classList.remove('active');
+  clearInterval(timer);
+}
+
+prevBtn.addEventListener('click', () => { stopPlay(); prev(); });
+nextBtn.addEventListener('click', () => { stopPlay(); next(); });
+playBtn.addEventListener('click', () => playing ? stopPlay() : startPlay());
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); stopPlay(); next(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); stopPlay(); prev(); }
+});
+
+render(0);
+</script>
+</body>
+</html>
