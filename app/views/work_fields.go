@@ -1,10 +1,6 @@
 package views
 
-import (
-	"strings"
-
-	"github.com/ugent-library/bbl"
-)
+import "github.com/ugent-library/bbl"
 
 // Field getters for template rendering — map field name to Work values.
 
@@ -91,6 +87,6 @@ func workAttrNoteList(work *bbl.Work, name string) []bbl.Note {
 	}
 }
 
-func fieldLabel(name string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(name, "_", " "), ".", " ")
+func fieldLabel(c Ctx, name string) string {
+	return c.Loc("field." + name)
 }

@@ -1,17 +1,38 @@
 package views
 
-templ Layout(title string) {
+import (
+	"net/url"
+	"strings"
+)
+
+templ Layout(c Ctx, title string) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang={ c.Lang }>
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ title } - bbl</title>
-			<link rel="stylesheet" href={ AssetPath(ctx, "app.css") }/>
-			<script src={ AssetPath(ctx, "app.js") }></script>
+			<link rel="stylesheet" href={ c.AssetPath("app.css") }/>
+			<script src={ c.AssetPath("app.js") }></script>
 		</head>
 		<body>
+			if len(c.Langs) > 1 {
+				<nav aria-label="Language">
+					for _, lang := range c.Langs {
+						{ " " }
+						if lang == c.Lang {
+							<strong>{ strings.ToUpper(lang) }</strong>
+						} else {
+							<a href={ langSwitchURL(lang, c.Path) }>{ strings.ToUpper(lang) }</a>
+						}
+					}
+				</nav>
+			}
 			{ children... }
 		</body>
 	</html>
+}
+
+func langSwitchURL(lang, returnPath string) templ.SafeURL {
+	return templ.SafeURL("/lang/" + lang + "?return=" + url.QueryEscape(returnPath))
 }

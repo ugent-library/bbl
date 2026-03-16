@@ -8,12 +8,12 @@ import (
 	"github.com/ugent-library/vo"
 )
 
-templ BackofficeEditWork(work *bbl.Work, profile *bbl.WorkKind, errs vo.Errors) {
-	@Layout("Edit Work - Backoffice") {
+templ BackofficeEditWork(c Ctx, work *bbl.Work, profile *bbl.WorkKind, errs vo.Errors) {
+	@Layout(c, c.Loc("Edit %s", workTitle(c, work))+" - "+c.Loc("Backoffice")) {
 		<main>
-			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>Back to work</a></p>
-			<h1>Edit { workTitle(work) }</h1>
-			<p>Kind: { work.Kind } | Status: { work.Status }</p>
+			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>{ c.Loc("Back to work") }</a></p>
+			<h1>{ c.Loc("Edit %s", workTitle(c, work)) }</h1>
+			<p>{ c.Loc("Kind") }: { work.Kind } | { c.Loc("Status") }: { work.Status }</p>
 			if len(errs) > 0 {
 				<ul>
 					for _, e := range errs {
@@ -23,23 +23,23 @@ templ BackofficeEditWork(work *bbl.Work, profile *bbl.WorkKind, errs vo.Errors) 
 			}
 			<form method="post" action={ templ.SafeURL(fmt.Sprintf("/backoffice/works/%s/edit", work.ID)) }>
 				for _, f := range profile.Fields {
-					@editField(f, work)
+					@editField(c, f, work)
 				}
 				<div>
-					<button type="submit">Save</button>
-					<a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>Cancel</a>
+					<button type="submit">{ c.Loc("Save") }</button>
+					<a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>{ c.Loc("Cancel") }</a>
 				</div>
 			</form>
 		</main>
 	}
 }
 
-templ editField(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editField(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	switch f.Type {
 		case "text", "year":
 			<fieldset>
 				<label for={ f.Name }>
-					{ fieldLabel(f.Name) }
+					{ fieldLabel(c, f.Name) }
 					if f.Required {
 						<span>*</span>
 					}
@@ -53,31 +53,31 @@ templ editField(f bbl.WorkFieldDef, work *bbl.Work) {
 			</fieldset>
 		case "text_list":
 			if f.Name == "titles" {
-				@editTitleList(f, work)
+				@editTitleList(c, f, work)
 			} else {
-				@editTextList(f, work)
+				@editTextList(c, f, work)
 			}
 		case "string_list":
-			@editKeywords(work)
+			@editKeywords(c, work)
 		case "extent":
-			@editExtent(f, work)
+			@editExtent(c, f, work)
 		case "conference":
-			@editConference(f, work)
+			@editConference(c, f, work)
 		case "note_list":
-			@editNoteList(f, work)
+			@editNoteList(c, f, work)
 		case "identifier_list":
-			@showIdentifiers(work)
+			@showIdentifiers(c, work)
 		case "classification_list":
-			@showClassifications(work)
+			@showClassifications(c, work)
 		case "contributor_list":
-			@showContributors(work)
+			@showContributors(c, work)
 	}
 }
 
-templ editTitleList(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editTitleList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
 		<legend>
-			{ fieldLabel(f.Name) }
+			{ fieldLabel(c, f.Name) }
 			if f.Required {
 				<span>*</span>
 			}
@@ -87,25 +87,25 @@ templ editTitleList(f bbl.WorkFieldDef, work *bbl.Work) {
 				<div data-repeatable-item>
 					<input type="text" name={ f.Name + ".lang" } value={ t.Lang } placeholder="lang" size="4"/>
 					<input type="text" name={ f.Name + ".val" } value={ t.Val } placeholder="value"/>
-					<button type="button" data-remove-item>Remove</button>
+					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
 			}
 		</div>
-		<button type="button" data-add-item>Add { fieldLabel(f.Name) }</button>
+		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, f.Name)) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
 				<input type="text" name={ f.Name + ".lang" } value="" placeholder="lang" size="4"/>
 				<input type="text" name={ f.Name + ".val" } value="" placeholder="value"/>
-				<button type="button" data-remove-item>Remove</button>
+				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
 		</template>
 	</fieldset>
 }
 
-templ editTextList(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editTextList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
 		<legend>
-			{ fieldLabel(f.Name) }
+			{ fieldLabel(c, f.Name) }
 			if f.Required {
 				<span>*</span>
 			}
@@ -115,92 +115,92 @@ templ editTextList(f bbl.WorkFieldDef, work *bbl.Work) {
 				<div data-repeatable-item>
 					<input type="text" name={ f.Name + ".lang" } value={ t.Lang } placeholder="lang" size="4"/>
 					<input type="text" name={ f.Name + ".val" } value={ t.Val } placeholder="value"/>
-					<button type="button" data-remove-item>Remove</button>
+					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
 			}
 		</div>
-		<button type="button" data-add-item>Add { fieldLabel(f.Name) }</button>
+		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, f.Name)) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
 				<input type="text" name={ f.Name + ".lang" } value="" placeholder="lang" size="4"/>
 				<input type="text" name={ f.Name + ".val" } value="" placeholder="value"/>
-				<button type="button" data-remove-item>Remove</button>
+				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
 		</template>
 	</fieldset>
 }
 
-templ editKeywords(work *bbl.Work) {
+templ editKeywords(c Ctx, work *bbl.Work) {
 	<fieldset data-repeatable="keywords">
-		<legend>{ fieldLabel("keywords") }</legend>
+		<legend>{ fieldLabel(c, "keywords") }</legend>
 		<div data-repeatable-items>
 			for _, kw := range workAttrKeywords(work) {
 				<div data-repeatable-item>
 					<input type="text" name="keywords" value={ kw.Val }/>
-					<button type="button" data-remove-item>Remove</button>
+					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
 			}
 		</div>
-		<button type="button" data-add-item>Add keyword</button>
+		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, "keywords")) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
 				<input type="text" name="keywords" value=""/>
-				<button type="button" data-remove-item>Remove</button>
+				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
 		</template>
 	</fieldset>
 }
 
-templ editExtent(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editExtent(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	<fieldset>
-		<legend>{ fieldLabel(f.Name) }</legend>
+		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<label>
-			From
+			{ c.Loc("From") }
 			<input type="text" name={ f.Name + ".start" } value={ workAttrExtent(work, f.Name).Start } size="8"/>
 		</label>
 		<label>
-			To
+			{ c.Loc("To") }
 			<input type="text" name={ f.Name + ".end" } value={ workAttrExtent(work, f.Name).End } size="8"/>
 		</label>
 	</fieldset>
 }
 
-templ editConference(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editConference(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	<fieldset>
-		<legend>{ fieldLabel(f.Name) }</legend>
+		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<label>
-			Name
+			{ c.Loc("Name") }
 			<input type="text" name={ f.Name + ".name" } value={ workAttrConference(work, f.Name).Name }/>
 		</label>
 		<label>
-			Organizer
+			{ c.Loc("Organizer") }
 			<input type="text" name={ f.Name + ".organizer" } value={ workAttrConference(work, f.Name).Organizer }/>
 		</label>
 		<label>
-			Location
+			{ c.Loc("Location") }
 			<input type="text" name={ f.Name + ".location" } value={ workAttrConference(work, f.Name).Location }/>
 		</label>
 	</fieldset>
 }
 
-templ editNoteList(f bbl.WorkFieldDef, work *bbl.Work) {
+templ editNoteList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
-		<legend>{ fieldLabel(f.Name) }</legend>
+		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<div data-repeatable-items>
 			for _, n := range workAttrNoteList(work, f.Name) {
 				<div data-repeatable-item>
 					<input type="text" name={ f.Name + ".kind" } value={ n.Kind } placeholder="kind" size="12"/>
 					<input type="text" name={ f.Name + ".val" } value={ n.Val } placeholder="note"/>
-					<button type="button" data-remove-item>Remove</button>
+					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
 			}
 		</div>
-		<button type="button" data-add-item>Add note</button>
+		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, f.Name)) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
 				<input type="text" name={ f.Name + ".kind" } value="" placeholder="kind" size="12"/>
 				<input type="text" name={ f.Name + ".val" } value="" placeholder="note"/>
-				<button type="button" data-remove-item>Remove</button>
+				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
 		</template>
 	</fieldset>
@@ -208,10 +208,10 @@ templ editNoteList(f bbl.WorkFieldDef, work *bbl.Work) {
 
 // Read-only relation displays (save path deferred).
 
-templ showIdentifiers(work *bbl.Work) {
+templ showIdentifiers(c Ctx, work *bbl.Work) {
 	if len(work.Identifiers) > 0 {
 		<fieldset>
-			<legend>Identifiers (read-only)</legend>
+			<legend>{ c.Loc("Identifiers (read-only)") }</legend>
 			<ul>
 				for _, id := range work.Identifiers {
 					<li>{ id.Scheme }: { id.Val }</li>
@@ -221,26 +221,26 @@ templ showIdentifiers(work *bbl.Work) {
 	}
 }
 
-templ showClassifications(work *bbl.Work) {
+templ showClassifications(c Ctx, work *bbl.Work) {
 	if len(work.Classifications) > 0 {
 		<fieldset>
-			<legend>Classifications (read-only)</legend>
+			<legend>{ c.Loc("Classifications (read-only)") }</legend>
 			<ul>
-				for _, c := range work.Classifications {
-					<li>{ c.Scheme }: { c.Val }</li>
+				for _, cl := range work.Classifications {
+					<li>{ cl.Scheme }: { cl.Val }</li>
 				}
 			</ul>
 		</fieldset>
 	}
 }
 
-templ showContributors(work *bbl.Work) {
+templ showContributors(c Ctx, work *bbl.Work) {
 	if len(work.Contributors) > 0 {
 		<fieldset>
-			<legend>Contributors (read-only)</legend>
+			<legend>{ c.Loc("Contributors (read-only)") }</legend>
 			<ul>
-				for _, c := range work.Contributors {
-					<li>{ contributorDisplay(c) }</li>
+				for _, co := range work.Contributors {
+					<li>{ contributorDisplay(co) }</li>
 				}
 			</ul>
 		</fieldset>

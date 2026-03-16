@@ -1,7 +1,6 @@
 package views
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 
@@ -10,18 +9,18 @@ import (
 
 // Discovery search views
 
-templ SearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
-	@Layout("Works") {
+templ SearchWorks(c Ctx, hits *bbl.WorkHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Works")) {
 		<main>
-			<h1>Works</h1>
-			@searchForm(opts, "/works")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Works") }</h1>
+			@searchForm(c, opts, "/works")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Title</th>
-							<th>Kind</th>
+							<th>{ c.Loc("Title") }</th>
+							<th>{ c.Loc("Kind") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -33,23 +32,23 @@ templ SearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/works")
+				@pagination(c, hits.Total, opts, "/works")
 			}
 		</main>
 	}
 }
 
-templ SearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
-	@Layout("People") {
+templ SearchPeople(c Ctx, hits *bbl.PersonHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("People")) {
 		<main>
-			<h1>People</h1>
-			@searchForm(opts, "/people")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("People") }</h1>
+			@searchForm(c, opts, "/people")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Name</th>
+							<th>{ c.Loc("Name") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -60,23 +59,23 @@ templ SearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/people")
+				@pagination(c, hits.Total, opts, "/people")
 			}
 		</main>
 	}
 }
 
-templ SearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
-	@Layout("Projects") {
+templ SearchProjects(c Ctx, hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Projects")) {
 		<main>
-			<h1>Projects</h1>
-			@searchForm(opts, "/projects")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Projects") }</h1>
+			@searchForm(c, opts, "/projects")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Title</th>
+							<th>{ c.Loc("Title") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -87,24 +86,24 @@ templ SearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/projects")
+				@pagination(c, hits.Total, opts, "/projects")
 			}
 		</main>
 	}
 }
 
-templ SearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
-	@Layout("Organizations") {
+templ SearchOrganizations(c Ctx, hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Organizations")) {
 		<main>
-			<h1>Organizations</h1>
-			@searchForm(opts, "/organizations")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Organizations") }</h1>
+			@searchForm(c, opts, "/organizations")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Name</th>
-							<th>Kind</th>
+							<th>{ c.Loc("Name") }</th>
+							<th>{ c.Loc("Kind") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -116,7 +115,7 @@ templ SearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/organizations")
+				@pagination(c, hits.Total, opts, "/organizations")
 			}
 		</main>
 	}
@@ -124,19 +123,19 @@ templ SearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
 
 // Backoffice search views
 
-templ BackofficeSearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
-	@Layout("Works - Backoffice") {
+templ BackofficeSearchWorks(c Ctx, hits *bbl.WorkHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Works")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<h1>Works</h1>
-			@searchForm(opts, "/backoffice/works")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Works") }</h1>
+			@searchForm(c, opts, "/backoffice/works")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Title</th>
-							<th>Kind</th>
-							<th>Status</th>
+							<th>{ c.Loc("Title") }</th>
+							<th>{ c.Loc("Kind") }</th>
+							<th>{ c.Loc("Status") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -149,23 +148,23 @@ templ BackofficeSearchWorks(hits *bbl.WorkHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/backoffice/works")
+				@pagination(c, hits.Total, opts, "/backoffice/works")
 			}
 		</main>
 	}
 }
 
-templ BackofficeSearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
-	@Layout("People - Backoffice") {
+templ BackofficeSearchPeople(c Ctx, hits *bbl.PersonHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("People")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<h1>People</h1>
-			@searchForm(opts, "/backoffice/people")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("People") }</h1>
+			@searchForm(c, opts, "/backoffice/people")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Name</th>
+							<th>{ c.Loc("Name") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -176,24 +175,24 @@ templ BackofficeSearchPeople(hits *bbl.PersonHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/backoffice/people")
+				@pagination(c, hits.Total, opts, "/backoffice/people")
 			}
 		</main>
 	}
 }
 
-templ BackofficeSearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
-	@Layout("Projects - Backoffice") {
+templ BackofficeSearchProjects(c Ctx, hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Projects")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<h1>Projects</h1>
-			@searchForm(opts, "/backoffice/projects")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Projects") }</h1>
+			@searchForm(c, opts, "/backoffice/projects")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Title</th>
-							<th>Status</th>
+							<th>{ c.Loc("Title") }</th>
+							<th>{ c.Loc("Status") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -205,24 +204,24 @@ templ BackofficeSearchProjects(hits *bbl.ProjectHits, opts *bbl.SearchOpts) {
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/backoffice/projects")
+				@pagination(c, hits.Total, opts, "/backoffice/projects")
 			}
 		</main>
 	}
 }
 
-templ BackofficeSearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
-	@Layout("Organizations - Backoffice") {
+templ BackofficeSearchOrganizations(c Ctx, hits *bbl.OrganizationHits, opts *bbl.SearchOpts) {
+	@Layout(c, c.Loc("Organizations")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<h1>Organizations</h1>
-			@searchForm(opts, "/backoffice/organizations")
-			@searchSummary(hits.Total, opts)
+			<h1>{ c.Loc("Organizations") }</h1>
+			@searchForm(c, opts, "/backoffice/organizations")
+			@searchSummary(c, hits.Total, opts)
 			if len(hits.Hits) > 0 {
 				<table>
 					<thead>
 						<tr>
-							<th>Name</th>
-							<th>Kind</th>
+							<th>{ c.Loc("Name") }</th>
+							<th>{ c.Loc("Kind") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -234,7 +233,7 @@ templ BackofficeSearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.Search
 						}
 					</tbody>
 				</table>
-				@pagination(hits.Total, opts, "/backoffice/organizations")
+				@pagination(c, hits.Total, opts, "/backoffice/organizations")
 			}
 		</main>
 	}
@@ -242,28 +241,28 @@ templ BackofficeSearchOrganizations(hits *bbl.OrganizationHits, opts *bbl.Search
 
 // Shared components
 
-templ searchForm(opts *bbl.SearchOpts, action string) {
+templ searchForm(c Ctx, opts *bbl.SearchOpts, action string) {
 	<form action={ templ.SafeURL(action) } method="get">
-		<input type="search" name="q" value={ opts.Query } placeholder="Search..."/>
-		<button type="submit">Search</button>
+		<input type="search" name="q" value={ opts.Query } placeholder={ c.Loc("Search...") }/>
+		<button type="submit">{ c.Loc("Search") }</button>
 	</form>
 }
 
-templ searchSummary(total int, opts *bbl.SearchOpts) {
+templ searchSummary(c Ctx, total int, opts *bbl.SearchOpts) {
 	<p>
 		if total == 0 {
-			No results found.
+			{ c.Loc("No results found.") }
 		} else {
-			{ fmt.Sprintf("Showing %d\u2013%d of %d", opts.Offset+1, min(opts.Offset+opts.Size, total), total) }
+			{ c.Loc("Showing %d\u2013%d of %d", opts.Offset+1, min(opts.Offset+opts.Size, total), total) }
 		}
 	</p>
 }
 
-templ pagination(total int, opts *bbl.SearchOpts, baseURL string) {
+templ pagination(c Ctx, total int, opts *bbl.SearchOpts, baseURL string) {
 	if pages := paginationPages(opts.Size, opts.Offset, total, 10); len(pages) > 1 {
 		<nav aria-label="Pagination">
 			if opts.Offset > 0 {
-				<a href={ paginationURL(baseURL, opts.Query, opts.Offset-opts.Size) }>Previous</a>
+				<a href={ paginationURL(baseURL, opts.Query, opts.Offset-opts.Size) }>{ c.Loc("Previous") }</a>
 			}
 			for _, p := range pages {
 				{ " " }
@@ -275,7 +274,7 @@ templ pagination(total int, opts *bbl.SearchOpts, baseURL string) {
 			}
 			{ " " }
 			if opts.Offset+opts.Size < total {
-				<a href={ paginationURL(baseURL, opts.Query, opts.Offset+opts.Size) }>Next</a>
+				<a href={ paginationURL(baseURL, opts.Query, opts.Offset+opts.Size) }>{ c.Loc("Next") }</a>
 			}
 		</nav>
 	}

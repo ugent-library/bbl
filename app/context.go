@@ -4,17 +4,28 @@ import (
 	"net/http"
 
 	"github.com/ugent-library/bbl"
+	"github.com/ugent-library/bbl/app/views"
 )
 
 // Ctx holds per-request state. Just data — no methods, no infrastructure.
 type Ctx struct {
 	User *bbl.User
+	ViewCtx views.Ctx
 }
 
 // newCtx builds a Ctx, loading the user from session if present.
 // Used for public routes where auth is optional.
 func (app *App) newCtx(r *http.Request) (*Ctx, error) {
-	c := &Ctx{}
+	lang := app.locale.match(r.Header.Get("Accept-Language"), localeCookieValue(r), r.URL.Query().Get("lang"))
+	c := &Ctx{
+		ViewCtx: views.Ctx{
+			AssetPath: app.assets.Path,
+			Loc:       app.locale.translateFunc(lang),
+			Lang:      lang,
+			Langs:     app.locale.langs,
+			Path:      r.URL.Path,
+		},
+	}
 	if app.session == nil {
 		return c, nil
 	}

@@ -47,4 +47,3 @@
 ### Infrastructure
 
 - [ ] Form binding library (`bind/`)
-- [ ] i18n system

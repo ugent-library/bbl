@@ -38,7 +38,7 @@ func (app *App) searchWorks(w http.ResponseWriter, r *http.Request, c *Ctx) erro
 	if err != nil {
 		return err
 	}
-	return views.SearchWorks(hits, opts).Render(r.Context(), w)
+	return views.SearchWorks(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) searchPeople(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -47,7 +47,7 @@ func (app *App) searchPeople(w http.ResponseWriter, r *http.Request, c *Ctx) err
 	if err != nil {
 		return err
 	}
-	return views.SearchPeople(hits, opts).Render(r.Context(), w)
+	return views.SearchPeople(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) searchProjects(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -57,7 +57,7 @@ func (app *App) searchProjects(w http.ResponseWriter, r *http.Request, c *Ctx) e
 	if err != nil {
 		return err
 	}
-	return views.SearchProjects(hits, opts).Render(r.Context(), w)
+	return views.SearchProjects(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) searchOrganizations(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -66,7 +66,7 @@ func (app *App) searchOrganizations(w http.ResponseWriter, r *http.Request, c *C
 	if err != nil {
 		return err
 	}
-	return views.SearchOrganizations(hits, opts).Render(r.Context(), w)
+	return views.SearchOrganizations(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 // Backoffice handlers — exclude deleted.
@@ -78,7 +78,7 @@ func (app *App) backofficeSearchWorks(w http.ResponseWriter, r *http.Request, c 
 	if err != nil {
 		return err
 	}
-	return views.BackofficeSearchWorks(hits, opts).Render(r.Context(), w)
+	return views.BackofficeSearchWorks(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) backofficeSearchPeople(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -87,7 +87,7 @@ func (app *App) backofficeSearchPeople(w http.ResponseWriter, r *http.Request, c
 	if err != nil {
 		return err
 	}
-	return views.BackofficeSearchPeople(hits, opts).Render(r.Context(), w)
+	return views.BackofficeSearchPeople(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) backofficeSearchProjects(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -97,7 +97,7 @@ func (app *App) backofficeSearchProjects(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		return err
 	}
-	return views.BackofficeSearchProjects(hits, opts).Render(r.Context(), w)
+	return views.BackofficeSearchProjects(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }
 
 func (app *App) backofficeSearchOrganizations(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -106,5 +106,5 @@ func (app *App) backofficeSearchOrganizations(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return err
 	}
-	return views.BackofficeSearchOrganizations(hits, opts).Render(r.Context(), w)
+	return views.BackofficeSearchOrganizations(c.ViewCtx, hits, opts).Render(r.Context(), w)
 }

@@ -1,0 +1,208 @@
+msgid ""
+msgstr ""
+
+# Common UI
+msgid "Save"
+msgstr "Opslaan"
+
+msgid "Cancel"
+msgstr "Annuleren"
+
+msgid "Edit"
+msgstr "Bewerken"
+
+msgid "Remove"
+msgstr "Verwijderen"
+
+msgid "Search"
+msgstr "Zoeken"
+
+msgid "Search..."
+msgstr "Zoeken..."
+
+msgid "Previous"
+msgstr "Vorige"
+
+msgid "Next"
+msgstr "Volgende"
+
+# Navigation
+msgid "Home"
+msgstr "Home"
+
+msgid "Backoffice"
+msgstr "Backoffice"
+
+msgid "Bibliographic repository"
+msgstr "Bibliografische databank"
+
+msgid "Works"
+msgstr "Publicaties"
+
+msgid "People"
+msgstr "Personen"
+
+msgid "Projects"
+msgstr "Projecten"
+
+msgid "Organizations"
+msgstr "Organisaties"
+
+# Search
+msgid "No results found."
+msgstr "Geen resultaten gevonden."
+
+msgid "Showing %d–%d of %d"
+msgstr "%d–%d van %d weergegeven"
+
+# Column headers
+msgid "Title"
+msgstr "Titel"
+
+msgid "Kind"
+msgstr "Type"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Name"
+msgstr "Naam"
+
+# Detail views
+msgid "Back to works"
+msgstr "Terug naar publicaties"
+
+msgid "Back to people"
+msgstr "Terug naar personen"
+
+msgid "Back to projects"
+msgstr "Terug naar projecten"
+
+msgid "Back to organizations"
+msgstr "Terug naar organisaties"
+
+msgid "Work"
+msgstr "Publicatie"
+
+msgid "Person"
+msgstr "Persoon"
+
+msgid "Project"
+msgstr "Project"
+
+msgid "Organization"
+msgstr "Organisatie"
+
+# Fallbacks
+msgid "(untitled)"
+msgstr "(zonder titel)"
+
+msgid "(unnamed)"
+msgstr "(naamloos)"
+
+# Edit form
+msgid "Edit %s"
+msgstr "%s bewerken"
+
+msgid "Back to work"
+msgstr "Terug naar publicatie"
+
+msgid "Add %s"
+msgstr "%s toevoegen"
+
+msgid "From"
+msgstr "Van"
+
+msgid "To"
+msgstr "Tot"
+
+msgid "Organizer"
+msgstr "Organisator"
+
+msgid "Location"
+msgstr "Locatie"
+
+msgid "Identifiers (read-only)"
+msgstr "Identificatoren (alleen-lezen)"
+
+msgid "Classifications (read-only)"
+msgstr "Classificaties (alleen-lezen)"
+
+msgid "Contributors (read-only)"
+msgstr "Bijdragers (alleen-lezen)"
+
+# Field labels
+msgid "field.article_number"
+msgstr "artikelnummer"
+
+msgid "field.book_title"
+msgstr "boektitel"
+
+msgid "field.edition"
+msgstr "editie"
+
+msgid "field.issue"
+msgstr "nummer"
+
+msgid "field.issue_title"
+msgstr "titel nummer"
+
+msgid "field.journal_abbreviation"
+msgstr "tijdschriftafkorting"
+
+msgid "field.journal_title"
+msgstr "tijdschrifttitel"
+
+msgid "field.place_of_publication"
+msgstr "plaats van uitgave"
+
+msgid "field.publication_status"
+msgstr "publicatiestatus"
+
+msgid "field.publication_year"
+msgstr "publicatiejaar"
+
+msgid "field.publisher"
+msgstr "uitgever"
+
+msgid "field.report_number"
+msgstr "rapportnummer"
+
+msgid "field.series_title"
+msgstr "reekstitel"
+
+msgid "field.total_pages"
+msgstr "totaal pagina's"
+
+msgid "field.volume"
+msgstr "volume"
+
+msgid "field.titles"
+msgstr "titels"
+
+msgid "field.abstracts"
+msgstr "samenvattingen"
+
+msgid "field.lay_summaries"
+msgstr "vulgariserende samenvattingen"
+
+msgid "field.keywords"
+msgstr "trefwoorden"
+
+msgid "field.pages"
+msgstr "pagina's"
+
+msgid "field.conference"
+msgstr "conferentie"
+
+msgid "field.notes"
+msgstr "notities"
+
+msgid "field.identifiers"
+msgstr "identificatoren"
+
+msgid "field.classifications"
+msgstr "classificaties"
+
+msgid "field.contributors"
+msgstr "bijdragers"

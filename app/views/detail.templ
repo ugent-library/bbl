@@ -4,50 +4,50 @@ import "github.com/ugent-library/bbl"
 
 // Discovery detail views
 
-templ ShowWork(work *bbl.Work) {
-	@Layout("Work") {
+templ ShowWork(c Ctx, work *bbl.Work) {
+	@Layout(c, c.Loc("Work")) {
 		<main>
-			<p><a href="/works">Back to works</a></p>
-			<h1>{ workTitle(work) }</h1>
+			<p><a href="/works">{ c.Loc("Back to works") }</a></p>
+			<h1>{ workTitle(c, work) }</h1>
 			<dl>
-				<dt>Kind</dt>
+				<dt>{ c.Loc("Kind") }</dt>
 				<dd>{ work.Kind }</dd>
-				<dt>Status</dt>
+				<dt>{ c.Loc("Status") }</dt>
 				<dd>{ work.Status }</dd>
 			</dl>
 		</main>
 	}
 }
 
-templ ShowPerson(person *bbl.Person) {
-	@Layout("Person") {
+templ ShowPerson(c Ctx, person *bbl.Person) {
+	@Layout(c, c.Loc("Person")) {
 		<main>
-			<p><a href="/people">Back to people</a></p>
-			<h1>{ personName(person) }</h1>
+			<p><a href="/people">{ c.Loc("Back to people") }</a></p>
+			<h1>{ personName(c, person) }</h1>
 		</main>
 	}
 }
 
-templ ShowProject(project *bbl.Project) {
-	@Layout("Project") {
+templ ShowProject(c Ctx, project *bbl.Project) {
+	@Layout(c, c.Loc("Project")) {
 		<main>
-			<p><a href="/projects">Back to projects</a></p>
-			<h1>{ projectTitle(project) }</h1>
+			<p><a href="/projects">{ c.Loc("Back to projects") }</a></p>
+			<h1>{ projectTitle(c, project) }</h1>
 			<dl>
-				<dt>Status</dt>
+				<dt>{ c.Loc("Status") }</dt>
 				<dd>{ project.Status }</dd>
 			</dl>
 		</main>
 	}
 }
 
-templ ShowOrganization(org *bbl.Organization) {
-	@Layout("Organization") {
+templ ShowOrganization(c Ctx, org *bbl.Organization) {
+	@Layout(c, c.Loc("Organization")) {
 		<main>
-			<p><a href="/organizations">Back to organizations</a></p>
-			<h1>{ organizationName(org) }</h1>
+			<p><a href="/organizations">{ c.Loc("Back to organizations") }</a></p>
+			<h1>{ organizationName(c, org) }</h1>
 			<dl>
-				<dt>Kind</dt>
+				<dt>{ c.Loc("Kind") }</dt>
 				<dd>{ org.Kind }</dd>
 			</dl>
 		</main>
@@ -56,51 +56,51 @@ templ ShowOrganization(org *bbl.Organization) {
 
 // Backoffice detail views
 
-templ BackofficeShowWork(work *bbl.Work) {
-	@Layout("Work - Backoffice") {
+templ BackofficeShowWork(c Ctx, work *bbl.Work) {
+	@Layout(c, c.Loc("Work")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<p><a href="/backoffice/works">Back to works</a></p>
-			<h1>{ workTitle(work) }</h1>
-			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/edit") }>Edit</a></p>
+			<p><a href="/backoffice/works">{ c.Loc("Back to works") }</a></p>
+			<h1>{ workTitle(c, work) }</h1>
+			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/edit") }>{ c.Loc("Edit") }</a></p>
 			<dl>
-				<dt>Kind</dt>
+				<dt>{ c.Loc("Kind") }</dt>
 				<dd>{ work.Kind }</dd>
-				<dt>Status</dt>
+				<dt>{ c.Loc("Status") }</dt>
 				<dd>{ work.Status }</dd>
 			</dl>
 		</main>
 	}
 }
 
-templ BackofficeShowPerson(person *bbl.Person) {
-	@Layout("Person - Backoffice") {
+templ BackofficeShowPerson(c Ctx, person *bbl.Person) {
+	@Layout(c, c.Loc("Person")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<p><a href="/backoffice/people">Back to people</a></p>
-			<h1>{ personName(person) }</h1>
+			<p><a href="/backoffice/people">{ c.Loc("Back to people") }</a></p>
+			<h1>{ personName(c, person) }</h1>
 		</main>
 	}
 }
 
-templ BackofficeShowProject(project *bbl.Project) {
-	@Layout("Project - Backoffice") {
+templ BackofficeShowProject(c Ctx, project *bbl.Project) {
+	@Layout(c, c.Loc("Project")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<p><a href="/backoffice/projects">Back to projects</a></p>
-			<h1>{ projectTitle(project) }</h1>
+			<p><a href="/backoffice/projects">{ c.Loc("Back to projects") }</a></p>
+			<h1>{ projectTitle(c, project) }</h1>
 			<dl>
-				<dt>Status</dt>
+				<dt>{ c.Loc("Status") }</dt>
 				<dd>{ project.Status }</dd>
 			</dl>
 		</main>
 	}
 }
 
-templ BackofficeShowOrganization(org *bbl.Organization) {
-	@Layout("Organization - Backoffice") {
+templ BackofficeShowOrganization(c Ctx, org *bbl.Organization) {
+	@Layout(c, c.Loc("Organization")+" - "+c.Loc("Backoffice")) {
 		<main>
-			<p><a href="/backoffice/organizations">Back to organizations</a></p>
-			<h1>{ organizationName(org) }</h1>
+			<p><a href="/backoffice/organizations">{ c.Loc("Back to organizations") }</a></p>
+			<h1>{ organizationName(c, org) }</h1>
 			<dl>
-				<dt>Kind</dt>
+				<dt>{ c.Loc("Kind") }</dt>
 				<dd>{ org.Kind }</dd>
 			</dl>
 		</main>
@@ -109,25 +109,25 @@ templ BackofficeShowOrganization(org *bbl.Organization) {
 
 // Helper functions for display names.
 
-func projectTitle(p *bbl.Project) string {
+func projectTitle(c Ctx, p *bbl.Project) string {
 	for _, t := range p.Titles {
 		if t.Val != "" {
 			return t.Val
 		}
 	}
-	return "(untitled)"
+	return c.Loc("(untitled)")
 }
 
-func workTitle(w *bbl.Work) string {
+func workTitle(c Ctx, w *bbl.Work) string {
 	for _, t := range w.Titles {
 		if t.Val != "" {
 			return t.Val
 		}
 	}
-	return "(untitled)"
+	return c.Loc("(untitled)")
 }
 
-func personName(p *bbl.Person) string {
+func personName(c Ctx, p *bbl.Person) string {
 	if p.Name != "" {
 		return p.Name
 	}
@@ -141,14 +141,14 @@ func personName(p *bbl.Person) string {
 	if name != "" {
 		return name
 	}
-	return "(unnamed)"
+	return c.Loc("(unnamed)")
 }
 
-func organizationName(o *bbl.Organization) string {
+func organizationName(c Ctx, o *bbl.Organization) string {
 	for _, n := range o.Names {
 		if n.Val != "" {
 			return n.Val
 		}
 	}
-	return "(unnamed)"
+	return c.Loc("(unnamed)")
 }

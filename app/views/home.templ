@@ -1,32 +1,32 @@
 package views
 
-templ Home() {
-	@Layout("Home") {
+templ Home(c Ctx) {
+	@Layout(c, c.Loc("Home")) {
 		<main>
 			<h1>bbl</h1>
-			<p>Bibliographic repository</p>
+			<p>{ c.Loc("Bibliographic repository") }</p>
 			<nav>
 				<ul>
-					<li><a href="/works">Works</a></li>
-					<li><a href="/people">People</a></li>
-					<li><a href="/projects">Projects</a></li>
-					<li><a href="/organizations">Organizations</a></li>
+					<li><a href="/works">{ c.Loc("Works") }</a></li>
+					<li><a href="/people">{ c.Loc("People") }</a></li>
+					<li><a href="/projects">{ c.Loc("Projects") }</a></li>
+					<li><a href="/organizations">{ c.Loc("Organizations") }</a></li>
 				</ul>
 			</nav>
 		</main>
 	}
 }
 
-templ BackofficeHome() {
-	@Layout("Backoffice") {
+templ BackofficeHome(c Ctx) {
+	@Layout(c, c.Loc("Backoffice")) {
 		<main>
-			<h1>Backoffice</h1>
+			<h1>{ c.Loc("Backoffice") }</h1>
 			<nav>
 				<ul>
-					<li><a href="/backoffice/works">Works</a></li>
-					<li><a href="/backoffice/people">People</a></li>
-					<li><a href="/backoffice/projects">Projects</a></li>
-					<li><a href="/backoffice/organizations">Organizations</a></li>
+					<li><a href="/backoffice/works">{ c.Loc("Works") }</a></li>
+					<li><a href="/backoffice/people">{ c.Loc("People") }</a></li>
+					<li><a href="/backoffice/projects">{ c.Loc("Projects") }</a></li>
+					<li><a href="/backoffice/organizations">{ c.Loc("Organizations") }</a></li>
 				</ul>
 			</nav>
 		</main>

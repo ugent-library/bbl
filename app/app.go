@@ -9,7 +9,6 @@ import (
 
 	sloghttp "github.com/samber/slog-http"
 	"github.com/ugent-library/bbl"
-	"github.com/ugent-library/bbl/app/views"
 )
 
 type Config struct {
@@ -33,6 +32,7 @@ type App struct {
 	rootURL    string // without trailing slash
 	pathPrefix string // path component of rootURL (e.g. "/bbl" or "")
 	assets     *assets
+	locale     *locale
 	auth       map[string]AuthProvider
 	session    *session // nil when no auth configured
 }
@@ -55,12 +55,17 @@ func New(cfg Config) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load assets: %w", err)
 	}
+	loc, err := loadLocale(cfg.Dev)
+	if err != nil {
+		return nil, fmt.Errorf("load locale: %w", err)
+	}
 	app := &App{
 		log:        log,
 		services:   cfg.Services,
 		rootURL:    rootURL,
 		pathPrefix: pathPrefix,
 		assets:     a,
+		locale:     loc,
 		auth:       cfg.Auth,
 	}
 	if len(cfg.Auth) > 0 {
@@ -79,17 +84,14 @@ func (app *App) Handler() http.Handler {
 	// Static assets (CSS, JS) with immutable cache headers.
 	mux.Handle("GET /static/", http.StripPrefix("/static/", app.assets.fileServer()))
 
+	// Language switcher — sets cookie and redirects back.
+	mux.HandleFunc("GET /lang/{lang}", app.switchLang)
+
 	base := chain{
 		sloghttp.Recovery,
 		sloghttp.NewWithConfig(app.log.WithGroup("http"), sloghttp.Config{
 			WithRequestID: true,
 		}),
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ctx := views.WithAssetPath(r.Context(), app.assets.Path)
-				next.ServeHTTP(w, r.WithContext(ctx))
-			})
-		},
 	}
 
 	// Discovery — public, anonymous. User loaded from session if present.

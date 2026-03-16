@@ -14,6 +14,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/gorilla/securecookie v1.1.2
 	github.com/jackc/pgx/v5 v5.8.0
+	github.com/leonelquinteros/gotext v1.7.2
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/opensearch-project/opensearch-go/v4 v4.6.0
 	github.com/pressly/goose/v3 v3.27.0
@@ -80,7 +81,7 @@ require (
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.34.0
 	golang.org/x/tools v0.42.0 // indirect
 )
 

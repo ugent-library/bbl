@@ -18,7 +18,7 @@ func (app *App) backofficeEditWork(w http.ResponseWriter, r *http.Request, c *Ct
 	if profile == nil {
 		return fmt.Errorf("no profile for kind %q", work.Kind)
 	}
-	return views.BackofficeEditWork(work, profile, nil).Render(r.Context(), w)
+	return views.BackofficeEditWork(c.ViewCtx, work, profile, nil).Render(r.Context(), w)
 }
 
 func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *Ctx) error {

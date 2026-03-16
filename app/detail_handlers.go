@@ -15,7 +15,7 @@ func (app *App) showWork(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	if err != nil {
 		return err
 	}
-	return views.ShowWork(work).Render(r.Context(), w)
+	return views.ShowWork(c.ViewCtx, work).Render(r.Context(), w)
 }
 
 func (app *App) showPerson(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -23,7 +23,7 @@ func (app *App) showPerson(w http.ResponseWriter, r *http.Request, c *Ctx) error
 	if err != nil {
 		return err
 	}
-	return views.ShowPerson(person).Render(r.Context(), w)
+	return views.ShowPerson(c.ViewCtx, person).Render(r.Context(), w)
 }
 
 func (app *App) showProject(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -31,7 +31,7 @@ func (app *App) showProject(w http.ResponseWriter, r *http.Request, c *Ctx) erro
 	if err != nil {
 		return err
 	}
-	return views.ShowProject(project).Render(r.Context(), w)
+	return views.ShowProject(c.ViewCtx, project).Render(r.Context(), w)
 }
 
 func (app *App) showOrganization(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -39,7 +39,7 @@ func (app *App) showOrganization(w http.ResponseWriter, r *http.Request, c *Ctx)
 	if err != nil {
 		return err
 	}
-	return views.ShowOrganization(org).Render(r.Context(), w)
+	return views.ShowOrganization(c.ViewCtx, org).Render(r.Context(), w)
 }
 
 // Backoffice detail handlers — everything except deleted.
@@ -49,7 +49,7 @@ func (app *App) backofficeShowWork(w http.ResponseWriter, r *http.Request, c *Ct
 	if err != nil {
 		return err
 	}
-	return views.BackofficeShowWork(work).Render(r.Context(), w)
+	return views.BackofficeShowWork(c.ViewCtx, work).Render(r.Context(), w)
 }
 
 func (app *App) backofficeShowPerson(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -57,7 +57,7 @@ func (app *App) backofficeShowPerson(w http.ResponseWriter, r *http.Request, c *
 	if err != nil {
 		return err
 	}
-	return views.BackofficeShowPerson(person).Render(r.Context(), w)
+	return views.BackofficeShowPerson(c.ViewCtx, person).Render(r.Context(), w)
 }
 
 func (app *App) backofficeShowProject(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -65,7 +65,7 @@ func (app *App) backofficeShowProject(w http.ResponseWriter, r *http.Request, c 
 	if err != nil {
 		return err
 	}
-	return views.BackofficeShowProject(project).Render(r.Context(), w)
+	return views.BackofficeShowProject(c.ViewCtx, project).Render(r.Context(), w)
 }
 
 func (app *App) backofficeShowOrganization(w http.ResponseWriter, r *http.Request, c *Ctx) error {
@@ -73,7 +73,7 @@ func (app *App) backofficeShowOrganization(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-	return views.BackofficeShowOrganization(org).Render(r.Context(), w)
+	return views.BackofficeShowOrganization(c.ViewCtx, org).Render(r.Context(), w)
 }
 
 // Entity fetchers with status checking.

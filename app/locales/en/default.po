@@ -1,0 +1,208 @@
+msgid ""
+msgstr ""
+
+# Common UI
+msgid "Save"
+msgstr "Save"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Remove"
+msgstr "Remove"
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Search..."
+msgstr "Search..."
+
+msgid "Previous"
+msgstr "Previous"
+
+msgid "Next"
+msgstr "Next"
+
+# Navigation
+msgid "Home"
+msgstr "Home"
+
+msgid "Backoffice"
+msgstr "Backoffice"
+
+msgid "Bibliographic repository"
+msgstr "Bibliographic repository"
+
+msgid "Works"
+msgstr "Works"
+
+msgid "People"
+msgstr "People"
+
+msgid "Projects"
+msgstr "Projects"
+
+msgid "Organizations"
+msgstr "Organizations"
+
+# Search
+msgid "No results found."
+msgstr "No results found."
+
+msgid "Showing %d–%d of %d"
+msgstr "Showing %d–%d of %d"
+
+# Column headers
+msgid "Title"
+msgstr "Title"
+
+msgid "Kind"
+msgstr "Kind"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Name"
+msgstr "Name"
+
+# Detail views
+msgid "Back to works"
+msgstr "Back to works"
+
+msgid "Back to people"
+msgstr "Back to people"
+
+msgid "Back to projects"
+msgstr "Back to projects"
+
+msgid "Back to organizations"
+msgstr "Back to organizations"
+
+msgid "Work"
+msgstr "Work"
+
+msgid "Person"
+msgstr "Person"
+
+msgid "Project"
+msgstr "Project"
+
+msgid "Organization"
+msgstr "Organization"
+
+# Fallbacks
+msgid "(untitled)"
+msgstr "(untitled)"
+
+msgid "(unnamed)"
+msgstr "(unnamed)"
+
+# Edit form
+msgid "Edit %s"
+msgstr "Edit %s"
+
+msgid "Back to work"
+msgstr "Back to work"
+
+msgid "Add %s"
+msgstr "Add %s"
+
+msgid "From"
+msgstr "From"
+
+msgid "To"
+msgstr "To"
+
+msgid "Organizer"
+msgstr "Organizer"
+
+msgid "Location"
+msgstr "Location"
+
+msgid "Identifiers (read-only)"
+msgstr "Identifiers (read-only)"
+
+msgid "Classifications (read-only)"
+msgstr "Classifications (read-only)"
+
+msgid "Contributors (read-only)"
+msgstr "Contributors (read-only)"
+
+# Field labels
+msgid "field.article_number"
+msgstr "article number"
+
+msgid "field.book_title"
+msgstr "book title"
+
+msgid "field.edition"
+msgstr "edition"
+
+msgid "field.issue"
+msgstr "issue"
+
+msgid "field.issue_title"
+msgstr "issue title"
+
+msgid "field.journal_abbreviation"
+msgstr "journal abbreviation"
+
+msgid "field.journal_title"
+msgstr "journal title"
+
+msgid "field.place_of_publication"
+msgstr "place of publication"
+
+msgid "field.publication_status"
+msgstr "publication status"
+
+msgid "field.publication_year"
+msgstr "publication year"
+
+msgid "field.publisher"
+msgstr "publisher"
+
+msgid "field.report_number"
+msgstr "report number"
+
+msgid "field.series_title"
+msgstr "series title"
+
+msgid "field.total_pages"
+msgstr "total pages"
+
+msgid "field.volume"
+msgstr "volume"
+
+msgid "field.titles"
+msgstr "titles"
+
+msgid "field.abstracts"
+msgstr "abstracts"
+
+msgid "field.lay_summaries"
+msgstr "lay summaries"
+
+msgid "field.keywords"
+msgstr "keywords"
+
+msgid "field.pages"
+msgstr "pages"
+
+msgid "field.conference"
+msgstr "conference"
+
+msgid "field.notes"
+msgstr "notes"
+
+msgid "field.identifiers"
+msgstr "identifiers"
+
+msgid "field.classifications"
+msgstr "classifications"
+
+msgid "field.contributors"
+msgstr "contributors"

@@ -7,9 +7,9 @@ import (
 )
 
 func (app *App) home(w http.ResponseWriter, r *http.Request, c *Ctx) error {
-	return views.Home().Render(r.Context(), w)
+	return views.Home(c.ViewCtx).Render(r.Context(), w)
 }
 
 func (app *App) backofficeHome(w http.ResponseWriter, r *http.Request, c *Ctx) error {
-	return views.BackofficeHome().Render(r.Context(), w)
+	return views.BackofficeHome(c.ViewCtx).Render(r.Context(), w)
 }
