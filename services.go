@@ -111,6 +111,11 @@ func (s *Services) ImportOrganizationsAndIndex(ctx context.Context, source strin
 	return n, nil
 }
 
+// SearchPublicWorkRecords searches the index for public works and fetches full records.
+func (s *Services) SearchPublicWorkRecords(ctx context.Context, opts *SearchOpts) (*WorkRecordHits, error) {
+	return s.SearchWorkRecords(ctx, opts.WithFilter("status", "public"))
+}
+
 // SearchWorkRecords searches the index and fetches full work records from the repo.
 func (s *Services) SearchWorkRecords(ctx context.Context, opts *SearchOpts) (*WorkRecordHits, error) {
 	if s.Index == nil {

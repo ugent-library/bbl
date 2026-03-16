@@ -14,8 +14,8 @@ import (
 	"github.com/ugent-library/bbl/arxivsource"
 	"github.com/ugent-library/bbl/citeformat"
 	"github.com/ugent-library/bbl/csvformat"
+	"github.com/ugent-library/bbl/dcformat"
 	"github.com/ugent-library/bbl/ldapsource"
-	"github.com/ugent-library/bbl/oaidcformat"
 	"github.com/ugent-library/bbl/opensearchindex"
 	"gopkg.in/yaml.v3"
 )
@@ -353,7 +353,8 @@ func (e *env) newServices(ctx context.Context) (*bbl.Services, error) {
 	// --- Built-in work encoders ---
 	bbl.RegisterWorkEncoder("csv", func() bbl.WorkEncoder { return &csvformat.WorkEncoder{} })
 	bbl.RegisterWorkWriter("csv", func() bbl.WorkWriter { return &csvformat.WorkWriter{} })
-	bbl.RegisterWorkEncoder("oai_dc", func() bbl.WorkEncoder { return &oaidcformat.WorkEncoder{} })
+	bbl.RegisterWorkEncoder("dc", func() bbl.WorkEncoder { return &dcformat.WorkEncoder{} })
+	bbl.RegisterWorkEncoder("oai_dc", func() bbl.WorkEncoder { return &dcformat.OAIWorkEncoder{} })
 
 	// --- Configured work encoders ---
 	for name, factory := range reg.workEncoderFactories {

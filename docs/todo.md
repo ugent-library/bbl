@@ -40,7 +40,6 @@
 ### External protocols & APIs
 
 - [ ] OAI-PMH server (full verb set + resumption tokens)
-- [ ] SRU server (CQL queries)
 - [ ] ORCID API client
 - [ ] Webhook subscriptions + async delivery
 

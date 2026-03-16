@@ -21,20 +21,12 @@ func parseSearchOpts(r *http.Request) *bbl.SearchOpts {
 	return opts
 }
 
-func addFilter(opts *bbl.SearchOpts, field string, terms ...string) {
-	cond := &bbl.AndCondition{Terms: &bbl.TermsFilter{Field: field, Terms: terms}}
-	if opts.Filter == nil {
-		opts.Filter = &bbl.QueryFilter{}
-	}
-	opts.Filter.And = append(opts.Filter.And, cond)
-}
 
 // Discovery handlers — status=public only.
 
 func (app *App) searchWorks(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	opts := parseSearchOpts(r)
-	addFilter(opts, "status", "public")
-	hits, err := app.services.Index.Works().Search(r.Context(), opts)
+	hits, err := bbl.SearchPublicWorks(r.Context(), app.services.Index.Works(), opts)
 	if err != nil {
 		return err
 	}
@@ -52,8 +44,7 @@ func (app *App) searchPeople(w http.ResponseWriter, r *http.Request, c *Ctx) err
 
 func (app *App) searchProjects(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	opts := parseSearchOpts(r)
-	addFilter(opts, "status", "public")
-	hits, err := app.services.Index.Projects().Search(r.Context(), opts)
+	hits, err := bbl.SearchPublicProjects(r.Context(), app.services.Index.Projects(), opts)
 	if err != nil {
 		return err
 	}
@@ -73,7 +64,7 @@ func (app *App) searchOrganizations(w http.ResponseWriter, r *http.Request, c *C
 
 func (app *App) backofficeSearchWorks(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	opts := parseSearchOpts(r)
-	addFilter(opts, "status", "public", "private")
+	opts.WithFilter("status", "public", "private")
 	hits, err := app.services.Index.Works().Search(r.Context(), opts)
 	if err != nil {
 		return err
@@ -92,7 +83,7 @@ func (app *App) backofficeSearchPeople(w http.ResponseWriter, r *http.Request, c
 
 func (app *App) backofficeSearchProjects(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	opts := parseSearchOpts(r)
-	addFilter(opts, "status", "public", "private")
+	opts.WithFilter("status", "public", "private")
 	hits, err := app.services.Index.Projects().Search(r.Context(), opts)
 	if err != nil {
 		return err

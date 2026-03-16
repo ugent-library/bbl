@@ -28,6 +28,15 @@ type SearchOpts struct {
 	Offset int          `json:"offset,omitempty"` // for UI pagination; hard max enforced by implementation
 }
 
+// WithFilter adds a terms filter to the search opts and returns them for chaining.
+func (o *SearchOpts) WithFilter(field string, terms ...string) *SearchOpts {
+	if o.Filter == nil {
+		o.Filter = &QueryFilter{}
+	}
+	o.Filter.And = append(o.Filter.And, &AndCondition{Terms: &TermsFilter{Field: field, Terms: terms}})
+	return o
+}
+
 // WorkHit is a search result for a work, containing display fields.
 type WorkHit struct {
 	ID     ID     `json:"id"`
@@ -143,6 +152,16 @@ type Index interface {
 	People() PersonIndex
 	Projects() ProjectIndex
 	Organizations() OrganizationIndex
+}
+
+// SearchPublicWorks searches for works with status=public.
+func SearchPublicWorks(ctx context.Context, idx WorkIndex, opts *SearchOpts) (*WorkHits, error) {
+	return idx.Search(ctx, opts.WithFilter("status", "public"))
+}
+
+// SearchPublicProjects searches for projects with status=public.
+func SearchPublicProjects(ctx context.Context, idx ProjectIndex, opts *SearchOpts) (*ProjectHits, error) {
+	return idx.Search(ctx, opts.WithFilter("status", "public"))
 }
 
 const searchAllSize = 1000

@@ -87,6 +87,9 @@ func (app *App) Handler() http.Handler {
 	// Language switcher — sets cookie and redirects back.
 	mux.HandleFunc("GET /lang/{lang}", app.switchLang)
 
+	// SRU endpoints — per-entity, public.
+	mux.Handle("GET /sru/works", app.sruWorksHandler())
+
 	base := chain{
 		sloghttp.Recovery,
 		sloghttp.NewWithConfig(app.log.WithGroup("http"), sloghttp.Config{
