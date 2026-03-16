@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>BBL Assertion Model — Animated</title>
+<title>BBL Data Architecture</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -16,14 +16,16 @@
     min-height: 100vh;
   }
   #screen {
-    padding: 24px 32px;
+    padding: 24px 32px 64px;
     min-width: 860px;
     max-width: 920px;
     flex: 1;
   }
   .controls {
-    position: sticky;
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     background: #1a1a2e;
     border-top: 1px solid #333;
     padding: 12px 20px;
@@ -50,7 +52,7 @@
   #scene-label {
     color: #888;
     font-size: 12px;
-    min-width: 260px;
+    min-width: 420px;
     text-align: center;
   }
   pre { margin: 0; line-height: 1.4; white-space: pre; }
@@ -282,24 +284,41 @@ const scenes = [
 
 // ─── 0: Title ───
 {
-  title: "The Assertion Model",
+  title: "BBL Data Architecture",
   build() {
     return `
     <div class="title-box">
-      <h1>THE ASSERTION MODEL</h1>
+      <h1>BBL DATA ARCHITECTURE</h1>
       <p>How BBL manages competing data from multiple sources</p>
       <p>while letting humans always have the final word.</p>
-      <p class="rule">Every field value is an ${C.hl('assertion')}.</p>
-      <p class="rule">Assertions coexist — nothing is overwritten.</p>
-      <p class="rule">One assertion per field is ${C.pin('pinned')} for display.</p>
+      <p class="rule" style="margin-top:16px">Part I — ${C.hl('The Assertion Model')}</p>
+      <p class="rule">Part II — ${C.src('Source Tracking')}</p>
+      <p class="rule">Part III — ${C.usr('Entities &amp; Relations')}</p>
+      <p class="rule">Part IV — ${C.cand('Ingestion &amp; Candidates')}</p>
+      <p class="rule">Part V — ${C.pin('Collections, Lists &amp; Representations')}</p>
+      <p class="rule">Part VI — <span style="color:#ff9580">Write Operations &amp; Audit</span></p>
     </div>
     <div class="mt">${C.dim('Press → or click Next to begin')}</div>`;
   }
 },
 
-// ─── 1: Sources & priorities ───
+// ─── Part I title ───
 {
-  title: "Scene 1 — Sources and priorities",
+  title: "Part I — The Assertion Model",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART I</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px">${C.hl('THE ASSERTION MODEL')}</h1>
+      <p style="margin-top:12px">How field values are stored, pinned, and resolved</p>
+      <p>when multiple sources disagree.</p>
+    </div>`;
+  }
+},
+
+// ─── Sources & priorities ───
+{
+  title: "Assertions — Sources and priorities",
   build() {
     return `
     <div class="mb">${C.hdr('Sources are registered automated data feeds, each with a priority.')}</div>` +
@@ -333,7 +352,7 @@ const scenes = [
 
 // ─── 2: Ingestion flow ───
 {
-  title: "Scene 2 — Ingestion: the triage flow",
+  title: "Assertions — Ingestion: the triage flow",
   build() {
     return `
     <div class="mb">${C.hdr('Every incoming record is evaluated and triaged into one of three outcomes.')}</div>
@@ -342,7 +361,7 @@ const scenes = [
       <div style="margin-bottom:12px">
         <span class="flow-box source">Incoming record</span>
         <span class="flow-arrow">───▶</span>
-        <span class="flow-box eval">Go evaluator</span>
+        <span class="flow-box eval">Evaluator</span>
       </div>
 
       <div style="margin-left:40px">
@@ -358,8 +377,8 @@ const scenes = [
           <span style="color:#555">├──</span>
           <span style="color:#53fb9a">high confidence, no ambiguity</span>
           <span class="flow-arrow">──▶</span>
-          <span class="flow-box merge">Merge</span>
-          <span style="color:#666;font-size:12px;margin-left:8px">import directly via assertions</span>
+          <span class="flow-box merge">Import</span>
+          <span style="color:#666;font-size:12px;margin-left:8px">accepted directly, assertions written</span>
         </div>
 
         <div style="margin:10px 0">
@@ -375,20 +394,20 @@ const scenes = [
     <div class="viz">
       <div class="viz-title">What happens in each outcome</div>
       <div style="margin:6px 0"><span class="rej">Reject</span> — record is discarded. Logged in <code>bbl_revs</code>. No entity created.</div>
-      <div style="margin:6px 0"><span class="usr">Merge</span> — matched to existing entity (or new one created). Assertion rows written. Auto-pin evaluates. Cache rebuilt.</div>
-      <div style="margin:6px 0"><span class="cand">Candidate</span> — stored in <code>bbl_*_candidates</code>. Awaits curator review. May be promoted to merge or rejected later.</div>
+      <div style="margin:6px 0"><span class="usr">Import</span> — matched to existing entity (or new one created). Assertion rows written. Auto-pin evaluates. Cache rebuilt.</div>
+      <div style="margin:6px 0"><span class="cand">Candidate</span> — stored in <code>bbl_*_candidates</code>. Awaits curator review. May be promoted to import or rejected later.</div>
     </div>
 
-    <div class="mt caption">${C.dim('The next scenes show what happens on the Merge path — the assertion model in action.')}</div>`;
+    <div class="mt caption">${C.dim('The next scenes show what happens on the import path — the assertion model in action.')}</div>`;
   }
 },
 
 // ─── 3: Empty work ───
 {
-  title: "Scene 3 — A new work arrives (merge path)",
+  title: "Assertions — A new work arrives (import path)",
   build() {
     return `
-    <div class="mb">${C.hdr('A record passed triage → merge. A new work entity is created.')}</div>
+    <div class="mb">${C.hdr('A record passed triage → import. A new work entity is created.')}</div>
     <div class="entity-card">
       <div class="label">bbl_works</div>
       <div>id: ${C.hl('W001')}  kind: journal_article  status: private</div>
@@ -408,7 +427,7 @@ const scenes = [
 
 // ─── 4: First source imports ───
 {
-  title: "Scene 4 — Source 'wos' writes assertions",
+  title: "Assertions — Source 'wos' writes assertions",
   build() {
     return `
     <div class="mb">${C.hdr('Web of Science')} (${C.src('priority 10')}) writes its assertion rows.</div>
@@ -434,7 +453,7 @@ const scenes = [
 
 // ─── 5: Second source ───
 {
-  title: "Scene 5 — Source 'scopus' also imports (priority 5)",
+  title: "Assertions — Source 'scopus' also imports (priority 5)",
   build() {
     return `
     <div class="mb">${C.hdr('Scopus')} (${C.dim('priority 5')}) imports the same work with slightly different data.</div>
@@ -472,7 +491,7 @@ const scenes = [
 
 // ─── 6: Human edits ───
 {
-  title: "Scene 6 — A curator corrects the volume",
+  title: "Assertions — A curator corrects the volume",
   build() {
     return `
     <div class="mb">${C.hdr('Curator')} (${C.usr('U42')}) edits volume → ${C.usr('copy-on-write')}</div>
@@ -510,7 +529,7 @@ const scenes = [
 
 // ─── 7: Re-import ───
 {
-  title: "Scene 7 — WoS re-imports with updated data",
+  title: "Assertions — WoS re-imports with updated data",
   build() {
     return `
     <div class="mb">${C.hdr('WoS re-imports')} — DELETE old wos rows + INSERT new ones</div>
@@ -550,7 +569,7 @@ const scenes = [
 
 // ─── 8: Delete human assertion ───
 {
-  title: "Scene 8 — Curator deletes their volume assertion",
+  title: "Assertions — Curator deletes their assertion",
   build() {
     return `
     <div class="mb">${C.hdr('Curator U42 deletes their volume assertion → auto-pin re-evaluates')}</div>
@@ -595,7 +614,7 @@ const scenes = [
 
 // ─── 9: Collective fields ───
 {
-  title: "Scene 9 — Collective fields (contributors)",
+  title: "Assertions — Collective fields (contributors)",
   build() {
     return `
     <div class="mb">${C.hdr('Collective fields')}: the ENTIRE LIST from one asserter is pinned — not individual rows.</div>
@@ -625,7 +644,7 @@ const scenes = [
 
 // ─── 10: Collective + human edit ───
 {
-  title: "Scene 10 — Human edits contributors (copy-on-write)",
+  title: "Assertions — Human edits contributors (copy-on-write)",
   build() {
     return `
     <div class="mb">${C.hdr('Curator U42 edits contributors')} → full ${C.usr('copy-on-write')} of the list, then adds Feynman.</div>
@@ -659,7 +678,7 @@ const scenes = [
 
 // ─── 11: The cache ───
 {
-  title: "Scene 11 — Cache rebuild",
+  title: "Assertions — Cache rebuild",
   build() {
     return `
     <div class="mb">${C.hdr('After every write, the cache is rebuilt from pinned rows.')}</div>
@@ -698,9 +717,207 @@ const scenes = [
   }
 },
 
-// ─── 12: Candidates ───
+// ─── Part II title ───
 {
-  title: "Scene 12 — Candidates (the ambiguous path)",
+  title: "Part II — Source Tracking",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART II</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px">${C.src('SOURCE TRACKING')}</h1>
+      <p style="margin-top:12px">How every source contribution is preserved</p>
+      <p>and traced back to its origin.</p>
+    </div>`;
+  }
+},
+
+// ─── Source tracking ───
+{
+  title: "Sources — Tracking contributions",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Every source contribution is tracked — the original payload is never lost.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">One entity can have multiple source records</div>
+      <div class="field-row" style="margin:6px 0">
+        <span style="width:80px;display:inline-block;color:#aaa">Work W001</span>
+        <span class="flow-box source" style="font-size:12px">wos #1234</span>
+        <span style="margin:0 4px;color:#555">+</span>
+        <span class="flow-box" style="font-size:12px;border-color:#8855cc;color:#8855cc">scopus #5678</span>
+      </div>
+      <div style="color:#888;font-size:12px;margin:4px 0 0 88px">
+        Two sources independently imported the same work — both contributions tracked.
+      </div>
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">What source tracking gives you</div>
+      <div style="margin:6px 0"><span style="color:#53d8fb">Provenance</span> — every assertion points back to its source record. You can always trace a value to its origin.</div>
+      <div style="margin:6px 0"><span style="color:#f9a826">Original payload</span> — the raw source data (XML, JSON, etc.) is stored alongside. The original is never lost.</div>
+      <div style="margin:6px 0"><span style="color:#53fb9a">Re-import safety</span> — on re-import, old assertions are automatically removed when the source record is replaced.</div>
+      <div style="margin:6px 0"><span style="color:#bd93f9">Candidate link</span> — if a source record was promoted from a candidate, the link traces back to the original triage decision.</div>
+    </div>
+
+    <div class="mt flow-diagram" style="padding:12px 16px">
+      <div class="viz-title">Assertion ownership</div>
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.src('Source registry')}       all known sources + priorities
+        │
+        ▼
+  ${C.src('Source record')}         per-entity contribution (raw payload, timestamps)
+        │
+        ├─▶ ${C.hl('field assertions')}       value came from this source
+        ├─▶ ${C.hl('contributor assertions')} list came from this source
+        ├─▶ ${C.hl('identifier assertions')}  IDs came from this source
+        └─▶ ${C.hl('...')}                    (all assertion types)
+
+  ${C.usr('User')}                  human asserters
+        │
+        └─▶ assertions owned by user</pre>
+    </div>
+
+    <div class="mt caption">${C.dim('Every assertion has exactly one owner — either a source record or a user, never both.')}</div>`;
+  }
+},
+
+// ─── Part III title ───
+{
+  title: "Part III — Entities & Relations",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART III</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px">${C.usr('ENTITIES &amp; RELATIONS')}</h1>
+      <p style="margin-top:12px">The core domain objects and how they connect.</p>
+    </div>`;
+  }
+},
+
+// ─── Entities overview ───
+{
+  title: "Entities — The four core types",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Four entity types share the same architecture: assertions, sources, pinning, cache.')}</div>
+
+    <div class="flow-diagram">
+      <div style="text-align:center;line-height:2.2">
+        <span class="flow-box eval" style="min-width:140px">${C.hl('Work')}</span>
+        <div style="margin:12px 0">
+          <span class="flow-box merge" style="min-width:140px">${C.hl('Person')}</span>
+          <span style="margin:0 16px"></span>
+          <span class="flow-box source" style="min-width:140px">${C.hl('Organization')}</span>
+        </div>
+        <div style="margin:12px 0">
+          <span class="flow-box cand" style="min-width:140px">${C.hl('Project')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Every entity has</div>
+      <div style="margin:6px 0">An ${C.hl('identity')} — unique ID, version number (bumped on every write), status, timestamps</div>
+      <div style="margin:6px 0">${C.src('Source records')} — one per contributing source, with original payload preserved</div>
+      <div style="margin:6px 0">${C.hl('Assertion rows')} — scalar fields and collective relations, each owned by a source or user</div>
+      <div style="margin:6px 0">${C.pin('A cache')} — JSON snapshot of pinned values, rebuilt on every write</div>
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">What makes each entity unique</div>
+      <div style="margin:6px 0">${C.hl('Work')} — the most complex. Has a ${C.src('kind')} (profile-driven: journal article, book, etc.), review workflow, files, and the richest set of relations.</div>
+      <div style="margin:6px 0">${C.hl('Person')} — a bibliographic identity. Can exist without a user account. Linked to organizations via affiliations with date ranges.</div>
+      <div style="margin:6px 0">${C.hl('Organization')} — departments, faculties, institutions. ${C.pin('Temporal')} — has start/end dates. Can form parent/child hierarchies. Has multilingual names.</div>
+      <div style="margin:6px 0">${C.hl('Project')} — research grants. ${C.pin('Temporal')} — has start/end dates. Links to people (participants) and is referenced by works.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('All four entity types support candidates — staging ambiguous records for human review before import.')}</div>`;
+  }
+},
+
+// ─── Entity relations ───
+{
+  title: "Entities — How they connect",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Entities are connected by relations — and relations are assertions too.')}</div>
+
+    <div class="flow-diagram" style="text-align:center">
+      <div style="margin:8px 0">
+        <span class="flow-box eval" style="min-width:160px">${C.hl('Work')}</span>
+      </div>
+      <div style="color:#555;margin:4px 0">│ &nbsp;&nbsp;&nbsp; │ &nbsp;&nbsp;&nbsp; │ &nbsp;&nbsp;&nbsp; ↺</div>
+      <div style="margin:8px 0">
+        <span class="flow-box merge" style="min-width:120px">${C.hl('Person')}</span>
+        <span class="flow-box cand" style="min-width:120px;margin:0 8px">${C.hl('Project')}</span>
+        <span class="flow-box source" style="min-width:120px">${C.hl('Organization')}</span>
+      </div>
+      <div style="color:#555;margin:4px 0">&nbsp;&nbsp;&nbsp; └───────────┘ &nbsp;&nbsp;&nbsp; └──────┘ &nbsp;&nbsp;&nbsp;&nbsp; ↺</div>
+      <div style="color:#888;font-size:12px;margin:8px 0">↺ = self-referential (Work → Work, Organization → Organization)</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Cross-entity relations</div>
+      <div style="margin:6px 0">${C.hl('Work → Person')} — ${C.src('contributors')} with position, name fields, and roles. A contributor ${C.dim('optionally')} links to a Person entity — names are stored inline so unresolved authors still display.</div>
+      <div style="margin:6px 0">${C.hl('Work → Project')} — links a publication to its funding source.</div>
+      <div style="margin:6px 0">${C.hl('Work → Organization')} — institutional affiliation of the work (e.g. department that produced it).</div>
+      <div style="margin:6px 0">${C.hl('Work → Work')} — "is part of", "is version of", etc. Supports series, collections, and versioning.</div>
+      <div style="margin:6px 0">${C.hl('Person → Organization')} — affiliations. ${C.pin('Temporal')} — valid_from / valid_to tracks when the affiliation was active.</div>
+      <div style="margin:6px 0">${C.hl('Project → Person')} — project participants.</div>
+      <div style="margin:6px 0">${C.hl('Organization → Organization')} — hierarchy. ${C.pin('Temporal')} — start/end dates track when the relationship was active. A department belongs to a faculty, which belongs to a university.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('All relations follow the assertion model — each is owned by a source or user, and participates in pinning.')}</div>`;
+  }
+},
+
+// ─── Users ───
+{
+  title: "Entities — Users",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Users are application accounts — separate from bibliographic entities.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">Users live outside the assertion model</div>
+      <div style="margin:6px 0">A ${C.usr('user')} is someone who logs in and uses the system — a curator, researcher, admin, or API consumer.</div>
+      <div style="margin:6px 0">Users don't have sources, assertions, or pinning. They have their own audit trail.</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">What users have</div>
+      <div style="margin:6px 0">${C.hl('Identity')} — username, email, name, role. Login via external identifiers (ugent_id, orcid).</div>
+      <div style="margin:6px 0">${C.src('External sources')} — synced from LDAP or other directories, with staleness detection.</div>
+      <div style="margin:6px 0">${C.usr('Delegation')} — proxy access, so one user can act on behalf of another.</div>
+      <div style="margin:6px 0">${C.pin('Permissions')} — fine-grained grants with scope, expiry, and revocation.</div>
+      <div style="margin:6px 0">${C.cand('OAuth tokens')} — encrypted per-provider tokens (e.g. for ORCID push).</div>
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">User ↔ Person link</div>
+      <div style="margin:6px 0">A user account can optionally link to a ${C.hl('Person')} entity.</div>
+      <div style="margin:6px 0">This connects an application account to a bibliographic identity — e.g. a researcher who is also an author on works.</div>
+      <div style="margin:6px 0">${C.dim('A person can exist without a user account (e.g. external co-authors), and a user can exist without a person record (e.g. admins).')}</div>
+    </div>`;
+  }
+},
+
+// ─── Part IV title ───
+{
+  title: "Part IV — Ingestion & Candidates",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART IV</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px">${C.cand('INGESTION &amp; CANDIDATES')}</h1>
+      <p style="margin-top:12px">How ambiguous or incomplete records are staged</p>
+      <p>for human review before entering the assertion model.</p>
+    </div>`;
+  }
+},
+
+// ─── Candidates ───
+{
+  title: "Ingestion — Candidates",
   build() {
     return `
     <div class="mb">${C.hdr('When the evaluator is uncertain, the record becomes a candidate.')}</div>
@@ -716,57 +933,297 @@ const scenes = [
       <div style="margin-left:40px;color:#888;font-size:12px">
         Multiple possible matches? Missing identifiers? New unknown author?
       </div>
-    </div>` +
+    </div>
 
-    tbl(
-      ['id', 'source', 'source_id', 'status', 'fetched_at'],
-      [
-        [C.cand('C001'), C.src('wos'), '9876', C.cand('pending'), '2025-03-15'],
-        [C.cand('C002'), C.src('scopus'), '445521', C.cand('pending'), '2025-03-15'],
-        [C.cand('C003'), C.src('wos'), '3344', C.rej('rejected'), '2025-03-14'],
-      ],
-      C.hdr('bbl_work_candidates')
-    ) +
+    <div class="viz">
+      <div class="viz-title">What is a candidate?</div>
+      <div style="margin:6px 0">An unresolved source record — the evaluator couldn't confidently import it, so it's ${C.cand('staged for human review')}.</div>
+      <div style="margin:6px 0">Candidates store the raw attributes and a confidence score, but ${C.hdr('no assertions are created')} until a curator decides.</div>
+    </div>
 
-    `<div class="mt viz">
+    <div class="mt viz">
       <div class="viz-title">Candidate lifecycle</div>
       <div style="margin:6px 0">
         <span class="flow-box cand" style="font-size:12px">pending</span>
-        <span class="flow-arrow">──curator──▶</span>
-        <span class="flow-box merge" style="font-size:12px">accepted → merge</span>
+        <span class="flow-arrow">── curator ──▶</span>
+        <span class="flow-box merge" style="font-size:12px">accepted → import</span>
         <span style="color:#666;font-size:12px;margin-left:8px">assertions written, entity updated</span>
       </div>
       <div style="margin:6px 0">
         <span class="flow-box cand" style="font-size:12px">pending</span>
-        <span class="flow-arrow">──curator──▶</span>
+        <span class="flow-arrow">── curator ──▶</span>
         <span class="flow-box reject" style="font-size:12px">rejected</span>
         <span style="color:#666;font-size:12px;margin-left:8px">record discarded, logged</span>
       </div>
     </div>
 
-    <div class="mt caption">Candidates are ${C.cand('unresolved source records')}. They don't create assertions until accepted.</div>
-    <div class="caption">Once promoted, the candidate's <code>bbl_*_sources</code> row links back via <code>candidate_id</code>.</div>`;
+    <div class="mt viz">
+      <div class="viz-title">Which entities have candidates?</div>
+      <div style="margin:6px 0">All four entity types support candidates — any incoming record that can't be confidently imported is staged for review.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('Once a candidate is promoted, its source record links back via candidate_id — preserving the full triage history.')}</div>`;
   }
 },
 
-// ─── 13: Summary ───
+// ─── Part V title ───
+{
+  title: "Part V — Collections, Lists & Representations",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART V</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px">${C.pin('COLLECTIONS, LISTS &amp; REPRESENTATIONS')}</h1>
+      <p style="margin-top:12px">How works are grouped, curated,</p>
+      <p>and exported in different formats.</p>
+    </div>`;
+  }
+},
+
+// ─── Collections & representations ───
+{
+  title: "Output — Collections & representations",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Collections group works. Representations cache export formats.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">Work collections</div>
+      <div style="margin:6px 0">Named groupings of works — e.g. "Faculty of Sciences 2025", "ORCID push queue".</div>
+      <div style="margin:6px 0">Works are ordered within a collection using fractional indexing — insert between items without renumbering.</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Work representations</div>
+      <div style="margin:6px 0">Pre-rendered export formats per work (OAI-DC, DataCite, MODS, etc.).</div>
+      <div style="margin:6px 0">Each representation tracks which work version it was rendered from.</div>
+      <div style="margin:6px 0">A content hash detects changes without comparing full payloads.</div>
+    </div>
+
+    <div class="mt flow-diagram" style="padding:12px 16px">
+      <div class="viz-title">Representation lifecycle</div>
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  work updated (version bumped)
+        │
+        ▼
+  ${C.hl('representation stale?')}
+        │
+        ├── yes → ${C.src('re-render')} from cache → store new output + hash
+        │
+        └── no  → ${C.dim('skip')}</pre>
+    </div>
+
+    <div class="mt caption">${C.dim('Representations are derived data — always rebuildable from the work cache.')}</div>`;
+  }
+},
+
+// ─── Lists & subscriptions ───
+{
+  title: "Output — Lists & subscriptions",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Lists are user-curated. Subscriptions push notifications on changes.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">User lists</div>
+      <div style="margin:6px 0">Personal or public lists of any entity type — reading lists, bookmarks, curated selections.</div>
+      <div style="margin:6px 0">A list can be typed (only works) or mixed (works + people + projects).</div>
+      <div style="margin:6px 0">Items are ordered with fractional indexing — insert anywhere without renumbering the rest.</div>
+      <div style="margin:6px 0">Each list has a version number — clients can detect stale state.</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Subscriptions (webhooks)</div>
+      <div style="margin:6px 0">Users subscribe to topics and receive webhook notifications when things change.</div>
+      <div style="margin:6px 0">Webhooks are signed with HMAC secrets for verification, and auto-disable after repeated failures.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('Subscriptions are the outbound counterpart to ingestion — pushing data out when things change.')}</div>`;
+  }
+},
+
+// ─── Files & reviews ───
+{
+  title: "Output — Files & reviews",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Works can have attached files and go through a review process.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">Work files</div>
+      <div style="margin:6px 0">Full-text PDFs, datasets, supplementary materials — stored as references to object storage.</div>
+      <div style="margin:6px 0">Each file has an access level: ${C.usr('open')}, ${C.dim('restricted')}, or ${C.rej('closed')}.</div>
+      <div style="margin:6px 0">Embargoes can restrict access until a specific date, then automatically lift to a different access level.</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Work reviews</div>
+      <div style="margin:6px 0">Structured review events tied to the work's review workflow (approve, return, comment).</div>
+      <div style="margin:6px 0">Each review links back to the revision that triggered it, creating a full audit trail.</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Work takedowns</div>
+      <div style="margin:6px 0">Legal/compliance records for withdrawn, retracted, or taken-down works.</div>
+      <div style="margin:6px 0">Tracks the formal request (legal basis, requester, dates) and data erasure for GDPR compliance.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('Files, reviews, and takedowns are workflow state — not assertions. They are not subject to pinning or source ownership.')}</div>`;
+  }
+},
+
+// ─── Part VI title ───
+{
+  title: "Part VI — Write Operations & Audit",
+  build() {
+    return `
+    <div class="title-box">
+      <h1>PART VI</h1>
+      <h1 style="font-size:15px;letter-spacing:2px;margin-top:4px"><span style="color:#ff9580">WRITE OPERATIONS &amp; AUDIT</span></h1>
+      <p style="margin-top:12px">How all state changes flow through two controlled paths</p>
+      <p>and every change is recorded for replay.</p>
+    </div>`;
+  }
+},
+
+// ─── Write paths ───
+{
+  title: "Writes — Two paths for all changes",
+  build() {
+    return `
+    <div class="mb">${C.hdr('All state changes flow through exactly two entry points. No ad-hoc writes.')}</div>
+
+    <div class="flow-diagram">
+      <div style="margin-bottom:16px">
+        <div style="margin:8px 0">
+          <span class="flow-box source" style="min-width:180px">Import</span>
+          <span style="color:#888;font-size:12px;margin-left:12px">source feeds — batch, high-throughput</span>
+        </div>
+        <div style="margin:8px 0">
+          <span class="flow-box merge" style="min-width:180px">AddRev</span>
+          <span style="color:#888;font-size:12px;margin-left:12px">humans, API users, bots — individual changes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">The import path</div>
+      <div style="margin:6px 0">For ${C.src('automated source feeds')} — Web of Science, Scopus, institutional systems, CLI batch jobs.</div>
+      <div style="margin:6px 0">Records are processed in batches. For each record:</div>
+      <div class="flow" style="margin-left:16px">
+        <div class="flow-step">Find or create the entity and its source record</div>
+        <div class="flow-step">On re-import: remove old source assertions, write new ones</div>
+        <div class="flow-step">Auto-pin re-evaluates, cache is rebuilt</div>
+        <div class="flow-step">Everything is logged for audit</div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">The AddRev path</div>
+      <div style="margin:6px 0">For ${C.usr('humans, API consumers, and bots')} — curator edits, researcher self-deposit, programmatic changes.</div>
+      <div style="margin:6px 0">Changes are expressed as named mutations (e.g. "set volume", "add contributor"). For each revision:</div>
+      <div class="flow" style="margin-left:16px">
+        <div class="flow-step">All mutations are validated and their effects computed ${C.hl('before anything is written')}</div>
+        <div class="flow-step">If nothing actually changed — the revision is silently dropped</div>
+        <div class="flow-step">Otherwise: changes are written, auto-pin runs, cache is rebuilt</div>
+        <div class="flow-step">Every mutation is logged with a full before/after diff</div>
+      </div>
+    </div>` +
+
+    tbl(
+      ['', 'Import', 'AddRev'],
+      [
+        ['who',        C.src('automated feeds, CLI batch'),           C.usr('curators, API users, bots')],
+        ['assertions', C.src('owned by source'),                      C.usr('owned by user (optional)')],
+        ['scope',      'batch of records per transaction',            'batch of mutations per transaction'],
+        ['re-import',  'replaces source assertions wholesale',       'replaces per field (copy-on-write)'],
+        ['audit',      'logged as a single import operation',        'each mutation logged with named diff'],
+      ],
+      C.hdr('Comparison')
+    ) +
+
+    `<div class="mt caption">${C.dim('Both paths create revisions, write audit records, and trigger auto-pin + cache rebuild.')}</div>`;
+  }
+},
+
+// ─── Audit trail ───
+{
+  title: "Writes — The audit trail",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Every state change is recorded in a two-level audit log.')}</div>
+
+    <div class="viz">
+      <div class="viz-title">Level 1: Revisions</div>
+      <div style="margin:6px 0">A ${C.hl('revision')} is one atomic batch of changes by one actor — a transaction boundary.</div>
+      <div style="margin:6px 0">Records who made the change, when, and which source (if any).</div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-title">Level 2: Mutations</div>
+      <div style="margin:6px 0">Each revision contains one or more ${C.hl('mutations')} — named operations like "SetWorkVolume" or "CreateWork".</div>
+      <div style="margin:6px 0">Each mutation records the entity affected, the operation type, and a full before/after diff.</div>
+    </div>
+
+    <div class="mt flow-diagram" style="padding:12px 16px">
+      <div class="viz-title">Audit flow</div>
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.usr('AddRev')} (human/API/bot)      ${C.src('Import')} (source feed)
+        │                               │
+        └───────────┬───────────────────┘
+                    ▼
+            ${C.hl('Revision')}  (who, when, which source)
+                    │
+                    ▼
+            ${C.hl('Mutations')}  (what changed, before & after)
+                    │
+                    ├─ replay / undo
+                    ├─ activity feed
+                    └─ incremental index catch-up</pre>
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">Key properties</div>
+      <div style="margin:6px 0">${C.hl('Named operations')} — not generic "field changed" events. Each mutation type has a specific name and meaning.</div>
+      <div style="margin:6px 0">${C.src('Full diff')} — both the new values and the prior values are stored. Creates have no prior.</div>
+      <div style="margin:6px 0">${C.usr('Noop suppression')} — if a change results in no actual difference, it's not recorded. No noise in the log.</div>
+      <div style="margin:6px 0">${C.cand('Both paths')} — imports and human edits write to the same audit log. One place to look.</div>
+    </div>
+
+    <div class="mt caption">${C.dim('Revisions + mutations = complete, replayable history of every change in the system.')}</div>`;
+  }
+},
+
+// ─── Summary ───
 {
   title: "Summary — The full picture",
   build() {
     return `
     <div class="summary-box">
-      <h2>THE ASSERTION MODEL — SUMMARY</h2>
-      <div class="rule"><span class="num">1.</span> Every field value is an ${C.hl('assertion row')} with an origin (${C.src('source')} or ${C.usr('human')}). Nothing is overwritten.</div>
-      <div class="rule"><span class="num">2.</span> One assertion per grouping key is ${C.pin('pinned')} for display. Pinning is implicit — a side effect of writes.</div>
-      <div class="rule"><span class="num">3.</span> ${C.usr('Human always wins')} over any source. No human? Highest ${C.src('priority source')} wins.</div>
-      <div class="rule"><span class="num">4.</span> Humans create their own rows (${C.usr('copy-on-write')}). Never modify a source's assertion directly.</div>
-      <div class="rule"><span class="num">5.</span> Re-import replaces only the source's own rows. ${C.usr('Human pins are never disturbed.')}</div>
-      <div class="rule"><span class="num">6.</span> Delete → re-evaluate → next best gets pinned (or field absent).</div>
-      <div class="rule"><span class="num">7.</span> ${C.pin('Cache')} rebuilt from pinned rows on every write.</div>
+      <h2>BBL DATA ARCHITECTURE — SUMMARY</h2>
+
+      <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">The Assertion Model</div>
+      <div class="rule"><span class="num">1.</span> Every field value is an ${C.hl('assertion')} with an origin (${C.src('source')} or ${C.usr('human')}). Nothing is overwritten.</div>
+      <div class="rule"><span class="num">2.</span> One assertion per field is ${C.pin('pinned')} for display. ${C.usr('Human always wins')}; otherwise highest-priority source.</div>
+      <div class="rule"><span class="num">3.</span> Humans create their own assertions (${C.usr('copy-on-write')}). Source assertions are never modified directly.</div>
+      <div class="rule"><span class="num">4.</span> Re-import replaces only the source's own assertions. ${C.usr('Human pins are never disturbed.')}</div>
+      <div class="rule"><span class="num">5.</span> ${C.pin('Cache')} rebuilt from pinned values on every write. One JSON snapshot for display, search, and export.</div>
+
+      <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">Sources &amp; Entities</div>
+      <div class="rule"><span class="num">6.</span> Every source contribution is tracked with its ${C.src('original payload')} preserved. Full provenance chain.</div>
+      <div class="rule"><span class="num">7.</span> Four entities (${C.hl('Work')}, ${C.hl('Person')}, ${C.hl('Project')}, ${C.hl('Organization')}) share the same assertion architecture.</div>
+      <div class="rule"><span class="num">8.</span> ${C.usr('Users')} are application accounts, not bibliographic entities. Optionally linked to a Person.</div>
+
+      <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">Ingestion &amp; Output</div>
+      <div class="rule"><span class="num">9.</span> Incoming records are triaged: ${C.usr('import')} (confident), ${C.cand('candidate')} (ambiguous), or ${C.rej('reject')}.</div>
+      <div class="rule"><span class="num">10.</span> Collections group works. Representations cache export formats. Lists are user-curated.</div>
+      <div class="rule"><span class="num">11.</span> Files, reviews, and takedowns are ${C.dim('workflow state')} — not assertions.</div>
+
+      <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">Write Operations &amp; Audit</div>
+      <div class="rule"><span class="num">12.</span> Two write paths: ${C.src('Import')} (source batches) and ${C.usr('AddRev')} (humans, API, bots). No ad-hoc writes.</div>
+      <div class="rule"><span class="num">13.</span> Every state change logged: ${C.hl('revision')} (who, when) → ${C.hl('mutations')} (what changed, before &amp; after).</div>
     </div>
 
     <div class="mt flow-diagram" style="padding:12px 16px">
-      <div class="viz-title">The full ingestion flow</div>
+      <div class="viz-title">The full flow</div>
       <pre style="color:#aaa;line-height:1.8;font-size:13px">  incoming record
     │
     ▼
@@ -774,11 +1231,12 @@ const scenes = [
     ├── ${C.rej('reject')}    → logged, discarded
     ├── ${C.cand('candidate')} → staged for review ──┐
     │                                   │
-    └── ${C.usr('merge')} ◀─── curator accepts ──────┘
+    └── ${C.usr('import')} ◀── curator accepts ─────┘
           │
-          ├─ write assertion rows (${C.src('source_id')} or ${C.usr('user_id')})
+          ├─ assertions written
           ├─ auto-pin re-evaluates
-          └─ ${C.pin('cache rebuilt')}</pre>
+          ├─ ${C.pin('cache rebuilt')}
+          └─ ${C.hl('revision + mutations')} audit logged</pre>
     </div>`;
   }
 }

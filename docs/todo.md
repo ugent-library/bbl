@@ -1,10 +1,5 @@
 # TODO
 
-## Documentation 
-
-- [ ] High-level design overview
-- [ ] Graphic illustrations of the assertion model
-
 ## Assertion model (remaining)
 
 - [ ] **Decision**: Import pipeline mutation granularity
@@ -12,6 +7,7 @@
   - **B) Per-field records**: write `SetWorkVolume`, `SetWorkTitles`, etc. during import, same as UI mutations. Explicit field-level audit trail and pinning history, but more rows and import is slower.
 - [ ] Auto-pin integration tests (human wins over source, re-import re-evaluates, etc.)
 - [ ] Rights check: curator assertion can only be replaced by curator
+- [ ] Add context to assertion deletion: is it a delete or an assertion the field does not exist?
 
 ## Infrastructure
 
