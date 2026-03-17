@@ -7,129 +7,93 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// resolveWorkRef resolves a Ref to a work ID using the work sources table.
-// Tries ID first, then source_id lookup, then identifier lookup.
-func resolveWorkRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (ID, error) {
-	if ref.ID != nil {
-		return *ref.ID, nil
+// refSubquery builds the subquery part of a ref resolution.
+func refSubquery(ref Ref, source, entityTable, sourcesTable, sourceFK, identifiersTable, identifierFK string) (string, []any, error) {
+	switch {
+	case ref.ID != nil:
+		return fmt.Sprintf(`SELECT id FROM %s WHERE id = $1`, entityTable), []any{*ref.ID}, nil
+	case ref.SourceID != "":
+		return fmt.Sprintf(`SELECT %s FROM %s WHERE source = $1 AND source_id = $2`, sourceFK, sourcesTable), []any{source, ref.SourceID}, nil
+	case ref.Identifier != nil:
+		return fmt.Sprintf(`SELECT %s FROM %s WHERE scheme = $1 AND val = $2 LIMIT 1`, identifierFK, identifiersTable), []any{ref.Identifier.Scheme, ref.Identifier.Val}, nil
+	default:
+		return "", nil, fmt.Errorf("empty ref")
 	}
-	if ref.SourceID != "" {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT work_id FROM bbl_work_sources
-			WHERE source = $1 AND source_id = $2`,
-			source, ref.SourceID).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveWorkRef: %w", err)
-		}
-		return id, nil
-	}
-	if ref.Identifier != nil {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT work_id FROM bbl_work_identifiers
-			WHERE scheme = $1 AND val = $2
-			LIMIT 1`,
-			ref.Identifier.Scheme, ref.Identifier.Val).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveWorkRef: %w", err)
-		}
-		return id, nil
-	}
-	return ID{}, fmt.Errorf("resolveWorkRef: empty ref")
 }
 
-// resolveProjectRef resolves a Ref to a project ID.
-func resolveProjectRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (ID, error) {
-	if ref.ID != nil {
-		return *ref.ID, nil
+func resolveWorkRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*Work, error) {
+	sub, args, err := refSubquery(ref, source, "bbl_works", "bbl_work_sources", "work_id", "bbl_work_identifiers", "work_id")
+	if err != nil {
+		return nil, fmt.Errorf("resolveWorkRef: %w", err)
 	}
-	if ref.SourceID != "" {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT project_id FROM bbl_project_sources
-			WHERE source = $1 AND source_id = $2`,
-			source, ref.SourceID).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveProjectRef: %w", err)
-		}
-		return id, nil
+	row := tx.QueryRow(ctx, `
+		SELECT id, version, created_at, updated_at,
+		       created_by_id, updated_by_id,
+		       kind, status, review_status, delete_kind,
+		       deleted_at, deleted_by_id,
+		       cache
+		FROM bbl_works WHERE id = (`+sub+`)`, args...)
+	w, err := scanWork(row)
+	if err != nil {
+		return nil, fmt.Errorf("resolveWorkRef: %w", err)
 	}
-	if ref.Identifier != nil {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT project_id FROM bbl_project_identifiers
-			WHERE scheme = $1 AND val = $2
-			LIMIT 1`,
-			ref.Identifier.Scheme, ref.Identifier.Val).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveProjectRef: %w", err)
-		}
-		return id, nil
-	}
-	return ID{}, fmt.Errorf("resolveProjectRef: empty ref")
+	return w, nil
 }
 
-// resolveOrganizationRef resolves a Ref to an organization ID.
-func resolveOrganizationRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (ID, error) {
-	if ref.ID != nil {
-		return *ref.ID, nil
+func resolveProjectRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*Project, error) {
+	sub, args, err := refSubquery(ref, source, "bbl_projects", "bbl_project_sources", "project_id", "bbl_project_identifiers", "project_id")
+	if err != nil {
+		return nil, fmt.Errorf("resolveProjectRef: %w", err)
 	}
-	if ref.SourceID != "" {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT organization_id FROM bbl_organization_sources
-			WHERE source = $1 AND source_id = $2`,
-			source, ref.SourceID).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveOrganizationRef: %w", err)
-		}
-		return id, nil
+	row := tx.QueryRow(ctx, `
+		SELECT id, version, created_at, updated_at,
+		       created_by_id, updated_by_id,
+		       status, start_date, end_date,
+		       deleted_at, deleted_by_id,
+		       cache
+		FROM bbl_projects WHERE id = (`+sub+`)`, args...)
+	p, err := scanProject(row)
+	if err != nil {
+		return nil, fmt.Errorf("resolveProjectRef: %w", err)
 	}
-	if ref.Identifier != nil {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT organization_id FROM bbl_organization_identifiers
-			WHERE scheme = $1 AND val = $2
-			LIMIT 1`,
-			ref.Identifier.Scheme, ref.Identifier.Val).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolveOrganizationRef: %w", err)
-		}
-		return id, nil
-	}
-	return ID{}, fmt.Errorf("resolveOrganizationRef: empty ref")
+	return p, nil
 }
 
-// resolvePersonRef resolves a Ref to a person ID.
-func resolvePersonRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (ID, error) {
-	if ref.ID != nil {
-		return *ref.ID, nil
+func resolveOrganizationRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*Organization, error) {
+	sub, args, err := refSubquery(ref, source, "bbl_organizations", "bbl_organization_sources", "organization_id", "bbl_organization_identifiers", "organization_id")
+	if err != nil {
+		return nil, fmt.Errorf("resolveOrganizationRef: %w", err)
 	}
-	if ref.SourceID != "" {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT person_id FROM bbl_person_sources
-			WHERE source = $1 AND source_id = $2`,
-			source, ref.SourceID).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolvePersonRef: %w", err)
-		}
-		return id, nil
+	row := tx.QueryRow(ctx, `
+		SELECT id, version, created_at, updated_at,
+		       created_by_id, updated_by_id,
+		       kind, status, start_date, end_date,
+		       deleted_at, deleted_by_id,
+		       cache
+		FROM bbl_organizations WHERE id = (`+sub+`)`, args...)
+	o, err := scanOrganization(row)
+	if err != nil {
+		return nil, fmt.Errorf("resolveOrganizationRef: %w", err)
 	}
-	if ref.Identifier != nil {
-		var id ID
-		err := tx.QueryRow(ctx, `
-			SELECT person_id FROM bbl_person_identifiers
-			WHERE scheme = $1 AND val = $2
-			LIMIT 1`,
-			ref.Identifier.Scheme, ref.Identifier.Val).Scan(&id)
-		if err != nil {
-			return ID{}, fmt.Errorf("resolvePersonRef: %w", err)
-		}
-		return id, nil
+	return o, nil
+}
+
+func resolvePersonRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*Person, error) {
+	sub, args, err := refSubquery(ref, source, "bbl_people", "bbl_person_sources", "person_id", "bbl_person_identifiers", "person_id")
+	if err != nil {
+		return nil, fmt.Errorf("resolvePersonRef: %w", err)
 	}
-	return ID{}, fmt.Errorf("resolvePersonRef: empty ref")
+	row := tx.QueryRow(ctx, `
+		SELECT id, version, created_at, updated_at,
+		       created_by_id, updated_by_id,
+		       status, deleted_at, deleted_by_id,
+		       cache
+		FROM bbl_people WHERE id = (`+sub+`)`, args...)
+	p, err := scanPerson(row)
+	if err != nil {
+		return nil, fmt.Errorf("resolvePersonRef: %w", err)
+	}
+	return p, nil
 }
 
 // autoPinAllWork runs auto-pin for all assertion tables of a work.

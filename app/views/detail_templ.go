@@ -187,9 +187,9 @@ func ShowPerson(c Ctx, person *bbl.Person) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(personName(c, person))
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(person.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 26, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 26, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -610,9 +610,9 @@ func BackofficeShowPerson(c Ctx, person *bbl.Person) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var38 string
-			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(personName(c, person))
+			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(person.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 79, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 79, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -848,23 +848,6 @@ func workTitle(c Ctx, w *bbl.Work) string {
 		}
 	}
 	return c.Loc("(untitled)")
-}
-
-func personName(c Ctx, p *bbl.Person) string {
-	if p.Name != "" {
-		return p.Name
-	}
-	name := p.GivenName
-	if p.FamilyName != "" {
-		if name != "" {
-			name += " "
-		}
-		name += p.FamilyName
-	}
-	if name != "" {
-		return name
-	}
-	return c.Loc("(unnamed)")
 }
 
 func organizationName(c Ctx, o *bbl.Organization) string {

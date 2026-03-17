@@ -70,7 +70,7 @@ templ editField(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 		case "classification_list":
 			@showClassifications(c, work)
 		case "contributor_list":
-			@showContributors(c, work)
+			@editContributors(c, work)
 	}
 }
 
@@ -234,33 +234,59 @@ templ showClassifications(c Ctx, work *bbl.Work) {
 	}
 }
 
-templ showContributors(c Ctx, work *bbl.Work) {
-	if len(work.Contributors) > 0 {
-		<fieldset>
-			<legend>{ c.Loc("Contributors (read-only)") }</legend>
-			<ul>
-				for _, co := range work.Contributors {
-					<li>{ contributorDisplay(co) }</li>
-				}
-			</ul>
-		</fieldset>
-	}
+templ editContributors(c Ctx, work *bbl.Work) {
+	<fieldset data-repeatable="contributors">
+		<legend>{ c.Loc("Contributors") }</legend>
+		<div data-repeatable-items style="display:flex;flex-direction:column;gap:1em;">
+			for _, co := range work.Contributors {
+				@editContributor(c, co)
+			}
+		</div>
+		<button type="button" data-add-item>{ c.Loc("Add contributor") }</button>
+		<template data-item-template>
+			@editContributor(c, bbl.WorkContributor{})
+		</template>
+	</fieldset>
 }
 
-func contributorDisplay(c bbl.WorkContributor) string {
-	roles := strings.Join(c.Roles, ", ")
-	name := c.Name
-	if name == "" && c.FamilyName != "" {
-		name = c.FamilyName
-		if c.GivenName != "" {
-			name += ", " + c.GivenName
+templ editContributor(c Ctx, co bbl.WorkContributor) {
+	<div data-repeatable-item data-person-suggest data-unlink-label={ c.Loc("Unlink") } style="display:flex;gap:1em;">
+		if co.PersonID != nil {
+			<input type="hidden" name="contributors.person_id" value={ co.PersonID.String() }/>
+		} else {
+			<input type="hidden" name="contributors.person_id" value=""/>
 		}
-	}
-	if name == "" {
-		name = "(unnamed)"
-	}
-	if roles != "" {
-		return name + " (" + roles + ")"
-	}
-	return name
+		<input type="hidden" name="contributors.kind" value={ co.Kind }/>
+		<div style="flex:1;">
+			if co.PersonID != nil {
+				<div data-person-card>
+					<strong>{ co.Name }</strong>
+					<button type="button" data-unlink-person>{ c.Loc("Unlink") }</button>
+				</div>
+			}
+			<div data-contributor-fields if co.PersonID != nil { style="display:none;" }>
+				<input type="text" name="contributors.name" value={ co.Name } placeholder={ c.Loc("Name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+				<div data-person-fields if co.Kind == "organization" { style="display:none;" }>
+					<input type="text" name="contributors.given_name" value={ co.GivenName } placeholder={ c.Loc("Given name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+					<input type="text" name="contributors.family_name" value={ co.FamilyName } placeholder={ c.Loc("Family name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+				</div>
+				<input type="text" name="contributors.roles" value={ strings.Join(co.Roles, ", ") } placeholder={ c.Loc("Roles") } autocomplete="off"/>
+				<label>
+					<input
+						type="checkbox"
+						data-kind-toggle
+						if co.Kind == "organization" {
+							checked
+						}
+					/>
+					{ c.Loc("Organization") }
+				</label>
+			</div>
+		</div>
+		<div style="flex:0 0 12em;">
+			<ul data-suggest-results></ul>
+		</div>
+		<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
+	</div>
 }
+

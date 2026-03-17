@@ -23,7 +23,7 @@ templ ShowPerson(c Ctx, person *bbl.Person) {
 	@Layout(c, c.Loc("Person")) {
 		<main>
 			<p><a href="/people">{ c.Loc("Back to people") }</a></p>
-			<h1>{ personName(c, person) }</h1>
+			<h1>{ person.Name }</h1>
 		</main>
 	}
 }
@@ -76,7 +76,7 @@ templ BackofficeShowPerson(c Ctx, person *bbl.Person) {
 	@Layout(c, c.Loc("Person")+" - "+c.Loc("Backoffice")) {
 		<main>
 			<p><a href="/backoffice/people">{ c.Loc("Back to people") }</a></p>
-			<h1>{ personName(c, person) }</h1>
+			<h1>{ person.Name }</h1>
 		</main>
 	}
 }
@@ -125,23 +125,6 @@ func workTitle(c Ctx, w *bbl.Work) string {
 		}
 	}
 	return c.Loc("(untitled)")
-}
-
-func personName(c Ctx, p *bbl.Person) string {
-	if p.Name != "" {
-		return p.Name
-	}
-	name := p.GivenName
-	if p.FamilyName != "" {
-		if name != "" {
-			name += " "
-		}
-		name += p.FamilyName
-	}
-	if name != "" {
-		return name
-	}
-	return c.Loc("(unnamed)")
 }
 
 func organizationName(c Ctx, o *bbl.Organization) string {

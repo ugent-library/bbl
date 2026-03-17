@@ -110,6 +110,30 @@ msgstr "Terug naar publicatie"
 msgid "Add %s"
 msgstr "%s toevoegen"
 
+msgid "Contributors"
+msgstr "Bijdragers"
+
+msgid "Add contributor"
+msgstr "Bijdrager toevoegen"
+
+msgid "Given name"
+msgstr "Voornaam"
+
+msgid "Family name"
+msgstr "Achternaam"
+
+msgid "Roles"
+msgstr "Rollen"
+
+msgid "Search person..."
+msgstr "Persoon zoeken..."
+
+msgid "Unlink"
+msgstr "Ontkoppelen"
+
+msgid "Organization"
+msgstr "Organisatie"
+
 msgid "From"
 msgstr "Van"
 

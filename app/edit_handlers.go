@@ -239,7 +239,67 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 			} else {
 				mutations = append(mutations, &bbl.DeleteWorkNotes{WorkID: work.ID})
 			}
+		case "contributor_list":
+			names := r.Form["contributors.name"]
+			kinds := r.Form["contributors.kind"]
+			givenNames := r.Form["contributors.given_name"]
+			familyNames := r.Form["contributors.family_name"]
+			roleStrs := r.Form["contributors.roles"]
+			personIDs := r.Form["contributors.person_id"]
+
+			var contributors []bbl.WorkContributor
+			for i := range names {
+				name := strings.TrimSpace(names[i])
+				gn, fn := "", ""
+				if i < len(givenNames) {
+					gn = strings.TrimSpace(givenNames[i])
+				}
+				if i < len(familyNames) {
+					fn = strings.TrimSpace(familyNames[i])
+				}
+				// Build name from parts if empty.
+				if name == "" {
+					name = strings.TrimSpace(gn + " " + fn)
+				}
+				if name == "" {
+					continue
+				}
+				co := bbl.WorkContributor{
+					Position:   i,
+					Name:       name,
+					GivenName:  gn,
+					FamilyName: fn,
+				}
+				if i < len(kinds) && kinds[i] == "organization" {
+					co.Kind = "organization"
+				}
+				if i < len(roleStrs) {
+					co.Roles = splitRoles(roleStrs[i])
+				}
+				if i < len(personIDs) && personIDs[i] != "" {
+					if pid, err := bbl.ParseID(personIDs[i]); err == nil {
+						co.PersonID = &pid
+					}
+				}
+				contributors = append(contributors, co)
+			}
+			if len(contributors) > 0 {
+				mutations = append(mutations, &bbl.SetWorkContributors{WorkID: work.ID, Contributors: contributors})
+			} else {
+				mutations = append(mutations, &bbl.DeleteWorkContributors{WorkID: work.ID})
+			}
 		}
 	}
 	return mutations
+}
+
+func splitRoles(s string) []string {
+	var roles []string
+	for _, r := range strings.Split(s, ",") {
+		r = strings.TrimSpace(r)
+		if r != "" {
+			roles = append(roles, r)
+		}
+	}
+	return roles
 }

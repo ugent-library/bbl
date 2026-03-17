@@ -17,6 +17,8 @@
 - [ ] Authorization layer
 - [ ] Collections (two types: query-based / dynamic, and manual / rules-based)
 
+## Backoffice UI
+
 ## External protocols & APIs
 
 - [ ] OAI-PMH: representation cache table (avoid re-harvest when entity timestamp bumps but encoded output is identical)
@@ -40,9 +42,7 @@
 ### Backoffice UI
 
 - [ ] Work batch edit
-- [ ] Work CSL export
 - [ ] Work change history/audit view
-- [ ] Contributor CRUD with person suggest/autocomplete
 - [ ] File upload (S3 presigned URLs) + attach/detach
 - [ ] User curated lists (CRUD, export, add items)
 - [ ] Work kind change

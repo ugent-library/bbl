@@ -209,14 +209,14 @@ func importProjectTextFields(ctx context.Context, tx pgx.Tx, projectID ID, sourc
 
 func importProjectRelations(ctx context.Context, tx pgx.Tx, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
 	for _, p := range in.Participants {
-		personID, err := resolvePersonRef(ctx, tx, p.Ref, source)
+		person, err := resolvePersonRef(ctx, tx, p.Ref, source)
 		if err != nil {
 			continue // silently skip unresolvable refs
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_project_people (id, project_id, person_id, role, project_source_id)
 			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), projectID, personID, nilIfEmpty(p.Role), sourceRecordID); err != nil {
+			newID(), projectID, person.ID, nilIfEmpty(p.Role), sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_project_people: %w", err)
 		}
 	}

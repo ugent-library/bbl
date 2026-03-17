@@ -86,14 +86,14 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 		orgID := info.orgID
 		srcRecID := info.srcRecID
 		for _, rel := range in.Rels {
-			relOrgID, err := resolveOrganizationRef(ctx, tx, rel.Ref, source)
+			relOrg, err := resolveOrganizationRef(ctx, tx, rel.Ref, source)
 			if err != nil {
 				continue // silently skip unresolvable refs
 			}
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO bbl_organization_rels (id, organization_id, rel_organization_id, kind, organization_source_id, start_date, end_date)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-				newID(), orgID, relOrgID, rel.Kind, srcRecID, rel.StartDate, rel.EndDate); err != nil {
+				newID(), orgID, relOrg.ID, rel.Kind, srcRecID, rel.StartDate, rel.EndDate); err != nil {
 				return n, fmt.Errorf("insert bbl_organization_rels: %w", err)
 			}
 		}

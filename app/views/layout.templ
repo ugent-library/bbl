@@ -16,8 +16,10 @@ templ Layout(c Ctx, title string) {
 			<script src={ c.AssetPath("app.js") }></script>
 		</head>
 		<body>
-			if len(c.Langs) > 1 {
-				<nav aria-label="Language">
+			<nav>
+				<a href="/backoffice">{ c.Loc("Backoffice") }</a>
+				if len(c.Langs) > 1 {
+					{ " | " }
 					for _, lang := range c.Langs {
 						{ " " }
 						if lang == c.Lang {
@@ -26,8 +28,8 @@ templ Layout(c Ctx, title string) {
 							<a href={ langSwitchURL(lang, c.Path) }>{ strings.ToUpper(lang) }</a>
 						}
 					}
-				</nav>
-			}
+				}
+			</nav>
 			{ children... }
 		</body>
 	</html>

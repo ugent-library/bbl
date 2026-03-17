@@ -86,6 +86,16 @@ All state changes go through `AddRev` (human) or `Import*` (source). No ad-hoc d
 
 `cmd/bbl/cli/` uses a `Registry` (exported) passed to `NewRootCmd`. Sources are registered via `RegisterUserSource[C]` / `RegisterWorkSource[C]` generic functions. `ugent/cmd/bbl/main.go` registers UGent-specific sources and calls `NewRootCmd`.
 
+### Frontend approach
+
+Server-rendered HTML (templ + htmx), no SPA. Follows the hypermedia-driven approach from https://hypermedia.systems/.
+
+- **htmx** for hypermedia interactions: navigation, form submissions, partial page updates where the server is the source of truth for application state.
+- **Plain JS** for widget-level behavior: autocomplete, drag-and-drop, client-side validation.
+- At the widget level it's a pragmatic choice — use htmx when it's simpler, JS when it's simpler. No dogma.
+- JS is organized using event delegation on `document` (see `app/assets/js/app.js`). Data attributes drive behavior, no framework.
+- Assets are built with esbuild (`npm run build`). Dev mode hot-reloads from disk.
+
 ## Coding conventions
 
 - Follow existing Go style in the touched area. No ORM, plain SQL via pgx.

@@ -110,6 +110,30 @@ msgstr "Back to work"
 msgid "Add %s"
 msgstr "Add %s"
 
+msgid "Contributors"
+msgstr "Contributors"
+
+msgid "Add contributor"
+msgstr "Add contributor"
+
+msgid "Given name"
+msgstr "Given name"
+
+msgid "Family name"
+msgstr "Family name"
+
+msgid "Roles"
+msgstr "Roles"
+
+msgid "Search person..."
+msgstr "Search person..."
+
+msgid "Unlink"
+msgstr "Unlink"
+
+msgid "Organization"
+msgstr "Organization"
+
 msgid "From"
 msgstr "From"
 

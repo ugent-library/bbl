@@ -195,14 +195,14 @@ func importPersonRelations(ctx context.Context, tx pgx.Tx, personID ID, source s
 		}
 	}
 	for _, a := range in.Affiliations {
-		orgID, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
+		org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
 		if err != nil {
 			continue // silently skip unresolvable refs
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_person_organizations (id, person_id, organization_id, person_source_id)
 			VALUES ($1, $2, $3, $4)`,
-			newID(), personID, orgID, sourceRecordID); err != nil {
+			newID(), personID, org.ID, sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_person_organizations: %w", err)
 		}
 	}

@@ -655,6 +655,7 @@ CREATE TABLE bbl_work_contributors (
     id             uuid PRIMARY KEY,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     position       int NOT NULL,
+    kind           text NOT NULL DEFAULT 'person' CHECK (kind IN ('person', 'organization')),
     person_id      uuid REFERENCES bbl_people (id) ON DELETE SET NULL,
     name           text,
     given_name     text,
@@ -961,6 +962,7 @@ LEFT JOIN LATERAL (
   SELECT json_agg(
     json_build_object(
       'position', c.position,
+      'kind', c.kind,
       'person_id', c.person_id,
       'name', c.name,
       'given_name', c.given_name,

@@ -3,6 +3,7 @@ package bbl
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -32,13 +33,19 @@ func writeWorkClassification(ctx context.Context, tx pgx.Tx, id, workID ID, sche
 	return nil
 }
 
-func writeWorkContributor(ctx context.Context, tx pgx.Tx, id, workID ID, position int, personID *ID, name, givenName, familyName string, roles []string, workSourceID *ID, userID *ID) error {
+func writeWorkContributor(ctx context.Context, tx pgx.Tx, id, workID ID, position int, kind string, personID *ID, name, givenName, familyName string, roles []string, workSourceID *ID, userID *ID) error {
+	if kind == "" {
+		kind = "person"
+	}
+	if name == "" {
+		name = strings.TrimSpace(givenName + " " + familyName)
+	}
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_contributors
-		    (id, work_id, position, person_id, name, given_name, family_name, roles, work_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		id, workID, position, personID,
-		nilIfEmpty(name), nilIfEmpty(givenName), nilIfEmpty(familyName),
+		    (id, work_id, position, kind, person_id, name, given_name, family_name, roles, work_source_id, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		id, workID, position, kind, personID,
+		name, nilIfEmpty(givenName), nilIfEmpty(familyName),
 		roles, workSourceID, userID)
 	if err != nil {
 		return fmt.Errorf("writeWorkContributor: %w", err)
@@ -529,7 +536,7 @@ func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx) error {
 		return fmt.Errorf("SetWorkContributors: delete: %w", err)
 	}
 	for i, c := range m.Contributors {
-		if err := writeWorkContributor(ctx, tx, newID(), m.WorkID, i, c.PersonID, c.Name, c.GivenName, c.FamilyName, c.Roles, nil, m.userID); err != nil {
+		if err := writeWorkContributor(ctx, tx, newID(), m.WorkID, i, c.Kind, c.PersonID, c.Name, c.GivenName, c.FamilyName, c.Roles, nil, m.userID); err != nil {
 			return fmt.Errorf("SetWorkContributors: %w", err)
 		}
 	}

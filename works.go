@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"iter"
 	"time"
 
@@ -235,18 +236,30 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 	}
 	for i, c := range in.Contributors {
 		var personID *ID
+		name, givenName, familyName := c.Name, c.GivenName, c.FamilyName
 		if c.PersonRef != nil {
-			pid, err := resolvePersonRef(ctx, tx, *c.PersonRef, source)
+			person, err := resolvePersonRef(ctx, tx, *c.PersonRef, source)
 			if err == nil {
-				personID = &pid
+				personID = &person.ID
+				// Snapshot person names into contributor if not provided by the source.
+				if name == "" && givenName == "" && familyName == "" {
+					name, givenName, familyName = person.Name, person.GivenName, person.FamilyName
+				}
 			}
+		}
+		kind := c.Kind
+		if kind == "" {
+			kind = "person"
+		}
+		if name == "" {
+			name = strings.TrimSpace(givenName + " " + familyName)
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_work_contributors
-			    (id, work_id, position, person_id, name, given_name, family_name, roles, work_source_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-			newID(), workID, fracdexPos(i), personID,
-			nilIfEmpty(c.Name), nilIfEmpty(c.GivenName), nilIfEmpty(c.FamilyName),
+			    (id, work_id, position, kind, person_id, name, given_name, family_name, roles, work_source_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+			newID(), workID, fracdexPos(i), kind, personID,
+			name, nilIfEmpty(givenName), nilIfEmpty(familyName),
 			c.Roles, sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_work_contributors: %w", err)
 		}
@@ -292,38 +305,38 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	for _, p := range in.Projects {
-		projectID, err := resolveProjectRef(ctx, tx, p.Ref, source)
+		project, err := resolveProjectRef(ctx, tx, p.Ref, source)
 		if err != nil {
 			continue
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_work_projects (id, work_id, project_id, work_source_id)
 			VALUES ($1, $2, $3, $4)`,
-			newID(), workID, projectID, sourceRecordID); err != nil {
+			newID(), workID, project.ID, sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_work_projects: %w", err)
 		}
 	}
 	for _, o := range in.Organizations {
-		orgID, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
+		org, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
 		if err != nil {
 			continue
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_work_organizations (id, work_id, organization_id, work_source_id)
 			VALUES ($1, $2, $3, $4)`,
-			newID(), workID, orgID, sourceRecordID); err != nil {
+			newID(), workID, org.ID, sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_work_organizations: %w", err)
 		}
 	}
 	for _, rel := range in.RelatedWorks {
-		relWorkID, err := resolveWorkRef(ctx, tx, rel.Ref, source)
+		relWork, err := resolveWorkRef(ctx, tx, rel.Ref, source)
 		if err != nil {
 			continue
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_work_rels (id, work_id, related_work_id, kind, work_source_id)
 			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, relWorkID, rel.Kind, sourceRecordID); err != nil {
+			newID(), workID, relWork.ID, rel.Kind, sourceRecordID); err != nil {
 			return fmt.Errorf("insert bbl_work_rels: %w", err)
 		}
 	}

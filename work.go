@@ -118,6 +118,7 @@ type ImportWorkInput struct {
 // ImportWorkContributor is a contributor arriving from a source.
 type ImportWorkContributor struct {
 	PersonRef  *Ref     `json:"person_ref,omitempty"`
+	Kind       string   `json:"kind,omitempty"` // "person" (default) or "organization"
 	Roles      []string `json:"roles,omitempty"`
 	Name       string   `json:"name,omitempty"`
 	GivenName  string   `json:"given_name,omitempty"`
@@ -158,6 +159,7 @@ type WorkClassification struct {
 // WorkContributor is a contributor read from the cache column.
 type WorkContributor struct {
 	Position   int      `json:"position"`
+	Kind       string   `json:"kind,omitempty"`        // "person" (default) or "organization"
 	PersonID   *ID      `json:"person_id,omitempty"`
 	Name       string   `json:"name,omitempty"`
 	GivenName  string   `json:"given_name,omitempty"`
