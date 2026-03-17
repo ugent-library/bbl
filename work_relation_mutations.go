@@ -148,15 +148,15 @@ func writeWorkRel(ctx context.Context, tx pgx.Tx, id, workID, relatedWorkID ID, 
 // --- SetWorkTitles (no delete — required) ---
 
 type SetWorkTitles struct {
-	WorkID ID
-	Titles []Title
+	WorkID ID     `json:"work_id"`
+	Titles []Title `json:"titles"`
 	userID *ID
 }
 
-func (m *SetWorkTitles) mutationName() string { return "SetWorkTitles" }
+func (m *SetWorkTitles) mutationName() string { return "set_work_titles" }
 func (m *SetWorkTitles) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkTitles) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkTitles) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -183,14 +183,14 @@ func (m *SetWorkTitles) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetWorkAbstracts struct {
 	WorkID    ID
-	Abstracts []Text
+	Abstracts []Text `json:"abstracts"`
 	userID    *ID
 }
 
-func (m *SetWorkAbstracts) mutationName() string { return "SetWorkAbstracts" }
+func (m *SetWorkAbstracts) mutationName() string { return "set_work_abstracts" }
 func (m *SetWorkAbstracts) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkAbstracts) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -215,9 +215,9 @@ func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkAbstracts struct{ WorkID ID }
 
-func (m *DeleteWorkAbstracts) mutationName() string { return "DeleteWorkAbstracts" }
+func (m *DeleteWorkAbstracts) mutationName() string { return "delete_work_abstracts" }
 func (m *DeleteWorkAbstracts) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkAbstracts) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -238,14 +238,14 @@ func (m *DeleteWorkAbstracts) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetWorkLaySummaries struct {
 	WorkID       ID
-	LaySummaries []Text
+	LaySummaries []Text `json:"lay_summaries"`
 	userID       *ID
 }
 
-func (m *SetWorkLaySummaries) mutationName() string { return "SetWorkLaySummaries" }
+func (m *SetWorkLaySummaries) mutationName() string { return "set_work_lay_summaries" }
 func (m *SetWorkLaySummaries) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkLaySummaries) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkLaySummaries) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -270,9 +270,9 @@ func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkLaySummaries struct{ WorkID ID }
 
-func (m *DeleteWorkLaySummaries) mutationName() string { return "DeleteWorkLaySummaries" }
+func (m *DeleteWorkLaySummaries) mutationName() string { return "delete_work_lay_summaries" }
 func (m *DeleteWorkLaySummaries) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkLaySummaries) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkLaySummaries) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -292,15 +292,15 @@ func (m *DeleteWorkLaySummaries) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkNotes / DeleteWorkNotes ---
 
 type SetWorkNotes struct {
-	WorkID ID
-	Notes  []Note
+	WorkID ID     `json:"work_id"`
+	Notes  []Note `json:"notes"`
 	userID *ID
 }
 
-func (m *SetWorkNotes) mutationName() string { return "SetWorkNotes" }
+func (m *SetWorkNotes) mutationName() string { return "set_work_notes" }
 func (m *SetWorkNotes) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkNotes) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -325,9 +325,9 @@ func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkNotes struct{ WorkID ID }
 
-func (m *DeleteWorkNotes) mutationName() string { return "DeleteWorkNotes" }
+func (m *DeleteWorkNotes) mutationName() string { return "delete_work_notes" }
 func (m *DeleteWorkNotes) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkNotes) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -348,14 +348,14 @@ func (m *DeleteWorkNotes) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetWorkKeywords struct {
 	WorkID   ID
-	Keywords []Keyword
+	Keywords []Keyword `json:"keywords"`
 	userID   *ID
 }
 
-func (m *SetWorkKeywords) mutationName() string { return "SetWorkKeywords" }
+func (m *SetWorkKeywords) mutationName() string { return "set_work_keywords" }
 func (m *SetWorkKeywords) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkKeywords) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkKeywords) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -380,9 +380,9 @@ func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkKeywords struct{ WorkID ID }
 
-func (m *DeleteWorkKeywords) mutationName() string { return "DeleteWorkKeywords" }
+func (m *DeleteWorkKeywords) mutationName() string { return "delete_work_keywords" }
 func (m *DeleteWorkKeywords) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkKeywords) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkKeywords) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -407,10 +407,10 @@ type SetWorkIdentifiers struct {
 	userID      *ID
 }
 
-func (m *SetWorkIdentifiers) mutationName() string { return "SetWorkIdentifiers" }
+func (m *SetWorkIdentifiers) mutationName() string { return "set_work_identifiers" }
 func (m *SetWorkIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -435,9 +435,9 @@ func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkIdentifiers struct{ WorkID ID }
 
-func (m *DeleteWorkIdentifiers) mutationName() string { return "DeleteWorkIdentifiers" }
+func (m *DeleteWorkIdentifiers) mutationName() string { return "delete_work_identifiers" }
 func (m *DeleteWorkIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -462,10 +462,10 @@ type SetWorkClassifications struct {
 	userID          *ID
 }
 
-func (m *SetWorkClassifications) mutationName() string { return "SetWorkClassifications" }
+func (m *SetWorkClassifications) mutationName() string { return "set_work_classifications" }
 func (m *SetWorkClassifications) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkClassifications) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkClassifications) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -490,9 +490,9 @@ func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkClassifications struct{ WorkID ID }
 
-func (m *DeleteWorkClassifications) mutationName() string { return "DeleteWorkClassifications" }
+func (m *DeleteWorkClassifications) mutationName() string { return "delete_work_classifications" }
 func (m *DeleteWorkClassifications) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkClassifications) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkClassifications) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -513,14 +513,14 @@ func (m *DeleteWorkClassifications) write(ctx context.Context, tx pgx.Tx) error 
 
 type SetWorkContributors struct {
 	WorkID       ID
-	Contributors []WorkContributor
+	Contributors []WorkContributor `json:"contributors"`
 	userID       *ID
 }
 
-func (m *SetWorkContributors) mutationName() string { return "SetWorkContributors" }
+func (m *SetWorkContributors) mutationName() string { return "set_work_contributors" }
 func (m *SetWorkContributors) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkContributors) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkContributors) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -545,9 +545,9 @@ func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkContributors struct{ WorkID ID }
 
-func (m *DeleteWorkContributors) mutationName() string { return "DeleteWorkContributors" }
+func (m *DeleteWorkContributors) mutationName() string { return "delete_work_contributors" }
 func (m *DeleteWorkContributors) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkContributors) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkContributors) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -568,14 +568,14 @@ func (m *DeleteWorkContributors) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetWorkProjects struct {
 	WorkID   ID
-	Projects []ID
+	Projects []ID `json:"projects"`
 	userID   *ID
 }
 
-func (m *SetWorkProjects) mutationName() string { return "SetWorkProjects" }
+func (m *SetWorkProjects) mutationName() string { return "set_work_projects" }
 func (m *SetWorkProjects) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkProjects) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkProjects) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -600,9 +600,9 @@ func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkProjects struct{ WorkID ID }
 
-func (m *DeleteWorkProjects) mutationName() string { return "DeleteWorkProjects" }
+func (m *DeleteWorkProjects) mutationName() string { return "delete_work_projects" }
 func (m *DeleteWorkProjects) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkProjects) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkProjects) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -623,14 +623,14 @@ func (m *DeleteWorkProjects) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetWorkOrganizations struct {
 	WorkID        ID
-	Organizations []ID
+	Organizations []ID `json:"organizations"`
 	userID        *ID
 }
 
-func (m *SetWorkOrganizations) mutationName() string { return "SetWorkOrganizations" }
+func (m *SetWorkOrganizations) mutationName() string { return "set_work_organizations" }
 func (m *SetWorkOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkOrganizations) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -655,9 +655,9 @@ func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkOrganizations struct{ WorkID ID }
 
-func (m *DeleteWorkOrganizations) mutationName() string { return "DeleteWorkOrganizations" }
+func (m *DeleteWorkOrganizations) mutationName() string { return "delete_work_organizations" }
 func (m *DeleteWorkOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkOrganizations) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -677,18 +677,18 @@ func (m *DeleteWorkOrganizations) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkRels / DeleteWorkRels ---
 
 type SetWorkRels struct {
-	WorkID ID
-	Rels   []struct {
-		RelatedWorkID ID
-		Kind          string
-	}
+	WorkID ID     `json:"work_id"`
+	Rels []struct {
+		RelatedWorkID ID     `json:"related_work_id"`
+		Kind          string `json:"kind"`
+	} `json:"rels"`
 	userID *ID
 }
 
-func (m *SetWorkRels) mutationName() string { return "SetWorkRels" }
+func (m *SetWorkRels) mutationName() string { return "set_work_rels" }
 func (m *SetWorkRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkRels) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetWorkRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -713,9 +713,9 @@ func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkRels struct{ WorkID ID }
 
-func (m *DeleteWorkRels) mutationName() string { return "DeleteWorkRels" }
+func (m *DeleteWorkRels) mutationName() string { return "delete_work_rels" }
 func (m *DeleteWorkRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkRels) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,

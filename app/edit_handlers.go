@@ -38,7 +38,7 @@ func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *
 	mutations := buildWorkMutations(r, profile, work)
 
 	if len(mutations) > 0 {
-		_, _, err := app.services.Repo.AddRev(r.Context(), bbl.AddRevInput{UserID: userID(c)}, mutations...)
+		_, _, err := app.services.Repo.Mutate(r.Context(), userID(c), mutations...)
 		if err != nil {
 			return fmt.Errorf("backofficeUpdateWork: %w", err)
 		}

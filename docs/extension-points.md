@@ -219,7 +219,7 @@ type MutationState struct {
 RegisterMutation(name string, impl MutationImpl)
 ```
 
-`AddRev(ctx, userID, source, []Mutation, IndexMode)` applies a slice of mutations
+`Mutate(ctx, userID, source, []Mutation, IndexMode)` applies a slice of mutations
 in one transaction:
 
 1. Call `Needs` on all mutations → union requirements
@@ -233,7 +233,7 @@ One read round-trip + one write round-trip regardless of mutation count. `Apply`
 is pure and testable without a DB connection.
 
 Mutations are plain data — buildable inline, from JSON, from an API payload, or
-by a harvester pipeline — and passed to `AddRev` unchanged.
+by a harvester pipeline — and passed to `Mutate` unchanged.
 
 `IndexMode` controls search indexing behaviour after commit:
 
@@ -263,7 +263,7 @@ type WorkIndexer interface {
 }
 ```
 
-`refresh` strategy (`wait_for` vs. async) is passed by the `AddRev` call site via
+`refresh` strategy (`wait_for` vs. async) is passed by the `Mutate` call site via
 `IndexMode`, not part of the interface.
 
 ---

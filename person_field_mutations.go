@@ -29,9 +29,9 @@ func writeCreatePersonField(ctx context.Context, tx pgx.Tx, id, personID ID, fie
 
 // --- Set/Delete helpers for scalar fields ---
 
-func applySetPersonField(personID ID, field string, val string, id *ID, userID **ID, in AddRevInput) (*mutationEffect, error) {
+func applySetPersonField(personID ID, field string, val string, id *ID, mutUserID **ID, userID *ID) (*mutationEffect, error) {
 	*id = newID()
-	*userID = in.UserID
+	*mutUserID = userID
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
@@ -103,16 +103,16 @@ func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, personID, organ
 // --- SetPersonName (no delete — required) ---
 
 type SetPersonName struct {
-	PersonID ID
+	PersonID ID     `json:"person_id"`
 	Val      string
 	id       ID
 	userID   *ID
 }
 
-func (m *SetPersonName) mutationName() string { return "SetPersonName" }
+func (m *SetPersonName) mutationName() string { return "set_person_name" }
 func (m *SetPersonName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetPersonField(m.PersonID, "name", m.Val, &m.id, &m.userID, in)
+func (m *SetPersonName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetPersonField(m.PersonID, "name", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "name", m.Val, m.userID)
@@ -121,16 +121,16 @@ func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetPersonGivenName / DeletePersonGivenName ---
 
 type SetPersonGivenName struct {
-	PersonID ID
+	PersonID ID     `json:"person_id"`
 	Val      string
 	id       ID
 	userID   *ID
 }
 
-func (m *SetPersonGivenName) mutationName() string { return "SetPersonGivenName" }
+func (m *SetPersonGivenName) mutationName() string { return "set_person_given_name" }
 func (m *SetPersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonGivenName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetPersonField(m.PersonID, "given_name", m.Val, &m.id, &m.userID, in)
+func (m *SetPersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetPersonField(m.PersonID, "given_name", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "given_name", m.Val, m.userID)
@@ -138,9 +138,9 @@ func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeletePersonGivenName struct{ PersonID ID }
 
-func (m *DeletePersonGivenName) mutationName() string { return "DeletePersonGivenName" }
+func (m *DeletePersonGivenName) mutationName() string { return "delete_person_given_name" }
 func (m *DeletePersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonGivenName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeletePersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeletePersonField(m.PersonID, "given_name")
 }
 func (m *DeletePersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
@@ -150,16 +150,16 @@ func (m *DeletePersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetPersonMiddleName / DeletePersonMiddleName ---
 
 type SetPersonMiddleName struct {
-	PersonID ID
+	PersonID ID     `json:"person_id"`
 	Val      string
 	id       ID
 	userID   *ID
 }
 
-func (m *SetPersonMiddleName) mutationName() string { return "SetPersonMiddleName" }
+func (m *SetPersonMiddleName) mutationName() string { return "set_person_middle_name" }
 func (m *SetPersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonMiddleName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetPersonField(m.PersonID, "middle_name", m.Val, &m.id, &m.userID, in)
+func (m *SetPersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetPersonField(m.PersonID, "middle_name", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "middle_name", m.Val, m.userID)
@@ -167,9 +167,9 @@ func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeletePersonMiddleName struct{ PersonID ID }
 
-func (m *DeletePersonMiddleName) mutationName() string { return "DeletePersonMiddleName" }
+func (m *DeletePersonMiddleName) mutationName() string { return "delete_person_middle_name" }
 func (m *DeletePersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonMiddleName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeletePersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeletePersonField(m.PersonID, "middle_name")
 }
 func (m *DeletePersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
@@ -179,16 +179,16 @@ func (m *DeletePersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetPersonFamilyName / DeletePersonFamilyName ---
 
 type SetPersonFamilyName struct {
-	PersonID ID
+	PersonID ID     `json:"person_id"`
 	Val      string
 	id       ID
 	userID   *ID
 }
 
-func (m *SetPersonFamilyName) mutationName() string { return "SetPersonFamilyName" }
+func (m *SetPersonFamilyName) mutationName() string { return "set_person_family_name" }
 func (m *SetPersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonFamilyName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetPersonField(m.PersonID, "family_name", m.Val, &m.id, &m.userID, in)
+func (m *SetPersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetPersonField(m.PersonID, "family_name", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "family_name", m.Val, m.userID)
@@ -196,9 +196,9 @@ func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeletePersonFamilyName struct{ PersonID ID }
 
-func (m *DeletePersonFamilyName) mutationName() string { return "DeletePersonFamilyName" }
+func (m *DeletePersonFamilyName) mutationName() string { return "delete_person_family_name" }
 func (m *DeletePersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonFamilyName) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeletePersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeletePersonField(m.PersonID, "family_name")
 }
 func (m *DeletePersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
@@ -213,14 +213,14 @@ func (m *DeletePersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetPersonIdentifiers struct {
 	PersonID    ID
-	Identifiers []Identifier
+	Identifiers []Identifier `json:"identifiers"`
 	userID      *ID
 }
 
-func (m *SetPersonIdentifiers) mutationName() string { return "SetPersonIdentifiers" }
+func (m *SetPersonIdentifiers) mutationName() string { return "set_person_identifiers" }
 func (m *SetPersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetPersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -245,9 +245,9 @@ func (m *SetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeletePersonIdentifiers struct{ PersonID ID }
 
-func (m *DeletePersonIdentifiers) mutationName() string { return "DeletePersonIdentifiers" }
+func (m *DeletePersonIdentifiers) mutationName() string { return "delete_person_identifiers" }
 func (m *DeletePersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeletePersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -268,14 +268,14 @@ func (m *DeletePersonIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetPersonOrganizations struct {
 	PersonID      ID
-	Organizations []PersonOrganization
+	Organizations []PersonOrganization `json:"organizations"`
 	userID        *ID
 }
 
-func (m *SetPersonOrganizations) mutationName() string { return "SetPersonOrganizations" }
+func (m *SetPersonOrganizations) mutationName() string { return "set_person_organizations" }
 func (m *SetPersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonOrganizations) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetPersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -300,9 +300,9 @@ func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeletePersonOrganizations struct{ PersonID ID }
 
-func (m *DeletePersonOrganizations) mutationName() string { return "DeletePersonOrganizations" }
+func (m *DeletePersonOrganizations) mutationName() string { return "delete_person_organizations" }
 func (m *DeletePersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonOrganizations) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeletePersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,

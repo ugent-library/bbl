@@ -396,7 +396,7 @@ bbl_revs (
 )
 ```
 
-AddRev (user path): `user_id` set, `source` typically NULL.
+Mutate (user path): `user_id` set, `source` typically NULL.
 Import: `source` set, `user_id` optional.
 System batch: both can be NULL.
 
@@ -500,10 +500,10 @@ Other organization fields follow the same Set/Delete pattern.
 
 ### Write paths
 
-Both human (AddRev) and import paths write the same mutation types to
+Both human (Mutate) and import paths write the same mutation types to
 `bbl_mutations`. They share the same low-level write helpers.
 
-**Human path (AddRev):**
+**Human path (Mutate):**
 - Assertion rows get `user_id` set, `*_source_id = NULL`
 - Replace semantics: DELETE existing human assertion + INSERT new one
 - `bbl_revs` row with `user_id` set

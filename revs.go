@@ -9,14 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// AddRevInput carries the actor context for a revision.
-// UserID is nil for non-human revs. Source is empty for human revs.
-// A system batch job could have both zero.
-type AddRevInput struct {
-	UserID *ID
-	Source string
-}
-
 // RevEffect describes a record affected by a revision.
 type RevEffect struct {
 	RecordType string // "work", "person", "project", "organization"
@@ -41,20 +33,20 @@ type RevEffect struct {
 //  8. Run auto-pin for affected grouping keys
 //  9. Rebuild cache for affected entities
 //  10. Return deduplicated RevEffects
-func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bool, []RevEffect, error) {
+func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, []RevEffect, error) {
 	// 1. Type-assert to mutation interface.
 	muts := make([]mutation, len(mutations))
 	for i, arg := range mutations {
 		m, ok := arg.(mutation)
 		if !ok {
-			return false, nil, fmt.Errorf("AddRev: argument %d (%T) does not implement mutation", i, arg)
+			return false, nil, fmt.Errorf("Mutate: argument %d (%T) does not implement mutation", i, arg)
 		}
 		muts[i] = m
 	}
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -70,15 +62,15 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 
 	state, err := fetchMutationState(ctx, tx, needs)
 	if err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 
 	// 3. Apply all mutations (pure — no DB access).
 	effects := make([]*mutationEffect, len(muts))
 	for i, m := range muts {
-		eff, err := m.apply(state, in)
+		eff, err := m.apply(state, userID)
 		if err != nil {
-			return false, nil, fmt.Errorf("AddRev: %s: %w", m.mutationName(), err)
+			return false, nil, fmt.Errorf("Mutate: %s: %w", m.mutationName(), err)
 		}
 		effects[i] = eff // nil = noop
 	}
@@ -96,12 +88,12 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 	}
 
 	// Set actor IDs on non-noop entity lifecycle records.
-	if in.UserID != nil {
+	if userID != nil {
 		for _, eff := range effects {
 			if eff == nil || eff.record == nil {
 				continue
 			}
-			setRecordActorIDs(eff, in.UserID)
+			setRecordActorIDs(eff, userID)
 		}
 	}
 
@@ -111,16 +103,16 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 			continue
 		}
 		if err := r.validateRecord(eff); err != nil {
-			return false, nil, fmt.Errorf("AddRev: %s: %w", muts[i].mutationName(), err)
+			return false, nil, fmt.Errorf("Mutate: %s: %w", muts[i].mutationName(), err)
 		}
 	}
 
 	// 5. Insert bbl_revs row.
 	revID := newID()
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, user_id, source) VALUES ($1, $2, $3)`,
-		revID, in.UserID, nilIfEmpty(in.Source)); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		INSERT INTO bbl_revs (id, user_id) VALUES ($1, $2)`,
+		revID, userID); err != nil {
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 
 	// 6. Write each non-noop mutation and its audit row.
@@ -135,17 +127,17 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 			continue
 		}
 		if err := muts[i].write(ctx, tx); err != nil {
-			return false, nil, fmt.Errorf("AddRev: %w", err)
+			return false, nil, fmt.Errorf("Mutate: %w", err)
 		}
 		diff, err := json.Marshal(eff.diff)
 		if err != nil {
-			return false, nil, fmt.Errorf("AddRev: %w", err)
+			return false, nil, fmt.Errorf("Mutate: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
 			VALUES ($1, $2, $3, $4, $5, $6)`,
 			revID, muts[i].mutationName(), eff.recordType, eff.recordID, eff.opType, diff); err != nil {
-			return false, nil, fmt.Errorf("AddRev: %w", err)
+			return false, nil, fmt.Errorf("Mutate: %w", err)
 		}
 
 		// Track affected entities.
@@ -195,8 +187,8 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 				q = `UPDATE bbl_organizations SET version = version + 1, updated_at = transaction_timestamp(), updated_by_id = $2 WHERE id = $1`
 			}
 			if q != "" {
-				if _, err := tx.Exec(ctx, q, id, in.UserID); err != nil {
-					return false, nil, fmt.Errorf("AddRev: bump version %s %s: %w", rt, id, err)
+				if _, err := tx.Exec(ctx, q, id, userID); err != nil {
+					return false, nil, fmt.Errorf("Mutate: bump version %s %s: %w", rt, id, err)
 				}
 			}
 		}
@@ -206,34 +198,34 @@ func (r *Repo) AddRev(ctx context.Context, in AddRevInput, mutations ...any) (bo
 	if hasAutoPin {
 		priorities, err := fetchSourcePriorities(ctx, tx)
 		if err != nil {
-			return false, nil, fmt.Errorf("AddRev: %w", err)
+			return false, nil, fmt.Errorf("Mutate: %w", err)
 		}
 		for _, eff := range effects {
 			if eff == nil || eff.autoPin == nil {
 				continue
 			}
 			if err := eff.autoPin(ctx, tx, priorities); err != nil {
-				return false, nil, fmt.Errorf("AddRev: autoPin: %w", err)
+				return false, nil, fmt.Errorf("Mutate: autoPin: %w", err)
 			}
 		}
 	}
 
 	// 9. Rebuild caches for affected entities.
 	if err := rebuildWorkCache(ctx, tx, changedWorkIDs); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 	if err := rebuildPersonCache(ctx, tx, changedPersonIDs); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 	if err := rebuildProjectCache(ctx, tx, changedProjectIDs); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 	if err := rebuildOrganizationCache(ctx, tx, changedOrganizationIDs); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return false, nil, fmt.Errorf("AddRev: %w", err)
+		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 
 	// 10. Build deduplicated RevEffects.

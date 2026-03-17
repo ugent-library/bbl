@@ -29,9 +29,9 @@ func writeCreateWorkField(ctx context.Context, tx pgx.Tx, id, workID ID, field s
 
 // --- Set/Delete helpers for scalar fields ---
 
-func applySetWorkField(workID ID, field string, val any, id *ID, userID **ID, in AddRevInput) (*mutationEffect, error) {
+func applySetWorkField(workID ID, field string, val any, id *ID, mutUserID **ID, userID *ID) (*mutationEffect, error) {
 	*id = newID()
-	*userID = in.UserID
+	*mutUserID = userID
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   workID,
@@ -75,16 +75,16 @@ func writeDeleteWorkField(ctx context.Context, tx pgx.Tx, workID ID, field strin
 // --- SetWorkArticleNumber / DeleteWorkArticleNumber ---
 
 type SetWorkArticleNumber struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkArticleNumber) mutationName() string { return "SetWorkArticleNumber" }
+func (m *SetWorkArticleNumber) mutationName() string { return "set_work_article_number" }
 func (m *SetWorkArticleNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkArticleNumber) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "article_number", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkArticleNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "article_number", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkArticleNumber) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "article_number", m.Val, m.userID)
@@ -92,9 +92,9 @@ func (m *SetWorkArticleNumber) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkArticleNumber struct{ WorkID ID }
 
-func (m *DeleteWorkArticleNumber) mutationName() string { return "DeleteWorkArticleNumber" }
+func (m *DeleteWorkArticleNumber) mutationName() string { return "delete_work_article_number" }
 func (m *DeleteWorkArticleNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkArticleNumber) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkArticleNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "article_number")
 }
 func (m *DeleteWorkArticleNumber) write(ctx context.Context, tx pgx.Tx) error {
@@ -104,16 +104,16 @@ func (m *DeleteWorkArticleNumber) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkBookTitle / DeleteWorkBookTitle ---
 
 type SetWorkBookTitle struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkBookTitle) mutationName() string { return "SetWorkBookTitle" }
+func (m *SetWorkBookTitle) mutationName() string { return "set_work_book_title" }
 func (m *SetWorkBookTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkBookTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "book_title", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkBookTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "book_title", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkBookTitle) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "book_title", m.Val, m.userID)
@@ -121,9 +121,9 @@ func (m *SetWorkBookTitle) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkBookTitle struct{ WorkID ID }
 
-func (m *DeleteWorkBookTitle) mutationName() string { return "DeleteWorkBookTitle" }
+func (m *DeleteWorkBookTitle) mutationName() string { return "delete_work_book_title" }
 func (m *DeleteWorkBookTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkBookTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkBookTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "book_title")
 }
 func (m *DeleteWorkBookTitle) write(ctx context.Context, tx pgx.Tx) error {
@@ -133,16 +133,16 @@ func (m *DeleteWorkBookTitle) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkConference / DeleteWorkConference ---
 
 type SetWorkConference struct {
-	WorkID ID
-	Val    Conference
+	WorkID ID     `json:"work_id"`
+	Val    Conference `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkConference) mutationName() string { return "SetWorkConference" }
+func (m *SetWorkConference) mutationName() string { return "set_work_conference" }
 func (m *SetWorkConference) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkConference) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "conference", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkConference) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "conference", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkConference) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "conference", m.Val, m.userID)
@@ -150,9 +150,9 @@ func (m *SetWorkConference) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkConference struct{ WorkID ID }
 
-func (m *DeleteWorkConference) mutationName() string { return "DeleteWorkConference" }
+func (m *DeleteWorkConference) mutationName() string { return "delete_work_conference" }
 func (m *DeleteWorkConference) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkConference) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkConference) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "conference")
 }
 func (m *DeleteWorkConference) write(ctx context.Context, tx pgx.Tx) error {
@@ -162,16 +162,16 @@ func (m *DeleteWorkConference) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkEdition / DeleteWorkEdition ---
 
 type SetWorkEdition struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkEdition) mutationName() string { return "SetWorkEdition" }
+func (m *SetWorkEdition) mutationName() string { return "set_work_edition" }
 func (m *SetWorkEdition) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkEdition) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "edition", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkEdition) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "edition", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkEdition) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "edition", m.Val, m.userID)
@@ -179,9 +179,9 @@ func (m *SetWorkEdition) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkEdition struct{ WorkID ID }
 
-func (m *DeleteWorkEdition) mutationName() string { return "DeleteWorkEdition" }
+func (m *DeleteWorkEdition) mutationName() string { return "delete_work_edition" }
 func (m *DeleteWorkEdition) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkEdition) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkEdition) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "edition")
 }
 func (m *DeleteWorkEdition) write(ctx context.Context, tx pgx.Tx) error {
@@ -191,16 +191,16 @@ func (m *DeleteWorkEdition) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkIssue / DeleteWorkIssue ---
 
 type SetWorkIssue struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkIssue) mutationName() string { return "SetWorkIssue" }
+func (m *SetWorkIssue) mutationName() string { return "set_work_issue" }
 func (m *SetWorkIssue) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIssue) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "issue", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkIssue) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "issue", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkIssue) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "issue", m.Val, m.userID)
@@ -208,9 +208,9 @@ func (m *SetWorkIssue) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkIssue struct{ WorkID ID }
 
-func (m *DeleteWorkIssue) mutationName() string { return "DeleteWorkIssue" }
+func (m *DeleteWorkIssue) mutationName() string { return "delete_work_issue" }
 func (m *DeleteWorkIssue) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkIssue) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkIssue) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "issue")
 }
 func (m *DeleteWorkIssue) write(ctx context.Context, tx pgx.Tx) error {
@@ -220,16 +220,16 @@ func (m *DeleteWorkIssue) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkIssueTitle / DeleteWorkIssueTitle ---
 
 type SetWorkIssueTitle struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkIssueTitle) mutationName() string { return "SetWorkIssueTitle" }
+func (m *SetWorkIssueTitle) mutationName() string { return "set_work_issue_title" }
 func (m *SetWorkIssueTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIssueTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "issue_title", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkIssueTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "issue_title", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkIssueTitle) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "issue_title", m.Val, m.userID)
@@ -237,9 +237,9 @@ func (m *SetWorkIssueTitle) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkIssueTitle struct{ WorkID ID }
 
-func (m *DeleteWorkIssueTitle) mutationName() string { return "DeleteWorkIssueTitle" }
+func (m *DeleteWorkIssueTitle) mutationName() string { return "delete_work_issue_title" }
 func (m *DeleteWorkIssueTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkIssueTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkIssueTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "issue_title")
 }
 func (m *DeleteWorkIssueTitle) write(ctx context.Context, tx pgx.Tx) error {
@@ -249,16 +249,16 @@ func (m *DeleteWorkIssueTitle) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkJournalAbbreviation / DeleteWorkJournalAbbreviation ---
 
 type SetWorkJournalAbbreviation struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkJournalAbbreviation) mutationName() string { return "SetWorkJournalAbbreviation" }
+func (m *SetWorkJournalAbbreviation) mutationName() string { return "set_work_journal_abbreviation" }
 func (m *SetWorkJournalAbbreviation) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkJournalAbbreviation) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "journal_abbreviation", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkJournalAbbreviation) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "journal_abbreviation", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "journal_abbreviation", m.Val, m.userID)
@@ -266,9 +266,9 @@ func (m *SetWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx) error
 
 type DeleteWorkJournalAbbreviation struct{ WorkID ID }
 
-func (m *DeleteWorkJournalAbbreviation) mutationName() string { return "DeleteWorkJournalAbbreviation" }
+func (m *DeleteWorkJournalAbbreviation) mutationName() string { return "delete_work_journal_abbreviation" }
 func (m *DeleteWorkJournalAbbreviation) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkJournalAbbreviation) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkJournalAbbreviation) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "journal_abbreviation")
 }
 func (m *DeleteWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx) error {
@@ -278,16 +278,16 @@ func (m *DeleteWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx) er
 // --- SetWorkJournalTitle / DeleteWorkJournalTitle ---
 
 type SetWorkJournalTitle struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkJournalTitle) mutationName() string { return "SetWorkJournalTitle" }
+func (m *SetWorkJournalTitle) mutationName() string { return "set_work_journal_title" }
 func (m *SetWorkJournalTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkJournalTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "journal_title", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkJournalTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "journal_title", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkJournalTitle) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "journal_title", m.Val, m.userID)
@@ -295,9 +295,9 @@ func (m *SetWorkJournalTitle) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkJournalTitle struct{ WorkID ID }
 
-func (m *DeleteWorkJournalTitle) mutationName() string { return "DeleteWorkJournalTitle" }
+func (m *DeleteWorkJournalTitle) mutationName() string { return "delete_work_journal_title" }
 func (m *DeleteWorkJournalTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkJournalTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkJournalTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "journal_title")
 }
 func (m *DeleteWorkJournalTitle) write(ctx context.Context, tx pgx.Tx) error {
@@ -307,16 +307,16 @@ func (m *DeleteWorkJournalTitle) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkPages / DeleteWorkPages ---
 
 type SetWorkPages struct {
-	WorkID ID
-	Val    Extent
+	WorkID ID     `json:"work_id"`
+	Val    Extent `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkPages) mutationName() string { return "SetWorkPages" }
+func (m *SetWorkPages) mutationName() string { return "set_work_pages" }
 func (m *SetWorkPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPages) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "pages", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "pages", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkPages) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "pages", m.Val, m.userID)
@@ -324,9 +324,9 @@ func (m *SetWorkPages) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkPages struct{ WorkID ID }
 
-func (m *DeleteWorkPages) mutationName() string { return "DeleteWorkPages" }
+func (m *DeleteWorkPages) mutationName() string { return "delete_work_pages" }
 func (m *DeleteWorkPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkPages) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "pages")
 }
 func (m *DeleteWorkPages) write(ctx context.Context, tx pgx.Tx) error {
@@ -336,16 +336,16 @@ func (m *DeleteWorkPages) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkPlaceOfPublication / DeleteWorkPlaceOfPublication ---
 
 type SetWorkPlaceOfPublication struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkPlaceOfPublication) mutationName() string { return "SetWorkPlaceOfPublication" }
+func (m *SetWorkPlaceOfPublication) mutationName() string { return "set_work_place_of_publication" }
 func (m *SetWorkPlaceOfPublication) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPlaceOfPublication) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "place_of_publication", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkPlaceOfPublication) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "place_of_publication", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "place_of_publication", m.Val, m.userID)
@@ -353,9 +353,9 @@ func (m *SetWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx) error 
 
 type DeleteWorkPlaceOfPublication struct{ WorkID ID }
 
-func (m *DeleteWorkPlaceOfPublication) mutationName() string { return "DeleteWorkPlaceOfPublication" }
+func (m *DeleteWorkPlaceOfPublication) mutationName() string { return "delete_work_place_of_publication" }
 func (m *DeleteWorkPlaceOfPublication) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkPlaceOfPublication) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkPlaceOfPublication) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "place_of_publication")
 }
 func (m *DeleteWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx) error {
@@ -365,16 +365,16 @@ func (m *DeleteWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx) err
 // --- SetWorkPublicationStatus / DeleteWorkPublicationStatus ---
 
 type SetWorkPublicationStatus struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkPublicationStatus) mutationName() string { return "SetWorkPublicationStatus" }
+func (m *SetWorkPublicationStatus) mutationName() string { return "set_work_publication_status" }
 func (m *SetWorkPublicationStatus) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublicationStatus) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "publication_status", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkPublicationStatus) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "publication_status", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "publication_status", m.Val, m.userID)
@@ -382,9 +382,9 @@ func (m *SetWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkPublicationStatus struct{ WorkID ID }
 
-func (m *DeleteWorkPublicationStatus) mutationName() string { return "DeleteWorkPublicationStatus" }
+func (m *DeleteWorkPublicationStatus) mutationName() string { return "delete_work_publication_status" }
 func (m *DeleteWorkPublicationStatus) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkPublicationStatus) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkPublicationStatus) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "publication_status")
 }
 func (m *DeleteWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx) error {
@@ -394,16 +394,16 @@ func (m *DeleteWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx) erro
 // --- SetWorkPublicationYear / DeleteWorkPublicationYear ---
 
 type SetWorkPublicationYear struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkPublicationYear) mutationName() string { return "SetWorkPublicationYear" }
+func (m *SetWorkPublicationYear) mutationName() string { return "set_work_publication_year" }
 func (m *SetWorkPublicationYear) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublicationYear) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "publication_year", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkPublicationYear) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "publication_year", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkPublicationYear) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "publication_year", m.Val, m.userID)
@@ -411,9 +411,9 @@ func (m *SetWorkPublicationYear) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkPublicationYear struct{ WorkID ID }
 
-func (m *DeleteWorkPublicationYear) mutationName() string { return "DeleteWorkPublicationYear" }
+func (m *DeleteWorkPublicationYear) mutationName() string { return "delete_work_publication_year" }
 func (m *DeleteWorkPublicationYear) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkPublicationYear) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkPublicationYear) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "publication_year")
 }
 func (m *DeleteWorkPublicationYear) write(ctx context.Context, tx pgx.Tx) error {
@@ -423,16 +423,16 @@ func (m *DeleteWorkPublicationYear) write(ctx context.Context, tx pgx.Tx) error 
 // --- SetWorkPublisher / DeleteWorkPublisher ---
 
 type SetWorkPublisher struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkPublisher) mutationName() string { return "SetWorkPublisher" }
+func (m *SetWorkPublisher) mutationName() string { return "set_work_publisher" }
 func (m *SetWorkPublisher) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublisher) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "publisher", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkPublisher) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "publisher", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkPublisher) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "publisher", m.Val, m.userID)
@@ -440,9 +440,9 @@ func (m *SetWorkPublisher) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkPublisher struct{ WorkID ID }
 
-func (m *DeleteWorkPublisher) mutationName() string { return "DeleteWorkPublisher" }
+func (m *DeleteWorkPublisher) mutationName() string { return "delete_work_publisher" }
 func (m *DeleteWorkPublisher) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkPublisher) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkPublisher) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "publisher")
 }
 func (m *DeleteWorkPublisher) write(ctx context.Context, tx pgx.Tx) error {
@@ -452,16 +452,16 @@ func (m *DeleteWorkPublisher) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkReportNumber / DeleteWorkReportNumber ---
 
 type SetWorkReportNumber struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkReportNumber) mutationName() string { return "SetWorkReportNumber" }
+func (m *SetWorkReportNumber) mutationName() string { return "set_work_report_number" }
 func (m *SetWorkReportNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkReportNumber) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "report_number", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkReportNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "report_number", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkReportNumber) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "report_number", m.Val, m.userID)
@@ -469,9 +469,9 @@ func (m *SetWorkReportNumber) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkReportNumber struct{ WorkID ID }
 
-func (m *DeleteWorkReportNumber) mutationName() string { return "DeleteWorkReportNumber" }
+func (m *DeleteWorkReportNumber) mutationName() string { return "delete_work_report_number" }
 func (m *DeleteWorkReportNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkReportNumber) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkReportNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "report_number")
 }
 func (m *DeleteWorkReportNumber) write(ctx context.Context, tx pgx.Tx) error {
@@ -481,16 +481,16 @@ func (m *DeleteWorkReportNumber) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkSeriesTitle / DeleteWorkSeriesTitle ---
 
 type SetWorkSeriesTitle struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkSeriesTitle) mutationName() string { return "SetWorkSeriesTitle" }
+func (m *SetWorkSeriesTitle) mutationName() string { return "set_work_series_title" }
 func (m *SetWorkSeriesTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkSeriesTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "series_title", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkSeriesTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "series_title", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "series_title", m.Val, m.userID)
@@ -498,9 +498,9 @@ func (m *SetWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkSeriesTitle struct{ WorkID ID }
 
-func (m *DeleteWorkSeriesTitle) mutationName() string { return "DeleteWorkSeriesTitle" }
+func (m *DeleteWorkSeriesTitle) mutationName() string { return "delete_work_series_title" }
 func (m *DeleteWorkSeriesTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkSeriesTitle) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkSeriesTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "series_title")
 }
 func (m *DeleteWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx) error {
@@ -510,16 +510,16 @@ func (m *DeleteWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkTotalPages / DeleteWorkTotalPages ---
 
 type SetWorkTotalPages struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkTotalPages) mutationName() string { return "SetWorkTotalPages" }
+func (m *SetWorkTotalPages) mutationName() string { return "set_work_total_pages" }
 func (m *SetWorkTotalPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkTotalPages) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "total_pages", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkTotalPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "total_pages", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkTotalPages) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "total_pages", m.Val, m.userID)
@@ -527,9 +527,9 @@ func (m *SetWorkTotalPages) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkTotalPages struct{ WorkID ID }
 
-func (m *DeleteWorkTotalPages) mutationName() string { return "DeleteWorkTotalPages" }
+func (m *DeleteWorkTotalPages) mutationName() string { return "delete_work_total_pages" }
 func (m *DeleteWorkTotalPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkTotalPages) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkTotalPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "total_pages")
 }
 func (m *DeleteWorkTotalPages) write(ctx context.Context, tx pgx.Tx) error {
@@ -539,16 +539,16 @@ func (m *DeleteWorkTotalPages) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetWorkVolume / DeleteWorkVolume ---
 
 type SetWorkVolume struct {
-	WorkID ID
-	Val    string
+	WorkID ID     `json:"work_id"`
+	Val    string `json:"val"`
 	id     ID
 	userID *ID
 }
 
-func (m *SetWorkVolume) mutationName() string { return "SetWorkVolume" }
+func (m *SetWorkVolume) mutationName() string { return "set_work_volume" }
 func (m *SetWorkVolume) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkVolume) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	return applySetWorkField(m.WorkID, "volume", m.Val, &m.id, &m.userID, in)
+func (m *SetWorkVolume) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applySetWorkField(m.WorkID, "volume", m.Val, &m.id, &m.userID, userID)
 }
 func (m *SetWorkVolume) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetWorkField(ctx, tx, m.id, m.WorkID, "volume", m.Val, m.userID)
@@ -556,9 +556,9 @@ func (m *SetWorkVolume) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteWorkVolume struct{ WorkID ID }
 
-func (m *DeleteWorkVolume) mutationName() string { return "DeleteWorkVolume" }
+func (m *DeleteWorkVolume) mutationName() string { return "delete_work_volume" }
 func (m *DeleteWorkVolume) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteWorkVolume) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteWorkVolume) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return applyDeleteWorkField(m.WorkID, "volume")
 }
 func (m *DeleteWorkVolume) write(ctx context.Context, tx pgx.Tx) error {

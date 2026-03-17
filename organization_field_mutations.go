@@ -50,15 +50,15 @@ func writeOrganizationRel(ctx context.Context, tx pgx.Tx, id, organizationID, re
 // --- SetOrganizationNames (no delete — required) ---
 
 type SetOrganizationNames struct {
-	OrganizationID ID
+	OrganizationID ID     `json:"organization_id"`
 	Names          []Text
 	userID         *ID
 }
 
-func (m *SetOrganizationNames) mutationName() string { return "SetOrganizationNames" }
+func (m *SetOrganizationNames) mutationName() string { return "set_organization_names" }
 func (m *SetOrganizationNames) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationNames) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetOrganizationNames) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -84,15 +84,15 @@ func (m *SetOrganizationNames) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetOrganizationIdentifiers / DeleteOrganizationIdentifiers ---
 
 type SetOrganizationIdentifiers struct {
-	OrganizationID ID
+	OrganizationID ID     `json:"organization_id"`
 	Identifiers    []Identifier
 	userID         *ID
 }
 
-func (m *SetOrganizationIdentifiers) mutationName() string { return "SetOrganizationIdentifiers" }
+func (m *SetOrganizationIdentifiers) mutationName() string { return "set_organization_identifiers" }
 func (m *SetOrganizationIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetOrganizationIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -117,9 +117,9 @@ func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx) error
 
 type DeleteOrganizationIdentifiers struct{ OrganizationID ID }
 
-func (m *DeleteOrganizationIdentifiers) mutationName() string { return "DeleteOrganizationIdentifiers" }
+func (m *DeleteOrganizationIdentifiers) mutationName() string { return "delete_organization_identifiers" }
 func (m *DeleteOrganizationIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteOrganizationIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteOrganizationIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -139,18 +139,18 @@ func (m *DeleteOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx) er
 // --- SetOrganizationRels / DeleteOrganizationRels ---
 
 type SetOrganizationRels struct {
-	OrganizationID ID
-	Rels           []struct {
-		RelOrganizationID ID
-		Kind              string
-	}
+	OrganizationID ID     `json:"organization_id"`
+	Rels []struct {
+		RelOrganizationID ID     `json:"rel_organization_id"`
+		Kind              string `json:"kind"`
+	} `json:"rels"`
 	userID *ID
 }
 
-func (m *SetOrganizationRels) mutationName() string { return "SetOrganizationRels" }
+func (m *SetOrganizationRels) mutationName() string { return "set_organization_rels" }
 func (m *SetOrganizationRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationRels) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetOrganizationRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -175,9 +175,9 @@ func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteOrganizationRels struct{ OrganizationID ID }
 
-func (m *DeleteOrganizationRels) mutationName() string { return "DeleteOrganizationRels" }
+func (m *DeleteOrganizationRels) mutationName() string { return "delete_organization_rels" }
 func (m *DeleteOrganizationRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteOrganizationRels) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteOrganizationRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,

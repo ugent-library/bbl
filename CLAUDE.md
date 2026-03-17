@@ -66,7 +66,7 @@ Field values are stored as **assertion rows**, not columns on entity tables. Thi
 - **`kind`** is a regular assertion in `bbl_*_fields`, but on entity creation the system creates its own copy-on-write kind assertion to prevent silent kind changes on re-import.
 - `cache jsonb` on entity table holds pinned values, rebuilt on every write.
 
-**Mutations**: concrete named types per field (`SetWorkVolume`, `DeleteWorkVolume`), not generic field-name params. Required fields (work titles, person name, project titles, org names) have no Delete mutation. Both human (`AddRev`) and import paths write mutation records to `bbl_mutations` for audit/replay.
+**Mutations**: concrete named types per field (`SetWorkVolume`, `DeleteWorkVolume`), not generic field-name params. Required fields (work titles, person name, project titles, org names) have no Delete mutation. Both human (`Mutate`) and import paths write mutation records to `bbl_mutations` for audit/replay.
 
 Key files: `assertion.go`, `mutations.go`, `*_field_mutations.go`, `*_relation_mutations.go`, `import.go`.
 
@@ -76,9 +76,9 @@ Key files: `assertion.go`, `mutations.go`, `*_field_mutations.go`, `*_relation_m
 
 ### Write paths
 
-All state changes go through `AddRev` (human) or `Import*` (source). No ad-hoc direct mutations. One revision = one transaction boundary.
+All state changes go through `Mutate` (human) or `Import*` (source). No ad-hoc direct mutations. One revision = one transaction boundary.
 
-- **Human path (`AddRev`)**: assertion rows get `user_id` set, `*_source_id = NULL`. Replace semantics.
+- **Human path (`Mutate`)**: assertion rows get `user_id` set, `*_source_id = NULL`. Replace semantics.
 - **Import path**: assertion rows get `*_source_id` set, `user_id = NULL`. Re-import deletes all assertions for the source record and inserts new ones. Shared low-level write helpers used by both paths.
 - **Ingestion flow**: incoming record → evaluate → auto-accept (match + import), auto-reject, or candidate (ambiguous, staged for review).
 

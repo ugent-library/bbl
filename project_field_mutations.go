@@ -61,15 +61,15 @@ func writeProjectPerson(ctx context.Context, tx pgx.Tx, id, projectID, personID 
 // --- SetProjectTitles (no delete — required) ---
 
 type SetProjectTitles struct {
-	ProjectID ID
+	ProjectID ID     `json:"project_id"`
 	Titles    []Title
 	userID    *ID
 }
 
-func (m *SetProjectTitles) mutationName() string { return "SetProjectTitles" }
+func (m *SetProjectTitles) mutationName() string { return "set_project_titles" }
 func (m *SetProjectTitles) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectTitles) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetProjectTitles) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -96,14 +96,14 @@ func (m *SetProjectTitles) write(ctx context.Context, tx pgx.Tx) error {
 
 type SetProjectDescriptions struct {
 	ProjectID    ID
-	Descriptions []Text
+	Descriptions []Text `json:"descriptions"`
 	userID       *ID
 }
 
-func (m *SetProjectDescriptions) mutationName() string { return "SetProjectDescriptions" }
+func (m *SetProjectDescriptions) mutationName() string { return "set_project_descriptions" }
 func (m *SetProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectDescriptions) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -128,9 +128,9 @@ func (m *SetProjectDescriptions) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteProjectDescriptions struct{ ProjectID ID }
 
-func (m *DeleteProjectDescriptions) mutationName() string { return "DeleteProjectDescriptions" }
+func (m *DeleteProjectDescriptions) mutationName() string { return "delete_project_descriptions" }
 func (m *DeleteProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectDescriptions) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -151,14 +151,14 @@ func (m *DeleteProjectDescriptions) write(ctx context.Context, tx pgx.Tx) error 
 
 type SetProjectIdentifiers struct {
 	ProjectID   ID
-	Identifiers []Identifier
+	Identifiers []Identifier `json:"identifiers"`
 	userID      *ID
 }
 
-func (m *SetProjectIdentifiers) mutationName() string { return "SetProjectIdentifiers" }
+func (m *SetProjectIdentifiers) mutationName() string { return "set_project_identifiers" }
 func (m *SetProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -183,9 +183,9 @@ func (m *SetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteProjectIdentifiers struct{ ProjectID ID }
 
-func (m *DeleteProjectIdentifiers) mutationName() string { return "DeleteProjectIdentifiers" }
+func (m *DeleteProjectIdentifiers) mutationName() string { return "delete_project_identifiers" }
 func (m *DeleteProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectIdentifiers) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -205,15 +205,15 @@ func (m *DeleteProjectIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
 // --- SetProjectPeople / DeleteProjectPeople ---
 
 type SetProjectPeople struct {
-	ProjectID ID
+	ProjectID ID     `json:"project_id"`
 	People    []ProjectPerson
 	userID    *ID
 }
 
-func (m *SetProjectPeople) mutationName() string { return "SetProjectPeople" }
+func (m *SetProjectPeople) mutationName() string { return "set_project_people" }
 func (m *SetProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectPeople) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	m.userID = in.UserID
+func (m *SetProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	m.userID = userID
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
@@ -238,9 +238,9 @@ func (m *SetProjectPeople) write(ctx context.Context, tx pgx.Tx) error {
 
 type DeleteProjectPeople struct{ ProjectID ID }
 
-func (m *DeleteProjectPeople) mutationName() string { return "DeleteProjectPeople" }
+func (m *DeleteProjectPeople) mutationName() string { return "delete_project_people" }
 func (m *DeleteProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectPeople) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *DeleteProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,

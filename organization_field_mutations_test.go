@@ -5,7 +5,7 @@ import "testing"
 func TestSetOrganizationNames_Apply(t *testing.T) {
 	orgID := newID()
 	m := &SetOrganizationNames{OrganizationID: orgID, Names: []Text{{Lang: "en", Val: "Ghent University"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestSetOrganizationNames_Apply(t *testing.T) {
 func TestSetOrganizationIdentifiers_Apply(t *testing.T) {
 	orgID := newID()
 	m := &SetOrganizationIdentifiers{OrganizationID: orgID, Identifiers: []Identifier{{Scheme: "ror", Val: "https://ror.org/123"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestSetOrganizationIdentifiers_Apply(t *testing.T) {
 func TestDeleteOrganizationIdentifiers_Apply(t *testing.T) {
 	orgID := newID()
 	m := &DeleteOrganizationIdentifiers{OrganizationID: orgID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,11 +56,11 @@ func TestSetOrganizationRels_Apply(t *testing.T) {
 	m := &SetOrganizationRels{
 		OrganizationID: orgID,
 		Rels: []struct {
-			RelOrganizationID ID
-			Kind              string
+			RelOrganizationID ID     `json:"rel_organization_id"`
+			Kind              string `json:"kind"`
 		}{{RelOrganizationID: relOrgID, Kind: "parent"}},
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestSetOrganizationRels_Apply(t *testing.T) {
 func TestDeleteOrganizationRels_Apply(t *testing.T) {
 	orgID := newID()
 	m := &DeleteOrganizationRels{OrganizationID: orgID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

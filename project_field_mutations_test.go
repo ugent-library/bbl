@@ -5,7 +5,7 @@ import "testing"
 func TestSetProjectTitles_Apply(t *testing.T) {
 	projectID := newID()
 	m := &SetProjectTitles{ProjectID: projectID, Titles: []Title{{Lang: "en", Val: "My Project"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestSetProjectTitles_Apply(t *testing.T) {
 func TestSetProjectDescriptions_Apply(t *testing.T) {
 	projectID := newID()
 	m := &SetProjectDescriptions{ProjectID: projectID, Descriptions: []Text{{Lang: "en", Val: "A description"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestSetProjectDescriptions_Apply(t *testing.T) {
 func TestDeleteProjectDescriptions_Apply(t *testing.T) {
 	projectID := newID()
 	m := &DeleteProjectDescriptions{ProjectID: projectID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestDeleteProjectDescriptions_Apply(t *testing.T) {
 func TestSetProjectIdentifiers_Apply(t *testing.T) {
 	projectID := newID()
 	m := &SetProjectIdentifiers{ProjectID: projectID, Identifiers: []Identifier{{Scheme: "iweto", Val: "P12345"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestSetProjectIdentifiers_Apply(t *testing.T) {
 func TestDeleteProjectIdentifiers_Apply(t *testing.T) {
 	projectID := newID()
 	m := &DeleteProjectIdentifiers{ProjectID: projectID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestSetProjectPeople_Apply(t *testing.T) {
 	projectID := newID()
 	personID := newID()
 	m := &SetProjectPeople{ProjectID: projectID, People: []ProjectPerson{{PersonID: personID, Role: "PI"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestSetProjectPeople_Apply(t *testing.T) {
 func TestDeleteProjectPeople_Apply(t *testing.T) {
 	projectID := newID()
 	m := &DeleteProjectPeople{ProjectID: projectID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

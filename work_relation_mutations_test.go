@@ -5,7 +5,7 @@ import "testing"
 func TestSetWorkTitles_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkTitles{WorkID: workID, Titles: []Title{{Lang: "en", Val: "Test Title"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestSetWorkTitles_Apply(t *testing.T) {
 func TestSetWorkIdentifiers_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkIdentifiers{WorkID: workID, Identifiers: []WorkIdentifier{{Scheme: "doi", Val: "10.1234/test"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestSetWorkIdentifiers_Apply(t *testing.T) {
 func TestDeleteWorkIdentifiers_Apply(t *testing.T) {
 	workID := newID()
 	m := &DeleteWorkIdentifiers{WorkID: workID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestSetWorkContributors_Apply(t *testing.T) {
 			{Name: "Jane Doe", GivenName: "Jane", FamilyName: "Doe", Roles: []string{"author"}},
 		},
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestSetWorkContributors_Apply(t *testing.T) {
 func TestDeleteWorkContributors_Apply(t *testing.T) {
 	workID := newID()
 	m := &DeleteWorkContributors{WorkID: workID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestDeleteWorkContributors_Apply(t *testing.T) {
 func TestSetWorkAbstracts_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkAbstracts{WorkID: workID, Abstracts: []Text{{Lang: "en", Val: "An abstract"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestSetWorkAbstracts_Apply(t *testing.T) {
 func TestDeleteWorkAbstracts_Apply(t *testing.T) {
 	workID := newID()
 	m := &DeleteWorkAbstracts{WorkID: workID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestDeleteWorkAbstracts_Apply(t *testing.T) {
 func TestSetWorkNotes_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkNotes{WorkID: workID, Notes: []Note{{Kind: "access", Val: "Open access"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestSetWorkNotes_Apply(t *testing.T) {
 func TestSetWorkKeywords_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkKeywords{WorkID: workID, Keywords: []Keyword{{Val: "machine learning"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestSetWorkKeywords_Apply(t *testing.T) {
 func TestDeleteWorkKeywords_Apply(t *testing.T) {
 	workID := newID()
 	m := &DeleteWorkKeywords{WorkID: workID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestSetWorkProjects_Apply(t *testing.T) {
 	workID := newID()
 	projectID := newID()
 	m := &SetWorkProjects{WorkID: workID, Projects: []ID{projectID}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,11 +188,11 @@ func TestSetWorkRels_Apply(t *testing.T) {
 	m := &SetWorkRels{
 		WorkID: workID,
 		Rels: []struct {
-			RelatedWorkID ID
-			Kind          string
+			RelatedWorkID ID     `json:"related_work_id"`
+			Kind          string `json:"kind"`
 		}{{RelatedWorkID: relatedID, Kind: "cites"}},
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

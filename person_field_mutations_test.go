@@ -5,7 +5,7 @@ import "testing"
 func TestSetPersonName_Apply(t *testing.T) {
 	personID := newID()
 	m := &SetPersonName{PersonID: personID, Val: "Jane Doe"}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestSetPersonName_Apply(t *testing.T) {
 func TestSetPersonGivenName_Apply(t *testing.T) {
 	personID := newID()
 	m := &SetPersonGivenName{PersonID: personID, Val: "Jane"}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestSetPersonGivenName_Apply(t *testing.T) {
 func TestDeletePersonGivenName_Apply(t *testing.T) {
 	personID := newID()
 	m := &DeletePersonGivenName{PersonID: personID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestDeletePersonGivenName_Apply(t *testing.T) {
 func TestSetPersonIdentifiers_Apply(t *testing.T) {
 	personID := newID()
 	m := &SetPersonIdentifiers{PersonID: personID, Identifiers: []Identifier{{Scheme: "orcid", Val: "0000-0001-2345-6789"}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestSetPersonIdentifiers_Apply(t *testing.T) {
 func TestDeletePersonIdentifiers_Apply(t *testing.T) {
 	personID := newID()
 	m := &DeletePersonIdentifiers{PersonID: personID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestSetPersonOrganizations_Apply(t *testing.T) {
 	personID := newID()
 	orgID := newID()
 	m := &SetPersonOrganizations{PersonID: personID, Organizations: []PersonOrganization{{OrganizationID: orgID}}}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestSetPersonOrganizations_Apply(t *testing.T) {
 func TestDeletePersonOrganizations_Apply(t *testing.T) {
 	personID := newID()
 	m := &DeletePersonOrganizations{PersonID: personID}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

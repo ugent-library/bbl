@@ -5,10 +5,10 @@ import "testing"
 func TestCreateOrganization_Apply(t *testing.T) {
 	id := newID()
 	m := &CreateOrganization{
-		EntityID: id,
+		OrganizationID: id,
 		Kind:     "department",
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +40,8 @@ func TestDeleteOrganization_Apply(t *testing.T) {
 	}
 	state := mutationState{organizations: map[ID]*Organization{id: existing}}
 
-	m := &DeleteOrganization{EntityID: id}
-	eff, err := m.apply(state, AddRevInput{})
+	m := &DeleteOrganization{OrganizationID: id}
+	eff, err := m.apply(state, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,8 +70,8 @@ func TestDeleteOrganization_AlreadyDeleted(t *testing.T) {
 	}
 	state := mutationState{organizations: map[ID]*Organization{id: existing}}
 
-	m := &DeleteOrganization{EntityID: id}
-	eff, err := m.apply(state, AddRevInput{})
+	m := &DeleteOrganization{OrganizationID: id}
+	eff, err := m.apply(state, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

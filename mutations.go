@@ -40,7 +40,7 @@ type mutation interface {
 
 	// apply computes the effect of the mutation. Pure: no DB access.
 	// Returns nil when the mutation is a noop (no change).
-	apply(state mutationState, in AddRevInput) (*mutationEffect, error)
+	apply(state mutationState, userID *ID) (*mutationEffect, error)
 
 	// write executes the mutation's SQL against the transaction.
 	// Called only for non-noop mutations, after the bbl_revs row is inserted.

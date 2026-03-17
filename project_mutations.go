@@ -10,7 +10,7 @@ import (
 
 // CreateProject creates a new project entity.
 type CreateProject struct {
-	EntityID  ID
+	ProjectID  ID     `json:"project_id"`
 	Status    string     // defaults to ProjectStatusPublic
 	StartDate *time.Time
 	EndDate   *time.Time
@@ -18,16 +18,16 @@ type CreateProject struct {
 	project *Project // populated by apply
 }
 
-func (m *CreateProject) mutationName() string { return "CreateProject" }
+func (m *CreateProject) mutationName() string { return "create_project" }
 
 func (m *CreateProject) needs() mutationNeeds { return mutationNeeds{} }
 
-func (m *CreateProject) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *CreateProject) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	if m.Status == "" {
 		m.Status = ProjectStatusPublic
 	}
 	m.project = &Project{
-		ID:        m.EntityID,
+		ID:        m.ProjectID,
 		Version:   1,
 		Status:    m.Status,
 		StartDate: m.StartDate,
@@ -35,7 +35,7 @@ func (m *CreateProject) apply(state mutationState, in AddRevInput) (*mutationEff
 	}
 	return &mutationEffect{
 		recordType: RecordTypeProject,
-		recordID:   m.EntityID,
+		recordID:   m.ProjectID,
 		opType:     OpCreate,
 		diff:       Diff{Args: struct{ Status string }{m.Status}},
 		record:     m.project,
@@ -59,21 +59,21 @@ func (m *CreateProject) write(ctx context.Context, tx pgx.Tx) error {
 
 // DeleteProject soft-deletes a project.
 type DeleteProject struct {
-	EntityID ID
+	ProjectID ID     `json:"project_id"`
 
 	project *Project // populated by apply
 }
 
-func (m *DeleteProject) mutationName() string { return "DeleteProject" }
+func (m *DeleteProject) mutationName() string { return "delete_project" }
 
 func (m *DeleteProject) needs() mutationNeeds {
-	return mutationNeeds{projectIDs: []ID{m.EntityID}}
+	return mutationNeeds{projectIDs: []ID{m.ProjectID}}
 }
 
-func (m *DeleteProject) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	p, ok := state.projects[m.EntityID]
+func (m *DeleteProject) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	p, ok := state.projects[m.ProjectID]
 	if !ok {
-		return nil, fmt.Errorf("DeleteProject: project %s not found", m.EntityID)
+		return nil, fmt.Errorf("DeleteProject: project %s not found", m.ProjectID)
 	}
 	if p.Status == ProjectStatusDeleted {
 		return nil, nil // noop
@@ -87,7 +87,7 @@ func (m *DeleteProject) apply(state mutationState, in AddRevInput) (*mutationEff
 
 	return &mutationEffect{
 		recordType: RecordTypeProject,
-		recordID:   m.EntityID,
+		recordID:   m.ProjectID,
 		opType:     OpDelete,
 		diff: Diff{
 			Args: struct{}{},

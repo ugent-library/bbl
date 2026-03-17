@@ -10,24 +10,24 @@ import (
 
 // CreatePerson creates a new person entity.
 type CreatePerson struct {
-	EntityID ID
+	PersonID ID     `json:"person_id"`
 
 	person *Person // populated by apply
 }
 
-func (m *CreatePerson) mutationName() string { return "CreatePerson" }
+func (m *CreatePerson) mutationName() string { return "create_person" }
 
 func (m *CreatePerson) needs() mutationNeeds { return mutationNeeds{} }
 
-func (m *CreatePerson) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *CreatePerson) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	m.person = &Person{
-		ID:      m.EntityID,
+		ID:      m.PersonID,
 		Version: 1,
 		Status:  PersonStatusPublic,
 	}
 	return &mutationEffect{
 		recordType: RecordTypePerson,
-		recordID:   m.EntityID,
+		recordID:   m.PersonID,
 		opType:     OpCreate,
 		diff:       Diff{Args: struct{}{}},
 		record:     m.person,
@@ -51,21 +51,21 @@ func (m *CreatePerson) write(ctx context.Context, tx pgx.Tx) error {
 
 // DeletePerson soft-deletes a person.
 type DeletePerson struct {
-	EntityID ID
+	PersonID ID     `json:"person_id"`
 
 	person *Person // populated by apply
 }
 
-func (m *DeletePerson) mutationName() string { return "DeletePerson" }
+func (m *DeletePerson) mutationName() string { return "delete_person" }
 
 func (m *DeletePerson) needs() mutationNeeds {
-	return mutationNeeds{personIDs: []ID{m.EntityID}}
+	return mutationNeeds{personIDs: []ID{m.PersonID}}
 }
 
-func (m *DeletePerson) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	p, ok := state.people[m.EntityID]
+func (m *DeletePerson) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	p, ok := state.people[m.PersonID]
 	if !ok {
-		return nil, fmt.Errorf("DeletePerson: person %s not found", m.EntityID)
+		return nil, fmt.Errorf("DeletePerson: person %s not found", m.PersonID)
 	}
 	if p.Status == PersonStatusDeleted {
 		return nil, nil // noop
@@ -79,7 +79,7 @@ func (m *DeletePerson) apply(state mutationState, in AddRevInput) (*mutationEffe
 
 	return &mutationEffect{
 		recordType: RecordTypePerson,
-		recordID:   m.EntityID,
+		recordID:   m.PersonID,
 		opType:     OpDelete,
 		diff: Diff{
 			Args: struct{}{},

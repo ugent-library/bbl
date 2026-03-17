@@ -10,30 +10,30 @@ import (
 
 // CreateWork creates a new work entity.
 type CreateWork struct {
-	EntityID ID
-	Kind     string
-	Status   string // defaults to WorkStatusPrivate
+	WorkID ID     `json:"work_id"`
+	Kind     string `json:"kind"`
+	Status   string `json:"status"` // defaults to WorkStatusPrivate
 
 	work *Work // populated by apply
 }
 
-func (m *CreateWork) mutationName() string { return "CreateWork" }
+func (m *CreateWork) mutationName() string { return "create_work" }
 
 func (m *CreateWork) needs() mutationNeeds { return mutationNeeds{} }
 
-func (m *CreateWork) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *CreateWork) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	if m.Status == "" {
 		m.Status = WorkStatusPrivate
 	}
 	m.work = &Work{
-		ID:      m.EntityID,
+		ID:      m.WorkID,
 		Version: 1,
 		Kind:    m.Kind,
 		Status:  m.Status,
 	}
 	return &mutationEffect{
 		recordType: RecordTypeWork,
-		recordID:   m.EntityID,
+		recordID:   m.WorkID,
 		opType:     OpCreate,
 		diff:       Diff{Args: struct{ Kind, Status string }{m.Kind, m.Status}},
 		record:     m.work,
@@ -59,22 +59,22 @@ func (m *CreateWork) write(ctx context.Context, tx pgx.Tx) error {
 
 // DeleteWork soft-deletes a work.
 type DeleteWork struct {
-	EntityID   ID
+	WorkID     ID     `json:"work_id"`
 	DeleteKind string // withdrawn, retracted, takedown
 
 	work *Work // populated by apply
 }
 
-func (m *DeleteWork) mutationName() string { return "DeleteWork" }
+func (m *DeleteWork) mutationName() string { return "delete_work" }
 
 func (m *DeleteWork) needs() mutationNeeds {
-	return mutationNeeds{workIDs: []ID{m.EntityID}}
+	return mutationNeeds{workIDs: []ID{m.WorkID}}
 }
 
-func (m *DeleteWork) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	w, ok := state.works[m.EntityID]
+func (m *DeleteWork) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	w, ok := state.works[m.WorkID]
 	if !ok {
-		return nil, fmt.Errorf("DeleteWork: work %s not found", m.EntityID)
+		return nil, fmt.Errorf("DeleteWork: work %s not found", m.WorkID)
 	}
 	if w.Status == WorkStatusDeleted {
 		return nil, nil // noop
@@ -89,7 +89,7 @@ func (m *DeleteWork) apply(state mutationState, in AddRevInput) (*mutationEffect
 
 	return &mutationEffect{
 		recordType: RecordTypeWork,
-		recordID:   m.EntityID,
+		recordID:   m.WorkID,
 		opType:     OpDelete,
 		diff: Diff{
 			Args: struct{ DeleteKind string }{m.DeleteKind},

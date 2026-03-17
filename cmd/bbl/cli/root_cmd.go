@@ -39,6 +39,7 @@ func NewRootCmd(reg *Registry) *cobra.Command {
 	root.AddCommand(newPeopleCmd(e))
 	root.AddCommand(newProjectsCmd(e))
 	root.AddCommand(newWorksCmd(e))
+	root.AddCommand(newMutateCmd(e))
 	root.AddCommand(newReindexCmd(e))
 	root.AddCommand(newSeedCmd(e))
 	root.AddCommand(newStartCmd(e))

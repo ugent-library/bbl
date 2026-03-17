@@ -36,7 +36,6 @@
 
 ### Core backend
 
-- [ ] `rev add` CLI — apply revisions from JSONL stdin
 - [ ] Background tasks via Catbird (reindex, import, export, notifications, generate representations)
 
 ### Backoffice UI
@@ -52,7 +51,3 @@
 
 - [ ] ORCID API client
 - [ ] Webhook subscriptions + async delivery
-
-### Infrastructure
-
-- [ ] form binding library (`bind/`)

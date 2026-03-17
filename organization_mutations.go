@@ -10,7 +10,7 @@ import (
 
 // CreateOrganization creates a new organization entity.
 type CreateOrganization struct {
-	EntityID  ID
+	OrganizationID ID
 	Kind      string
 	StartDate *time.Time
 	EndDate   *time.Time
@@ -18,13 +18,13 @@ type CreateOrganization struct {
 	org *Organization // populated by apply
 }
 
-func (m *CreateOrganization) mutationName() string { return "CreateOrganization" }
+func (m *CreateOrganization) mutationName() string { return "create_organization" }
 
 func (m *CreateOrganization) needs() mutationNeeds { return mutationNeeds{} }
 
-func (m *CreateOrganization) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
+func (m *CreateOrganization) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	m.org = &Organization{
-		ID:        m.EntityID,
+		ID:        m.OrganizationID,
 		Version:   1,
 		Kind:      m.Kind,
 		Status:    OrganizationStatusPublic,
@@ -33,7 +33,7 @@ func (m *CreateOrganization) apply(state mutationState, in AddRevInput) (*mutati
 	}
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
-		recordID:   m.EntityID,
+		recordID:   m.OrganizationID,
 		opType:     OpCreate,
 		diff:       Diff{Args: struct{ Kind string }{m.Kind}},
 		record:     m.org,
@@ -59,21 +59,21 @@ func (m *CreateOrganization) write(ctx context.Context, tx pgx.Tx) error {
 
 // DeleteOrganization soft-deletes an organization.
 type DeleteOrganization struct {
-	EntityID ID
+	OrganizationID ID     `json:"organization_id"`
 
 	org *Organization // populated by apply
 }
 
-func (m *DeleteOrganization) mutationName() string { return "DeleteOrganization" }
+func (m *DeleteOrganization) mutationName() string { return "delete_organization" }
 
 func (m *DeleteOrganization) needs() mutationNeeds {
-	return mutationNeeds{organizationIDs: []ID{m.EntityID}}
+	return mutationNeeds{organizationIDs: []ID{m.OrganizationID}}
 }
 
-func (m *DeleteOrganization) apply(state mutationState, in AddRevInput) (*mutationEffect, error) {
-	o, ok := state.organizations[m.EntityID]
+func (m *DeleteOrganization) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	o, ok := state.organizations[m.OrganizationID]
 	if !ok {
-		return nil, fmt.Errorf("DeleteOrganization: organization %s not found", m.EntityID)
+		return nil, fmt.Errorf("DeleteOrganization: organization %s not found", m.OrganizationID)
 	}
 	if o.Status == OrganizationStatusDeleted {
 		return nil, nil // noop
@@ -87,7 +87,7 @@ func (m *DeleteOrganization) apply(state mutationState, in AddRevInput) (*mutati
 
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
-		recordID:   m.EntityID,
+		recordID:   m.OrganizationID,
 		opType:     OpDelete,
 		diff: Diff{
 			Args: struct{}{},

@@ -7,10 +7,10 @@ import (
 func TestCreateWork_Apply(t *testing.T) {
 	id := newID()
 	m := &CreateWork{
-		EntityID: id,
+		WorkID: id,
 		Kind:     "journal_article",
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,10 +40,10 @@ func TestCreateWork_Apply(t *testing.T) {
 
 func TestCreateWork_DefaultStatus(t *testing.T) {
 	m := &CreateWork{
-		EntityID: newID(),
+		WorkID: newID(),
 		Kind:     "book",
 	}
-	eff, err := m.apply(mutationState{}, AddRevInput{})
+	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,10 +64,10 @@ func TestDeleteWork_Apply(t *testing.T) {
 	state := mutationState{works: map[ID]*Work{id: existing}}
 
 	m := &DeleteWork{
-		EntityID:   id,
+		WorkID:   id,
 		DeleteKind: WorkDeleteWithdrawn,
 	}
-	eff, err := m.apply(state, AddRevInput{})
+	eff, err := m.apply(state, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,10 +103,10 @@ func TestDeleteWork_AlreadyDeleted(t *testing.T) {
 	state := mutationState{works: map[ID]*Work{id: existing}}
 
 	m := &DeleteWork{
-		EntityID:   id,
+		WorkID:   id,
 		DeleteKind: WorkDeleteRetracted,
 	}
-	eff, err := m.apply(state, AddRevInput{})
+	eff, err := m.apply(state, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

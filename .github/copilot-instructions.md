@@ -26,11 +26,11 @@ Key concepts:
 - **No `pinned_by` column.** Pin authority is derived: `user_id IS NOT NULL` = human (always wins), `*_source_id IS NOT NULL` = source (priority-based).
 
 ### Mutations
-- State changes go through `AddRev` with typed mutation structs.
+- State changes go through `Mutate` with typed mutation structs.
 - Mutations use **concrete named types** per field: `SetWorkVolume`, `DeleteWorkVolume`, `SetWorkTitles`, etc. No generic `SetWorkField` with a field name parameter.
 - **Set** always expects a value. **Delete** removes the human assertion; auto-pin re-evaluates.
 - Required fields (work titles, person name, project titles, org names) have no Delete mutation.
-- Both human (AddRev) and import paths write mutation records to `bbl_mutations` for replayable history.
+- Both human (Mutate) and import paths write mutation records to `bbl_mutations` for replayable history.
 
 ### Import path
 - `ImportWorks`/`ImportPeople`/etc. take `iter.Seq2` iterators.
@@ -40,7 +40,7 @@ Key concepts:
 
 ### Key files
 - `assertion.go` — assertion types
-- `mutations.go` — mutation interface, `mutationEffect`, `AddRev`
+- `mutations.go` — mutation interface, `mutationEffect`, `Mutate`
 - `work_field_mutations.go` — scalar field Set/Delete for works
 - `work_relation_mutations.go` — collective Set/Delete for works + shared write helpers
 - `person_field_mutations.go`, `project_field_mutations.go`, `organization_field_mutations.go` — same pattern
@@ -56,7 +56,7 @@ Key concepts:
 - Do not add license/copyright headers.
 
 ## State change invariants
-- All state changes go through `AddRev` (human) or `Import*` (source). No ad-hoc direct mutations.
+- All state changes go through `Mutate` (human) or `Import*` (source). No ad-hoc direct mutations.
 - One revision = one transaction boundary.
 - All mutations are recorded in `bbl_mutations` for audit and replay.
 - Auto-pin runs after every write to re-evaluate which assertions are displayed.
