@@ -48,7 +48,7 @@ var workFieldCatalog = map[string]string{
 	"total_pages":          "text",
 	"volume":               "text",
 
-	// Compound scalar fields (stored as JSON in bbl_work_fields)
+	// Compound scalar fields (stored as JSON in bbl_work_assertions)
 	"conference": "conference",
 	"pages":      "extent",
 

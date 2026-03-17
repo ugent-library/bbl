@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"iter"
 	"time"
 
@@ -127,7 +126,7 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 			return ID{}, false, fmt.Errorf("insert bbl_work_sources: %w", err)
 		}
 	} else {
-		if err := deleteSourceAssertions(ctx, tx, workAssertionTables, "work_source_id", sourceRecordID); err != nil {
+		if err := deleteSourceAssertions(ctx, tx, "bbl_work_assertions", "work_source_id", sourceRecordID); err != nil {
 			return ID{}, false, err
 		}
 		if _, err := tx.Exec(ctx, `
@@ -216,137 +215,154 @@ func importWorkFields(ctx context.Context, tx pgx.Tx, workID ID, sourceRecordID 
 	return nil
 }
 
-// importWorkRelations inserts relation assertion rows.
+// importWorkRelations inserts collective assertions + value rows for a work import.
+// Each collective field that has data gets one assertion row, then value rows linked to it.
 func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source string, sourceRecordID ID, in *ImportWorkInput) error {
-	for _, id := range in.Identifiers {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_identifiers (id, work_id, scheme, val, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, id.Scheme, id.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_identifiers: %w", err)
+	if len(in.Identifiers) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-	}
-	for _, cl := range in.Classifications {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_classifications (id, work_id, scheme, val, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, cl.Scheme, cl.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_classifications: %w", err)
-		}
-	}
-	for i, c := range in.Contributors {
-		var personID *ID
-		name, givenName, familyName := c.Name, c.GivenName, c.FamilyName
-		if c.PersonRef != nil {
-			person, err := resolvePersonRef(ctx, tx, *c.PersonRef, source)
-			if err == nil {
-				personID = &person.ID
-				// Snapshot person names into contributor if not provided by the source.
-				if name == "" && givenName == "" && familyName == "" {
-					name, givenName, familyName = person.Name, person.GivenName, person.FamilyName
-				}
+		for _, id := range in.Identifiers {
+			if err := writeWorkIdentifier(ctx, tx, newID(), aID, workID, id.Scheme, id.Val); err != nil {
+				return err
 			}
 		}
-		kind := c.Kind
-		if kind == "" {
-			kind = "person"
+	}
+	if len(in.Classifications) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "classifications", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-		if name == "" {
-			name = strings.TrimSpace(givenName + " " + familyName)
-		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_contributors
-			    (id, work_id, position, kind, person_id, name, given_name, family_name, roles, work_source_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-			newID(), workID, fracdexPos(i), kind, personID,
-			name, nilIfEmpty(givenName), nilIfEmpty(familyName),
-			c.Roles, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_contributors: %w", err)
+		for _, cl := range in.Classifications {
+			if err := writeWorkClassification(ctx, tx, newID(), aID, workID, cl.Scheme, cl.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, t := range in.Titles {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_titles (id, work_id, lang, val, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, t.Lang, t.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_titles: %w", err)
+	if len(in.Contributors) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "contributors", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for i, c := range in.Contributors {
+			var personID *ID
+			name, givenName, familyName := c.Name, c.GivenName, c.FamilyName
+			if c.PersonRef != nil {
+				person, err := resolvePersonRef(ctx, tx, *c.PersonRef, source)
+				if err == nil {
+					personID = &person.ID
+					if name == "" && givenName == "" && familyName == "" {
+						name, givenName, familyName = person.Name, person.GivenName, person.FamilyName
+					}
+				}
+			}
+			if err := writeWorkContributor(ctx, tx, newID(), aID, workID, i, c.Kind, personID, name, givenName, familyName, c.Roles); err != nil {
+				return err
+			}
 		}
 	}
-	for _, a := range in.Abstracts {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_abstracts (id, work_id, lang, val, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, a.Lang, a.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_abstracts: %w", err)
+	if len(in.Titles) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "titles", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, t := range in.Titles {
+			if err := writeWorkTitle(ctx, tx, newID(), aID, workID, t.Lang, t.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, ls := range in.LaySummaries {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_lay_summaries (id, work_id, lang, val, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, ls.Lang, ls.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_lay_summaries: %w", err)
+	if len(in.Abstracts) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "abstracts", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, a := range in.Abstracts {
+			if err := writeWorkAbstract(ctx, tx, newID(), aID, workID, a.Lang, a.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, n := range in.Notes {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_notes (id, work_id, val, kind, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, n.Val, nilIfEmpty(n.Kind), sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_notes: %w", err)
+	if len(in.LaySummaries) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "lay_summaries", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, ls := range in.LaySummaries {
+			if err := writeWorkLaySummary(ctx, tx, newID(), aID, workID, ls.Lang, ls.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, kw := range in.Keywords {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_keywords (id, work_id, val, work_source_id)
-			VALUES ($1, $2, $3, $4)`,
-			newID(), workID, kw, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_keywords: %w", err)
+	if len(in.Notes) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "notes", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, n := range in.Notes {
+			if err := writeWorkNote(ctx, tx, newID(), aID, workID, n.Val, n.Kind); err != nil {
+				return err
+			}
 		}
 	}
-	for _, p := range in.Projects {
-		project, err := resolveProjectRef(ctx, tx, p.Ref, source)
-		if err != nil {
-			continue
+	if len(in.Keywords) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "keywords", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_projects (id, work_id, project_id, work_source_id)
-			VALUES ($1, $2, $3, $4)`,
-			newID(), workID, project.ID, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_projects: %w", err)
-		}
-	}
-	for _, o := range in.Organizations {
-		org, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
-		if err != nil {
-			continue
-		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_organizations (id, work_id, organization_id, work_source_id)
-			VALUES ($1, $2, $3, $4)`,
-			newID(), workID, org.ID, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_organizations: %w", err)
+		for _, kw := range in.Keywords {
+			if err := writeWorkKeyword(ctx, tx, newID(), aID, workID, kw); err != nil {
+				return err
+			}
 		}
 	}
-	for _, rel := range in.RelatedWorks {
-		relWork, err := resolveWorkRef(ctx, tx, rel.Ref, source)
-		if err != nil {
-			continue
+	if len(in.Projects) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "projects", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_work_rels (id, work_id, related_work_id, kind, work_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), workID, relWork.ID, rel.Kind, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_work_rels: %w", err)
+		for _, p := range in.Projects {
+			project, err := resolveProjectRef(ctx, tx, p.Ref, source)
+			if err != nil {
+				continue
+			}
+			if err := writeWorkProject(ctx, tx, newID(), aID, workID, project.ID); err != nil {
+				return err
+			}
+		}
+	}
+	if len(in.Organizations) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "organizations", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, o := range in.Organizations {
+			org, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
+			if err != nil {
+				continue
+			}
+			if err := writeWorkOrganization(ctx, tx, newID(), aID, workID, org.ID); err != nil {
+				return err
+			}
+		}
+	}
+	if len(in.RelatedWorks) > 0 {
+		aID := newID()
+		if err := writeWorkAssertion(ctx, tx, aID, workID, "rels", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, rel := range in.RelatedWorks {
+			relWork, err := resolveWorkRef(ctx, tx, rel.Ref, source)
+			if err != nil {
+				continue
+			}
+			if err := writeWorkRel(ctx, tx, newID(), aID, workID, relWork.ID, rel.Kind); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
-}
-
-// fracdexPos returns a fracdex position string for an initial ordered insert.
-// For the first bulk insert, simple zero-padded integers work fine.
-func fracdexPos(i int) string {
-	return fmt.Sprintf("%06d", i)
 }
 
 // ---------- Query methods ----------

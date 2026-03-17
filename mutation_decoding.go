@@ -25,115 +25,115 @@ func DecodeMutation(data []byte) (any, error) {
 	// Work scalar fields
 	case "set_work_article_number":
 		m = &SetWorkArticleNumber{}
-	case "delete_work_article_number":
-		m = &DeleteWorkArticleNumber{}
+	case "unset_work_article_number":
+		m = &UnsetWorkArticleNumber{}
 	case "set_work_book_title":
 		m = &SetWorkBookTitle{}
-	case "delete_work_book_title":
-		m = &DeleteWorkBookTitle{}
+	case "unset_work_book_title":
+		m = &UnsetWorkBookTitle{}
 	case "set_work_conference":
 		m = &SetWorkConference{}
-	case "delete_work_conference":
-		m = &DeleteWorkConference{}
+	case "unset_work_conference":
+		m = &UnsetWorkConference{}
 	case "set_work_edition":
 		m = &SetWorkEdition{}
-	case "delete_work_edition":
-		m = &DeleteWorkEdition{}
+	case "unset_work_edition":
+		m = &UnsetWorkEdition{}
 	case "set_work_issue":
 		m = &SetWorkIssue{}
-	case "delete_work_issue":
-		m = &DeleteWorkIssue{}
+	case "unset_work_issue":
+		m = &UnsetWorkIssue{}
 	case "set_work_issue_title":
 		m = &SetWorkIssueTitle{}
-	case "delete_work_issue_title":
-		m = &DeleteWorkIssueTitle{}
+	case "unset_work_issue_title":
+		m = &UnsetWorkIssueTitle{}
 	case "set_work_journal_abbreviation":
 		m = &SetWorkJournalAbbreviation{}
-	case "delete_work_journal_abbreviation":
-		m = &DeleteWorkJournalAbbreviation{}
+	case "unset_work_journal_abbreviation":
+		m = &UnsetWorkJournalAbbreviation{}
 	case "set_work_journal_title":
 		m = &SetWorkJournalTitle{}
-	case "delete_work_journal_title":
-		m = &DeleteWorkJournalTitle{}
+	case "unset_work_journal_title":
+		m = &UnsetWorkJournalTitle{}
 	case "set_work_pages":
 		m = &SetWorkPages{}
-	case "delete_work_pages":
-		m = &DeleteWorkPages{}
+	case "unset_work_pages":
+		m = &UnsetWorkPages{}
 	case "set_work_place_of_publication":
 		m = &SetWorkPlaceOfPublication{}
-	case "delete_work_place_of_publication":
-		m = &DeleteWorkPlaceOfPublication{}
+	case "unset_work_place_of_publication":
+		m = &UnsetWorkPlaceOfPublication{}
 	case "set_work_publication_status":
 		m = &SetWorkPublicationStatus{}
-	case "delete_work_publication_status":
-		m = &DeleteWorkPublicationStatus{}
+	case "unset_work_publication_status":
+		m = &UnsetWorkPublicationStatus{}
 	case "set_work_publication_year":
 		m = &SetWorkPublicationYear{}
-	case "delete_work_publication_year":
-		m = &DeleteWorkPublicationYear{}
+	case "unset_work_publication_year":
+		m = &UnsetWorkPublicationYear{}
 	case "set_work_publisher":
 		m = &SetWorkPublisher{}
-	case "delete_work_publisher":
-		m = &DeleteWorkPublisher{}
+	case "unset_work_publisher":
+		m = &UnsetWorkPublisher{}
 	case "set_work_report_number":
 		m = &SetWorkReportNumber{}
-	case "delete_work_report_number":
-		m = &DeleteWorkReportNumber{}
+	case "unset_work_report_number":
+		m = &UnsetWorkReportNumber{}
 	case "set_work_series_title":
 		m = &SetWorkSeriesTitle{}
-	case "delete_work_series_title":
-		m = &DeleteWorkSeriesTitle{}
+	case "unset_work_series_title":
+		m = &UnsetWorkSeriesTitle{}
 	case "set_work_total_pages":
 		m = &SetWorkTotalPages{}
-	case "delete_work_total_pages":
-		m = &DeleteWorkTotalPages{}
+	case "unset_work_total_pages":
+		m = &UnsetWorkTotalPages{}
 	case "set_work_volume":
 		m = &SetWorkVolume{}
-	case "delete_work_volume":
-		m = &DeleteWorkVolume{}
+	case "unset_work_volume":
+		m = &UnsetWorkVolume{}
 	// Work relations
 	case "set_work_titles":
 		m = &SetWorkTitles{}
 	case "set_work_abstracts":
 		m = &SetWorkAbstracts{}
-	case "delete_work_abstracts":
-		m = &DeleteWorkAbstracts{}
+	case "unset_work_abstracts":
+		m = &UnsetWorkAbstracts{}
 	case "set_work_lay_summaries":
 		m = &SetWorkLaySummaries{}
-	case "delete_work_lay_summaries":
-		m = &DeleteWorkLaySummaries{}
+	case "unset_work_lay_summaries":
+		m = &UnsetWorkLaySummaries{}
 	case "set_work_notes":
 		m = &SetWorkNotes{}
-	case "delete_work_notes":
-		m = &DeleteWorkNotes{}
+	case "unset_work_notes":
+		m = &UnsetWorkNotes{}
 	case "set_work_keywords":
 		m = &SetWorkKeywords{}
-	case "delete_work_keywords":
-		m = &DeleteWorkKeywords{}
+	case "unset_work_keywords":
+		m = &UnsetWorkKeywords{}
 	case "set_work_identifiers":
 		m = &SetWorkIdentifiers{}
-	case "delete_work_identifiers":
-		m = &DeleteWorkIdentifiers{}
+	case "unset_work_identifiers":
+		m = &UnsetWorkIdentifiers{}
 	case "set_work_classifications":
 		m = &SetWorkClassifications{}
-	case "delete_work_classifications":
-		m = &DeleteWorkClassifications{}
+	case "unset_work_classifications":
+		m = &UnsetWorkClassifications{}
 	case "set_work_contributors":
 		m = &SetWorkContributors{}
-	case "delete_work_contributors":
-		m = &DeleteWorkContributors{}
+	case "unset_work_contributors":
+		m = &UnsetWorkContributors{}
 	case "set_work_projects":
 		m = &SetWorkProjects{}
-	case "delete_work_projects":
-		m = &DeleteWorkProjects{}
+	case "unset_work_projects":
+		m = &UnsetWorkProjects{}
 	case "set_work_organizations":
 		m = &SetWorkOrganizations{}
-	case "delete_work_organizations":
-		m = &DeleteWorkOrganizations{}
+	case "unset_work_organizations":
+		m = &UnsetWorkOrganizations{}
 	case "set_work_rels":
 		m = &SetWorkRels{}
-	case "delete_work_rels":
-		m = &DeleteWorkRels{}
+	case "unset_work_rels":
+		m = &UnsetWorkRels{}
 	// Person lifecycle
 	case "create_person":
 		m = &CreatePerson{}
@@ -144,24 +144,24 @@ func DecodeMutation(data []byte) (any, error) {
 		m = &SetPersonName{}
 	case "set_person_given_name":
 		m = &SetPersonGivenName{}
-	case "delete_person_given_name":
-		m = &DeletePersonGivenName{}
+	case "unset_person_given_name":
+		m = &UnsetPersonGivenName{}
 	case "set_person_middle_name":
 		m = &SetPersonMiddleName{}
-	case "delete_person_middle_name":
-		m = &DeletePersonMiddleName{}
+	case "unset_person_middle_name":
+		m = &UnsetPersonMiddleName{}
 	case "set_person_family_name":
 		m = &SetPersonFamilyName{}
-	case "delete_person_family_name":
-		m = &DeletePersonFamilyName{}
+	case "unset_person_family_name":
+		m = &UnsetPersonFamilyName{}
 	case "set_person_identifiers":
 		m = &SetPersonIdentifiers{}
-	case "delete_person_identifiers":
-		m = &DeletePersonIdentifiers{}
+	case "unset_person_identifiers":
+		m = &UnsetPersonIdentifiers{}
 	case "set_person_organizations":
 		m = &SetPersonOrganizations{}
-	case "delete_person_organizations":
-		m = &DeletePersonOrganizations{}
+	case "unset_person_organizations":
+		m = &UnsetPersonOrganizations{}
 	// Project lifecycle
 	case "create_project":
 		m = &CreateProject{}
@@ -172,16 +172,16 @@ func DecodeMutation(data []byte) (any, error) {
 		m = &SetProjectTitles{}
 	case "set_project_descriptions":
 		m = &SetProjectDescriptions{}
-	case "delete_project_descriptions":
-		m = &DeleteProjectDescriptions{}
+	case "unset_project_descriptions":
+		m = &UnsetProjectDescriptions{}
 	case "set_project_identifiers":
 		m = &SetProjectIdentifiers{}
-	case "delete_project_identifiers":
-		m = &DeleteProjectIdentifiers{}
+	case "unset_project_identifiers":
+		m = &UnsetProjectIdentifiers{}
 	case "set_project_people":
 		m = &SetProjectPeople{}
-	case "delete_project_people":
-		m = &DeleteProjectPeople{}
+	case "unset_project_people":
+		m = &UnsetProjectPeople{}
 	// Organization lifecycle
 	case "create_organization":
 		m = &CreateOrganization{}
@@ -192,12 +192,12 @@ func DecodeMutation(data []byte) (any, error) {
 		m = &SetOrganizationNames{}
 	case "set_organization_identifiers":
 		m = &SetOrganizationIdentifiers{}
-	case "delete_organization_identifiers":
-		m = &DeleteOrganizationIdentifiers{}
+	case "unset_organization_identifiers":
+		m = &UnsetOrganizationIdentifiers{}
 	case "set_organization_rels":
 		m = &SetOrganizationRels{}
-	case "delete_organization_rels":
-		m = &DeleteOrganizationRels{}
+	case "unset_organization_rels":
+		m = &UnsetOrganizationRels{}
 	default:
 		return nil, fmt.Errorf("unknown mutation %q", envelope.Mutation)
 	}

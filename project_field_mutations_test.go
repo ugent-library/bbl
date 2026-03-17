@@ -35,9 +35,9 @@ func TestSetProjectDescriptions_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteProjectDescriptions_Apply(t *testing.T) {
+func TestUnsetProjectDescriptions_Apply(t *testing.T) {
 	projectID := newID()
-	m := &DeleteProjectDescriptions{ProjectID: projectID}
+	m := &UnsetProjectDescriptions{ProjectID: projectID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -65,9 +65,9 @@ func TestSetProjectIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteProjectIdentifiers_Apply(t *testing.T) {
+func TestUnsetProjectIdentifiers_Apply(t *testing.T) {
 	projectID := newID()
-	m := &DeleteProjectIdentifiers{ProjectID: projectID}
+	m := &UnsetProjectIdentifiers{ProjectID: projectID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -96,9 +96,9 @@ func TestSetProjectPeople_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteProjectPeople_Apply(t *testing.T) {
+func TestUnsetProjectPeople_Apply(t *testing.T) {
 	projectID := newID()
-	m := &DeleteProjectPeople{ProjectID: projectID}
+	m := &UnsetProjectPeople{ProjectID: projectID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)

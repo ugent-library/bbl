@@ -2,52 +2,71 @@ package bbl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 )
 
 // --- shared write helpers for project relation tables ---
-// These are used by both Set mutations (human path) and import.
 
-func writeProjectTitle(ctx context.Context, tx pgx.Tx, id, projectID ID, lang, val string, projectSourceID *ID, userID *ID) error {
+func writeProjectAssertion(ctx context.Context, tx pgx.Tx, id, projectID ID, field string, val any, hidden bool, projectSourceID *ID, userID *ID) error {
+	var valJSON []byte
+	if val != nil {
+		var err error
+		valJSON, err = json.Marshal(val)
+		if err != nil {
+			return fmt.Errorf("writeProjectAssertion(%s): %w", field, err)
+		}
+	}
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_project_titles (id, project_id, lang, val, project_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, projectID, lang, val, projectSourceID, userID)
+		INSERT INTO bbl_project_assertions (id, project_id, field, val, hidden, project_source_id, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		id, projectID, field, valJSON, hidden, projectSourceID, userID)
+	if err != nil {
+		return fmt.Errorf("writeProjectAssertion(%s): %w", field, err)
+	}
+	return nil
+}
+
+func writeProjectTitle(ctx context.Context, tx pgx.Tx, id, assertionID, projectID ID, lang, val string) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO bbl_project_titles (id, assertion_id, project_id, lang, val)
+		VALUES ($1, $2, $3, $4, $5)`,
+		id, assertionID, projectID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeProjectTitle: %w", err)
 	}
 	return nil
 }
 
-func writeProjectDescription(ctx context.Context, tx pgx.Tx, id, projectID ID, lang, val string, projectSourceID *ID, userID *ID) error {
+func writeProjectDescription(ctx context.Context, tx pgx.Tx, id, assertionID, projectID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_project_descriptions (id, project_id, lang, val, project_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, projectID, lang, val, projectSourceID, userID)
+		INSERT INTO bbl_project_descriptions (id, assertion_id, project_id, lang, val)
+		VALUES ($1, $2, $3, $4, $5)`,
+		id, assertionID, projectID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeProjectDescription: %w", err)
 	}
 	return nil
 }
 
-func writeProjectIdentifier(ctx context.Context, tx pgx.Tx, id, projectID ID, scheme, val string, projectSourceID *ID, userID *ID) error {
+func writeProjectIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID, projectID ID, scheme, val string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_project_identifiers (id, project_id, scheme, val, project_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, projectID, scheme, val, projectSourceID, userID)
+		INSERT INTO bbl_project_identifiers (id, assertion_id, project_id, scheme, val)
+		VALUES ($1, $2, $3, $4, $5)`,
+		id, assertionID, projectID, scheme, val)
 	if err != nil {
 		return fmt.Errorf("writeProjectIdentifier: %w", err)
 	}
 	return nil
 }
 
-func writeProjectPerson(ctx context.Context, tx pgx.Tx, id, projectID, personID ID, role string, projectSourceID *ID, userID *ID) error {
+func writeProjectPerson(ctx context.Context, tx pgx.Tx, id, assertionID, projectID, personID ID, role string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_project_people (id, project_id, person_id, role, project_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, projectID, personID, nilIfEmpty(role), projectSourceID, userID)
+		INSERT INTO bbl_project_people (id, assertion_id, project_id, person_id, role)
+		VALUES ($1, $2, $3, $4, $5)`,
+		id, assertionID, projectID, personID, nilIfEmpty(role))
 	if err != nil {
 		return fmt.Errorf("writeProjectPerson: %w", err)
 	}
@@ -55,7 +74,7 @@ func writeProjectPerson(ctx context.Context, tx pgx.Tx, id, projectID, personID 
 }
 
 // ============================================================
-// Set / Delete mutations for project collectives
+// Set / Unset mutations for project collectives
 // ============================================================
 
 // --- SetProjectTitles (no delete — required) ---
@@ -76,23 +95,27 @@ func (m *SetProjectTitles) apply(state mutationState, userID *ID) (*mutationEffe
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ Titles []Title }{m.Titles}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_titles", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "titles", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetProjectTitles) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_titles WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'titles' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
 		return fmt.Errorf("SetProjectTitles: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writeProjectAssertion(ctx, tx, assertionID, m.ProjectID, "titles", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetProjectTitles: %w", err)
+	}
 	for _, t := range m.Titles {
-		if err := writeProjectTitle(ctx, tx, newID(), m.ProjectID, t.Lang, t.Val, nil, m.userID); err != nil {
+		if err := writeProjectTitle(ctx, tx, newID(), assertionID, m.ProjectID, t.Lang, t.Val); err != nil {
 			return fmt.Errorf("SetProjectTitles: %w", err)
 		}
 	}
 	return nil
 }
 
-// --- SetProjectDescriptions / DeleteProjectDescriptions ---
+// --- SetProjectDescriptions / UnsetProjectDescriptions ---
 
 type SetProjectDescriptions struct {
 	ProjectID    ID
@@ -110,44 +133,48 @@ func (m *SetProjectDescriptions) apply(state mutationState, userID *ID) (*mutati
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ Descriptions []Text }{m.Descriptions}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_descriptions", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "descriptions", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetProjectDescriptions) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_descriptions WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'descriptions' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
 		return fmt.Errorf("SetProjectDescriptions: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writeProjectAssertion(ctx, tx, assertionID, m.ProjectID, "descriptions", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetProjectDescriptions: %w", err)
+	}
 	for _, t := range m.Descriptions {
-		if err := writeProjectDescription(ctx, tx, newID(), m.ProjectID, t.Lang, t.Val, nil, m.userID); err != nil {
+		if err := writeProjectDescription(ctx, tx, newID(), assertionID, m.ProjectID, t.Lang, t.Val); err != nil {
 			return fmt.Errorf("SetProjectDescriptions: %w", err)
 		}
 	}
 	return nil
 }
 
-type DeleteProjectDescriptions struct{ ProjectID ID }
+type UnsetProjectDescriptions struct{ ProjectID ID }
 
-func (m *DeleteProjectDescriptions) mutationName() string { return "delete_project_descriptions" }
-func (m *DeleteProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetProjectDescriptions) mutationName() string { return "unset_project_descriptions" }
+func (m *UnsetProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_descriptions", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "descriptions", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *DeleteProjectDescriptions) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_descriptions WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
-		return fmt.Errorf("DeleteProjectDescriptions: %w", err)
+func (m *UnsetProjectDescriptions) write(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'descriptions' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+		return fmt.Errorf("UnsetProjectDescriptions: %w", err)
 	}
 	return nil
 }
 
-// --- SetProjectIdentifiers / DeleteProjectIdentifiers ---
+// --- SetProjectIdentifiers / UnsetProjectIdentifiers ---
 
 type SetProjectIdentifiers struct {
 	ProjectID   ID
@@ -165,44 +192,48 @@ func (m *SetProjectIdentifiers) apply(state mutationState, userID *ID) (*mutatio
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ Identifiers []Identifier }{m.Identifiers}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_identifiers", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "identifiers", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_identifiers WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
 		return fmt.Errorf("SetProjectIdentifiers: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writeProjectAssertion(ctx, tx, assertionID, m.ProjectID, "identifiers", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetProjectIdentifiers: %w", err)
+	}
 	for _, ident := range m.Identifiers {
-		if err := writeProjectIdentifier(ctx, tx, newID(), m.ProjectID, ident.Scheme, ident.Val, nil, m.userID); err != nil {
+		if err := writeProjectIdentifier(ctx, tx, newID(), assertionID, m.ProjectID, ident.Scheme, ident.Val); err != nil {
 			return fmt.Errorf("SetProjectIdentifiers: %w", err)
 		}
 	}
 	return nil
 }
 
-type DeleteProjectIdentifiers struct{ ProjectID ID }
+type UnsetProjectIdentifiers struct{ ProjectID ID }
 
-func (m *DeleteProjectIdentifiers) mutationName() string { return "delete_project_identifiers" }
-func (m *DeleteProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetProjectIdentifiers) mutationName() string { return "unset_project_identifiers" }
+func (m *UnsetProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_identifiers", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "identifiers", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *DeleteProjectIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_identifiers WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
-		return fmt.Errorf("DeleteProjectIdentifiers: %w", err)
+func (m *UnsetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+		return fmt.Errorf("UnsetProjectIdentifiers: %w", err)
 	}
 	return nil
 }
 
-// --- SetProjectPeople / DeleteProjectPeople ---
+// --- SetProjectPeople / UnsetProjectPeople ---
 
 type SetProjectPeople struct {
 	ProjectID ID     `json:"project_id"`
@@ -220,39 +251,43 @@ func (m *SetProjectPeople) apply(state mutationState, userID *ID) (*mutationEffe
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ People []ProjectPerson }{m.People}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_people", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetProjectPeople) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_people WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'people' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
 		return fmt.Errorf("SetProjectPeople: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writeProjectAssertion(ctx, tx, assertionID, m.ProjectID, "people", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetProjectPeople: %w", err)
+	}
 	for _, p := range m.People {
-		if err := writeProjectPerson(ctx, tx, newID(), m.ProjectID, p.PersonID, p.Role, nil, m.userID); err != nil {
+		if err := writeProjectPerson(ctx, tx, newID(), assertionID, m.ProjectID, p.PersonID, p.Role); err != nil {
 			return fmt.Errorf("SetProjectPeople: %w", err)
 		}
 	}
 	return nil
 }
 
-type DeleteProjectPeople struct{ ProjectID ID }
+type UnsetProjectPeople struct{ ProjectID ID }
 
-func (m *DeleteProjectPeople) mutationName() string { return "delete_project_people" }
-func (m *DeleteProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeleteProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetProjectPeople) mutationName() string { return "unset_project_people" }
+func (m *UnsetProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_project_people", "project_id", m.ProjectID, "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *DeleteProjectPeople) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_people WHERE project_id = $1 AND user_id IS NOT NULL`, m.ProjectID); err != nil {
-		return fmt.Errorf("DeleteProjectPeople: %w", err)
+func (m *UnsetProjectPeople) write(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'people' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+		return fmt.Errorf("UnsetProjectPeople: %w", err)
 	}
 	return nil
 }

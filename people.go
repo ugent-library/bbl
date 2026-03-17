@@ -118,7 +118,7 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 			return ID{}, false, fmt.Errorf("insert bbl_person_sources: %w", err)
 		}
 	} else {
-		if err := deleteSourceAssertions(ctx, tx, personAssertionTables, "person_source_id", sourceRecordID); err != nil {
+		if err := deleteSourceAssertions(ctx, tx, "bbl_person_assertions", "person_source_id", sourceRecordID); err != nil {
 			return ID{}, false, err
 		}
 		if _, err := tx.Exec(ctx, `
@@ -186,24 +186,30 @@ func importPersonFields(ctx context.Context, tx pgx.Tx, personID ID, sourceRecor
 }
 
 func importPersonRelations(ctx context.Context, tx pgx.Tx, personID ID, source string, sourceRecordID ID, in *ImportPersonInput) error {
-	for _, id := range in.Identifiers {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_person_identifiers (id, person_id, scheme, val, person_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), personID, id.Scheme, id.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_person_identifiers: %w", err)
+	if len(in.Identifiers) > 0 {
+		aID := newID()
+		if err := writePersonAssertion(ctx, tx, aID, personID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, id := range in.Identifiers {
+			if err := writePersonIdentifier(ctx, tx, newID(), aID, personID, id.Scheme, id.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, a := range in.Affiliations {
-		org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
-		if err != nil {
-			continue // silently skip unresolvable refs
+	if len(in.Affiliations) > 0 {
+		aID := newID()
+		if err := writePersonAssertion(ctx, tx, aID, personID, "organizations", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_person_organizations (id, person_id, organization_id, person_source_id)
-			VALUES ($1, $2, $3, $4)`,
-			newID(), personID, org.ID, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_person_organizations: %w", err)
+		for _, a := range in.Affiliations {
+			org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
+			if err != nil {
+				continue
+			}
+			if err := writePersonOrganization(ctx, tx, newID(), aID, personID, org.ID); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

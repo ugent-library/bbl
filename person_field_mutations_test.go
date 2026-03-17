@@ -35,9 +35,9 @@ func TestSetPersonGivenName_Apply(t *testing.T) {
 	}
 }
 
-func TestDeletePersonGivenName_Apply(t *testing.T) {
+func TestUnsetPersonGivenName_Apply(t *testing.T) {
 	personID := newID()
-	m := &DeletePersonGivenName{PersonID: personID}
+	m := &UnsetPersonGivenName{PersonID: personID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -68,9 +68,9 @@ func TestSetPersonIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestDeletePersonIdentifiers_Apply(t *testing.T) {
+func TestUnsetPersonIdentifiers_Apply(t *testing.T) {
 	personID := newID()
-	m := &DeletePersonIdentifiers{PersonID: personID}
+	m := &UnsetPersonIdentifiers{PersonID: personID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -99,9 +99,9 @@ func TestSetPersonOrganizations_Apply(t *testing.T) {
 	}
 }
 
-func TestDeletePersonOrganizations_Apply(t *testing.T) {
+func TestUnsetPersonOrganizations_Apply(t *testing.T) {
 	personID := newID()
-	m := &DeletePersonOrganizations{PersonID: personID}
+	m := &UnsetPersonOrganizations{PersonID: personID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)

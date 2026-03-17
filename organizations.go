@@ -85,21 +85,24 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 		info := orgInfos[in.SourceID]
 		orgID := info.orgID
 		srcRecID := info.srcRecID
-		for _, rel := range in.Rels {
-			relOrg, err := resolveOrganizationRef(ctx, tx, rel.Ref, source)
-			if err != nil {
-				continue // silently skip unresolvable refs
+		if len(in.Rels) > 0 {
+			aID := newID()
+			if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "rels", nil, false, &srcRecID, nil); err != nil {
+				return n, err
 			}
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO bbl_organization_rels (id, organization_id, rel_organization_id, kind, organization_source_id, start_date, end_date)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-				newID(), orgID, relOrg.ID, rel.Kind, srcRecID, rel.StartDate, rel.EndDate); err != nil {
-				return n, fmt.Errorf("insert bbl_organization_rels: %w", err)
+			for _, rel := range in.Rels {
+				relOrg, err := resolveOrganizationRef(ctx, tx, rel.Ref, source)
+				if err != nil {
+					continue
+				}
+				if err := writeOrganizationRel(ctx, tx, newID(), aID, orgID, relOrg.ID, rel.Kind, rel.StartDate, rel.EndDate); err != nil {
+					return n, err
+				}
 			}
 		}
 		// Re-run auto-pin for rels (phase 1 already pinned identifiers+titles).
 		if len(in.Rels) > 0 {
-			if err := autoPinCollective(ctx, tx, "bbl_organization_rels", "organization_id", orgID, "organization_source_id", "bbl_organization_sources", priorities); err != nil {
+			if err := autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", orgID, "rels", "organization_source_id", "bbl_organization_sources", priorities); err != nil {
 				return n, err
 			}
 		}
@@ -149,7 +152,7 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 			return ID{}, ID{}, false, fmt.Errorf("insert bbl_organization_sources: %w", err)
 		}
 	} else {
-		if err := deleteSourceAssertions(ctx, tx, organizationAssertionTables, "organization_source_id", sourceRecordID); err != nil {
+		if err := deleteSourceAssertions(ctx, tx, "bbl_organization_assertions", "organization_source_id", sourceRecordID); err != nil {
 			return ID{}, ID{}, false, err
 		}
 		if _, err := tx.Exec(ctx, `
@@ -167,22 +170,28 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 	}
 
 	// Insert identifiers.
-	for _, id := range in.Identifiers {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_organization_identifiers (id, organization_id, scheme, val, organization_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), orgID, id.Scheme, id.Val, sourceRecordID); err != nil {
-			return ID{}, ID{}, false, fmt.Errorf("insert bbl_organization_identifiers: %w", err)
+	if len(in.Identifiers) > 0 {
+		aID := newID()
+		if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+			return ID{}, ID{}, false, err
+		}
+		for _, id := range in.Identifiers {
+			if err := writeOrganizationIdentifier(ctx, tx, newID(), aID, orgID, id.Scheme, id.Val); err != nil {
+				return ID{}, ID{}, false, err
+			}
 		}
 	}
 
 	// Insert names.
-	for _, t := range in.Names {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_organization_names (id, organization_id, lang, val, organization_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), orgID, t.Lang, t.Val, sourceRecordID); err != nil {
-			return ID{}, ID{}, false, fmt.Errorf("insert bbl_organization_names: %w", err)
+	if len(in.Names) > 0 {
+		aID := newID()
+		if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "names", nil, false, &sourceRecordID, nil); err != nil {
+			return ID{}, ID{}, false, err
+		}
+		for _, t := range in.Names {
+			if err := writeOrganizationName(ctx, tx, newID(), aID, orgID, t.Lang, t.Val); err != nil {
+				return ID{}, ID{}, false, err
+			}
 		}
 	}
 

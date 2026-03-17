@@ -96,115 +96,35 @@ func resolvePersonRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*
 	return p, nil
 }
 
-// autoPinAllWork runs auto-pin for all assertion tables of a work.
-// Used after import to recalculate pinning for all grouping keys.
+// autoPinAll runs auto-pin for all fields of an entity.
+// Gets distinct fields from the assertions table and calls autoPin for each.
+func autoPinAll(ctx context.Context, tx pgx.Tx, assertionsTable, entityIDCol string, entityID ID, sourceIDCol, sourceTable string, priorities map[string]int) error {
+	fields, err := distinctValues(ctx, tx, assertionsTable, "field", entityIDCol, entityID)
+	if err != nil {
+		return err
+	}
+	for _, f := range fields {
+		if err := autoPin(ctx, tx, assertionsTable, entityIDCol, entityID, f, sourceIDCol, sourceTable, priorities); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func autoPinAllWork(ctx context.Context, tx pgx.Tx, workID ID, priorities map[string]int) error {
-	// Scalar fields: auto-pin each distinct field.
-	fields, err := distinctValues(ctx, tx, "bbl_work_fields", "field", "work_id", workID)
-	if err != nil {
-		return err
-	}
-	for _, f := range fields {
-		if err := autoPinScalar(ctx, tx, "bbl_work_fields", "work_id", workID, f, "work_source_id", "bbl_work_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	// All relation tables are collective.
-	collectiveTables := []string{
-		"bbl_work_identifiers",
-		"bbl_work_classifications",
-		"bbl_work_titles",
-		"bbl_work_abstracts",
-		"bbl_work_lay_summaries",
-		"bbl_work_contributors",
-		"bbl_work_notes",
-		"bbl_work_keywords",
-		"bbl_work_projects",
-		"bbl_work_organizations",
-		"bbl_work_rels",
-	}
-	for _, t := range collectiveTables {
-		if err := autoPinCollective(ctx, tx, t, "work_id", workID, "work_source_id", "bbl_work_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return autoPinAll(ctx, tx, "bbl_work_assertions", "work_id", workID, "work_source_id", "bbl_work_sources", priorities)
 }
 
-// autoPinAllPerson runs auto-pin for all assertion tables of a person.
 func autoPinAllPerson(ctx context.Context, tx pgx.Tx, personID ID, priorities map[string]int) error {
-	// Scalar fields.
-	fields, err := distinctValues(ctx, tx, "bbl_person_fields", "field", "person_id", personID)
-	if err != nil {
-		return err
-	}
-	for _, f := range fields {
-		if err := autoPinScalar(ctx, tx, "bbl_person_fields", "person_id", personID, f, "person_source_id", "bbl_person_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	// Collective tables.
-	collectiveTables := []string{
-		"bbl_person_identifiers",
-		"bbl_person_organizations",
-	}
-	for _, t := range collectiveTables {
-		if err := autoPinCollective(ctx, tx, t, "person_id", personID, "person_source_id", "bbl_person_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return autoPinAll(ctx, tx, "bbl_person_assertions", "person_id", personID, "person_source_id", "bbl_person_sources", priorities)
 }
 
-// autoPinAllProject runs auto-pin for all assertion tables of a project.
 func autoPinAllProject(ctx context.Context, tx pgx.Tx, projectID ID, priorities map[string]int) error {
-	// Scalar fields.
-	fields, err := distinctValues(ctx, tx, "bbl_project_fields", "field", "project_id", projectID)
-	if err != nil {
-		return err
-	}
-	for _, f := range fields {
-		if err := autoPinScalar(ctx, tx, "bbl_project_fields", "project_id", projectID, f, "project_source_id", "bbl_project_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	// Collective tables.
-	collectiveTables := []string{
-		"bbl_project_titles",
-		"bbl_project_descriptions",
-		"bbl_project_identifiers",
-		"bbl_project_people",
-	}
-	for _, t := range collectiveTables {
-		if err := autoPinCollective(ctx, tx, t, "project_id", projectID, "project_source_id", "bbl_project_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return autoPinAll(ctx, tx, "bbl_project_assertions", "project_id", projectID, "project_source_id", "bbl_project_sources", priorities)
 }
 
-// autoPinAllOrganization runs auto-pin for all assertion tables of an organization.
 func autoPinAllOrganization(ctx context.Context, tx pgx.Tx, orgID ID, priorities map[string]int) error {
-	// Organization has no str_fields (kind is a column, not a field assertion).
-	// All tables are collective.
-	collectiveTables := []string{
-		"bbl_organization_identifiers",
-		"bbl_organization_names",
-		"bbl_organization_rels",
-	}
-	for _, t := range collectiveTables {
-		if err := autoPinCollective(ctx, tx, t, "organization_id", orgID, "organization_source_id", "bbl_organization_sources", priorities); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return autoPinAll(ctx, tx, "bbl_organization_assertions", "organization_id", orgID, "organization_source_id", "bbl_organization_sources", priorities)
 }
 
 // distinctValues returns the distinct values of a column for an entity.
@@ -226,56 +146,13 @@ func distinctValues(ctx context.Context, tx pgx.Tx, table, col, entityIDCol stri
 	return vals, rows.Err()
 }
 
-// workAssertionTables lists all assertion tables for works (used for bulk delete on re-import).
-var workAssertionTables = []string{
-	"bbl_work_fields",
-	"bbl_work_identifiers",
-	"bbl_work_classifications",
-	"bbl_work_contributors",
-	"bbl_work_titles",
-	"bbl_work_abstracts",
-	"bbl_work_lay_summaries",
-	"bbl_work_notes",
-	"bbl_work_keywords",
-	"bbl_work_projects",
-	"bbl_work_organizations",
-	"bbl_work_rels",
-}
-
-// personAssertionTables lists all assertion tables for people.
-var personAssertionTables = []string{
-	"bbl_person_fields",
-	"bbl_person_identifiers",
-	"bbl_person_organizations",
-}
-
-// projectAssertionTables lists all assertion tables for projects.
-var projectAssertionTables = []string{
-	"bbl_project_fields",
-	"bbl_project_titles",
-	"bbl_project_descriptions",
-	"bbl_project_identifiers",
-	"bbl_project_people",
-}
-
-// organizationAssertionTables lists all assertion tables for organizations.
-var organizationAssertionTables = []string{
-	"bbl_organization_fields",
-	"bbl_organization_identifiers",
-	"bbl_organization_names",
-	"bbl_organization_rels",
-}
-
 // deleteSourceAssertions deletes all assertions linked to a source record.
-// sourceRecordID is the uuid PK of the *_sources row. sourceIDCol is the FK
-// column in assertion tables (e.g. "work_source_id").
-func deleteSourceAssertions(ctx context.Context, tx pgx.Tx, tables []string, sourceIDCol string, sourceRecordID ID) error {
-	for _, table := range tables {
-		if _, err := tx.Exec(ctx, fmt.Sprintf(
-			`DELETE FROM %s WHERE %s = $1`, table, sourceIDCol),
-			sourceRecordID); err != nil {
-			return fmt.Errorf("deleteSourceAssertions(%s): %w", table, err)
-		}
+// CASCADE on the assertions table handles relation table cleanup.
+func deleteSourceAssertions(ctx context.Context, tx pgx.Tx, assertionsTable, sourceIDCol string, sourceRecordID ID) error {
+	if _, err := tx.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE %s = $1`, assertionsTable, sourceIDCol),
+		sourceRecordID); err != nil {
+		return fmt.Errorf("deleteSourceAssertions(%s): %w", assertionsTable, err)
 	}
 	return nil
 }
@@ -288,12 +165,12 @@ func rebuildPersonCache(ctx context.Context, tx pgx.Tx, personIDs []ID) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_people p
 		SET cache = json_build_object(
-			'name',        COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_fields sf WHERE sf.person_id = p.id AND sf.field = 'name' AND sf.pinned = true), ''),
-			'given_name',  COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_fields sf WHERE sf.person_id = p.id AND sf.field = 'given_name' AND sf.pinned = true), ''),
-			'middle_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_fields sf WHERE sf.person_id = p.id AND sf.field = 'middle_name' AND sf.pinned = true), ''),
-			'family_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_fields sf WHERE sf.person_id = p.id AND sf.field = 'family_name' AND sf.pinned = true), ''),
-			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_person_identifiers i WHERE i.person_id = p.id AND i.pinned = true),
-			'organizations', (SELECT json_agg(json_build_object('organization_id', po.organization_id) ORDER BY po.organization_id) FROM bbl_person_organizations po WHERE po.person_id = p.id AND po.pinned = true)
+			'name',        COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'name' AND sf.pinned = true AND sf.hidden = false), ''),
+			'given_name',  COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'given_name' AND sf.pinned = true AND sf.hidden = false), ''),
+			'middle_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'middle_name' AND sf.pinned = true AND sf.hidden = false), ''),
+			'family_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'family_name' AND sf.pinned = true AND sf.hidden = false), ''),
+			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_person_identifiers i JOIN bbl_person_assertions a ON a.id = i.assertion_id WHERE i.person_id = p.id AND a.pinned = true AND a.hidden = false),
+			'organizations', (SELECT json_agg(json_build_object('organization_id', po.organization_id) ORDER BY po.organization_id) FROM bbl_person_organizations po JOIN bbl_person_assertions a ON a.id = po.assertion_id WHERE po.person_id = p.id AND a.pinned = true AND a.hidden = false)
 		)
 		WHERE p.id = ANY($1)`, dedup(personIDs))
 	if err != nil {
@@ -310,10 +187,10 @@ func rebuildProjectCache(ctx context.Context, tx pgx.Tx, projectIDs []ID) error 
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_projects p
 		SET cache = json_build_object(
-			'titles', (SELECT json_agg(json_build_object('lang', t.lang, 'val', t.val) ORDER BY t.lang, t.val) FROM bbl_project_titles t WHERE t.project_id = p.id AND t.pinned = true),
-			'descriptions', (SELECT json_agg(json_build_object('lang', d.lang, 'val', d.val) ORDER BY d.lang, d.val) FROM bbl_project_descriptions d WHERE d.project_id = p.id AND d.pinned = true),
-			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_project_identifiers i WHERE i.project_id = p.id AND i.pinned = true),
-			'people', (SELECT json_agg(json_build_object('person_id', pp.person_id, 'role', pp.role) ORDER BY pp.person_id) FROM bbl_project_people pp WHERE pp.project_id = p.id AND pp.pinned = true)
+			'titles', (SELECT json_agg(json_build_object('lang', t.lang, 'val', t.val) ORDER BY t.lang, t.val) FROM bbl_project_titles t JOIN bbl_project_assertions a ON a.id = t.assertion_id WHERE t.project_id = p.id AND a.pinned = true AND a.hidden = false),
+			'descriptions', (SELECT json_agg(json_build_object('lang', d.lang, 'val', d.val) ORDER BY d.lang, d.val) FROM bbl_project_descriptions d JOIN bbl_project_assertions a ON a.id = d.assertion_id WHERE d.project_id = p.id AND a.pinned = true AND a.hidden = false),
+			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_project_identifiers i JOIN bbl_project_assertions a ON a.id = i.assertion_id WHERE i.project_id = p.id AND a.pinned = true AND a.hidden = false),
+			'people', (SELECT json_agg(json_build_object('person_id', pp.person_id, 'role', pp.role) ORDER BY pp.person_id) FROM bbl_project_people pp JOIN bbl_project_assertions a ON a.id = pp.assertion_id WHERE pp.project_id = p.id AND a.pinned = true AND a.hidden = false)
 		)
 		WHERE p.id = ANY($1)`, dedup(projectIDs))
 	if err != nil {
@@ -330,9 +207,9 @@ func rebuildOrganizationCache(ctx context.Context, tx pgx.Tx, orgIDs []ID) error
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_organizations o
 		SET cache = json_build_object(
-			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_organization_identifiers i WHERE i.organization_id = o.id AND i.pinned = true),
-			'names', (SELECT json_agg(json_build_object('lang', t.lang, 'val', t.val) ORDER BY t.lang, t.val) FROM bbl_organization_names t WHERE t.organization_id = o.id AND t.pinned = true),
-			'rels', (SELECT json_agg(json_build_object('id', r.id, 'organization_id', r.organization_id, 'rel_organization_id', r.rel_organization_id, 'kind', r.kind, 'start_date', r.start_date, 'end_date', r.end_date) ORDER BY r.kind, r.rel_organization_id) FROM bbl_organization_rels r WHERE r.organization_id = o.id AND r.pinned = true)
+			'identifiers', (SELECT json_agg(json_build_object('scheme', i.scheme, 'val', i.val) ORDER BY i.scheme, i.val) FROM bbl_organization_identifiers i JOIN bbl_organization_assertions a ON a.id = i.assertion_id WHERE i.organization_id = o.id AND a.pinned = true AND a.hidden = false),
+			'names', (SELECT json_agg(json_build_object('lang', t.lang, 'val', t.val) ORDER BY t.lang, t.val) FROM bbl_organization_names t JOIN bbl_organization_assertions a ON a.id = t.assertion_id WHERE t.organization_id = o.id AND a.pinned = true AND a.hidden = false),
+			'rels', (SELECT json_agg(json_build_object('id', r.id, 'organization_id', r.organization_id, 'rel_organization_id', r.rel_organization_id, 'kind', r.kind, 'start_date', r.start_date, 'end_date', r.end_date) ORDER BY r.kind, r.rel_organization_id) FROM bbl_organization_rels r JOIN bbl_organization_assertions a ON a.id = r.assertion_id WHERE r.organization_id = o.id AND a.pinned = true AND a.hidden = false)
 		)
 		WHERE o.id = ANY($1)`, dedup(orgIDs))
 	if err != nil {

@@ -35,9 +35,9 @@ func TestSetOrganizationIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteOrganizationIdentifiers_Apply(t *testing.T) {
+func TestUnsetOrganizationIdentifiers_Apply(t *testing.T) {
 	orgID := newID()
-	m := &DeleteOrganizationIdentifiers{OrganizationID: orgID}
+	m := &UnsetOrganizationIdentifiers{OrganizationID: orgID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -72,9 +72,9 @@ func TestSetOrganizationRels_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteOrganizationRels_Apply(t *testing.T) {
+func TestUnsetOrganizationRels_Apply(t *testing.T) {
 	orgID := newID()
-	m := &DeleteOrganizationRels{OrganizationID: orgID}
+	m := &UnsetOrganizationRels{OrganizationID: orgID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)

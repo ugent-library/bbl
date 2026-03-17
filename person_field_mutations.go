@@ -10,7 +10,7 @@ import (
 
 // --- shared write helpers ---
 
-// writeCreatePersonField inserts a scalar assertion into bbl_person_fields.
+// writeCreatePersonField inserts a scalar assertion into bbl_person_assertions.
 // Shared by both Set mutations (human path) and import.
 func writeCreatePersonField(ctx context.Context, tx pgx.Tx, id, personID ID, field string, val any, personSourceID *ID, userID *ID) error {
 	valJSON, err := json.Marshal(val)
@@ -18,7 +18,7 @@ func writeCreatePersonField(ctx context.Context, tx pgx.Tx, id, personID ID, fie
 		return fmt.Errorf("writeCreatePersonField(%s): %w", field, err)
 	}
 	_, err = tx.Exec(ctx, `
-		INSERT INTO bbl_person_fields (id, person_id, field, val, person_source_id, user_id)
+		INSERT INTO bbl_person_assertions (id, person_id, field, val, person_source_id, user_id)
 		VALUES ($1, $2, $3, $4, $5, $6)`,
 		id, personID, field, valJSON, personSourceID, userID)
 	if err != nil {
@@ -27,7 +27,7 @@ func writeCreatePersonField(ctx context.Context, tx pgx.Tx, id, personID ID, fie
 	return nil
 }
 
-// --- Set/Delete helpers for scalar fields ---
+// --- Set/Unset helpers for scalar fields ---
 
 func applySetPersonField(personID ID, field string, val string, id *ID, mutUserID **ID, userID *ID) (*mutationEffect, error) {
 	*id = newID()
@@ -38,58 +38,77 @@ func applySetPersonField(personID ID, field string, val string, id *ID, mutUserI
 		opType:     OpUpdate,
 		diff:       Diff{Args: val},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinScalar(ctx, tx, "bbl_person_fields", "person_id", personID, field, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", personID, field, "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
 
 func writeSetPersonField(ctx context.Context, tx pgx.Tx, id, personID ID, field string, val string, userID *ID) error {
 	if _, err := tx.Exec(ctx, `
-		DELETE FROM bbl_person_fields WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`,
+		DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`,
 		personID, field); err != nil {
 		return fmt.Errorf("writeSetPersonField(%s): delete: %w", field, err)
 	}
 	return writeCreatePersonField(ctx, tx, id, personID, field, val, nil, userID)
 }
 
-func applyDeletePersonField(personID ID, field string) (*mutationEffect, error) {
+func applyUnsetPersonField(personID ID, field string) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinScalar(ctx, tx, "bbl_person_fields", "person_id", personID, field, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", personID, field, "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
 
-func writeDeletePersonField(ctx context.Context, tx pgx.Tx, personID ID, field string) error {
+func writeUnsetPersonField(ctx context.Context, tx pgx.Tx, personID ID, field string) error {
 	if _, err := tx.Exec(ctx, `
-		DELETE FROM bbl_person_fields WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`,
+		DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`,
 		personID, field); err != nil {
-		return fmt.Errorf("writeDeletePersonField(%s): %w", field, err)
+		return fmt.Errorf("writeUnsetPersonField(%s): %w", field, err)
 	}
 	return nil
 }
 
 // --- shared write helpers for relation tables ---
 
-func writePersonIdentifier(ctx context.Context, tx pgx.Tx, id, personID ID, scheme, val string, personSourceID *ID, userID *ID) error {
+func writePersonAssertion(ctx context.Context, tx pgx.Tx, id, personID ID, field string, val any, hidden bool, personSourceID *ID, userID *ID) error {
+	var valJSON []byte
+	if val != nil {
+		var err error
+		valJSON, err = json.Marshal(val)
+		if err != nil {
+			return fmt.Errorf("writePersonAssertion(%s): %w", field, err)
+		}
+	}
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_person_identifiers (id, person_id, scheme, val, person_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, personID, scheme, val, personSourceID, userID)
+		INSERT INTO bbl_person_assertions (id, person_id, field, val, hidden, person_source_id, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		id, personID, field, valJSON, hidden, personSourceID, userID)
+	if err != nil {
+		return fmt.Errorf("writePersonAssertion(%s): %w", field, err)
+	}
+	return nil
+}
+
+func writePersonIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID, personID ID, scheme, val string) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO bbl_person_identifiers (id, assertion_id, person_id, scheme, val)
+		VALUES ($1, $2, $3, $4, $5)`,
+		id, assertionID, personID, scheme, val)
 	if err != nil {
 		return fmt.Errorf("writePersonIdentifier: %w", err)
 	}
 	return nil
 }
 
-func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, personID, organizationID ID, role string, personSourceID *ID, userID *ID) error {
+func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, assertionID, personID, organizationID ID) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_person_organizations (id, person_id, organization_id, role, person_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, personID, organizationID, nilIfEmpty(role), personSourceID, userID)
+		INSERT INTO bbl_person_organizations (id, assertion_id, person_id, organization_id)
+		VALUES ($1, $2, $3, $4)`,
+		id, assertionID, personID, organizationID)
 	if err != nil {
 		return fmt.Errorf("writePersonOrganization: %w", err)
 	}
@@ -97,7 +116,7 @@ func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, personID, organ
 }
 
 // ============================================================
-// Set / Delete mutations for person scalar fields
+// Set / Unset mutations for person scalar fields
 // ============================================================
 
 // --- SetPersonName (no delete — required) ---
@@ -118,7 +137,7 @@ func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "name", m.Val, m.userID)
 }
 
-// --- SetPersonGivenName / DeletePersonGivenName ---
+// --- SetPersonGivenName / UnsetPersonGivenName ---
 
 type SetPersonGivenName struct {
 	PersonID ID     `json:"person_id"`
@@ -136,18 +155,18 @@ func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "given_name", m.Val, m.userID)
 }
 
-type DeletePersonGivenName struct{ PersonID ID }
+type UnsetPersonGivenName struct{ PersonID ID }
 
-func (m *DeletePersonGivenName) mutationName() string { return "delete_person_given_name" }
-func (m *DeletePersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return applyDeletePersonField(m.PersonID, "given_name")
+func (m *UnsetPersonGivenName) mutationName() string { return "unset_person_given_name" }
+func (m *UnsetPersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetPersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applyUnsetPersonField(m.PersonID, "given_name")
 }
-func (m *DeletePersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
-	return writeDeletePersonField(ctx, tx, m.PersonID, "given_name")
+func (m *UnsetPersonGivenName) write(ctx context.Context, tx pgx.Tx) error {
+	return writeUnsetPersonField(ctx, tx, m.PersonID, "given_name")
 }
 
-// --- SetPersonMiddleName / DeletePersonMiddleName ---
+// --- SetPersonMiddleName / UnsetPersonMiddleName ---
 
 type SetPersonMiddleName struct {
 	PersonID ID     `json:"person_id"`
@@ -165,18 +184,18 @@ func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "middle_name", m.Val, m.userID)
 }
 
-type DeletePersonMiddleName struct{ PersonID ID }
+type UnsetPersonMiddleName struct{ PersonID ID }
 
-func (m *DeletePersonMiddleName) mutationName() string { return "delete_person_middle_name" }
-func (m *DeletePersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return applyDeletePersonField(m.PersonID, "middle_name")
+func (m *UnsetPersonMiddleName) mutationName() string { return "unset_person_middle_name" }
+func (m *UnsetPersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetPersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applyUnsetPersonField(m.PersonID, "middle_name")
 }
-func (m *DeletePersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
-	return writeDeletePersonField(ctx, tx, m.PersonID, "middle_name")
+func (m *UnsetPersonMiddleName) write(ctx context.Context, tx pgx.Tx) error {
+	return writeUnsetPersonField(ctx, tx, m.PersonID, "middle_name")
 }
 
-// --- SetPersonFamilyName / DeletePersonFamilyName ---
+// --- SetPersonFamilyName / UnsetPersonFamilyName ---
 
 type SetPersonFamilyName struct {
 	PersonID ID     `json:"person_id"`
@@ -194,22 +213,22 @@ func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
 	return writeSetPersonField(ctx, tx, m.id, m.PersonID, "family_name", m.Val, m.userID)
 }
 
-type DeletePersonFamilyName struct{ PersonID ID }
+type UnsetPersonFamilyName struct{ PersonID ID }
 
-func (m *DeletePersonFamilyName) mutationName() string { return "delete_person_family_name" }
-func (m *DeletePersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return applyDeletePersonField(m.PersonID, "family_name")
+func (m *UnsetPersonFamilyName) mutationName() string { return "unset_person_family_name" }
+func (m *UnsetPersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetPersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+	return applyUnsetPersonField(m.PersonID, "family_name")
 }
-func (m *DeletePersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
-	return writeDeletePersonField(ctx, tx, m.PersonID, "family_name")
+func (m *UnsetPersonFamilyName) write(ctx context.Context, tx pgx.Tx) error {
+	return writeUnsetPersonField(ctx, tx, m.PersonID, "family_name")
 }
 
 // ============================================================
-// Set / Delete mutations for person collectives
+// Set / Unset mutations for person collectives
 // ============================================================
 
-// --- SetPersonIdentifiers / DeletePersonIdentifiers ---
+// --- SetPersonIdentifiers / UnsetPersonIdentifiers ---
 
 type SetPersonIdentifiers struct {
 	PersonID    ID
@@ -227,44 +246,48 @@ func (m *SetPersonIdentifiers) apply(state mutationState, userID *ID) (*mutation
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ Identifiers []Identifier }{m.Identifiers}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_person_identifiers", "person_id", m.PersonID, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "identifiers", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_identifiers WHERE person_id = $1 AND user_id IS NOT NULL`, m.PersonID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.PersonID); err != nil {
 		return fmt.Errorf("SetPersonIdentifiers: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writePersonAssertion(ctx, tx, assertionID, m.PersonID, "identifiers", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetPersonIdentifiers: %w", err)
+	}
 	for _, ident := range m.Identifiers {
-		if err := writePersonIdentifier(ctx, tx, newID(), m.PersonID, ident.Scheme, ident.Val, nil, m.userID); err != nil {
+		if err := writePersonIdentifier(ctx, tx, newID(), assertionID, m.PersonID, ident.Scheme, ident.Val); err != nil {
 			return fmt.Errorf("SetPersonIdentifiers: %w", err)
 		}
 	}
 	return nil
 }
 
-type DeletePersonIdentifiers struct{ PersonID ID }
+type UnsetPersonIdentifiers struct{ PersonID ID }
 
-func (m *DeletePersonIdentifiers) mutationName() string { return "delete_person_identifiers" }
-func (m *DeletePersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetPersonIdentifiers) mutationName() string { return "unset_person_identifiers" }
+func (m *UnsetPersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetPersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_person_identifiers", "person_id", m.PersonID, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "identifiers", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
-func (m *DeletePersonIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_identifiers WHERE person_id = $1 AND user_id IS NOT NULL`, m.PersonID); err != nil {
-		return fmt.Errorf("DeletePersonIdentifiers: %w", err)
+func (m *UnsetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.PersonID); err != nil {
+		return fmt.Errorf("UnsetPersonIdentifiers: %w", err)
 	}
 	return nil
 }
 
-// --- SetPersonOrganizations / DeletePersonOrganizations ---
+// --- SetPersonOrganizations / UnsetPersonOrganizations ---
 
 type SetPersonOrganizations struct {
 	PersonID      ID
@@ -282,39 +305,43 @@ func (m *SetPersonOrganizations) apply(state mutationState, userID *ID) (*mutati
 		opType:     OpUpdate,
 		diff:       Diff{Args: struct{ Organizations []PersonOrganization }{m.Organizations}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_person_organizations", "person_id", m.PersonID, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
 func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_organizations WHERE person_id = $1 AND user_id IS NOT NULL`, m.PersonID); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.PersonID); err != nil {
 		return fmt.Errorf("SetPersonOrganizations: delete: %w", err)
 	}
+	assertionID := newID()
+	if err := writePersonAssertion(ctx, tx, assertionID, m.PersonID, "organizations", nil, false, nil, m.userID); err != nil {
+		return fmt.Errorf("SetPersonOrganizations: %w", err)
+	}
 	for _, org := range m.Organizations {
-		if err := writePersonOrganization(ctx, tx, newID(), m.PersonID, org.OrganizationID, org.Role, nil, m.userID); err != nil {
+		if err := writePersonOrganization(ctx, tx, newID(), assertionID, m.PersonID, org.OrganizationID); err != nil {
 			return fmt.Errorf("SetPersonOrganizations: %w", err)
 		}
 	}
 	return nil
 }
 
-type DeletePersonOrganizations struct{ PersonID ID }
+type UnsetPersonOrganizations struct{ PersonID ID }
 
-func (m *DeletePersonOrganizations) mutationName() string { return "delete_person_organizations" }
-func (m *DeletePersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *DeletePersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetPersonOrganizations) mutationName() string { return "unset_person_organizations" }
+func (m *UnsetPersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
+func (m *UnsetPersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPinCollective(ctx, tx, "bbl_person_organizations", "person_id", m.PersonID, "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
-func (m *DeletePersonOrganizations) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_organizations WHERE person_id = $1 AND user_id IS NOT NULL`, m.PersonID); err != nil {
-		return fmt.Errorf("DeletePersonOrganizations: %w", err)
+func (m *UnsetPersonOrganizations) write(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.PersonID); err != nil {
+		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
 	}
 	return nil
 }

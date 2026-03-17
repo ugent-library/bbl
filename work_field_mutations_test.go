@@ -86,9 +86,9 @@ func TestSetWorkVolume_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkVolume_Apply(t *testing.T) {
+func TestUnsetWorkVolume_Apply(t *testing.T) {
 	workID := newID()
-	m := &DeleteWorkVolume{WorkID: workID}
+	m := &UnsetWorkVolume{WorkID: workID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -158,11 +158,12 @@ CREATE TABLE bbl_organization_sources (
 
 CREATE INDEX ON bbl_organization_sources (source, source_id);
 
-CREATE TABLE bbl_organization_fields (
+CREATE TABLE bbl_organization_assertions (
     id                     uuid PRIMARY KEY,
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     field                  text NOT NULL,
-    val                    jsonb NOT NULL,
+    val                    jsonb,
+    hidden                 bool NOT NULL DEFAULT false,
     organization_source_id uuid REFERENCES bbl_organization_sources (id) ON DELETE CASCADE,
     user_id                uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     asserted_at            timestamptz NOT NULL DEFAULT transaction_timestamp(),
@@ -171,24 +172,20 @@ CREATE TABLE bbl_organization_fields (
     CHECK (num_nonnulls(organization_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_organization_fields (organization_id, field, organization_source_id)
+CREATE UNIQUE INDEX ON bbl_organization_assertions (organization_id, field, organization_source_id)
   WHERE organization_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_organization_fields (organization_id, field)
+CREATE UNIQUE INDEX ON bbl_organization_assertions (organization_id, field)
   WHERE user_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_organization_fields (organization_id, field)
+CREATE UNIQUE INDEX ON bbl_organization_assertions (organization_id, field)
   WHERE pinned = true;
 
 CREATE TABLE bbl_organization_identifiers (
     id                     uuid PRIMARY KEY,
+    assertion_id           uuid NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     scheme                 text NOT NULL,
     val                    text NOT NULL,
-    organization_source_id uuid REFERENCES bbl_organization_sources (id) ON DELETE CASCADE,
-    user_id                uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at            timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned                 bool NOT NULL DEFAULT false,
-    CHECK (scheme <> ''),
-    CHECK (num_nonnulls(organization_source_id, user_id) = 1)
+    CHECK (scheme <> '')
 );
 
 CREATE INDEX ON bbl_organization_identifiers (organization_id);
@@ -196,32 +193,24 @@ CREATE INDEX ON bbl_organization_identifiers (scheme, val);
 
 CREATE TABLE bbl_organization_names (
     id                     uuid PRIMARY KEY,
+    assertion_id           uuid NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     lang                   text NOT NULL DEFAULT '',
-    val                    text NOT NULL,
-    organization_source_id uuid REFERENCES bbl_organization_sources (id) ON DELETE CASCADE,
-    user_id                uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at            timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned                 bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(organization_source_id, user_id) = 1)
+    val                    text NOT NULL
 );
 
 CREATE INDEX ON bbl_organization_names (organization_id);
 
 CREATE TABLE bbl_organization_rels (
     id                     uuid PRIMARY KEY,
+    assertion_id           uuid NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     rel_organization_id    uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     kind                   text NOT NULL,
-    organization_source_id uuid REFERENCES bbl_organization_sources (id) ON DELETE CASCADE,
-    user_id                uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     start_date             date,
     end_date               date,
-    asserted_at            timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned                 bool NOT NULL DEFAULT false,
     CHECK (organization_id <> rel_organization_id),
-    CHECK (kind <> ''),
-    CHECK (num_nonnulls(organization_source_id, user_id) = 1)
+    CHECK (kind <> '')
 );
 
 CREATE INDEX ON bbl_organization_rels (organization_id);
@@ -265,11 +254,12 @@ CREATE TABLE bbl_person_sources (
 
 CREATE INDEX ON bbl_person_sources (source, source_id);
 
-CREATE TABLE bbl_person_fields (
+CREATE TABLE bbl_person_assertions (
     id               uuid PRIMARY KEY,
     person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     field            text NOT NULL,
-    val              jsonb NOT NULL,
+    val              jsonb,
+    hidden           bool NOT NULL DEFAULT false,
     person_source_id uuid REFERENCES bbl_person_sources (id) ON DELETE CASCADE,
     user_id          uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     asserted_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
@@ -278,24 +268,20 @@ CREATE TABLE bbl_person_fields (
     CHECK (num_nonnulls(person_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_person_fields (person_id, field, person_source_id)
+CREATE UNIQUE INDEX ON bbl_person_assertions (person_id, field, person_source_id)
   WHERE person_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_person_fields (person_id, field)
+CREATE UNIQUE INDEX ON bbl_person_assertions (person_id, field)
   WHERE user_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_person_fields (person_id, field)
+CREATE UNIQUE INDEX ON bbl_person_assertions (person_id, field)
   WHERE pinned = true;
 
 CREATE TABLE bbl_person_identifiers (
     id               uuid PRIMARY KEY,
+    assertion_id     uuid NOT NULL REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
     person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     scheme           text NOT NULL,
     val              text NOT NULL,
-    person_source_id uuid REFERENCES bbl_person_sources (id) ON DELETE CASCADE,
-    user_id          uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned           bool NOT NULL DEFAULT false,
-    CHECK (scheme <> ''),
-    CHECK (num_nonnulls(person_source_id, user_id) = 1)
+    CHECK (scheme <> '')
 );
 
 CREATE INDEX ON bbl_person_identifiers (person_id);
@@ -303,15 +289,11 @@ CREATE INDEX ON bbl_person_identifiers (scheme, val);
 
 CREATE TABLE bbl_person_organizations (
     id               uuid PRIMARY KEY,
+    assertion_id     uuid NOT NULL REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
     person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     organization_id  uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     valid_from       date,
-    valid_to         date,
-    person_source_id uuid REFERENCES bbl_person_sources (id) ON DELETE CASCADE,
-    user_id          uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at      timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned           bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(person_source_id, user_id) = 1)
+    valid_to         date
 );
 
 CREATE INDEX ON bbl_person_organizations (person_id);
@@ -350,11 +332,12 @@ CREATE TABLE bbl_project_sources (
 
 CREATE INDEX ON bbl_project_sources (source, source_id);
 
-CREATE TABLE bbl_project_fields (
+CREATE TABLE bbl_project_assertions (
     id                uuid PRIMARY KEY,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     field             text NOT NULL,
-    val               jsonb NOT NULL,
+    val               jsonb,
+    hidden            bool NOT NULL DEFAULT false,
     project_source_id uuid REFERENCES bbl_project_sources (id) ON DELETE CASCADE,
     user_id           uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     asserted_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
@@ -363,52 +346,40 @@ CREATE TABLE bbl_project_fields (
     CHECK (num_nonnulls(project_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_project_fields (project_id, field, project_source_id)
+CREATE UNIQUE INDEX ON bbl_project_assertions (project_id, field, project_source_id)
   WHERE project_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_project_fields (project_id, field)
+CREATE UNIQUE INDEX ON bbl_project_assertions (project_id, field)
   WHERE user_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_project_fields (project_id, field)
+CREATE UNIQUE INDEX ON bbl_project_assertions (project_id, field)
   WHERE pinned = true;
 
 CREATE TABLE bbl_project_titles (
     id                uuid PRIMARY KEY,
+    assertion_id      uuid NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     lang              text NOT NULL DEFAULT '',
-    val               text NOT NULL,
-    project_source_id uuid REFERENCES bbl_project_sources (id) ON DELETE CASCADE,
-    user_id           uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned            bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(project_source_id, user_id) = 1)
+    val               text NOT NULL
 );
 
 CREATE INDEX ON bbl_project_titles (project_id);
 
 CREATE TABLE bbl_project_descriptions (
     id                uuid PRIMARY KEY,
+    assertion_id      uuid NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     lang              text NOT NULL DEFAULT '',
-    val               text NOT NULL,
-    project_source_id uuid REFERENCES bbl_project_sources (id) ON DELETE CASCADE,
-    user_id           uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned            bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(project_source_id, user_id) = 1)
+    val               text NOT NULL
 );
 
 CREATE INDEX ON bbl_project_descriptions (project_id);
 
 CREATE TABLE bbl_project_identifiers (
     id                uuid PRIMARY KEY,
+    assertion_id      uuid NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     scheme            text NOT NULL,
     val               text NOT NULL,
-    project_source_id uuid REFERENCES bbl_project_sources (id) ON DELETE CASCADE,
-    user_id           uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned            bool NOT NULL DEFAULT false,
-    CHECK (scheme <> ''),
-    CHECK (num_nonnulls(project_source_id, user_id) = 1)
+    CHECK (scheme <> '')
 );
 
 CREATE INDEX ON bbl_project_identifiers (project_id);
@@ -416,15 +387,11 @@ CREATE INDEX ON bbl_project_identifiers (scheme, val);
 
 CREATE TABLE bbl_project_people (
     id                uuid PRIMARY KEY,
+    assertion_id      uuid NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     person_id         uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     role              text,
-    project_source_id uuid REFERENCES bbl_project_sources (id) ON DELETE CASCADE,
-    user_id           uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at       timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned            bool NOT NULL DEFAULT false,
-    CHECK (role <> ''),
-    CHECK (num_nonnulls(project_source_id, user_id) = 1)
+    CHECK (role <> '')
 );
 
 CREATE INDEX ON bbl_project_people (project_id);
@@ -597,13 +564,15 @@ CREATE TABLE bbl_work_sources (
 CREATE INDEX ON bbl_work_sources (source, source_id);
 CREATE INDEX ON bbl_work_sources (candidate_id) WHERE candidate_id IS NOT NULL;
 
--- Assertion tables: each row has work_source_id (source assertion) OR user_id (human assertion)
+-- Assertions table: tracks who asserted what about which field.
+-- Scalar values are inlined (val). Collective values live in relation tables with assertion_id FK.
 
-CREATE TABLE bbl_work_fields (
+CREATE TABLE bbl_work_assertions (
     id             uuid PRIMARY KEY,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     field          text NOT NULL,
-    val            jsonb NOT NULL,
+    val            jsonb,              -- scalar value; NULL for collective fields
+    hidden         bool NOT NULL DEFAULT false,
     work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
     user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
     asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
@@ -612,24 +581,20 @@ CREATE TABLE bbl_work_fields (
     CHECK (num_nonnulls(work_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_work_fields (work_id, field, work_source_id)
+CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field, work_source_id)
   WHERE work_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_work_fields (work_id, field)
+CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field)
   WHERE user_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_work_fields (work_id, field)
+CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field)
   WHERE pinned = true;
 
 CREATE TABLE bbl_work_identifiers (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     scheme         text NOT NULL,
     val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (scheme <> ''),
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    CHECK (scheme <> '')
 );
 
 CREATE INDEX ON bbl_work_identifiers (work_id);
@@ -637,15 +602,11 @@ CREATE INDEX ON bbl_work_identifiers (scheme, val);
 
 CREATE TABLE bbl_work_classifications (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     scheme         text NOT NULL,
     val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (scheme <> ''),
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    CHECK (scheme <> '')
 );
 
 CREATE INDEX ON bbl_work_classifications (work_id);
@@ -653,19 +614,15 @@ CREATE INDEX ON bbl_work_classifications (scheme, val);
 
 CREATE TABLE bbl_work_contributors (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     position       int NOT NULL,
     kind           text NOT NULL DEFAULT 'person' CHECK (kind IN ('person', 'organization')),
     person_id      uuid REFERENCES bbl_people (id) ON DELETE SET NULL,
-    name           text,
+    name           text NOT NULL,
     given_name     text,
     family_name    text,
-    roles          text[] NOT NULL DEFAULT '{}',
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    roles          text[] NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX ON bbl_work_contributors (work_id);
@@ -674,96 +631,68 @@ CREATE INDEX ON bbl_work_contributors USING gin (roles) WHERE roles != '{}';
 
 CREATE TABLE bbl_work_titles (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    val            text NOT NULL
 );
 
 CREATE INDEX ON bbl_work_titles (work_id);
 
 CREATE TABLE bbl_work_abstracts (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    val            text NOT NULL
 );
 
 CREATE INDEX ON bbl_work_abstracts (work_id);
 
 CREATE TABLE bbl_work_lay_summaries (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    val            text NOT NULL
 );
 
 CREATE INDEX ON bbl_work_lay_summaries (work_id);
 
 CREATE TABLE bbl_work_notes (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     val            text NOT NULL,
-    kind           text,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    kind           text
 );
 
 CREATE INDEX ON bbl_work_notes (work_id);
 
 CREATE TABLE bbl_work_keywords (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    val            text NOT NULL,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    val            text NOT NULL
 );
 
 CREATE INDEX ON bbl_work_keywords (work_id);
 
 CREATE TABLE bbl_work_projects (
     id             uuid PRIMARY KEY,
+    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    project_id     uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE RESTRICT,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    project_id     uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE RESTRICT
 );
 
 CREATE INDEX ON bbl_work_projects (work_id);
 CREATE INDEX ON bbl_work_projects (project_id);
 
 CREATE TABLE bbl_work_organizations (
-    id             uuid PRIMARY KEY,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE RESTRICT,
-    work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned         bool NOT NULL DEFAULT false,
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    id              uuid PRIMARY KEY,
+    assertion_id    uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE RESTRICT
 );
 
 CREATE INDEX ON bbl_work_organizations (work_id);
@@ -771,16 +700,12 @@ CREATE INDEX ON bbl_work_organizations (organization_id);
 
 CREATE TABLE bbl_work_rels (
     id              uuid PRIMARY KEY,
+    assertion_id    uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     related_work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     kind            text NOT NULL,
-    work_source_id  uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
-    user_id         uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
-    asserted_at     timestamptz NOT NULL DEFAULT transaction_timestamp(),
-    pinned          bool NOT NULL DEFAULT false,
     CHECK (work_id <> related_work_id),
-    CHECK (kind <> ''),
-    CHECK (num_nonnulls(work_source_id, user_id) = 1)
+    CHECK (kind <> '')
 );
 
 CREATE INDEX ON bbl_work_rels (work_id);
@@ -804,7 +729,6 @@ CREATE TABLE bbl_work_files (
     CHECK (access_kind <> ''),
     CHECK (embargo_access_kind <> '')
 );
-
 
 CREATE TABLE bbl_work_reviews (
     id         uuid PRIMARY KEY,
@@ -939,8 +863,8 @@ LEFT JOIN LATERAL (
     json_build_object('field', sf.field, 'val', sf.val)
     ORDER BY sf.field
   ) FILTER (WHERE sf.work_id IS NOT NULL) AS str_fields
-  FROM bbl_work_fields sf
-  WHERE sf.work_id = w.id AND sf.pinned = true
+  FROM bbl_work_assertions sf
+  WHERE sf.work_id = w.id AND sf.pinned = true AND sf.hidden = false AND sf.val IS NOT NULL
 ) w_sf ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -948,7 +872,8 @@ LEFT JOIN LATERAL (
     ORDER BY i.scheme, i.val
   ) FILTER (WHERE i.work_id IS NOT NULL) AS identifiers
   FROM bbl_work_identifiers i
-  WHERE i.work_id = w.id AND i.pinned = true
+  JOIN bbl_work_assertions a ON a.id = i.assertion_id
+  WHERE i.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_i ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -956,7 +881,8 @@ LEFT JOIN LATERAL (
     ORDER BY cl.scheme, cl.val
   ) FILTER (WHERE cl.work_id IS NOT NULL) AS classifications
   FROM bbl_work_classifications cl
-  WHERE cl.work_id = w.id AND cl.pinned = true
+  JOIN bbl_work_assertions a ON a.id = cl.assertion_id
+  WHERE cl.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_cl ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -971,7 +897,8 @@ LEFT JOIN LATERAL (
     ) ORDER BY c.position
   ) FILTER (WHERE c.work_id IS NOT NULL) AS contributors
   FROM bbl_work_contributors c
-  WHERE c.work_id = w.id AND c.pinned = true
+  JOIN bbl_work_assertions a ON a.id = c.assertion_id
+  WHERE c.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_c ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -979,15 +906,17 @@ LEFT JOIN LATERAL (
     ORDER BY t.lang, t.val
   ) FILTER (WHERE t.work_id IS NOT NULL) AS titles
   FROM bbl_work_titles t
-  WHERE t.work_id = w.id AND t.pinned = true
+  JOIN bbl_work_assertions a ON a.id = t.assertion_id
+  WHERE t.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_t ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
-    json_build_object('lang', a.lang, 'val', a.val)
-    ORDER BY a.lang
-  ) FILTER (WHERE a.work_id IS NOT NULL) AS abstracts
-  FROM bbl_work_abstracts a
-  WHERE a.work_id = w.id AND a.pinned = true
+    json_build_object('lang', ab.lang, 'val', ab.val)
+    ORDER BY ab.lang
+  ) FILTER (WHERE ab.work_id IS NOT NULL) AS abstracts
+  FROM bbl_work_abstracts ab
+  JOIN bbl_work_assertions a ON a.id = ab.assertion_id
+  WHERE ab.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_a ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -995,7 +924,8 @@ LEFT JOIN LATERAL (
     ORDER BY ls.lang
   ) FILTER (WHERE ls.work_id IS NOT NULL) AS lay_summaries
   FROM bbl_work_lay_summaries ls
-  WHERE ls.work_id = w.id AND ls.pinned = true
+  JOIN bbl_work_assertions a ON a.id = ls.assertion_id
+  WHERE ls.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_ls ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -1003,7 +933,8 @@ LEFT JOIN LATERAL (
     ORDER BY n.kind
   ) FILTER (WHERE n.work_id IS NOT NULL) AS notes
   FROM bbl_work_notes n
-  WHERE n.work_id = w.id AND n.pinned = true
+  JOIN bbl_work_assertions a ON a.id = n.assertion_id
+  WHERE n.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_n ON true
 LEFT JOIN LATERAL (
   SELECT json_agg(
@@ -1011,7 +942,8 @@ LEFT JOIN LATERAL (
     ORDER BY kw.val
   ) FILTER (WHERE kw.work_id IS NOT NULL) AS keywords
   FROM bbl_work_keywords kw
-  WHERE kw.work_id = w.id AND kw.pinned = true
+  JOIN bbl_work_assertions a ON a.id = kw.assertion_id
+  WHERE kw.work_id = w.id AND a.pinned = true AND a.hidden = false
 ) w_kw ON true;
 
 -- +goose down
@@ -1037,7 +969,7 @@ DROP TABLE IF EXISTS bbl_work_titles CASCADE;
 DROP TABLE IF EXISTS bbl_work_contributors CASCADE;
 DROP TABLE IF EXISTS bbl_work_classifications CASCADE;
 DROP TABLE IF EXISTS bbl_work_identifiers CASCADE;
-DROP TABLE IF EXISTS bbl_work_fields CASCADE;
+DROP TABLE IF EXISTS bbl_work_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_work_sources CASCADE;
 DROP TABLE IF EXISTS bbl_work_candidate_organizations CASCADE;
 DROP TABLE IF EXISTS bbl_work_candidate_people CASCADE;
@@ -1054,18 +986,18 @@ DROP TABLE IF EXISTS bbl_project_descriptions CASCADE;
 DROP TABLE IF EXISTS bbl_project_titles CASCADE;
 DROP TABLE IF EXISTS bbl_project_sources CASCADE;
 DROP TABLE IF EXISTS bbl_project_identifiers CASCADE;
-DROP TABLE IF EXISTS bbl_project_fields CASCADE;
+DROP TABLE IF EXISTS bbl_project_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_projects CASCADE;
 DROP TABLE IF EXISTS bbl_person_organizations CASCADE;
 DROP TABLE IF EXISTS bbl_person_identifiers CASCADE;
-DROP TABLE IF EXISTS bbl_person_fields CASCADE;
+DROP TABLE IF EXISTS bbl_person_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_person_sources CASCADE;
 DROP TABLE IF EXISTS bbl_people CASCADE;
 DROP TABLE IF EXISTS bbl_organization_sources CASCADE;
 DROP TABLE IF EXISTS bbl_organization_rels CASCADE;
 DROP TABLE IF EXISTS bbl_organization_names CASCADE;
 DROP TABLE IF EXISTS bbl_organization_identifiers CASCADE;
-DROP TABLE IF EXISTS bbl_organization_fields CASCADE;
+DROP TABLE IF EXISTS bbl_organization_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_organizations CASCADE;
 DROP TABLE IF EXISTS bbl_grants CASCADE;
 DROP TABLE IF EXISTS bbl_user_tokens CASCADE;

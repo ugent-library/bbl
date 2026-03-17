@@ -4,7 +4,7 @@
 
 - [ ] Auto-pin integration tests (human wins over source, re-import re-evaluates, etc.)
 - [ ] Rights check: curator assertion can only be replaced by curator
-- [ ] Assertion deletion misses context: is it a delete or an assertion the field does not exist?
+- [ ] `buildWorkMutations` in edit_handlers.go: field name → mutation type mapping should be profile-driven, not a hard-coded switch
 
 ## Infrastructure
 

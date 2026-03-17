@@ -141,7 +141,7 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 			return ID{}, false, fmt.Errorf("insert bbl_project_sources: %w", err)
 		}
 	} else {
-		if err := deleteSourceAssertions(ctx, tx, projectAssertionTables, "project_source_id", sourceRecordID); err != nil {
+		if err := deleteSourceAssertions(ctx, tx, "bbl_project_assertions", "project_source_id", sourceRecordID); err != nil {
 			return ID{}, false, err
 		}
 		if _, err := tx.Exec(ctx, `
@@ -188,36 +188,45 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 }
 
 func importProjectTextFields(ctx context.Context, tx pgx.Tx, projectID ID, sourceRecordID ID, in *ImportProjectInput) error {
-	for _, t := range in.Titles {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_project_titles (id, project_id, lang, val, project_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), projectID, t.Lang, t.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_project_titles: %w", err)
+	if len(in.Titles) > 0 {
+		aID := newID()
+		if err := writeProjectAssertion(ctx, tx, aID, projectID, "titles", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, t := range in.Titles {
+			if err := writeProjectTitle(ctx, tx, newID(), aID, projectID, t.Lang, t.Val); err != nil {
+				return err
+			}
 		}
 	}
-	for _, d := range in.Descriptions {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_project_descriptions (id, project_id, lang, val, project_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), projectID, d.Lang, d.Val, sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_project_descriptions: %w", err)
+	if len(in.Descriptions) > 0 {
+		aID := newID()
+		if err := writeProjectAssertion(ctx, tx, aID, projectID, "descriptions", nil, false, &sourceRecordID, nil); err != nil {
+			return err
+		}
+		for _, d := range in.Descriptions {
+			if err := writeProjectDescription(ctx, tx, newID(), aID, projectID, d.Lang, d.Val); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func importProjectRelations(ctx context.Context, tx pgx.Tx, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
-	for _, p := range in.Participants {
-		person, err := resolvePersonRef(ctx, tx, p.Ref, source)
-		if err != nil {
-			continue // silently skip unresolvable refs
+	if len(in.Participants) > 0 {
+		aID := newID()
+		if err := writeProjectAssertion(ctx, tx, aID, projectID, "people", nil, false, &sourceRecordID, nil); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_project_people (id, project_id, person_id, role, project_source_id)
-			VALUES ($1, $2, $3, $4, $5)`,
-			newID(), projectID, person.ID, nilIfEmpty(p.Role), sourceRecordID); err != nil {
-			return fmt.Errorf("insert bbl_project_people: %w", err)
+		for _, p := range in.Participants {
+			person, err := resolvePersonRef(ctx, tx, p.Ref, source)
+			if err != nil {
+				continue
+			}
+			if err := writeProjectPerson(ctx, tx, newID(), aID, projectID, person.ID, p.Role); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

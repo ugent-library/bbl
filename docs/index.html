@@ -277,8 +277,8 @@ function tbl(headers, rows, caption) {
   return h;
 }
 
-const fldHeaders = ['work', 'field', 'val', 'source', 'user', 'pinned'];
-const contribHeaders = ['work', 'pos', 'name', 'source', 'user', 'pinned'];
+const fldHeaders = ['work', 'field', 'val', 'hidden', 'source', 'user', 'pinned'];
+const contribHeaders = ['work', 'pos', 'name', 'assertion'];
 
 const scenes = [
 
@@ -442,10 +442,10 @@ const scenes = [
     </div>` +
     tbl(fldHeaders,
       [
-        [C.hl('W001'), 'volume', C.src('"42"'),   C.src('wos'), '—', C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.src('"2025"'), C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.src('"42"'),   '', C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'), '', C.src('wos'), '—', C.pin('★ yes')],
       ],
-      C.hdr('bbl_work_fields')
+      C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt caption">${C.dim('Auto-pin: no human assertion → highest priority source wins → wos pinned')}</div>`;
   }
@@ -477,13 +477,13 @@ const scenes = [
     </div>` +
     tbl(fldHeaders,
       [
-        [C.hl('W001'), 'volume', C.src('"42"'),       C.src('wos'),    '—', C.pin('★ yes')],
-        [C.hl('W001'), 'volume', C.dim('"vol. 42"'),  C.dim('scopus'), '—', ''],
-        [C.hl('W001'), 'year',   C.src('"2025"'),     C.src('wos'),    '—', C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.dim('"2025"'),     C.dim('scopus'), '—', ''],
-        [C.hl('W001'), 'pages',  C.dim('"101-115"'),  C.dim('scopus'), '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.src('"42"'),       '', C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'),  '', C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'year',   C.src('"2025"'),     '', C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),     '', C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'),  '', C.dim('scopus'), '—', C.pin('★ yes')],
       ],
-      C.hdr('bbl_work_fields')
+      C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt caption">Both assertions ${C.hdr('coexist')}. WoS wins volume/year (priority 10 > 5). Scopus is the only pages asserter → auto-pinned.</div>`;
   }
@@ -513,14 +513,14 @@ const scenes = [
     </div>` +
     tbl(fldHeaders,
       [
-        [C.hl('W001'), 'volume', C.dim('"42"'),      C.dim('wos'),    '—',          ''],
-        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'), '—',          ''],
-        [C.hl('W001'), 'volume', C.usr('"42a"'),     '—',             C.usr('U42'), C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos'),    '—',          C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'), '—',          ''],
-        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'), '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.dim('"42"'),      '', C.dim('wos'),    '—',          ''],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), '', C.dim('scopus'), '—',          ''],
+        [C.hl('W001'), 'volume', C.usr('"42a"'),     '', '—',             C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    '', C.src('wos'),    '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    '', C.dim('scopus'), '—',          ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), '', C.dim('scopus'), '—',          C.pin('★ yes')],
       ],
-      C.hdr('bbl_work_fields')
+      C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt caption">${C.usr('Green dot')} = human assertion. It ${C.pin('always gets the pin')}, regardless of source priority.
     Source assertions are ${C.hdr('untouched')} — the curator created a new row.</div>`;
@@ -548,14 +548,14 @@ const scenes = [
     </div>` +
     tbl(fldHeaders,
       [
-        [C.hl('W001'), 'volume', C.src('"42a"'),     C.src('wos ✱new'),  '—',          ''],
-        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'),    '—',          ''],
-        [C.hl('W001'), 'volume', C.usr('"42a"'),     '—',                C.usr('U42'), C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos ✱new'),  '—',          C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'),    '—',          ''],
-        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'),    '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.src('"42a"'),     '', C.src('wos ✱new'),  '—',          ''],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), '', C.dim('scopus'),    '—',          ''],
+        [C.hl('W001'), 'volume', C.usr('"42a"'),     '', '—',                C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    '', C.src('wos ✱new'),  '—',          C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    '', C.dim('scopus'),    '—',          ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), '', C.dim('scopus'),    '—',          C.pin('★ yes')],
       ],
-      C.hdr('bbl_work_fields')
+      C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt flow">
       <div class="flow-step">${C.dim('Re-import is safe:')}</div>
@@ -567,14 +567,14 @@ const scenes = [
   }
 },
 
-// ─── 8: Delete human assertion ───
+// ─── 8: Unset human assertion ───
 {
-  title: "Assertions — Curator deletes their assertion",
+  title: "Assertions — Curator unsets their assertion",
   build() {
     return `
-    <div class="mb">${C.hdr('Curator U42 deletes their volume assertion → auto-pin re-evaluates')}</div>
+    <div class="mb">${C.hdr('Curator U42 unsets their volume assertion → auto-pin re-evaluates')}</div>
     <div class="viz">
-      <div class="viz-title">Before delete</div>
+      <div class="viz-title">Before unset</div>
       ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'human']])}
       ${fieldRow('volume',
         dot('wos', '"42a"', false) +
@@ -586,9 +586,9 @@ const scenes = [
       ${fieldRow('pages',
         dot('scopus', '"101-115"', true))}
     </div>
-    <div style="text-align:center; color:#e94560; margin: 4px 0;">▼ DELETE human assertion ▼</div>
+    <div style="text-align:center; color:#e94560; margin: 4px 0;">▼ UNSET human assertion ▼</div>
     <div class="viz">
-      <div class="viz-title">After delete — auto-pin re-evaluates</div>
+      <div class="viz-title">After unset — auto-pin re-evaluates</div>
       ${fieldRow('volume',
         dot('wos', '"42a"', true) +
         dot('scopus', '"vol. 42"', false))}
@@ -600,15 +600,52 @@ const scenes = [
     </div>` +
     tbl(fldHeaders,
       [
-        [C.hl('W001'), 'volume', C.src('"42a"'),     C.src('wos'),    '—', C.pin('★ yes')],
-        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), C.dim('scopus'), '—', ''],
-        [C.hl('W001'), 'year',   C.src('"2025"'),    C.src('wos'),    '—', C.pin('★ yes')],
-        [C.hl('W001'), 'year',   C.dim('"2025"'),    C.dim('scopus'), '—', ''],
-        [C.hl('W001'), 'pages',  C.dim('"101-115"'), C.dim('scopus'), '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.src('"42a"'),     '', C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'volume', C.dim('"vol. 42"'), '', C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'year',   C.src('"2025"'),    '', C.src('wos'),    '—', C.pin('★ yes')],
+        [C.hl('W001'), 'year',   C.dim('"2025"'),    '', C.dim('scopus'), '—', ''],
+        [C.hl('W001'), 'pages',  C.dim('"101-115"'), '', C.dim('scopus'), '—', C.pin('★ yes')],
       ],
-      C.hdr('bbl_work_fields — after delete')
+      C.hdr('bbl_work_assertions — after unset')
     ) +
-    `<div class="mt caption">${C.dim('Human row gone. WoS auto-pinned (priority 10 > 5). If ALL assertions deleted → field absent.')}</div>`;
+    `<div class="mt caption">${C.dim('Human row gone. WoS auto-pinned (priority 10 > 5). If ALL assertions removed → field absent.')}</div>`;
+  }
+},
+
+// ─── 8b: Hide field ───
+{
+  title: "Assertions — Curator hides a field",
+  build() {
+    return `
+    <div class="mb">${C.hdr('Curator U42 hides pages')} — "this field should not have a value, even if sources say otherwise."</div>
+    <div class="viz">
+      <div class="viz-title">Before hide — scopus asserts pages</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus']])}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', true))}
+    </div>
+    <div style="text-align:center; color:#e94560; margin: 4px 0;">▼ HIDE pages ▼</div>
+    <div class="viz">
+      <div class="viz-title">After hide — human assertion with hidden=true is pinned</div>
+      ${legend([['scopus', 'scopus'], ['human', 'human (U42)']])}
+      ${fieldRow('pages',
+        dot('scopus', '"101-115"', false) +
+        dot('human', C.dim('hidden'), true))}
+    </div>` +
+    tbl(fldHeaders,
+      [
+        [C.hl('W001'), 'pages', C.dim('"101-115"'),   '',            C.dim('scopus'), '—',          ''],
+        [C.hl('W001'), 'pages', C.dim('—'),          C.pin('true'), '—',             C.usr('U42'), C.pin('★ yes')],
+      ],
+      C.hdr('bbl_work_assertions — human assertion with hidden=true')
+    ) +
+    `<div class="mt viz">
+      <div class="viz-title">Three operations — Set, Hide, Unset</div>
+      <div style="margin:6px 0">${C.usr('Set')} — assert a value. "Pages is 101-115."</div>
+      <div style="margin:6px 0">${C.pin('Hide')} — assert absence. "This work has no pages." Blocks source values from displaying.</div>
+      <div style="margin:6px 0">${C.hl('Unset')} — withdraw assertion. "I take back what I said." Auto-pin re-evaluates, source wins back.</div>
+    </div>
+    <div class="mt caption">${C.dim('Hide is the inverse of Set. Both are positive assertions. Unset removes your opinion entirely.')}</div>`;
   }
 },
 
@@ -628,17 +665,17 @@ const scenes = [
     </div>` +
     tbl(contribHeaders,
       [
-        [C.hl('W001'), '1', C.src('A. Einstein'), C.src('wos'), '—', C.pin('★ yes')],
-        [C.hl('W001'), '2', C.src('N. Bohr'),     C.src('wos'), '—', C.pin('★ yes')],
-        [C.hl('W001'), '3', C.src('M. Curie'),    C.src('wos'), '—', C.pin('★ yes')],
+        [C.hl('W001'), '1', C.src('A. Einstein'), C.src('A1 (wos)')],
+        [C.hl('W001'), '2', C.src('N. Bohr'),     C.src('A1 (wos)')],
+        [C.hl('W001'), '3', C.src('M. Curie'),    C.src('A1 (wos)')],
         '---',
-        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('scopus'), '—', ''],
-        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('scopus'), '—', ''],
+        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
+        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
       ],
-      C.hdr('bbl_work_contributors — wos list pinned')
+      C.hdr('bbl_work_contributors — rows FK to assertion, pinning on assertion table')
     ) +
-    `<div class="caption">WoS's 3-author list is pinned as a whole. Scopus's 2-author list is stored but not displayed.</div>
-    <div class="caption">You ${C.hdr("can't")} mix-and-match rows from different sources.</div>`;
+    `<div class="caption">Each contributor row FKs to an assertion in <code>bbl_work_assertions</code>. Pinning is on the assertion, not the contributor rows.</div>
+    <div class="caption">WoS's 3-author list is pinned as a whole. You ${C.hdr("can't")} mix-and-match rows from different asserters.</div>`;
   }
 },
 
@@ -658,19 +695,19 @@ const scenes = [
     </div>` +
     tbl(contribHeaders,
       [
-        [C.hl('W001'), '1', C.usr('A. Einstein'),              '—', C.usr('U42'), C.pin('★ yes')],
-        [C.hl('W001'), '2', C.usr('N. Bohr'),                  '—', C.usr('U42'), C.pin('★ yes')],
-        [C.hl('W001'), '3', C.usr('M. Curie'),                 '—', C.usr('U42'), C.pin('★ yes')],
-        [C.hl('W001'), '4', C.usr('R. Feynman') + ' ← added!', '—', C.usr('U42'), C.pin('★ yes')],
+        [C.hl('W001'), '1', C.usr('A. Einstein'),              C.usr('A3 (U42) ★')],
+        [C.hl('W001'), '2', C.usr('N. Bohr'),                  C.usr('A3 (U42) ★')],
+        [C.hl('W001'), '3', C.usr('M. Curie'),                 C.usr('A3 (U42) ★')],
+        [C.hl('W001'), '4', C.usr('R. Feynman') + ' ← added!', C.usr('A3 (U42) ★')],
         '---',
-        [C.hl('W001'), '1', C.dim('A. Einstein'), C.dim('wos'), '—', ''],
-        [C.hl('W001'), '2', C.dim('N. Bohr'),     C.dim('wos'), '—', ''],
-        [C.hl('W001'), '3', C.dim('M. Curie'),    C.dim('wos'), '—', ''],
+        [C.hl('W001'), '1', C.dim('A. Einstein'), C.dim('A1 (wos)')],
+        [C.hl('W001'), '2', C.dim('N. Bohr'),     C.dim('A1 (wos)')],
+        [C.hl('W001'), '3', C.dim('M. Curie'),    C.dim('A1 (wos)')],
         '---',
-        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('scopus'), '—', ''],
-        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('scopus'), '—', ''],
+        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
+        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
       ],
-      C.hdr('bbl_work_contributors — all three lists coexist')
+      C.hdr('bbl_work_contributors — rows FK to assertions table, pinning tracked there')
     ) +
     `<div class="mt caption">Source lists are preserved. If the human deletes their list, wos's 3-author list gets re-pinned.</div>`;
   }
@@ -766,10 +803,10 @@ const scenes = [
         ▼
   ${C.src('Source record')}         per-entity contribution (raw payload, timestamps)
         │
-        ├─▶ ${C.hl('field assertions')}       value came from this source
-        ├─▶ ${C.hl('contributor assertions')} list came from this source
-        ├─▶ ${C.hl('identifier assertions')}  IDs came from this source
-        └─▶ ${C.hl('...')}                    (all assertion types)
+        ├─▶ ${C.hl('scalar assertions')}      value inline (val jsonb)
+        ├─▶ ${C.hl('collective assertions')} contributors, identifiers, etc.
+        │     └─ value rows FK to assertion
+        └─▶ ${C.hl('...')}                   (all fields, one assertions table)
 
   ${C.usr('User')}                  human asserters
         │
@@ -1120,7 +1157,7 @@ const scenes = [
     <div class="viz">
       <div class="viz-title">The Mutate path</div>
       <div style="margin:6px 0">For ${C.usr('humans, API consumers, and bots')} — curator edits, researcher self-deposit, programmatic changes.</div>
-      <div style="margin:6px 0">Changes are expressed as named mutations (e.g. "set volume", "add contributor"). For each revision:</div>
+      <div style="margin:6px 0">Changes are expressed as named mutations (e.g. "set volume", "hide pages", "unset edition"). For each revision:</div>
       <div class="flow" style="margin-left:16px">
         <div class="flow-step">All mutations are validated and their effects computed ${C.hl('before anything is written')}</div>
         <div class="flow-step">If nothing actually changed — the revision is silently dropped</div>
@@ -1160,7 +1197,7 @@ const scenes = [
 
     <div class="viz">
       <div class="viz-title">Level 2: Mutations</div>
-      <div style="margin:6px 0">Each revision contains one or more ${C.hl('mutations')} — named operations like "SetWorkVolume" or "CreateWork".</div>
+      <div style="margin:6px 0">Each revision contains one or more ${C.hl('mutations')} — named operations like "SetWorkVolume", "HideWorkPages", or "UnsetWorkEdition".</div>
       <div style="margin:6px 0">Each mutation records the entity affected, the operation type, and a full before/after diff.</div>
     </div>
 
@@ -1203,7 +1240,7 @@ const scenes = [
       <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">The Assertion Model</div>
       <div class="rule"><span class="num">1.</span> Every field value is an ${C.hl('assertion')} with an origin (${C.src('source')} or ${C.usr('human')}). Nothing is overwritten.</div>
       <div class="rule"><span class="num">2.</span> One assertion per field is ${C.pin('pinned')} for display. ${C.usr('Human always wins')}; otherwise highest-priority source.</div>
-      <div class="rule"><span class="num">3.</span> Humans create their own assertions (${C.usr('copy-on-write')}). Source assertions are never modified directly.</div>
+      <div class="rule"><span class="num">3.</span> Three operations: ${C.usr('Set')} (assert value), ${C.pin('Hide')} (assert absence), ${C.hl('Unset')} (withdraw, source wins back).</div>
       <div class="rule"><span class="num">4.</span> Re-import replaces only the source's own assertions. ${C.usr('Human pins are never disturbed.')}</div>
       <div class="rule"><span class="num">5.</span> ${C.pin('Cache')} rebuilt from pinned values on every write. One JSON snapshot for display, search, and export.</div>
 

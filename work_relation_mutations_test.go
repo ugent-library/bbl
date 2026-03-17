@@ -38,9 +38,9 @@ func TestSetWorkIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkIdentifiers_Apply(t *testing.T) {
+func TestUnsetWorkIdentifiers_Apply(t *testing.T) {
 	workID := newID()
-	m := &DeleteWorkIdentifiers{WorkID: workID}
+	m := &UnsetWorkIdentifiers{WorkID: workID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -76,9 +76,9 @@ func TestSetWorkContributors_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkContributors_Apply(t *testing.T) {
+func TestUnsetWorkContributors_Apply(t *testing.T) {
 	workID := newID()
-	m := &DeleteWorkContributors{WorkID: workID}
+	m := &UnsetWorkContributors{WorkID: workID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -106,9 +106,9 @@ func TestSetWorkAbstracts_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkAbstracts_Apply(t *testing.T) {
+func TestUnsetWorkAbstracts_Apply(t *testing.T) {
 	workID := newID()
-	m := &DeleteWorkAbstracts{WorkID: workID}
+	m := &UnsetWorkAbstracts{WorkID: workID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -151,9 +151,9 @@ func TestSetWorkKeywords_Apply(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkKeywords_Apply(t *testing.T) {
+func TestUnsetWorkKeywords_Apply(t *testing.T) {
 	workID := newID()
-	m := &DeleteWorkKeywords{WorkID: workID}
+	m := &UnsetWorkKeywords{WorkID: workID}
 	eff, err := m.apply(mutationState{}, nil)
 	if err != nil {
 		t.Fatal(err)
