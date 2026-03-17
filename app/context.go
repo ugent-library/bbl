@@ -23,6 +23,8 @@ func (app *App) newCtx(r *http.Request) (*Ctx, error) {
 			Loc:       app.locale.translateFunc(lang),
 			Lang:      lang,
 			Langs:     app.locale.langs,
+			LangNames: app.locale.langNames[lang],
+			MainLangs: app.locale.mainLangs,
 			Path:      r.URL.Path,
 		},
 	}

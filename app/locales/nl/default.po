@@ -131,6 +131,9 @@ msgstr "Persoon zoeken..."
 msgid "Unlink"
 msgstr "Ontkoppelen"
 
+msgid "Language"
+msgstr "Taal"
+
 msgid "Organization"
 msgstr "Organisatie"
 

@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/ugent-library/bbl"
@@ -85,7 +86,7 @@ templ editTitleList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 		<div data-repeatable-items>
 			for _, t := range workAttrTitleList(work) {
 				<div data-repeatable-item>
-					<input type="text" name={ f.Name + ".lang" } value={ t.Lang } placeholder="lang" size="4"/>
+					@langSelect(c, f.Name+".lang", t.Lang)
 					<input type="text" name={ f.Name + ".val" } value={ t.Val } placeholder="value"/>
 					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
@@ -94,7 +95,7 @@ templ editTitleList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, f.Name)) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
-				<input type="text" name={ f.Name + ".lang" } value="" placeholder="lang" size="4"/>
+				@langSelect(c, f.Name+".lang", "")
 				<input type="text" name={ f.Name + ".val" } value="" placeholder="value"/>
 				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
@@ -113,7 +114,7 @@ templ editTextList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 		<div data-repeatable-items>
 			for _, t := range workAttrTextList(work, f.Name) {
 				<div data-repeatable-item>
-					<input type="text" name={ f.Name + ".lang" } value={ t.Lang } placeholder="lang" size="4"/>
+					@langSelect(c, f.Name+".lang", t.Lang)
 					<input type="text" name={ f.Name + ".val" } value={ t.Val } placeholder="value"/>
 					<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 				</div>
@@ -122,7 +123,7 @@ templ editTextList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 		<button type="button" data-add-item>{ c.Loc("Add %s", fieldLabel(c, f.Name)) }</button>
 		<template data-item-template>
 			<div data-repeatable-item>
-				<input type="text" name={ f.Name + ".lang" } value="" placeholder="lang" size="4"/>
+				@langSelect(c, f.Name+".lang", "")
 				<input type="text" name={ f.Name + ".val" } value="" placeholder="value"/>
 				<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 			</div>
@@ -290,3 +291,62 @@ templ editContributor(c Ctx, co bbl.WorkContributor) {
 	</div>
 }
 
+templ langSelect(c Ctx, name, selected string) {
+	<select name={ name }>
+		<option value="">{ c.Loc("Language") }</option>
+		for _, opt := range langOptions(c, selected) {
+			if opt.disabled {
+				<option disabled>{ opt.label }</option>
+			} else {
+				<option value={ opt.value } selected?={ opt.selected }>{ opt.label }</option>
+			}
+		}
+	</select>
+}
+
+type langOption struct {
+	value    string
+	label    string
+	selected bool
+	disabled bool
+}
+
+func langOptions(c Ctx, selected string) []langOption {
+	mainSet := make(map[string]bool, len(c.MainLangs))
+	var opts []langOption
+
+	for _, code := range c.MainLangs {
+		if name, ok := c.LangNames[code]; ok {
+			mainSet[code] = true
+			opts = append(opts, langOption{value: code, label: name, selected: code == selected})
+		}
+	}
+
+	var named, codeOnly []langOption
+	for code, name := range c.LangNames {
+		if mainSet[code] {
+			continue
+		}
+		o := langOption{value: code, label: name, selected: code == selected}
+		if name == code {
+			codeOnly = append(codeOnly, o)
+		} else {
+			named = append(named, o)
+		}
+	}
+
+	sort.Slice(named, func(i, j int) bool { return named[i].label < named[j].label })
+	sort.Slice(codeOnly, func(i, j int) bool { return codeOnly[i].value < codeOnly[j].value })
+
+	if len(opts) > 0 && len(named) > 0 {
+		opts = append(opts, langOption{label: "───", disabled: true})
+	}
+	opts = append(opts, named...)
+
+	if len(codeOnly) > 0 {
+		opts = append(opts, langOption{label: "───", disabled: true})
+	}
+	opts = append(opts, codeOnly...)
+
+	return opts
+}

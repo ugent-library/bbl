@@ -13,7 +13,7 @@ func newMigrateCmd(cfg *config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "migrate [up|down]",
 		Short:     "Run database migrations",
-		Args:      cobra.ExactArgs(1),
+		Args:      cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		ValidArgs: []string{"up", "down"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cfg.Conn == "" {
