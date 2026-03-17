@@ -90,6 +90,9 @@ func (app *App) Handler() http.Handler {
 	// SRU endpoints — per-entity, public.
 	mux.Handle("GET /sru/works", app.sruWorksHandler())
 
+	// OAI-PMH endpoint.
+	mux.Handle("GET /oai", app.oaiHandler())
+
 	base := chain{
 		sloghttp.Recovery,
 		sloghttp.NewWithConfig(app.log.WithGroup("http"), sloghttp.Config{

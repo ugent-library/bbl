@@ -2,6 +2,7 @@ package bbl
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -462,6 +463,119 @@ func scanWork(row pgx.Row) (*Work, error) {
 		return nil, err
 	}
 	return &w, nil
+}
+
+// WorkCursor is a keyset pagination cursor for ListPublicWorks.
+// ListPublicWorksOpts holds parameters for ListPublicWorks.
+type ListPublicWorksOpts struct {
+	From   time.Time
+	Until  time.Time
+	Cursor string // opaque, from previous result
+	Limit  int
+}
+
+// ListPublicWorksResult holds the result of ListPublicWorks.
+type ListPublicWorksResult struct {
+	Works  []*Work
+	Cursor string // empty = last page
+}
+
+type workCursor struct {
+	UpdatedAt time.Time `json:"u"`
+	ID        ID        `json:"i"`
+}
+
+// GetEarliestWorkTimestamp returns the earliest updated_at of any public work.
+func (r *Repo) GetEarliestWorkTimestamp(ctx context.Context) (time.Time, error) {
+	var t time.Time
+	err := r.db.QueryRow(ctx, `SELECT COALESCE(MIN(updated_at), NOW()) FROM bbl_works WHERE status = 'public'`).Scan(&t)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("GetEarliestWorkTimestamp: %w", err)
+	}
+	return t, nil
+}
+
+// ListPublicWorks returns a page of public works ordered by (updated_at, id) for keyset pagination.
+func (r *Repo) ListPublicWorks(ctx context.Context, opts ListPublicWorksOpts) (*ListPublicWorksResult, error) {
+	query := `
+		SELECT id, version, created_at, updated_at,
+		       created_by_id, updated_by_id,
+		       kind, status, review_status, delete_kind,
+		       deleted_at, deleted_by_id,
+		       cache
+		FROM bbl_works
+		WHERE status = 'public'`
+	var args []any
+	n := 0
+
+	if !opts.From.IsZero() {
+		n++
+		query += fmt.Sprintf(` AND updated_at >= $%d`, n)
+		args = append(args, opts.From)
+	}
+	if !opts.Until.IsZero() {
+		n++
+		query += fmt.Sprintf(` AND updated_at <= $%d`, n)
+		args = append(args, opts.Until)
+	}
+	if opts.Cursor != "" {
+		cur, err := decodeWorkCursor(opts.Cursor)
+		if err != nil {
+			return nil, fmt.Errorf("ListPublicWorks: invalid cursor: %w", err)
+		}
+		n++
+		query += fmt.Sprintf(` AND (updated_at, id) > ($%d`, n)
+		args = append(args, cur.UpdatedAt)
+		n++
+		query += fmt.Sprintf(`, $%d)`, n)
+		args = append(args, cur.ID)
+	}
+
+	query += ` ORDER BY updated_at, id`
+	n++
+	query += fmt.Sprintf(` LIMIT $%d`, n)
+	args = append(args, opts.Limit)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("ListPublicWorks: %w", err)
+	}
+	defer rows.Close()
+
+	var works []*Work
+	for rows.Next() {
+		w, err := scanWork(rows)
+		if err != nil {
+			return nil, fmt.Errorf("ListPublicWorks: %w", err)
+		}
+		works = append(works, w)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ListPublicWorks: %w", err)
+	}
+	var cursor string
+	if len(works) == opts.Limit {
+		last := works[len(works)-1]
+		cursor = encodeWorkCursor(workCursor{UpdatedAt: last.UpdatedAt, ID: last.ID})
+	}
+	return &ListPublicWorksResult{Works: works, Cursor: cursor}, nil
+}
+
+func encodeWorkCursor(c workCursor) string {
+	b, _ := json.Marshal(c)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func decodeWorkCursor(s string) (workCursor, error) {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return workCursor{}, err
+	}
+	var c workCursor
+	if err := json.Unmarshal(b, &c); err != nil {
+		return workCursor{}, err
+	}
+	return c, nil
 }
 
 // EachWork returns an iterator over all works, ordered by id.

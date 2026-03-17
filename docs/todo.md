@@ -2,12 +2,9 @@
 
 ## Assertion model (remaining)
 
-- [ ] **Decision**: Import pipeline mutation granularity
-  - **A) Coarse records (current)**: keep single `ImportWork`/`ImportPerson`/etc. mutation records with `diff: '{}'`. Replay by re-running import from the stored source record in `*_sources`. Simpler, but pinning history is implicit.
-  - **B) Per-field records**: write `SetWorkVolume`, `SetWorkTitles`, etc. during import, same as UI mutations. Explicit field-level audit trail and pinning history, but more rows and import is slower.
 - [ ] Auto-pin integration tests (human wins over source, re-import re-evaluates, etc.)
 - [ ] Rights check: curator assertion can only be replaced by curator
-- [ ] Add context to assertion deletion: is it a delete or an assertion the field does not exist?
+- [ ] Assertion deletion misses context: is it a delete or an assertion the field does not exist?
 
 ## Infrastructure
 
@@ -18,6 +15,20 @@
 
 - [ ] Candidates
 - [ ] Authorization layer
+- [ ] Collections (two types: query-based / dynamic, and manual / rules-based)
+
+## External protocols & APIs
+
+- [ ] OAI-PMH: representation cache table (avoid re-harvest when entity timestamp bumps but encoded output is identical)
+- [ ] OAI-PMH: deleted record tracking (currently `DeletedRecord: "no"`; need to surface deleted/privatized works as `<header status="deleted">` so harvesters can clean up)
+- [ ] OAI-PMH: sets via collections
+- [ ] OAI-PMH: `Identify` description element (oai-identifier, friends)
+- [ ] OAI-PMH: HTTP compression support
+
+## Infrastructure
+
+- [ ] Split off sru library
+- [ ] Split off oaipmh library
 
 ## Features to port from prototype
 
@@ -39,10 +50,9 @@
 
 ### External protocols & APIs
 
-- [ ] OAI-PMH server (full verb set + resumption tokens)
 - [ ] ORCID API client
 - [ ] Webhook subscriptions + async delivery
 
 ### Infrastructure
 
-- [ ] Form binding library (`bind/`)
+- [ ] form binding library (`bind/`)
