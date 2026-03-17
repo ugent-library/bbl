@@ -134,6 +134,21 @@ msgstr "Unlink"
 msgid "Language"
 msgstr "Language"
 
+msgid "role.author"
+msgstr "Author"
+
+msgid "role.editor"
+msgstr "Editor"
+
+msgid "role.translator"
+msgstr "Translator"
+
+msgid "role.supervisor"
+msgstr "Supervisor"
+
+msgid "role.illustrator"
+msgstr "Illustrator"
+
 msgid "Organization"
 msgstr "Organization"
 

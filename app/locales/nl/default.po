@@ -134,6 +134,21 @@ msgstr "Ontkoppelen"
 msgid "Language"
 msgstr "Taal"
 
+msgid "role.author"
+msgstr "Auteur"
+
+msgid "role.editor"
+msgstr "Redacteur"
+
+msgid "role.translator"
+msgstr "Vertaler"
+
+msgid "role.supervisor"
+msgstr "Promotor"
+
+msgid "role.illustrator"
+msgstr "Illustrator"
+
 msgid "Organization"
 msgstr "Organisatie"
 

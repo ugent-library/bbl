@@ -240,24 +240,11 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				mutations = append(mutations, &bbl.DeleteWorkNotes{WorkID: work.ID})
 			}
 		case "contributor_list":
-			names := r.Form["contributors.name"]
-			kinds := r.Form["contributors.kind"]
-			givenNames := r.Form["contributors.given_name"]
-			familyNames := r.Form["contributors.family_name"]
-			roleStrs := r.Form["contributors.roles"]
-			personIDs := r.Form["contributors.person_id"]
-
 			var contributors []bbl.WorkContributor
-			for i := range names {
-				name := strings.TrimSpace(names[i])
-				gn, fn := "", ""
-				if i < len(givenNames) {
-					gn = strings.TrimSpace(givenNames[i])
-				}
-				if i < len(familyNames) {
-					fn = strings.TrimSpace(familyNames[i])
-				}
-				// Build name from parts if empty.
+			for i, g := range formGroups(r.Form, "contributors") {
+				name := strings.TrimSpace(g.Get("name"))
+				gn := strings.TrimSpace(g.Get("given_name"))
+				fn := strings.TrimSpace(g.Get("family_name"))
 				if name == "" {
 					name = strings.TrimSpace(gn + " " + fn)
 				}
@@ -266,19 +253,15 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				}
 				co := bbl.WorkContributor{
 					Position:   i,
+					Kind:       g.Get("kind"),
 					Name:       name,
 					GivenName:  gn,
 					FamilyName: fn,
+					Roles:      g["roles"],
 				}
-				if i < len(kinds) && kinds[i] == "organization" {
-					co.Kind = "organization"
-				}
-				if i < len(roleStrs) {
-					co.Roles = splitRoles(roleStrs[i])
-				}
-				if i < len(personIDs) && personIDs[i] != "" {
-					if pid, err := bbl.ParseID(personIDs[i]); err == nil {
-						co.PersonID = &pid
+				if pid := g.Get("person_id"); pid != "" {
+					if id, err := bbl.ParseID(pid); err == nil {
+						co.PersonID = &id
 					}
 				}
 				contributors = append(contributors, co)
@@ -293,13 +276,3 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 	return mutations
 }
 
-func splitRoles(s string) []string {
-	var roles []string
-	for _, r := range strings.Split(s, ",") {
-		r = strings.TrimSpace(r)
-		if r != "" {
-			roles = append(roles, r)
-		}
-	}
-	return roles
-}

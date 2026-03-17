@@ -2,8 +2,8 @@ package views
 
 import (
 	"fmt"
+	"slices"
 	"sort"
-	"strings"
 
 	"github.com/ugent-library/bbl"
 	"github.com/ugent-library/vo"
@@ -236,42 +236,48 @@ templ showClassifications(c Ctx, work *bbl.Work) {
 }
 
 templ editContributors(c Ctx, work *bbl.Work) {
-	<fieldset data-repeatable="contributors">
+	<fieldset data-repeatable="contributors" data-index-names>
 		<legend>{ c.Loc("Contributors") }</legend>
 		<div data-repeatable-items style="display:flex;flex-direction:column;gap:1em;">
-			for _, co := range work.Contributors {
-				@editContributor(c, co)
+			for i, co := range work.Contributors {
+				@editContributor(c, i, co)
 			}
 		</div>
 		<button type="button" data-add-item>{ c.Loc("Add contributor") }</button>
 		<template data-item-template>
-			@editContributor(c, bbl.WorkContributor{})
+			@editContributor(c, -1, bbl.WorkContributor{Kind: "person"})
 		</template>
 	</fieldset>
 }
 
-templ editContributor(c Ctx, co bbl.WorkContributor) {
+templ editContributor(c Ctx, idx int, co bbl.WorkContributor) {
 	<div data-repeatable-item data-person-suggest data-unlink-label={ c.Loc("Unlink") } style="display:flex;gap:1em;">
 		if co.PersonID != nil {
-			<input type="hidden" name="contributors.person_id" value={ co.PersonID.String() }/>
+			<input type="hidden" name={ indexedField("contributors", idx, "person_id") } value={ co.PersonID.String() }/>
 		} else {
-			<input type="hidden" name="contributors.person_id" value=""/>
+			<input type="hidden" name={ indexedField("contributors", idx, "person_id") } value=""/>
 		}
-		<input type="hidden" name="contributors.kind" value={ co.Kind }/>
+		<input type="hidden" name={ indexedField("contributors", idx, "kind") } value={ co.Kind }/>
 		<div style="flex:1;">
-			if co.PersonID != nil {
-				<div data-person-card>
-					<strong>{ co.Name }</strong>
-					<button type="button" data-unlink-person>{ c.Loc("Unlink") }</button>
-				</div>
-			}
+			<div data-person-card if co.PersonID == nil { style="display:none;" }>
+				<strong data-person-name>{ co.Name }</strong>
+				<button type="button" data-unlink-person>{ c.Loc("Unlink") }</button>
+			</div>
 			<div data-contributor-fields if co.PersonID != nil { style="display:none;" }>
-				<input type="text" name="contributors.name" value={ co.Name } placeholder={ c.Loc("Name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+				<input type="text" name={ indexedField("contributors", idx, "name") } value={ co.Name } placeholder={ c.Loc("Name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
 				<div data-person-fields if co.Kind == "organization" { style="display:none;" }>
-					<input type="text" name="contributors.given_name" value={ co.GivenName } placeholder={ c.Loc("Given name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
-					<input type="text" name="contributors.family_name" value={ co.FamilyName } placeholder={ c.Loc("Family name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+					<input type="text" name={ indexedField("contributors", idx, "given_name") } value={ co.GivenName } placeholder={ c.Loc("Given name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
+					<input type="text" name={ indexedField("contributors", idx, "family_name") } value={ co.FamilyName } placeholder={ c.Loc("Family name") } autocomplete="off" data-suggest-input data-suggest-url="/backoffice/people/suggest"/>
 				</div>
-				<input type="text" name="contributors.roles" value={ strings.Join(co.Roles, ", ") } placeholder={ c.Loc("Roles") } autocomplete="off"/>
+				<fieldset>
+					<legend>{ c.Loc("Roles") }</legend>
+					for _, role := range contributorRoles {
+						<label>
+							<input type="checkbox" name={ indexedField("contributors", idx, "roles") } value={ role } if slices.Contains(co.Roles, role) { checked }/>
+							{ c.Loc("role." + role) }
+						</label>
+					}
+				</fieldset>
 				<label>
 					<input
 						type="checkbox"
@@ -289,6 +295,10 @@ templ editContributor(c Ctx, co bbl.WorkContributor) {
 		</div>
 		<button type="button" data-remove-item>{ c.Loc("Remove") }</button>
 	</div>
+}
+
+func indexedField(prefix string, idx int, field string) string {
+	return fmt.Sprintf("%s[%d].%s", prefix, idx, field)
 }
 
 templ langSelect(c Ctx, name, selected string) {
@@ -350,3 +360,12 @@ func langOptions(c Ctx, selected string) []langOption {
 
 	return opts
 }
+
+var contributorRoles = []string{
+	"author",
+	"editor",
+	"translator",
+	"supervisor",
+	"illustrator",
+}
+
