@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Record type discriminators used in bbl_mutations.entity_type.
+// Record type discriminators for entity types.
 const (
 	RecordTypeOrganization = "organization"
 	RecordTypePerson       = "person"
@@ -14,25 +14,10 @@ const (
 	RecordTypeWork         = "work"
 )
 
-// Op type discriminators used in bbl_mutations.op_type.
-const (
-	OpCreate = "create"
-	OpUpdate = "update"
-	OpDelete = "delete"
-)
-
-// Diff is the audit record stored in bbl_mutations.diff.
-// Args holds the new field values written by the mutation.
-// Prev holds the prior values of those same fields (omitted for creates).
-type Diff struct {
-	Args any `json:"args,omitempty"`
-	Prev any `json:"prev,omitempty"`
-}
-
 // mutation is the interface implemented by all mutation types.
 // Unexported method names ensure only the bbl package can define mutations.
 type mutation interface {
-	// mutationName returns the audit name stored in bbl_mutations.name.
+	// mutationName returns a human-readable name for the mutation.
 	mutationName() string
 
 	// needs declares what state must be pre-fetched before apply.
@@ -44,15 +29,14 @@ type mutation interface {
 
 	// write executes the mutation's SQL against the transaction.
 	// Called only for non-noop mutations, after the bbl_revs row is inserted.
-	write(ctx context.Context, tx pgx.Tx) error
+	// revID is the bigint identity of the current rev.
+	write(ctx context.Context, tx pgx.Tx, revID int64) error
 }
 
 // mutationEffect is what apply returns for non-noop mutations.
 type mutationEffect struct {
 	recordType string
 	recordID   ID
-	opType     string
-	diff       Diff
 	record     any // *Work, *Person, etc. — nil for field/relation mutations
 	// autoPin runs after all writes to evaluate pinning for the affected grouping key.
 	// Receives ctx, tx, and source priorities. Nil means no auto-pin needed.

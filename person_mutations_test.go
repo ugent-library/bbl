@@ -12,9 +12,6 @@ func TestCreatePerson_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpCreate {
-		t.Errorf("expected OpCreate, got %q", eff.opType)
-	}
 	p := eff.record.(*Person)
 	if p.Version != 1 {
 		t.Errorf("expected version 1, got %d", p.Version)

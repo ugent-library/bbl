@@ -14,26 +14,27 @@ import (
 // The assertion row must be created first.
 
 // writeWorkAssertion creates an assertion row. Used by both Set mutations and import.
-func writeWorkAssertion(ctx context.Context, tx pgx.Tx, id, workID ID, field string, val any, hidden bool, workSourceID *ID, userID *ID) error {
+func writeWorkAssertion(ctx context.Context, tx pgx.Tx, revID int64, workID ID, field string, val any, hidden bool, workSourceID *ID, userID *ID, role *string) (int64, error) {
 	var valJSON []byte
 	if val != nil {
 		var err error
 		valJSON, err = json.Marshal(val)
 		if err != nil {
-			return fmt.Errorf("writeWorkAssertion(%s): %w", field, err)
+			return 0, fmt.Errorf("writeWorkAssertion(%s): %w", field, err)
 		}
 	}
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_assertions (id, work_id, field, val, hidden, work_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id, workID, field, valJSON, hidden, workSourceID, userID)
+	var id int64
+	err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_work_assertions (rev_id, work_id, field, val, hidden, work_source_id, user_id, role)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+		revID, workID, field, valJSON, hidden, workSourceID, userID, role).Scan(&id)
 	if err != nil {
-		return fmt.Errorf("writeWorkAssertion(%s): %w", field, err)
+		return 0, fmt.Errorf("writeWorkAssertion(%s): %w", field, err)
 	}
-	return nil
+	return id, nil
 }
 
-func writeWorkIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, scheme, val string) error {
+func writeWorkIdentifier(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, scheme, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_identifiers (id, assertion_id, work_id, scheme, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -44,7 +45,7 @@ func writeWorkIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID, workID
 	return nil
 }
 
-func writeWorkClassification(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, scheme, val string) error {
+func writeWorkClassification(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, scheme, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_classifications (id, assertion_id, work_id, scheme, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -55,7 +56,7 @@ func writeWorkClassification(ctx context.Context, tx pgx.Tx, id, assertionID, wo
 	return nil
 }
 
-func writeWorkContributor(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, position int, kind string, personID *ID, name, givenName, familyName string, roles []string) error {
+func writeWorkContributor(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, position int, kind string, personID *ID, name, givenName, familyName string, roles []string) error {
 	if kind == "" {
 		kind = "person"
 	}
@@ -75,7 +76,7 @@ func writeWorkContributor(ctx context.Context, tx pgx.Tx, id, assertionID, workI
 	return nil
 }
 
-func writeWorkTitle(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, lang, val string) error {
+func writeWorkTitle(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_titles (id, assertion_id, work_id, lang, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -86,7 +87,7 @@ func writeWorkTitle(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, 
 	return nil
 }
 
-func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, lang, val string) error {
+func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_abstracts (id, assertion_id, work_id, lang, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -97,7 +98,7 @@ func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id, assertionID, workID I
 	return nil
 }
 
-func writeWorkLaySummary(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, lang, val string) error {
+func writeWorkLaySummary(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_lay_summaries (id, assertion_id, work_id, lang, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -108,7 +109,7 @@ func writeWorkLaySummary(ctx context.Context, tx pgx.Tx, id, assertionID, workID
 	return nil
 }
 
-func writeWorkNote(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, val, kind string) error {
+func writeWorkNote(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, val, kind string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_notes (id, assertion_id, work_id, val, kind)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -119,7 +120,7 @@ func writeWorkNote(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, v
 	return nil
 }
 
-func writeWorkKeyword(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID, val string) error {
+func writeWorkKeyword(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_keywords (id, assertion_id, work_id, val)
 		VALUES ($1, $2, $3, $4)`,
@@ -130,7 +131,7 @@ func writeWorkKeyword(ctx context.Context, tx pgx.Tx, id, assertionID, workID ID
 	return nil
 }
 
-func writeWorkProject(ctx context.Context, tx pgx.Tx, id, assertionID, workID, projectID ID) error {
+func writeWorkProject(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, projectID ID) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_projects (id, assertion_id, work_id, project_id)
 		VALUES ($1, $2, $3, $4)`,
@@ -141,7 +142,7 @@ func writeWorkProject(ctx context.Context, tx pgx.Tx, id, assertionID, workID, p
 	return nil
 }
 
-func writeWorkOrganization(ctx context.Context, tx pgx.Tx, id, assertionID, workID, orgID ID) error {
+func writeWorkOrganization(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, orgID ID) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_organizations (id, assertion_id, work_id, organization_id)
 		VALUES ($1, $2, $3, $4)`,
@@ -152,7 +153,7 @@ func writeWorkOrganization(ctx context.Context, tx pgx.Tx, id, assertionID, work
 	return nil
 }
 
-func writeWorkRel(ctx context.Context, tx pgx.Tx, id, assertionID, workID, relatedWorkID ID, kind string) error {
+func writeWorkRel(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, relatedWorkID ID, kind string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_rels (id, assertion_id, work_id, related_work_id, kind)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -182,19 +183,14 @@ func (m *SetWorkTitles) apply(state mutationState, userID *ID) (*mutationEffect,
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Titles []Title }{m.Titles}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "titles", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkTitles) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'titles' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkTitles: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "titles", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkTitles) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "titles", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkTitles: %w", err)
 	}
 	for _, t := range m.Titles {
@@ -220,19 +216,14 @@ func (m *SetWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEffe
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Abstracts []Text }{m.Abstracts}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "abstracts", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'abstracts' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkAbstracts: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "abstracts", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "abstracts", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkAbstracts: %w", err)
 	}
 	for _, t := range m.Abstracts {
@@ -251,13 +242,12 @@ func (m *UnsetWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEf
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "abstracts", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkAbstracts) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'abstracts' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkAbstracts: %w", err)
 	}
@@ -279,19 +269,14 @@ func (m *SetWorkLaySummaries) apply(state mutationState, userID *ID) (*mutationE
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ LaySummaries []Text }{m.LaySummaries}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "lay_summaries", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'lay_summaries' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkLaySummaries: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "lay_summaries", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "lay_summaries", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkLaySummaries: %w", err)
 	}
 	for _, t := range m.LaySummaries {
@@ -310,13 +295,12 @@ func (m *UnsetWorkLaySummaries) apply(state mutationState, userID *ID) (*mutatio
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "lay_summaries", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'lay_summaries' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkLaySummaries: %w", err)
 	}
@@ -338,19 +322,14 @@ func (m *SetWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect, 
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Notes []Note }{m.Notes}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "notes", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'notes' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkNotes: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "notes", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "notes", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkNotes: %w", err)
 	}
 	for _, n := range m.Notes {
@@ -369,13 +348,12 @@ func (m *UnsetWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "notes", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkNotes) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'notes' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkNotes: %w", err)
 	}
@@ -397,19 +375,14 @@ func (m *SetWorkKeywords) apply(state mutationState, userID *ID) (*mutationEffec
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Keywords []Keyword }{m.Keywords}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "keywords", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'keywords' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkKeywords: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "keywords", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "keywords", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkKeywords: %w", err)
 	}
 	for _, k := range m.Keywords {
@@ -428,13 +401,12 @@ func (m *UnsetWorkKeywords) apply(state mutationState, userID *ID) (*mutationEff
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "keywords", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkKeywords) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'keywords' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkKeywords: %w", err)
 	}
@@ -456,19 +428,14 @@ func (m *SetWorkIdentifiers) apply(state mutationState, userID *ID) (*mutationEf
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Identifiers []WorkIdentifier }{m.Identifiers}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "identifiers", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkIdentifiers: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "identifiers", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "identifiers", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkIdentifiers: %w", err)
 	}
 	for _, ident := range m.Identifiers {
@@ -487,13 +454,12 @@ func (m *UnsetWorkIdentifiers) apply(state mutationState, userID *ID) (*mutation
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "identifiers", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkIdentifiers: %w", err)
 	}
@@ -515,19 +481,14 @@ func (m *SetWorkClassifications) apply(state mutationState, userID *ID) (*mutati
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Classifications []WorkClassification }{m.Classifications}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "classifications", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'classifications' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkClassifications: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "classifications", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "classifications", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkClassifications: %w", err)
 	}
 	for _, c := range m.Classifications {
@@ -546,13 +507,12 @@ func (m *UnsetWorkClassifications) apply(state mutationState, userID *ID) (*muta
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "classifications", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkClassifications) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'classifications' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkClassifications: %w", err)
 	}
@@ -574,19 +534,14 @@ func (m *SetWorkContributors) apply(state mutationState, userID *ID) (*mutationE
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Contributors []WorkContributor }{m.Contributors}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "contributors", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'contributors' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkContributors: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "contributors", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "contributors", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkContributors: %w", err)
 	}
 	for i, c := range m.Contributors {
@@ -605,13 +560,12 @@ func (m *UnsetWorkContributors) apply(state mutationState, userID *ID) (*mutatio
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "contributors", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkContributors) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'contributors' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkContributors: %w", err)
 	}
@@ -633,19 +587,14 @@ func (m *SetWorkProjects) apply(state mutationState, userID *ID) (*mutationEffec
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Projects []ID }{m.Projects}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "projects", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'projects' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkProjects: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "projects", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "projects", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkProjects: %w", err)
 	}
 	for _, pid := range m.Projects {
@@ -664,13 +613,12 @@ func (m *UnsetWorkProjects) apply(state mutationState, userID *ID) (*mutationEff
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "projects", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkProjects) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'projects' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkProjects: %w", err)
 	}
@@ -692,19 +640,14 @@ func (m *SetWorkOrganizations) apply(state mutationState, userID *ID) (*mutation
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Organizations []ID }{m.Organizations}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "organizations", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkOrganizations: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "organizations", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "organizations", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkOrganizations: %w", err)
 	}
 	for _, oid := range m.Organizations {
@@ -723,13 +666,12 @@ func (m *UnsetWorkOrganizations) apply(state mutationState, userID *ID) (*mutati
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "organizations", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkOrganizations) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkOrganizations: %w", err)
 	}
@@ -754,19 +696,14 @@ func (m *SetWorkRels) apply(state mutationState, userID *ID) (*mutationEffect, e
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: m.Rels},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "rels", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.WorkID); err != nil {
-		return fmt.Errorf("SetWorkRels: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeWorkAssertion(ctx, tx, assertionID, m.WorkID, "rels", nil, false, nil, m.userID); err != nil {
+func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "rels", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetWorkRels: %w", err)
 	}
 	for _, r := range m.Rels {
@@ -785,13 +722,12 @@ func (m *UnsetWorkRels) apply(state mutationState, userID *ID) (*mutationEffect,
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_work_assertions", "work_id", m.WorkID, "rels", "work_source_id", "bbl_work_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetWorkRels) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkRels: %w", err)
 	}

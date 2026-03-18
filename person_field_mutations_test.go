@@ -45,9 +45,6 @@ func TestUnsetPersonGivenName_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
-	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
 	}
@@ -78,9 +75,6 @@ func TestUnsetPersonIdentifiers_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
-	}
 }
 
 func TestSetPersonOrganizations_Apply(t *testing.T) {
@@ -108,8 +102,5 @@ func TestUnsetPersonOrganizations_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }

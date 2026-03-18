@@ -74,10 +74,10 @@ func (r *Repo) importProjectBatch(ctx context.Context, source string, records []
 		return 0, fmt.Errorf("importProjectBatch: %w", err)
 	}
 
-	revID := newID()
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, source) VALUES ($1, $2)`,
-		revID, source); err != nil {
+	var revID int64
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_revs (source) VALUES ($1) RETURNING id`,
+		source).Scan(&revID); err != nil {
 		return 0, fmt.Errorf("importProjectBatch: %w", err)
 	}
 
@@ -103,7 +103,7 @@ func (r *Repo) importProjectBatch(ctx context.Context, source string, records []
 	return n, nil
 }
 
-func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportProjectInput, revID ID, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportProjectInput, revID int64, priorities map[string]int) (ID, bool, error) {
 	var projectID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -158,12 +158,12 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 	}
 
 	// Insert text field assertions.
-	if err := importProjectTextFields(ctx, tx, projectID, sourceRecordID, in); err != nil {
+	if err := importProjectTextFields(ctx, tx, revID, projectID, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
 	// Insert relation assertions.
-	if err := importProjectRelations(ctx, tx, projectID, source, sourceRecordID, in); err != nil {
+	if err := importProjectRelations(ctx, tx, revID, projectID, source, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
@@ -172,40 +172,28 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 		return ID{}, false, err
 	}
 
-	// Audit row.
-	opType := OpUpdate
-	if isNew {
-		opType = OpCreate
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
-		VALUES ($1, $2, $3, $4, $5, '{}')`,
-		revID, "ImportProject", RecordTypeProject, projectID, opType); err != nil {
-		return ID{}, false, fmt.Errorf("insert bbl_mutations: %w", err)
-	}
-
 	return projectID, isNew, nil
 }
 
-func importProjectTextFields(ctx context.Context, tx pgx.Tx, projectID ID, sourceRecordID ID, in *ImportProjectInput) error {
+func importProjectTextFields(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, sourceRecordID ID, in *ImportProjectInput) error {
 	if len(in.Titles) > 0 {
-		aID := newID()
-		if err := writeProjectAssertion(ctx, tx, aID, projectID, "titles", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "titles", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, t := range in.Titles {
-			if err := writeProjectTitle(ctx, tx, newID(), aID, projectID, t.Lang, t.Val); err != nil {
+			if err := writeProjectTitle(ctx, tx, newID(), projectID, aID, t.Lang, t.Val); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Descriptions) > 0 {
-		aID := newID()
-		if err := writeProjectAssertion(ctx, tx, aID, projectID, "descriptions", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "descriptions", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, d := range in.Descriptions {
-			if err := writeProjectDescription(ctx, tx, newID(), aID, projectID, d.Lang, d.Val); err != nil {
+			if err := writeProjectDescription(ctx, tx, newID(), projectID, aID, d.Lang, d.Val); err != nil {
 				return err
 			}
 		}
@@ -213,10 +201,10 @@ func importProjectTextFields(ctx context.Context, tx pgx.Tx, projectID ID, sourc
 	return nil
 }
 
-func importProjectRelations(ctx context.Context, tx pgx.Tx, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
+func importProjectRelations(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
 	if len(in.Participants) > 0 {
-		aID := newID()
-		if err := writeProjectAssertion(ctx, tx, aID, projectID, "people", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "people", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, p := range in.Participants {
@@ -224,7 +212,7 @@ func importProjectRelations(ctx context.Context, tx pgx.Tx, projectID ID, source
 			if err != nil {
 				continue
 			}
-			if err := writeProjectPerson(ctx, tx, newID(), aID, projectID, person.ID, p.Role); err != nil {
+			if err := writeProjectPerson(ctx, tx, newID(), projectID, person.ID, aID, p.Role); err != nil {
 				return err
 			}
 		}

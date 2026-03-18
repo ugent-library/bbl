@@ -34,13 +34,11 @@ func (m *CreateOrganization) apply(state mutationState, userID *ID) (*mutationEf
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpCreate,
-		diff:       Diff{Args: struct{ Kind string }{m.Kind}},
 		record:     m.org,
 	}, nil
 }
 
-func (m *CreateOrganization) write(ctx context.Context, tx pgx.Tx) error {
+func (m *CreateOrganization) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	o := m.org
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_organizations
@@ -88,16 +86,11 @@ func (m *DeleteOrganization) apply(state mutationState, userID *ID) (*mutationEf
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpDelete,
-		diff: Diff{
-			Args: struct{}{},
-			Prev: struct{ Status string }{o.Status},
-		},
-		record: o,
+		record:     o,
 	}, nil
 }
 
-func (m *DeleteOrganization) write(ctx context.Context, tx pgx.Tx) error {
+func (m *DeleteOrganization) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	o := m.org
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_organizations

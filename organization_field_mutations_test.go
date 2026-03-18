@@ -45,9 +45,6 @@ func TestUnsetOrganizationIdentifiers_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
-	}
 }
 
 func TestSetOrganizationRels_Apply(t *testing.T) {
@@ -81,8 +78,5 @@ func TestUnsetOrganizationRels_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }

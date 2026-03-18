@@ -11,26 +11,27 @@ import (
 
 // --- shared write helpers for organization relation tables ---
 
-func writeOrganizationAssertion(ctx context.Context, tx pgx.Tx, id, organizationID ID, field string, val any, hidden bool, organizationSourceID *ID, userID *ID) error {
+func writeOrganizationAssertion(ctx context.Context, tx pgx.Tx, revID int64, organizationID ID, field string, val any, hidden bool, organizationSourceID *ID, userID *ID, role *string) (int64, error) {
 	var valJSON []byte
 	if val != nil {
 		var err error
 		valJSON, err = json.Marshal(val)
 		if err != nil {
-			return fmt.Errorf("writeOrganizationAssertion(%s): %w", field, err)
+			return 0, fmt.Errorf("writeOrganizationAssertion(%s): %w", field, err)
 		}
 	}
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_organization_assertions (id, organization_id, field, val, hidden, organization_source_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id, organizationID, field, valJSON, hidden, organizationSourceID, userID)
+	var id int64
+	err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_organization_assertions (rev_id, organization_id, field, val, hidden, organization_source_id, user_id, role)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+		revID, organizationID, field, valJSON, hidden, organizationSourceID, userID, role).Scan(&id)
 	if err != nil {
-		return fmt.Errorf("writeOrganizationAssertion(%s): %w", field, err)
+		return 0, fmt.Errorf("writeOrganizationAssertion(%s): %w", field, err)
 	}
-	return nil
+	return id, nil
 }
 
-func writeOrganizationName(ctx context.Context, tx pgx.Tx, id, assertionID, organizationID ID, lang, val string) error {
+func writeOrganizationName(ctx context.Context, tx pgx.Tx, id, organizationID ID, assertionID int64, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_organization_names (id, assertion_id, organization_id, lang, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -41,7 +42,7 @@ func writeOrganizationName(ctx context.Context, tx pgx.Tx, id, assertionID, orga
 	return nil
 }
 
-func writeOrganizationIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID, organizationID ID, scheme, val string) error {
+func writeOrganizationIdentifier(ctx context.Context, tx pgx.Tx, id, organizationID ID, assertionID int64, scheme, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_organization_identifiers (id, assertion_id, organization_id, scheme, val)
 		VALUES ($1, $2, $3, $4, $5)`,
@@ -52,7 +53,7 @@ func writeOrganizationIdentifier(ctx context.Context, tx pgx.Tx, id, assertionID
 	return nil
 }
 
-func writeOrganizationRel(ctx context.Context, tx pgx.Tx, id, assertionID, organizationID, relOrganizationID ID, kind string, startDate, endDate *time.Time) error {
+func writeOrganizationRel(ctx context.Context, tx pgx.Tx, id, organizationID, relOrganizationID ID, assertionID int64, kind string, startDate, endDate *time.Time) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_organization_rels (id, assertion_id, organization_id, rel_organization_id, kind, start_date, end_date)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -82,23 +83,18 @@ func (m *SetOrganizationNames) apply(state mutationState, userID *ID) (*mutation
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Names []Text }{m.Names}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "names", "organization_source_id", "bbl_organization_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetOrganizationNames) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'names' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
-		return fmt.Errorf("SetOrganizationNames: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeOrganizationAssertion(ctx, tx, assertionID, m.OrganizationID, "names", nil, false, nil, m.userID); err != nil {
+func (m *SetOrganizationNames) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "names", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetOrganizationNames: %w", err)
 	}
 	for _, t := range m.Names {
-		if err := writeOrganizationName(ctx, tx, newID(), assertionID, m.OrganizationID, t.Lang, t.Val); err != nil {
+		if err := writeOrganizationName(ctx, tx, newID(), m.OrganizationID, assertionID, t.Lang, t.Val); err != nil {
 			return fmt.Errorf("SetOrganizationNames: %w", err)
 		}
 	}
@@ -120,23 +116,18 @@ func (m *SetOrganizationIdentifiers) apply(state mutationState, userID *ID) (*mu
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: struct{ Identifiers []Identifier }{m.Identifiers}},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "identifiers", "organization_source_id", "bbl_organization_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
-		return fmt.Errorf("SetOrganizationIdentifiers: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeOrganizationAssertion(ctx, tx, assertionID, m.OrganizationID, "identifiers", nil, false, nil, m.userID); err != nil {
+func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetOrganizationIdentifiers: %w", err)
 	}
 	for _, ident := range m.Identifiers {
-		if err := writeOrganizationIdentifier(ctx, tx, newID(), assertionID, m.OrganizationID, ident.Scheme, ident.Val); err != nil {
+		if err := writeOrganizationIdentifier(ctx, tx, newID(), m.OrganizationID, assertionID, ident.Scheme, ident.Val); err != nil {
 			return fmt.Errorf("SetOrganizationIdentifiers: %w", err)
 		}
 	}
@@ -151,13 +142,12 @@ func (m *UnsetOrganizationIdentifiers) apply(state mutationState, userID *ID) (*
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "identifiers", "organization_source_id", "bbl_organization_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
 		return fmt.Errorf("UnsetOrganizationIdentifiers: %w", err)
 	}
@@ -182,23 +172,18 @@ func (m *SetOrganizationRels) apply(state mutationState, userID *ID) (*mutationE
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpUpdate,
-		diff:       Diff{Args: m.Rels},
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "rels", "organization_source_id", "bbl_organization_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
-		return fmt.Errorf("SetOrganizationRels: delete: %w", err)
-	}
-	assertionID := newID()
-	if err := writeOrganizationAssertion(ctx, tx, assertionID, m.OrganizationID, "rels", nil, false, nil, m.userID); err != nil {
+func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", nil, false, nil, m.userID, nil)
+	if err != nil {
 		return fmt.Errorf("SetOrganizationRels: %w", err)
 	}
 	for _, r := range m.Rels {
-		if err := writeOrganizationRel(ctx, tx, newID(), assertionID, m.OrganizationID, r.RelOrganizationID, r.Kind, nil, nil); err != nil {
+		if err := writeOrganizationRel(ctx, tx, newID(), m.OrganizationID, r.RelOrganizationID, assertionID, r.Kind, nil, nil); err != nil {
 			return fmt.Errorf("SetOrganizationRels: %w", err)
 		}
 	}
@@ -213,13 +198,12 @@ func (m *UnsetOrganizationRels) apply(state mutationState, userID *ID) (*mutatio
 	return &mutationEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		opType:     OpDelete,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
 			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "rels", "organization_source_id", "bbl_organization_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetOrganizationRels) write(ctx context.Context, tx pgx.Tx) error {
+func (m *UnsetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
 		return fmt.Errorf("UnsetOrganizationRels: %w", err)
 	}

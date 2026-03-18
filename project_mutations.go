@@ -36,13 +36,11 @@ func (m *CreateProject) apply(state mutationState, userID *ID) (*mutationEffect,
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
-		opType:     OpCreate,
-		diff:       Diff{Args: struct{ Status string }{m.Status}},
 		record:     m.project,
 	}, nil
 }
 
-func (m *CreateProject) write(ctx context.Context, tx pgx.Tx) error {
+func (m *CreateProject) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	p := m.project
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_projects
@@ -88,16 +86,11 @@ func (m *DeleteProject) apply(state mutationState, userID *ID) (*mutationEffect,
 	return &mutationEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
-		opType:     OpDelete,
-		diff: Diff{
-			Args: struct{}{},
-			Prev: struct{ Status string }{p.Status},
-		},
-		record: p,
+		record:     p,
 	}, nil
 }
 
-func (m *DeleteProject) write(ctx context.Context, tx pgx.Tx) error {
+func (m *DeleteProject) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	p := m.project
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_projects

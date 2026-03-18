@@ -55,10 +55,10 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 		return 0, fmt.Errorf("ImportOrganizations: %w", err)
 	}
 
-	revID := newID()
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, source) VALUES ($1, $2)`,
-		revID, source); err != nil {
+	var revID int64
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_revs (source) VALUES ($1) RETURNING id`,
+		source).Scan(&revID); err != nil {
 		return 0, fmt.Errorf("ImportOrganizations: %w", err)
 	}
 
@@ -86,8 +86,8 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 		orgID := info.orgID
 		srcRecID := info.srcRecID
 		if len(in.Rels) > 0 {
-			aID := newID()
-			if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "rels", nil, false, &srcRecID, nil); err != nil {
+			aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "rels", nil, false, &srcRecID, nil, nil)
+			if err != nil {
 				return n, err
 			}
 			for _, rel := range in.Rels {
@@ -95,7 +95,7 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 				if err != nil {
 					continue
 				}
-				if err := writeOrganizationRel(ctx, tx, newID(), aID, orgID, relOrg.ID, rel.Kind, rel.StartDate, rel.EndDate); err != nil {
+				if err := writeOrganizationRel(ctx, tx, newID(), orgID, relOrg.ID, aID, rel.Kind, rel.StartDate, rel.EndDate); err != nil {
 					return n, err
 				}
 			}
@@ -118,7 +118,7 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 	return n, nil
 }
 
-func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportOrganizationInput, revID ID, priorities map[string]int) (ID, ID, bool, error) {
+func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportOrganizationInput, revID int64, priorities map[string]int) (ID, ID, bool, error) {
 	var orgID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -171,12 +171,12 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 
 	// Insert identifiers.
 	if len(in.Identifiers) > 0 {
-		aID := newID()
-		if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "identifiers", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return ID{}, ID{}, false, err
 		}
 		for _, id := range in.Identifiers {
-			if err := writeOrganizationIdentifier(ctx, tx, newID(), aID, orgID, id.Scheme, id.Val); err != nil {
+			if err := writeOrganizationIdentifier(ctx, tx, newID(), orgID, aID, id.Scheme, id.Val); err != nil {
 				return ID{}, ID{}, false, err
 			}
 		}
@@ -184,12 +184,12 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 
 	// Insert names.
 	if len(in.Names) > 0 {
-		aID := newID()
-		if err := writeOrganizationAssertion(ctx, tx, aID, orgID, "names", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "names", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return ID{}, ID{}, false, err
 		}
 		for _, t := range in.Names {
-			if err := writeOrganizationName(ctx, tx, newID(), aID, orgID, t.Lang, t.Val); err != nil {
+			if err := writeOrganizationName(ctx, tx, newID(), orgID, aID, t.Lang, t.Val); err != nil {
 				return ID{}, ID{}, false, err
 			}
 		}
@@ -198,18 +198,6 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 	// Auto-pin identifiers and titles (rels handled in phase 2).
 	if err := autoPinAllOrganization(ctx, tx, orgID, priorities); err != nil {
 		return ID{}, ID{}, false, err
-	}
-
-	// Audit row.
-	opType := OpUpdate
-	if isNew {
-		opType = OpCreate
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
-		VALUES ($1, $2, $3, $4, $5, '{}')`,
-		revID, "ImportOrganization", RecordTypeOrganization, orgID, opType); err != nil {
-		return ID{}, ID{}, false, fmt.Errorf("insert bbl_mutations: %w", err)
 	}
 
 	return orgID, sourceRecordID, isNew, nil

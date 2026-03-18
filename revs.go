@@ -2,7 +2,6 @@ package bbl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -108,14 +107,14 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 	}
 
 	// 5. Insert bbl_revs row.
-	revID := newID()
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, user_id) VALUES ($1, $2)`,
-		revID, userID); err != nil {
+	var revID int64
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_revs (user_id) VALUES ($1) RETURNING id`,
+		userID).Scan(&revID); err != nil {
 		return false, nil, fmt.Errorf("Mutate: %w", err)
 	}
 
-	// 6. Write each non-noop mutation and its audit row.
+	// 6. Write each non-noop mutation.
 	// Track which entities were touched by lifecycle mutations (record != nil)
 	// vs field-only mutations (record == nil).
 	var changedWorkIDs, changedPersonIDs, changedProjectIDs, changedOrganizationIDs []ID
@@ -126,17 +125,7 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 		if eff == nil {
 			continue
 		}
-		if err := muts[i].write(ctx, tx); err != nil {
-			return false, nil, fmt.Errorf("Mutate: %w", err)
-		}
-		diff, err := json.Marshal(eff.diff)
-		if err != nil {
-			return false, nil, fmt.Errorf("Mutate: %w", err)
-		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
-			VALUES ($1, $2, $3, $4, $5, $6)`,
-			revID, muts[i].mutationName(), eff.recordType, eff.recordID, eff.opType, diff); err != nil {
+		if err := muts[i].write(ctx, tx, revID); err != nil {
 			return false, nil, fmt.Errorf("Mutate: %w", err)
 		}
 
@@ -461,29 +450,41 @@ func scanProjectMutationRow(row pgx.CollectableRow) (*Project, error) {
 }
 
 // setRecordActorIDs sets created_by_id, updated_by_id, and deleted_by_id on the
-// record based on the operation type and the acting user.
+// record based on the record's current state and the acting user.
 func setRecordActorIDs(eff *mutationEffect, userID *ID) {
-	set := func(setCreated, setUpdated, setDeleted func(*ID)) {
-		switch eff.opType {
-		case OpCreate:
-			setCreated(userID)
-			setUpdated(userID)
-		case OpUpdate:
-			setUpdated(userID)
-		case OpDelete:
-			setUpdated(userID)
-			setDeleted(userID)
-		}
-	}
 	switch rec := eff.record.(type) {
 	case *Work:
-		set(func(id *ID) { rec.CreatedByID = id }, func(id *ID) { rec.UpdatedByID = id }, func(id *ID) { rec.DeletedByID = id })
+		if rec.CreatedByID == nil {
+			rec.CreatedByID = userID
+		}
+		rec.UpdatedByID = userID
+		if rec.Status == WorkStatusDeleted {
+			rec.DeletedByID = userID
+		}
 	case *Person:
-		set(func(id *ID) { rec.CreatedByID = id }, func(id *ID) { rec.UpdatedByID = id }, func(id *ID) { rec.DeletedByID = id })
+		if rec.CreatedByID == nil {
+			rec.CreatedByID = userID
+		}
+		rec.UpdatedByID = userID
+		if rec.Status == PersonStatusDeleted {
+			rec.DeletedByID = userID
+		}
 	case *Project:
-		set(func(id *ID) { rec.CreatedByID = id }, func(id *ID) { rec.UpdatedByID = id }, func(id *ID) { rec.DeletedByID = id })
+		if rec.CreatedByID == nil {
+			rec.CreatedByID = userID
+		}
+		rec.UpdatedByID = userID
+		if rec.Status == ProjectStatusDeleted {
+			rec.DeletedByID = userID
+		}
 	case *Organization:
-		set(func(id *ID) { rec.CreatedByID = id }, func(id *ID) { rec.UpdatedByID = id }, func(id *ID) { rec.DeletedByID = id })
+		if rec.CreatedByID == nil {
+			rec.CreatedByID = userID
+		}
+		rec.UpdatedByID = userID
+		if rec.Status == OrganizationStatusDeleted {
+			rec.DeletedByID = userID
+		}
 	}
 }
 

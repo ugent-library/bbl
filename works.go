@@ -59,10 +59,10 @@ func (r *Repo) importWorkBatch(ctx context.Context, source string, records []*Im
 		return 0, fmt.Errorf("importWorkBatch: %w", err)
 	}
 
-	revID := newID()
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, source) VALUES ($1, $2)`,
-		revID, source); err != nil {
+	var revID int64
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_revs (source) VALUES ($1) RETURNING id`,
+		source).Scan(&revID); err != nil {
 		return 0, fmt.Errorf("importWorkBatch: %w", err)
 	}
 
@@ -88,7 +88,7 @@ func (r *Repo) importWorkBatch(ctx context.Context, source string, records []*Im
 	return n, nil
 }
 
-func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportWorkInput, revID ID, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportWorkInput, revID int64, priorities map[string]int) (ID, bool, error) {
 	var workID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -143,12 +143,12 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 	}
 
 	// Insert scalar field assertions.
-	if err := importWorkFields(ctx, tx, workID, sourceRecordID, in); err != nil {
+	if err := importWorkFields(ctx, tx, revID, workID, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
 	// Insert relation assertions.
-	if err := importWorkRelations(ctx, tx, workID, source, sourceRecordID, in); err != nil {
+	if err := importWorkRelations(ctx, tx, revID, workID, source, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
@@ -157,23 +157,11 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 		return ID{}, false, err
 	}
 
-	// Audit row.
-	opType := OpUpdate
-	if isNew {
-		opType = OpCreate
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
-		VALUES ($1, $2, $3, $4, $5, '{}')`,
-		revID, "ImportWork", RecordTypeWork, workID, opType); err != nil {
-		return ID{}, false, fmt.Errorf("insert bbl_mutations: %w", err)
-	}
-
 	return workID, isNew, nil
 }
 
 // importWorkFields inserts scalar assertion rows for non-empty fields.
-func importWorkFields(ctx context.Context, tx pgx.Tx, workID ID, sourceRecordID ID, in *ImportWorkInput) error {
+func importWorkFields(ctx context.Context, tx pgx.Tx, revID int64, workID ID, sourceRecordID ID, in *ImportWorkInput) error {
 	type sf struct {
 		field string
 		val   string
@@ -198,17 +186,17 @@ func importWorkFields(ctx context.Context, tx pgx.Tx, workID ID, sourceRecordID 
 		if f.val == "" {
 			continue
 		}
-		if err := writeCreateWorkField(ctx, tx, newID(), workID, f.field, f.val, &sourceRecordID, nil); err != nil {
+		if err := writeCreateWorkField(ctx, tx, revID, workID, f.field, f.val, &sourceRecordID, nil, nil); err != nil {
 			return err
 		}
 	}
 	if in.Conference != (Conference{}) {
-		if err := writeCreateWorkField(ctx, tx, newID(), workID, "conference", in.Conference, &sourceRecordID, nil); err != nil {
+		if err := writeCreateWorkField(ctx, tx, revID, workID, "conference", in.Conference, &sourceRecordID, nil, nil); err != nil {
 			return err
 		}
 	}
 	if in.Pages != (Extent{}) {
-		if err := writeCreateWorkField(ctx, tx, newID(), workID, "pages", in.Pages, &sourceRecordID, nil); err != nil {
+		if err := writeCreateWorkField(ctx, tx, revID, workID, "pages", in.Pages, &sourceRecordID, nil, nil); err != nil {
 			return err
 		}
 	}
@@ -217,10 +205,10 @@ func importWorkFields(ctx context.Context, tx pgx.Tx, workID ID, sourceRecordID 
 
 // importWorkRelations inserts collective assertions + value rows for a work import.
 // Each collective field that has data gets one assertion row, then value rows linked to it.
-func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source string, sourceRecordID ID, in *ImportWorkInput) error {
+func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID, source string, sourceRecordID ID, in *ImportWorkInput) error {
 	if len(in.Identifiers) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "identifiers", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, id := range in.Identifiers {
@@ -230,8 +218,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Classifications) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "classifications", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "classifications", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, cl := range in.Classifications {
@@ -241,8 +229,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Contributors) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "contributors", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "contributors", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for i, c := range in.Contributors {
@@ -263,8 +251,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Titles) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "titles", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "titles", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, t := range in.Titles {
@@ -274,8 +262,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Abstracts) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "abstracts", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "abstracts", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, a := range in.Abstracts {
@@ -285,8 +273,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.LaySummaries) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "lay_summaries", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "lay_summaries", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, ls := range in.LaySummaries {
@@ -296,8 +284,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Notes) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "notes", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "notes", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, n := range in.Notes {
@@ -307,8 +295,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Keywords) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "keywords", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "keywords", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, kw := range in.Keywords {
@@ -318,8 +306,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Projects) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "projects", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "projects", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, p := range in.Projects {
@@ -333,8 +321,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.Organizations) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "organizations", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "organizations", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, o := range in.Organizations {
@@ -348,8 +336,8 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, workID ID, source strin
 		}
 	}
 	if len(in.RelatedWorks) > 0 {
-		aID := newID()
-		if err := writeWorkAssertion(ctx, tx, aID, workID, "rels", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "rels", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, rel := range in.RelatedWorks {

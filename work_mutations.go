@@ -34,13 +34,11 @@ func (m *CreateWork) apply(state mutationState, userID *ID) (*mutationEffect, er
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpCreate,
-		diff:       Diff{Args: struct{ Kind, Status string }{m.Kind, m.Status}},
 		record:     m.work,
 	}, nil
 }
 
-func (m *CreateWork) write(ctx context.Context, tx pgx.Tx) error {
+func (m *CreateWork) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	w := m.work
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_works
@@ -90,16 +88,11 @@ func (m *DeleteWork) apply(state mutationState, userID *ID) (*mutationEffect, er
 	return &mutationEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
-		opType:     OpDelete,
-		diff: Diff{
-			Args: struct{ DeleteKind string }{m.DeleteKind},
-			Prev: struct{ Status string }{w.Status},
-		},
-		record: w,
+		record:     w,
 	}, nil
 }
 
-func (m *DeleteWork) write(ctx context.Context, tx pgx.Tx) error {
+func (m *DeleteWork) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	w := m.work
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_works

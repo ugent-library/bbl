@@ -15,9 +15,6 @@ func TestCreateOrganization_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpCreate {
-		t.Errorf("expected OpCreate, got %q", eff.opType)
-	}
 	o := eff.record.(*Organization)
 	if o.Version != 1 {
 		t.Errorf("expected version 1, got %d", o.Version)

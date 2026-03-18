@@ -45,9 +45,6 @@ func TestUnsetProjectDescriptions_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
-	}
 }
 
 func TestSetProjectIdentifiers_Apply(t *testing.T) {
@@ -74,9 +71,6 @@ func TestUnsetProjectIdentifiers_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }
 
@@ -105,8 +99,5 @@ func TestUnsetProjectPeople_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }

@@ -15,9 +15,6 @@ func TestSetWorkTitles_Apply(t *testing.T) {
 	if eff.recordType != RecordTypeWork {
 		t.Errorf("expected RecordTypeWork, got %q", eff.recordType)
 	}
-	if eff.opType != OpUpdate {
-		t.Errorf("expected OpUpdate, got %q", eff.opType)
-	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
 	}
@@ -47,9 +44,6 @@ func TestUnsetWorkIdentifiers_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
@@ -86,9 +80,6 @@ func TestUnsetWorkContributors_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
-	}
 }
 
 func TestSetWorkAbstracts_Apply(t *testing.T) {
@@ -115,9 +106,6 @@ func TestUnsetWorkAbstracts_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }
 
@@ -160,9 +148,6 @@ func TestUnsetWorkKeywords_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 }
 

@@ -18,12 +18,6 @@ func TestSetWorkArticleNumber_Apply(t *testing.T) {
 	if eff.recordID != workID {
 		t.Errorf("expected recordID %s, got %s", workID, eff.recordID)
 	}
-	if eff.opType != OpUpdate {
-		t.Errorf("expected OpUpdate, got %q", eff.opType)
-	}
-	if m.id == (ID{}) {
-		t.Error("expected generated assertion ID")
-	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
 	}
@@ -41,9 +35,6 @@ func TestSetWorkConference_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpUpdate {
-		t.Errorf("expected OpUpdate, got %q", eff.opType)
 	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
@@ -63,9 +54,6 @@ func TestSetWorkPages_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpUpdate {
-		t.Errorf("expected OpUpdate, got %q", eff.opType)
-	}
 }
 
 func TestSetWorkVolume_Apply(t *testing.T) {
@@ -77,9 +65,6 @@ func TestSetWorkVolume_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpUpdate {
-		t.Errorf("expected OpUpdate, got %q", eff.opType)
 	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set")
@@ -95,9 +80,6 @@ func TestUnsetWorkVolume_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 	if eff.autoPin == nil {
 		t.Error("expected autoPin to be set for delete (re-evaluation)")

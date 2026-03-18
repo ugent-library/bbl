@@ -17,9 +17,6 @@ func TestCreateWork_Apply(t *testing.T) {
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	if eff.opType != OpCreate {
-		t.Errorf("expected OpCreate, got %q", eff.opType)
-	}
 	if eff.recordType != RecordTypeWork {
 		t.Errorf("expected RecordTypeWork, got %q", eff.recordType)
 	}
@@ -73,9 +70,6 @@ func TestDeleteWork_Apply(t *testing.T) {
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
-	}
-	if eff.opType != OpDelete {
-		t.Errorf("expected OpDelete, got %q", eff.opType)
 	}
 	w := eff.record.(*Work)
 	if w.Status != WorkStatusDeleted {

@@ -28,9 +28,10 @@ that role.
 
 ### Every assertion has an ID
 
-Each assertion is a row with a UUID primary key. This gives stable references
-for updates, deletes, and pinning. There is no ambiguity about absence vs
-deletion vs zero -- the assertion either exists or it doesn't.
+Each assertion is a row with a bigint primary key from a shared sequence
+(`bbl_assertion_seq`). The sequence provides global ordering across all
+assertion tables -- the highest ID is the most recent assertion. This
+ordering drives the auto-pin rule (most recent human wins).
 
 ### Assertion rows track their origin
 
@@ -46,18 +47,19 @@ source record -- no `source` column on assertion tables.
 
 Every field supports exactly three operations:
 
-**Set** -- assert a value. Create/replace the asserter's assertion for this
-field with `hidden = false`. For scalars, the value is stored inline (`val`).
-For collectives, value rows are stored in the relation table with FK to the
-assertion.
+**Set** -- assert a value. Creates a new assertion row with `hidden = false`.
+For scalars, the value is stored inline (`val`). For collectives, value rows
+are stored in the relation table with FK to the assertion. For human
+assertions, previous assertions for the same field stay (additive). For source
+assertions, re-import replaces all source assertions.
 
-**Hide** -- assert that the field has no value. Create/replace the asserter's
-assertion with `hidden = true`. Delete any associated value rows. The assertion
-row exists and can be pinned -- it means "this field intentionally has no
-value." For collectives, the asserter's list is explicitly empty. If pinned, no
-values are displayed regardless of what sources assert.
+**Hide** -- assert that the field has no value. Creates a new assertion row
+with `hidden = true`. The assertion row exists and can be pinned -- it means
+"this field intentionally has no value." For collectives, the asserter's list
+is explicitly empty. If pinned, no values are displayed regardless of what
+sources assert.
 
-**Unset** -- withdraw the assertion. Remove the asserter's assertion row.
+**Unset** -- withdraw the assertion. Deletes the asserter's assertion row.
 CASCADE deletes associated value rows in relation tables. The asserter no
 longer has an opinion about this field. Auto-pin re-evaluates -- the next-best
 asserter wins.
@@ -96,42 +98,50 @@ For collectives, copy-on-write means the human's entire list is copied. A
 human touches a list of 3000 authors -- it is now a full copy under the
 human's user_id. Not storage efficient, but crystal clear.
 
+Copy-on-write is generalized: not only over source assertions but also over
+other humans. Each human edit creates a new assertion row -- it never
+modifies or deletes an existing one (except Unset, which is an explicit
+retraction).
+
 Consequences:
 - Source assertions can only be auto-pinned or not pinned
 - Human assertions always win over source assertions
-- You can only delete what you asserted -- no authority check needed on delete
 - Re-import freely replaces source assertions without breaking human pins
+- Human assertion history is built up naturally from the additive rows
 
-### Replace semantics for human assertions
+### Additive semantics for human assertions
 
-One human assertion slot per grouping key. When a new human asserts, the old
-human assertion is replaced (DELETE + INSERT). Rights check at app layer: if
-the existing human assertion was made by a curator (look up user's role),
-only another curator can replace it.
+Human assertions are purely additive. Each edit creates a new assertion row.
+Multiple human assertions can coexist for the same (entity, field). The most
+recent one with the highest role priority wins (see auto-pin rule).
+
+Previous human assertions remain in the table -- they *are* the history.
+Unset (retract) is the only operation that removes a human assertion row.
 
 ### Auto-pin rule
 
-Uniform for all field types:
+Uniform for all field types. Priority order:
 
-1. Human assertion exists for the field -> it is pinned, done
-2. No human assertion -> highest-priority source's assertion(s) are pinned
-3. No assertions -> field absent (not asserted by anyone)
+1. **Recent curator** > **curator** > **recent user** > **user** > **source by priority**
+2. No assertions → field absent
 
-Within humans: curator > user (rights check at app layer). Last write wins
-within the same level (replace semantics). Audit trail in `bbl_mutations`.
+Within the same role level, the most recent assertion wins (highest
+`id` from the shared assertion sequence). The role is stored on the
+assertion row at assertion time (`role text`) -- not looked up live.
 
 Source priority comes from `bbl_sources.priority`, looked up by joining
 through `*_sources`.
+
+If no human assertions exist, the highest-priority source wins. If no
+assertions exist at all, the field is absent.
 
 ### Pin authority
 
 No `pinned_by` column. Authority is derived from the assertion row:
 
-- `*_source_id IS NOT NULL` -> source assertion -> can only be auto-pinned
-- `user_id IS NOT NULL` -> human assertion -> always wins over source
-
-The curator vs user distinction is a rights check (look up the user's role
-in the application layer), not stored state on the assertion.
+- `*_source_id IS NOT NULL` → source assertion → can only be auto-pinned
+- `user_id IS NOT NULL` → human assertion → wins over source
+- `role` on the assertion row → determines priority among humans
 
 ### Unset behavior
 
@@ -245,8 +255,7 @@ for single-row entity reads.
 
 `status` and `review_status` are state columns, not sourced fields. They
 are not assertions and do not participate in pinning. They have their own
-mutations (`SetWorkStatus`, `SetWorkReviewStatus`) that produce audit rows
-in `bbl_mutations`.
+mutations (`SetWorkStatus`, `SetWorkReviewStatus`).
 
 `kind` is a regular assertion in `bbl_work_assertions` -- same pinning rules as
 any other field. But it is structurally important: the pinned kind determines
@@ -265,14 +274,18 @@ When pinned kind changes, fields valid under the old profile are not deleted
 ### Assertions table (per entity type)
 
 ```sql
+CREATE SEQUENCE bbl_assertion_seq;
+
 CREATE TABLE bbl_work_assertions (
-    id             uuid PRIMARY KEY,
+    id             bigint PRIMARY KEY DEFAULT nextval('bbl_assertion_seq'),
+    rev_id         bigint NOT NULL REFERENCES bbl_revs (id),
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     field          text NOT NULL,
     val            jsonb,              -- scalar value; NULL for collective fields
     hidden         bool NOT NULL DEFAULT false,
     work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
     user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
+    role           text,               -- user role at assertion time (for pin priority)
     asserted_at    timestamptz NOT NULL DEFAULT transaction_timestamp(),
     pinned         bool NOT NULL DEFAULT false,
     CHECK (field <> ''),
@@ -283,14 +296,14 @@ CREATE TABLE bbl_work_assertions (
 CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field, work_source_id)
     WHERE work_source_id IS NOT NULL;
 
--- Human: one assertion per field (replace semantics)
-CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field)
-    WHERE user_id IS NOT NULL;
-
 -- One pin per field
 CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field)
     WHERE pinned = true;
 ```
+
+No unique constraint on human assertions -- multiple human assertions per
+field are allowed (additive semantics). The auto-pin rule selects the winner
+by role priority and recency.
 
 Same pattern for `bbl_person_assertions`, `bbl_project_assertions`,
 `bbl_organization_assertions`.
@@ -304,7 +317,7 @@ Relation tables keep their domain-specific columns but carry only an
 ```sql
 CREATE TABLE bbl_work_contributors (
     id             uuid PRIMARY KEY,
-    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     position       int NOT NULL,
     kind           text NOT NULL DEFAULT 'person' CHECK (kind IN ('person', 'organization')),
@@ -317,7 +330,7 @@ CREATE TABLE bbl_work_contributors (
 
 CREATE TABLE bbl_work_identifiers (
     id             uuid PRIMARY KEY,
-    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     scheme         text NOT NULL,
     val            text NOT NULL
@@ -325,14 +338,14 @@ CREATE TABLE bbl_work_identifiers (
 
 CREATE TABLE bbl_work_keywords (
     id             uuid PRIMARY KEY,
-    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     val            text NOT NULL
 );
 
 CREATE TABLE bbl_work_notes (
     id             uuid PRIMARY KEY,
-    assertion_id   uuid NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     val            text NOT NULL,
     kind           text
@@ -380,7 +393,7 @@ pattern.
 
 ```sql
 bbl_revs (
-  id         uuid PRIMARY KEY,
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   user_id    uuid REFERENCES bbl_users(id),
   source     text REFERENCES bbl_sources(id)
@@ -392,6 +405,8 @@ Mutate (user path): `user_id` set, `source` typically NULL.
 Import: `source` set, `user_id` optional.
 System batch: both can be NULL.
 
+Every assertion row references the rev that created it via `rev_id`.
+
 ### Cache
 
 `cache jsonb` on the entity table holds pinned values. Rebuilt on every
@@ -401,19 +416,16 @@ pinned, non-hidden assertions.
 
 ## Mutations
 
-Every write -- human or import -- produces mutation records in `bbl_mutations`.
-Replaying all mutations in order reproduces the current state of the database.
-
 Mutations are concrete, named types. Three kinds per field:
 
 - **Set** -- sets the value. Expects a value; absence is an error for scalars.
   For collectives, expects at least one item (empty slice is an error).
-  Creates/replaces the assertion with `hidden = false`.
-- **Hide** -- asserts the field has no value. Creates/replaces the assertion
-  with `hidden = true`, deletes any associated value rows. Not yet implemented
-  for all fields.
-- **Unset** -- withdraws the assertion. Deletes the assertion row, auto-pin
-  re-evaluates.
+  Creates a new assertion with `hidden = false`. Previous human assertions
+  stay (additive).
+- **Hide** -- asserts the field has no value. Creates a new assertion with
+  `hidden = true`. Previous human assertions stay.
+- **Unset** -- withdraws the assertion. Deletes the human assertion row(s),
+  auto-pin re-evaluates.
 
 Required fields have no Hide or Unset mutation (hiding/unsetting them would
 always fail validation):
@@ -514,9 +526,6 @@ SetOrganizationRels / UnsetOrganizationRels
 
 ### Write paths
 
-Both human (Mutate) and import paths write the same mutation types to
-`bbl_mutations`. They share the same low-level write helpers.
-
 **Human path (Mutate):**
 
 ```go
@@ -527,12 +536,13 @@ repo.Mutate(ctx, userID,
 )
 ```
 
-- Assertion rows get `user_id` set, `work_source_id = NULL`
-- Replace semantics: existing human assertion for same field is replaced
+- Assertion rows get `user_id` set, `role` set, `work_source_id = NULL`
+- Additive: new assertion row inserted, previous human assertions stay
+- Unset: DELETE the human assertion row, auto-pin re-evaluates
 - `bbl_revs` row with `user_id` set
 
 **Import path:**
-- Assertion rows get `work_source_id` set, `user_id = NULL`
+- Assertion rows get `work_source_id` set, `user_id = NULL`, `role = NULL`
 - Re-import: DELETE all assertions for this source record + INSERT new ones
 - `bbl_revs` row with `source` set
 
@@ -556,10 +566,63 @@ incoming record -> evaluate
   |   3. DELETE FROM bbl_work_assertions WHERE work_source_id = $1 (CASCADE)
   |   4. INSERT new assertion rows with work_source_id set
   |   5. INSERT collective values with assertion_id FK
-  |   6. Write mutation records to bbl_mutations
-  |   7. Auto-pin re-evaluates (human assertions untouched)
+  |   6. Auto-pin re-evaluates (human assertions untouched)
   |
   +-- low confidence -> auto-reject
   |
   +-- ambiguous -> candidate
 ```
+
+## History
+
+### How history works
+
+Source assertions have no history in the assertion tables. Re-import
+deletes all of a source's assertions and inserts new ones. The source
+record (`*_sources.record bytea`) preserves the original payload if
+needed.
+
+Human assertions are additive — each edit creates a new assertion row.
+Previous assertions stay in the table, unpinned. History for a field is
+the sequence of human assertion rows ordered by `id` (from the shared
+sequence):
+
+```sql
+-- History of human edits to volume on a work
+SELECT id, rev_id, user_id, role, val, hidden, asserted_at
+FROM bbl_work_assertions
+WHERE work_id = $1 AND field = 'volume' AND user_id IS NOT NULL
+ORDER BY id;
+```
+
+The named operation is derivable from each row:
+- `val` present, `hidden = false` → **Set**
+- `hidden = true` → **Hide**
+- Row absent (was deleted) → **Unset** (retraction)
+
+### Table growth
+
+Human edits are rare — the assertion table grows slowly from human
+history. Source re-imports produce no history (delete + insert).
+
+Unpinned human assertions can be pruned by application logic without
+affecting current state. Conservative GC rule: for the same (entity,
+field, user, role), only the most recent assertion can ever win — older
+ones from the same user at the same role level are safe to prune:
+
+```sql
+DELETE FROM bbl_work_assertions a
+WHERE a.pinned = false
+  AND a.user_id IS NOT NULL
+  AND EXISTS (
+    SELECT 1 FROM bbl_work_assertions b
+    WHERE b.work_id = a.work_id
+      AND b.field = a.field
+      AND b.user_id = a.user_id
+      AND b.role = a.role
+      AND b.id > a.id
+  );
+```
+
+Assertions from different users or different roles are preserved — they
+represent meaningful alternatives that could surface on retraction.

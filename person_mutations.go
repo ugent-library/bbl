@@ -28,13 +28,11 @@ func (m *CreatePerson) apply(state mutationState, userID *ID) (*mutationEffect, 
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
-		opType:     OpCreate,
-		diff:       Diff{Args: struct{}{}},
 		record:     m.person,
 	}, nil
 }
 
-func (m *CreatePerson) write(ctx context.Context, tx pgx.Tx) error {
+func (m *CreatePerson) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	p := m.person
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_people
@@ -80,16 +78,11 @@ func (m *DeletePerson) apply(state mutationState, userID *ID) (*mutationEffect, 
 	return &mutationEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
-		opType:     OpDelete,
-		diff: Diff{
-			Args: struct{}{},
-			Prev: struct{ Status string }{p.Status},
-		},
-		record: p,
+		record:     p,
 	}, nil
 }
 
-func (m *DeletePerson) write(ctx context.Context, tx pgx.Tx) error {
+func (m *DeletePerson) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 	p := m.person
 	_, err := tx.Exec(ctx, `
 		UPDATE bbl_people

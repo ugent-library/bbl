@@ -55,10 +55,10 @@ func (r *Repo) importPersonBatch(ctx context.Context, source string, records []*
 		return 0, fmt.Errorf("importPersonBatch: %w", err)
 	}
 
-	revID := newID()
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_revs (id, source) VALUES ($1, $2)`,
-		revID, source); err != nil {
+	var revID int64
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bbl_revs (source) VALUES ($1) RETURNING id`,
+		source).Scan(&revID); err != nil {
 		return 0, fmt.Errorf("importPersonBatch: %w", err)
 	}
 
@@ -84,7 +84,7 @@ func (r *Repo) importPersonBatch(ctx context.Context, source string, records []*
 	return n, nil
 }
 
-func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportPersonInput, revID ID, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportPersonInput, revID int64, priorities map[string]int) (ID, bool, error) {
 	var personID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -135,12 +135,12 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 	}
 
 	// Insert scalar field assertions.
-	if err := importPersonFields(ctx, tx, personID, sourceRecordID, in); err != nil {
+	if err := importPersonFields(ctx, tx, revID, personID, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
 	// Insert relation assertions.
-	if err := importPersonRelations(ctx, tx, personID, source, sourceRecordID, in); err != nil {
+	if err := importPersonRelations(ctx, tx, revID, personID, source, sourceRecordID, in); err != nil {
 		return ID{}, false, err
 	}
 
@@ -149,22 +149,10 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 		return ID{}, false, err
 	}
 
-	// Audit row.
-	opType := OpUpdate
-	if isNew {
-		opType = OpCreate
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO bbl_mutations (rev_id, name, entity_type, entity_id, op_type, diff)
-		VALUES ($1, $2, $3, $4, $5, '{}')`,
-		revID, "ImportPerson", RecordTypePerson, personID, opType); err != nil {
-		return ID{}, false, fmt.Errorf("insert bbl_mutations: %w", err)
-	}
-
 	return personID, isNew, nil
 }
 
-func importPersonFields(ctx context.Context, tx pgx.Tx, personID ID, sourceRecordID ID, in *ImportPersonInput) error {
+func importPersonFields(ctx context.Context, tx pgx.Tx, revID int64, personID ID, sourceRecordID ID, in *ImportPersonInput) error {
 	type sf struct {
 		field string
 		val   string
@@ -178,28 +166,28 @@ func importPersonFields(ctx context.Context, tx pgx.Tx, personID ID, sourceRecor
 		if f.val == "" {
 			continue
 		}
-		if err := writeCreatePersonField(ctx, tx, newID(), personID, f.field, f.val, &sourceRecordID, nil); err != nil {
+		if err := writeCreatePersonField(ctx, tx, revID, personID, f.field, f.val, &sourceRecordID, nil, nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func importPersonRelations(ctx context.Context, tx pgx.Tx, personID ID, source string, sourceRecordID ID, in *ImportPersonInput) error {
+func importPersonRelations(ctx context.Context, tx pgx.Tx, revID int64, personID ID, source string, sourceRecordID ID, in *ImportPersonInput) error {
 	if len(in.Identifiers) > 0 {
-		aID := newID()
-		if err := writePersonAssertion(ctx, tx, aID, personID, "identifiers", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writePersonAssertion(ctx, tx, revID, personID, "identifiers", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, id := range in.Identifiers {
-			if err := writePersonIdentifier(ctx, tx, newID(), aID, personID, id.Scheme, id.Val); err != nil {
+			if err := writePersonIdentifier(ctx, tx, newID(), personID, aID, id.Scheme, id.Val); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Affiliations) > 0 {
-		aID := newID()
-		if err := writePersonAssertion(ctx, tx, aID, personID, "organizations", nil, false, &sourceRecordID, nil); err != nil {
+		aID, err := writePersonAssertion(ctx, tx, revID, personID, "organizations", nil, false, &sourceRecordID, nil, nil)
+		if err != nil {
 			return err
 		}
 		for _, a := range in.Affiliations {
@@ -207,7 +195,7 @@ func importPersonRelations(ctx context.Context, tx pgx.Tx, personID ID, source s
 			if err != nil {
 				continue
 			}
-			if err := writePersonOrganization(ctx, tx, newID(), aID, personID, org.ID); err != nil {
+			if err := writePersonOrganization(ctx, tx, newID(), personID, org.ID, aID); err != nil {
 				return err
 			}
 		}
