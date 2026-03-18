@@ -59,7 +59,9 @@ CREATE TABLE bbl_user_identifiers (
     scheme  text NOT NULL,
     val     text NOT NULL,
     PRIMARY KEY (user_id, source, scheme, val),
-    UNIQUE (scheme, val) -- each val belongs to at most one user
+    UNIQUE (scheme, val), -- each val belongs to at most one user
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE TABLE bbl_user_sources (
@@ -199,7 +201,8 @@ CREATE TABLE bbl_organization_identifiers (
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     scheme                 text NOT NULL,
     val                    text NOT NULL,
-    CHECK (scheme <> '')
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_organization_identifiers (organization_id);
@@ -209,8 +212,9 @@ CREATE TABLE bbl_organization_names (
     id                     uuid PRIMARY KEY,
     assertion_id           bigint NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    lang                   text NOT NULL DEFAULT '',
-    val                    text NOT NULL
+    lang                   text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val                    text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_organization_names (organization_id);
@@ -295,7 +299,8 @@ CREATE TABLE bbl_person_identifiers (
     person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     scheme           text NOT NULL,
     val              text NOT NULL,
-    CHECK (scheme <> '')
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_person_identifiers (person_id);
@@ -371,8 +376,9 @@ CREATE TABLE bbl_project_titles (
     id                uuid PRIMARY KEY,
     assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    lang              text NOT NULL DEFAULT '',
-    val               text NOT NULL
+    lang              text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val               text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_project_titles (project_id);
@@ -381,8 +387,9 @@ CREATE TABLE bbl_project_descriptions (
     id                uuid PRIMARY KEY,
     assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    lang              text NOT NULL DEFAULT '',
-    val               text NOT NULL
+    lang              text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val               text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_project_descriptions (project_id);
@@ -393,7 +400,8 @@ CREATE TABLE bbl_project_identifiers (
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     scheme            text NOT NULL,
     val               text NOT NULL,
-    CHECK (scheme <> '')
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_project_identifiers (project_id);
@@ -442,7 +450,9 @@ CREATE TABLE bbl_person_candidate_identifiers (
     candidate_id uuid NOT NULL REFERENCES bbl_person_candidates (id) ON DELETE CASCADE,
     scheme       text NOT NULL,
     val          text NOT NULL,
-    PRIMARY KEY (candidate_id, scheme)
+    PRIMARY KEY (candidate_id, scheme),
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_person_candidate_identifiers (scheme, val);
@@ -526,7 +536,9 @@ CREATE TABLE bbl_work_candidate_identifiers (
     candidate_id uuid NOT NULL REFERENCES bbl_work_candidates (id) ON DELETE CASCADE,
     scheme       text NOT NULL,
     val          text NOT NULL,
-    PRIMARY KEY (candidate_id, scheme)
+    PRIMARY KEY (candidate_id, scheme),
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_candidate_identifiers (scheme, val);
@@ -597,7 +609,8 @@ CREATE TABLE bbl_work_identifiers (
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     scheme         text NOT NULL,
     val            text NOT NULL,
-    CHECK (scheme <> '')
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_identifiers (work_id);
@@ -609,7 +622,8 @@ CREATE TABLE bbl_work_classifications (
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     scheme         text NOT NULL,
     val            text NOT NULL,
-    CHECK (scheme <> '')
+    CHECK (scheme <> ''),
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_classifications (work_id);
@@ -636,8 +650,9 @@ CREATE TABLE bbl_work_titles (
     id             uuid PRIMARY KEY,
     assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL
+    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val            text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_titles (work_id);
@@ -646,8 +661,9 @@ CREATE TABLE bbl_work_abstracts (
     id             uuid PRIMARY KEY,
     assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL
+    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val            text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_abstracts (work_id);
@@ -656,8 +672,9 @@ CREATE TABLE bbl_work_lay_summaries (
     id             uuid PRIMARY KEY,
     assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT '',
-    val            text NOT NULL
+    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
+    val            text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_lay_summaries (work_id);
@@ -667,7 +684,8 @@ CREATE TABLE bbl_work_notes (
     assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     val            text NOT NULL,
-    kind           text
+    kind           text,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_notes (work_id);
@@ -676,7 +694,8 @@ CREATE TABLE bbl_work_keywords (
     id             uuid PRIMARY KEY,
     assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    val            text NOT NULL
+    val            text NOT NULL,
+    CHECK (val <> '')
 );
 
 CREATE INDEX ON bbl_work_keywords (work_id);

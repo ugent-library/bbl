@@ -33,7 +33,7 @@ func writeProjectAssertion(ctx context.Context, tx pgx.Tx, revID int64, projectI
 func writeProjectTitle(ctx context.Context, tx pgx.Tx, id, projectID ID, assertionID int64, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_project_titles (id, assertion_id, project_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, projectID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeProjectTitle: %w", err)
@@ -44,7 +44,7 @@ func writeProjectTitle(ctx context.Context, tx pgx.Tx, id, projectID ID, asserti
 func writeProjectDescription(ctx context.Context, tx pgx.Tx, id, projectID ID, assertionID int64, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_project_descriptions (id, assertion_id, project_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, projectID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeProjectDescription: %w", err)

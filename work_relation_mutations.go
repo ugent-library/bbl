@@ -79,7 +79,7 @@ func writeWorkContributor(ctx context.Context, tx pgx.Tx, id ID, assertionID int
 func writeWorkTitle(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_titles (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, workID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeWorkTitle: %w", err)
@@ -90,7 +90,7 @@ func writeWorkTitle(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, wo
 func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_abstracts (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, workID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeWorkAbstract: %w", err)
@@ -101,7 +101,7 @@ func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id ID, assertionID int64,
 func writeWorkLaySummary(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_work_lay_summaries (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, workID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeWorkLaySummary: %w", err)

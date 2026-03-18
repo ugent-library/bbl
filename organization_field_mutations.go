@@ -34,7 +34,7 @@ func writeOrganizationAssertion(ctx context.Context, tx pgx.Tx, revID int64, org
 func writeOrganizationName(ctx context.Context, tx pgx.Tx, id, organizationID ID, assertionID int64, lang, val string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_organization_names (id, assertion_id, organization_id, lang, val)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
 		id, assertionID, organizationID, lang, val)
 	if err != nil {
 		return fmt.Errorf("writeOrganizationName: %w", err)
