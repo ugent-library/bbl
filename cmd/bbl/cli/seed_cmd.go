@@ -320,50 +320,57 @@ func seedWorks(_ []*bbl.ImportPersonInput, _ []*bbl.ImportProjectInput) []*bbl.I
 		"CHEMISTRY, PHYSICAL", "PHILOSOPHY",
 		"ENGINEERING, ELECTRICAL & ELECTRONIC",
 	}
+	kw := func(vals ...string) []bbl.Keyword {
+		kws := make([]bbl.Keyword, len(vals))
+		for i, v := range vals {
+			kws[i] = bbl.Keyword{Val: v}
+		}
+		return kws
+	}
 	topics := []struct {
 		title    string
-		keywords []string
+		keywords []bbl.Keyword
 	}{
-		{"Quantum Field Theory and Renormalization", []string{"quantum field theory", "renormalization", "gauge theory"}},
-		{"Algebraic Structures in Topology", []string{"algebra", "topology", "homology"}},
-		{"Radiation and Matter Interactions", []string{"radiation", "matter", "spectroscopy"}},
-		{"Decidability and Recursive Functions", []string{"decidability", "recursive functions", "logic"}},
-		{"Abstract Algebra and Ring Theory", []string{"abstract algebra", "ring theory", "ideals"}},
-		{"Trade Routes in the Ancient World", []string{"trade", "ancient world", "commerce"}},
-		{"Brownian Motion and Molecular Theory", []string{"Brownian motion", "molecules", "diffusion"}},
-		{"Machine Learning Foundations", []string{"machine learning", "statistical learning", "classification"}},
-		{"Nuclear Fission and Chain Reactions", []string{"nuclear fission", "chain reaction", "uranium"}},
-		{"Cryptanalysis and Code Breaking", []string{"cryptanalysis", "cryptography", "ciphers"}},
-		{"Representation Theory of Groups", []string{"representation theory", "group theory", "linear algebra"}},
-		{"Colonial Economies and Trade", []string{"colonialism", "economy", "trade networks"}},
-		{"General Relativity and Cosmology", []string{"general relativity", "cosmology", "spacetime"}},
-		{"Neural Networks and Computation", []string{"neural networks", "computation", "pattern recognition"}},
-		{"Isotope Separation Techniques", []string{"isotopes", "separation", "mass spectrometry"}},
-		{"Formal Verification of Programs", []string{"formal verification", "program correctness", "logic"}},
-		{"Commutative Algebra Foundations", []string{"commutative algebra", "modules", "Noetherian rings"}},
-		{"Maritime History and Navigation", []string{"maritime history", "navigation", "seafaring"}},
-		{"Photoelectric Effect in Metals", []string{"photoelectric effect", "metals", "electron emission"}},
-		{"Automata Theory and Languages", []string{"automata", "formal languages", "grammars"}},
-		{"Invariant Theory and Symmetry", []string{"invariant theory", "symmetry", "transformations"}},
-		{"Urbanization in Early Modern Europe", []string{"urbanization", "early modern", "Europe"}},
-		{"Gravitational Waves Detection", []string{"gravitational waves", "LIGO", "interferometry"}},
-		{"Complexity Classes and Reductions", []string{"complexity theory", "NP-completeness", "reductions"}},
-		{"Homological Algebra Methods", []string{"homological algebra", "derived functors", "exact sequences"}},
-		{"Mediterranean Agriculture", []string{"agriculture", "Mediterranean", "climate"}},
-		{"Unified Field Theory Attempts", []string{"unified field theory", "electromagnetism", "gravity"}},
-		{"Lambda Calculus and Type Theory", []string{"lambda calculus", "type theory", "functional programming"}},
-		{"Radioactive Decay Rates", []string{"radioactive decay", "half-life", "nuclear physics"}},
-		{"Information Theory Basics", []string{"information theory", "entropy", "communication"}},
-		{"Galois Theory Applications", []string{"Galois theory", "field extensions", "solvability"}},
-		{"Venice and Ottoman Relations", []string{"Venice", "Ottoman Empire", "diplomacy"}},
-		{"Bose-Einstein Condensation", []string{"Bose-Einstein", "condensation", "quantum statistics"}},
-		{"Halting Problem Variations", []string{"halting problem", "undecidability", "Turing degrees"}},
-		{"Tensor Analysis and Manifolds", []string{"tensor analysis", "manifolds", "differential geometry"}},
-		{"Grain Trade in the Mediterranean", []string{"grain trade", "Mediterranean", "food supply"}},
-		{"Quantum Entanglement Experiments", []string{"quantum entanglement", "Bell inequality", "experiments"}},
-		{"Recursive Function Theory", []string{"recursive functions", "computability", "primitive recursion"}},
-		{"Algebraic Number Theory", []string{"algebraic number theory", "number fields", "class groups"}},
-		{"Piracy and Maritime Law", []string{"piracy", "maritime law", "corsairs"}},
+		{"Quantum Field Theory and Renormalization", kw("quantum field theory", "renormalization", "gauge theory")},
+		{"Algebraic Structures in Topology", kw("algebra", "topology", "homology")},
+		{"Radiation and Matter Interactions", kw("radiation", "matter", "spectroscopy")},
+		{"Decidability and Recursive Functions", kw("decidability", "recursive functions", "logic")},
+		{"Abstract Algebra and Ring Theory", kw("abstract algebra", "ring theory", "ideals")},
+		{"Trade Routes in the Ancient World", kw("trade", "ancient world", "commerce")},
+		{"Brownian Motion and Molecular Theory", kw("Brownian motion", "molecules", "diffusion")},
+		{"Machine Learning Foundations", kw("machine learning", "statistical learning", "classification")},
+		{"Nuclear Fission and Chain Reactions", kw("nuclear fission", "chain reaction", "uranium")},
+		{"Cryptanalysis and Code Breaking", kw("cryptanalysis", "cryptography", "ciphers")},
+		{"Representation Theory of Groups", kw("representation theory", "group theory", "linear algebra")},
+		{"Colonial Economies and Trade", kw("colonialism", "economy", "trade networks")},
+		{"General Relativity and Cosmology", kw("general relativity", "cosmology", "spacetime")},
+		{"Neural Networks and Computation", kw("neural networks", "computation", "pattern recognition")},
+		{"Isotope Separation Techniques", kw("isotopes", "separation", "mass spectrometry")},
+		{"Formal Verification of Programs", kw("formal verification", "program correctness", "logic")},
+		{"Commutative Algebra Foundations", kw("commutative algebra", "modules", "Noetherian rings")},
+		{"Maritime History and Navigation", kw("maritime history", "navigation", "seafaring")},
+		{"Photoelectric Effect in Metals", kw("photoelectric effect", "metals", "electron emission")},
+		{"Automata Theory and Languages", kw("automata", "formal languages", "grammars")},
+		{"Invariant Theory and Symmetry", kw("invariant theory", "symmetry", "transformations")},
+		{"Urbanization in Early Modern Europe", kw("urbanization", "early modern", "Europe")},
+		{"Gravitational Waves Detection", kw("gravitational waves", "LIGO", "interferometry")},
+		{"Complexity Classes and Reductions", kw("complexity theory", "NP-completeness", "reductions")},
+		{"Homological Algebra Methods", kw("homological algebra", "derived functors", "exact sequences")},
+		{"Mediterranean Agriculture", kw("agriculture", "Mediterranean", "climate")},
+		{"Unified Field Theory Attempts", kw("unified field theory", "electromagnetism", "gravity")},
+		{"Lambda Calculus and Type Theory", kw("lambda calculus", "type theory", "functional programming")},
+		{"Radioactive Decay Rates", kw("radioactive decay", "half-life", "nuclear physics")},
+		{"Information Theory Basics", kw("information theory", "entropy", "communication")},
+		{"Galois Theory Applications", kw("Galois theory", "field extensions", "solvability")},
+		{"Venice and Ottoman Relations", kw("Venice", "Ottoman Empire", "diplomacy")},
+		{"Bose-Einstein Condensation", kw("Bose-Einstein", "condensation", "quantum statistics")},
+		{"Halting Problem Variations", kw("halting problem", "undecidability", "Turing degrees")},
+		{"Tensor Analysis and Manifolds", kw("tensor analysis", "manifolds", "differential geometry")},
+		{"Grain Trade in the Mediterranean", kw("grain trade", "Mediterranean", "food supply")},
+		{"Quantum Entanglement Experiments", kw("quantum entanglement", "Bell inequality", "experiments")},
+		{"Recursive Function Theory", kw("recursive functions", "computability", "primitive recursion")},
+		{"Algebraic Number Theory", kw("algebraic number theory", "number fields", "class groups")},
+		{"Piracy and Maritime Law", kw("piracy", "maritime law", "corsairs")},
 	}
 	conferences := []string{
 		"International Conference on Quantum Information",
@@ -429,7 +436,7 @@ func seedWorks(_ []*bbl.ImportPersonInput, _ []*bbl.ImportProjectInput) []*bbl.I
 			}
 		case "book_chapter":
 			w.Publisher = publishers[i%len(publishers)]
-			w.BookTitle = fmt.Sprintf("Collected Studies in %s", topic.keywords[0])
+			w.BookTitle = fmt.Sprintf("Collected Studies in %s", topic.keywords[0].Val)
 			startPage := 10 + i%200
 			w.Pages = bbl.Extent{
 				Start: fmt.Sprintf("%d", startPage),
@@ -449,7 +456,7 @@ func seedWorks(_ []*bbl.ImportPersonInput, _ []*bbl.ImportProjectInput) []*bbl.I
 		if i%5 != 0 {
 			w.Abstracts = []bbl.Text{
 				{Lang: "eng", Val: fmt.Sprintf("This paper investigates %s in the context of %s.",
-					topic.keywords[0], topic.keywords[len(topic.keywords)-1])},
+					topic.keywords[0].Val, topic.keywords[len(topic.keywords)-1].Val)},
 			}
 		}
 

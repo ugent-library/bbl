@@ -300,7 +300,7 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID,
 			return err
 		}
 		for _, kw := range in.Keywords {
-			if err := writeWorkKeyword(ctx, tx, newID(), aID, workID, kw); err != nil {
+			if err := writeWorkKeyword(ctx, tx, newID(), aID, workID, kw.Val); err != nil {
 				return err
 			}
 		}

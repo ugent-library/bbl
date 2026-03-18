@@ -108,7 +108,7 @@ type ImportWorkInput struct {
 	Abstracts       []Text                   `json:"abstracts,omitempty"`
 	LaySummaries    []Text                   `json:"lay_summaries,omitempty"`
 	Notes           []Note                   `json:"notes,omitempty"`
-	Keywords        []string                 `json:"keywords,omitempty"`
+	Keywords        []Keyword                `json:"keywords,omitempty"`
 
 	// SourceRecord is the original payload from the source (XML, JSON, etc.).
 	// Stored as-is in bbl_work_sources for debugging and comparison.
