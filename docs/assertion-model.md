@@ -573,6 +573,29 @@ incoming record -> evaluate
   +-- ambiguous -> candidate
 ```
 
+## Update rules
+
+Full design: `docs/update-rules.md`.
+
+**Diff against pinned values. Only assert differences.** When a user
+submits values (via form, CSV, or API), compare each submitted value
+against the currently pinned value for that field. Only create assertions
+for fields where the value differs.
+
+- Same value as pinned → skip, regardless of who pinned it
+- Different value → create assertion
+- Value cleared → Hide
+
+This prevents table bloat from unchanged form saves. The rule is universal:
+same for users, curators, batch CSV, and API.
+
+### Review is separate from assertion
+
+A curator saving a form without changes does NOT create assertions.
+Assertions record opinions about field values. If a curator wants to
+endorse a record ("I've reviewed this, it's correct"), that's a separate
+action — a review status change, not an assertion.
+
 ## History
 
 ### How history works
@@ -626,3 +649,32 @@ WHERE a.pinned = false
 
 Assertions from different users or different roles are preserved — they
 represent meaningful alternatives that could surface on retraction.
+
+## Wire format
+
+Updates use `{verb: target, ...payload}` JSON:
+
+```json
+{"create": "work", "work_id": "01J...", "kind": "journal_article"}
+{"delete": "work", "work_id": "01J..."}
+{"set": "work_volume", "work_id": "01J...", "val": "42"}
+{"hide": "work_volume", "work_id": "01J..."}
+{"unset": "work_volume", "work_id": "01J..."}
+```
+
+Five verbs (`create`, `delete`, `set`, `hide`, `unset`), one shape. The
+verb is the JSON key, the target is the value. Payload fields vary per
+target but `work_id`/`person_id`/etc. is always present.
+
+## Batch edit
+
+Full design: `docs/batch-edit.md` (planned).
+
+CSV-based batch editing for scalar fields. Each row carries a `rev_id`
+column — the rev_id at export time. On upload, per-field conflict detection
+compares the pinned assertion's rev_id against the exported rev_id.
+
+- `rev_id` of pinned assertion <= exported `rev_id` → safe to apply
+- `rev_id` of pinned assertion > exported `rev_id` → conflict, skip
+
+Collective fields use separate CSV files per type (stage 2).
