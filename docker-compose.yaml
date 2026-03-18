@@ -43,13 +43,13 @@ services:
       start_period: 10s
 
   localstack:
-    image: localstack/localstack
+    image: gresau/localstack-persist:4.13.1
     ports:
       - "3371:4566"
     environment:
       - SERVICES=s3
     volumes:
-      - localstack-data:/var/lib/localstack
+      - localstack-data:/persisted-data
 
   opensearch-node1:
     image: opensearchproject/opensearch:3.4.0

@@ -20,6 +20,8 @@ func newWorksCmd(e *env) *cobra.Command {
 	cmd.AddCommand(newWorksListCmd(e))
 	cmd.AddCommand(newWorksSearchCmd(e))
 	cmd.AddCommand(newWorksSearchAllCmd(e))
+	cmd.AddCommand(newWorksBatchExportCmd(e))
+	cmd.AddCommand(newWorksBatchImportCmd(e))
 	return cmd
 }
 

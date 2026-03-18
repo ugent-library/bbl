@@ -119,6 +119,41 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetWorkVolume{}
 	case "unset:work_volume":
 		m = &UnsetWorkVolume{}
+	// Work scalar hides
+	case "hide:work_article_number":
+		m = &HideWorkArticleNumber{}
+	case "hide:work_book_title":
+		m = &HideWorkBookTitle{}
+	case "hide:work_conference":
+		m = &HideWorkConference{}
+	case "hide:work_edition":
+		m = &HideWorkEdition{}
+	case "hide:work_issue":
+		m = &HideWorkIssue{}
+	case "hide:work_issue_title":
+		m = &HideWorkIssueTitle{}
+	case "hide:work_journal_abbreviation":
+		m = &HideWorkJournalAbbreviation{}
+	case "hide:work_journal_title":
+		m = &HideWorkJournalTitle{}
+	case "hide:work_pages":
+		m = &HideWorkPages{}
+	case "hide:work_place_of_publication":
+		m = &HideWorkPlaceOfPublication{}
+	case "hide:work_publication_status":
+		m = &HideWorkPublicationStatus{}
+	case "hide:work_publication_year":
+		m = &HideWorkPublicationYear{}
+	case "hide:work_publisher":
+		m = &HideWorkPublisher{}
+	case "hide:work_report_number":
+		m = &HideWorkReportNumber{}
+	case "hide:work_series_title":
+		m = &HideWorkSeriesTitle{}
+	case "hide:work_total_pages":
+		m = &HideWorkTotalPages{}
+	case "hide:work_volume":
+		m = &HideWorkVolume{}
 	// Work collectives
 	case "set:work_titles":
 		m = &SetWorkTitles{}
@@ -190,6 +225,17 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetPersonOrganizations{}
 	case "unset:person_organizations":
 		m = &UnsetPersonOrganizations{}
+	// Person hides
+	case "hide:person_given_name":
+		m = &HidePersonGivenName{}
+	case "hide:person_middle_name":
+		m = &HidePersonMiddleName{}
+	case "hide:person_family_name":
+		m = &HidePersonFamilyName{}
+	case "hide:person_identifiers":
+		m = &HidePersonIdentifiers{}
+	case "hide:person_organizations":
+		m = &HidePersonOrganizations{}
 	// Project lifecycle
 	case "create:project":
 		m = &CreateProject{}
@@ -210,6 +256,13 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetProjectPeople{}
 	case "unset:project_people":
 		m = &UnsetProjectPeople{}
+	// Project hides
+	case "hide:project_descriptions":
+		m = &HideProjectDescriptions{}
+	case "hide:project_identifiers":
+		m = &HideProjectIdentifiers{}
+	case "hide:project_people":
+		m = &HideProjectPeople{}
 	// Organization lifecycle
 	case "create:organization":
 		m = &CreateOrganization{}
@@ -226,6 +279,11 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetOrganizationRels{}
 	case "unset:organization_rels":
 		m = &UnsetOrganizationRels{}
+	// Organization hides
+	case "hide:organization_identifiers":
+		m = &HideOrganizationIdentifiers{}
+	case "hide:organization_rels":
+		m = &HideOrganizationRels{}
 	default:
 		return nil, fmt.Errorf("unknown update %q", key)
 	}

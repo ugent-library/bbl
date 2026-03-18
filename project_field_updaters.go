@@ -269,3 +269,79 @@ func (m *UnsetProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) 
 	}
 	return nil
 }
+
+// ============================================================
+// Hide updaters for project fields
+// ============================================================
+
+// --- HideProjectDescriptions ---
+
+type HideProjectDescriptions struct {
+	ProjectID ID
+	userID    *ID
+}
+
+func (m *HideProjectDescriptions) name() string       { return "hide:project_descriptions" }
+func (m *HideProjectDescriptions) needs() updateNeeds { return updateNeeds{} }
+func (m *HideProjectDescriptions) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypeProject,
+		recordID:   m.ProjectID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "descriptions", "project_source_id", "bbl_project_sources", priorities)
+		},
+	}, nil
+}
+func (m *HideProjectDescriptions) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "descriptions", nil, true, nil, m.userID, nil)
+	return err
+}
+
+// --- HideProjectIdentifiers ---
+
+type HideProjectIdentifiers struct {
+	ProjectID ID
+	userID    *ID
+}
+
+func (m *HideProjectIdentifiers) name() string       { return "hide:project_identifiers" }
+func (m *HideProjectIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *HideProjectIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypeProject,
+		recordID:   m.ProjectID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "identifiers", "project_source_id", "bbl_project_sources", priorities)
+		},
+	}, nil
+}
+func (m *HideProjectIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "identifiers", nil, true, nil, m.userID, nil)
+	return err
+}
+
+// --- HideProjectPeople ---
+
+type HideProjectPeople struct {
+	ProjectID ID
+	userID    *ID
+}
+
+func (m *HideProjectPeople) name() string       { return "hide:project_people" }
+func (m *HideProjectPeople) needs() updateNeeds { return updateNeeds{} }
+func (m *HideProjectPeople) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypeProject,
+		recordID:   m.ProjectID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
+		},
+	}, nil
+}
+func (m *HideProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "people", nil, true, nil, m.userID, nil)
+	return err
+}

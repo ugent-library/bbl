@@ -1,6 +1,11 @@
 package views
 
-import "github.com/ugent-library/bbl"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/ugent-library/bbl"
+)
 
 // Discovery detail views
 
@@ -61,7 +66,10 @@ templ BackofficeShowWork(c Ctx, work *bbl.Work) {
 		<main>
 			<p><a href="/backoffice/works">{ c.Loc("Back to works") }</a></p>
 			<h1>{ workTitle(c, work) }</h1>
-			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/edit") }>{ c.Loc("Edit") }</a></p>
+			<p>
+				<a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/edit") }>{ c.Loc("Edit") }</a>
+				<a href={ templ.SafeURL("/backoffice/works/" + work.ID.String() + "/history") }>{ c.Loc("History") }</a>
+			</p>
 			<dl>
 				<dt>{ c.Loc("Kind") }</dt>
 				<dd>{ work.Kind }</dd>
@@ -107,6 +115,64 @@ templ BackofficeShowOrganization(c Ctx, org *bbl.Organization) {
 	}
 }
 
+templ BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) {
+	@Layout(c, c.Loc("History")+" - "+c.Loc("Backoffice")) {
+		<main>
+			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>{ c.Loc("Back to work") }</a></p>
+			<h1>{ workTitle(c, work) } — { c.Loc("History") }</h1>
+			for _, group := range groupAssertionsByField(history) {
+				<section>
+					<h2>{ group.field }</h2>
+					<table>
+						<thead>
+							<tr>
+								<th></th>
+								<th>{ c.Loc("Value") }</th>
+								<th>{ c.Loc("By") }</th>
+								<th>{ c.Loc("Date") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, a := range group.assertions {
+								<tr>
+									<td>
+										if a.Pinned {
+											<strong>&#9733;</strong>
+										}
+									</td>
+									<td>
+										if a.Hidden {
+											<em>{ c.Loc("(hidden)") }</em>
+										} else if a.Val == nil {
+											{ fmt.Sprintf("%d %s", a.Size, a.Field) }
+										} else {
+											{ assertionDisplayVal(a) }
+										}
+									</td>
+									<td>
+										if a.Source != "" {
+											{ a.Source }
+										} else if a.UserID != nil {
+											{ a.UserID.String() }
+											if a.Role != "" {
+												({ a.Role })
+											}
+										}
+									</td>
+									<td>{ a.AssertedAt.Format("2006-01-02 15:04") }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</section>
+			}
+			if len(history) == 0 {
+				<p>{ c.Loc("No assertions.") }</p>
+			}
+		</main>
+	}
+}
+
 // Helper functions for display names.
 
 func projectTitle(c Ctx, p *bbl.Project) string {
@@ -134,4 +200,36 @@ func organizationName(c Ctx, o *bbl.Organization) string {
 		}
 	}
 	return c.Loc("(unnamed)")
+}
+
+type assertionGroup struct {
+	field      string
+	assertions []bbl.WorkAssertion
+}
+
+func groupAssertionsByField(history []bbl.WorkAssertion) []assertionGroup {
+	var groups []assertionGroup
+	seen := make(map[string]int) // field → index in groups
+	for _, a := range history {
+		idx, ok := seen[a.Field]
+		if !ok {
+			idx = len(groups)
+			seen[a.Field] = idx
+			groups = append(groups, assertionGroup{field: a.Field})
+		}
+		groups[idx].assertions = append(groups[idx].assertions, a)
+	}
+	return groups
+}
+
+func assertionDisplayVal(a bbl.WorkAssertion) string {
+	if a.Val == nil {
+		return ""
+	}
+	var s string
+	if json.Unmarshal(a.Val, &s) == nil {
+		return s
+	}
+	// Compound value — show raw JSON.
+	return string(a.Val)
 }

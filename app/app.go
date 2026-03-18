@@ -124,6 +124,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("GET /backoffice/works/{id}", backoffice.handle(app.backofficeShowWork))
 	mux.Handle("GET /backoffice/works/{id}/edit", backoffice.handle(app.backofficeEditWork))
 	mux.Handle("POST /backoffice/works/{id}/edit", backoffice.handle(app.backofficeUpdateWork))
+	mux.Handle("GET /backoffice/works/{id}/history", backoffice.handle(app.backofficeWorkHistory))
 	mux.Handle("GET /backoffice/people/suggest", backoffice.handle(app.suggestPeople))
 	mux.Handle("GET /backoffice/people", backoffice.handle(app.backofficeSearchPeople))
 	mux.Handle("GET /backoffice/people/{id}", backoffice.handle(app.backofficeShowPerson))

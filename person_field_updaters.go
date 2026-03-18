@@ -63,6 +63,30 @@ func writeUnsetPersonField(ctx context.Context, tx pgx.Tx, personID ID, field st
 	return nil
 }
 
+// --- Hide helpers for scalar fields ---
+
+func applyHidePersonField(personID ID, field string, mutUserID **ID, userID *ID) (*updateEffect, error) {
+	*mutUserID = userID
+	return &updateEffect{
+		recordType: RecordTypePerson,
+		recordID:   personID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", personID, field, "person_source_id", "bbl_person_sources", priorities)
+		},
+	}, nil
+}
+
+func writeHidePersonField(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string, userID *ID, role *string) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO bbl_person_assertions (rev_id, person_id, field, val, hidden, person_source_id, user_id, role)
+		VALUES ($1, $2, $3, NULL, true, NULL, $4, $5)`,
+		revID, personID, field, userID, role)
+	if err != nil {
+		return fmt.Errorf("writeHidePersonField(%s): %w", field, err)
+	}
+	return nil
+}
+
 // --- shared write helpers for relation tables ---
 
 func writePersonAssertion(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string, val any, hidden bool, personSourceID *ID, userID *ID, role *string) (int64, error) {
@@ -320,4 +344,104 @@ func (m *UnsetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID i
 		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
 	}
 	return nil
+}
+
+// ============================================================
+// Hide updaters for person fields
+// ============================================================
+
+// --- HidePersonGivenName ---
+
+type HidePersonGivenName struct {
+	PersonID ID
+	userID   *ID
+}
+
+func (m *HidePersonGivenName) name() string       { return "hide:person_given_name" }
+func (m *HidePersonGivenName) needs() updateNeeds { return updateNeeds{} }
+func (m *HidePersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return applyHidePersonField(m.PersonID, "given_name", &m.userID, userID)
+}
+func (m *HidePersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "given_name", m.userID, nil)
+}
+
+// --- HidePersonMiddleName ---
+
+type HidePersonMiddleName struct {
+	PersonID ID
+	userID   *ID
+}
+
+func (m *HidePersonMiddleName) name() string       { return "hide:person_middle_name" }
+func (m *HidePersonMiddleName) needs() updateNeeds { return updateNeeds{} }
+func (m *HidePersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return applyHidePersonField(m.PersonID, "middle_name", &m.userID, userID)
+}
+func (m *HidePersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "middle_name", m.userID, nil)
+}
+
+// --- HidePersonFamilyName ---
+
+type HidePersonFamilyName struct {
+	PersonID ID
+	userID   *ID
+}
+
+func (m *HidePersonFamilyName) name() string       { return "hide:person_family_name" }
+func (m *HidePersonFamilyName) needs() updateNeeds { return updateNeeds{} }
+func (m *HidePersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return applyHidePersonField(m.PersonID, "family_name", &m.userID, userID)
+}
+func (m *HidePersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "family_name", m.userID, nil)
+}
+
+// --- HidePersonIdentifiers ---
+
+type HidePersonIdentifiers struct {
+	PersonID ID
+	userID   *ID
+}
+
+func (m *HidePersonIdentifiers) name() string       { return "hide:person_identifiers" }
+func (m *HidePersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *HidePersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypePerson,
+		recordID:   m.PersonID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "identifiers", "person_source_id", "bbl_person_sources", priorities)
+		},
+	}, nil
+}
+func (m *HidePersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "identifiers", nil, true, nil, m.userID, nil)
+	return err
+}
+
+// --- HidePersonOrganizations ---
+
+type HidePersonOrganizations struct {
+	PersonID ID
+	userID   *ID
+}
+
+func (m *HidePersonOrganizations) name() string       { return "hide:person_organizations" }
+func (m *HidePersonOrganizations) needs() updateNeeds { return updateNeeds{} }
+func (m *HidePersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypePerson,
+		recordID:   m.PersonID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
+		},
+	}, nil
+}
+func (m *HidePersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, true, nil, m.userID, nil)
+	return err
 }

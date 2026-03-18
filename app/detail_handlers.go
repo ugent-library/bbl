@@ -52,6 +52,18 @@ func (app *App) backofficeShowWork(w http.ResponseWriter, r *http.Request, c *Ct
 	return views.BackofficeShowWork(c.ViewCtx, work).Render(r.Context(), w)
 }
 
+func (app *App) backofficeWorkHistory(w http.ResponseWriter, r *http.Request, c *Ctx) error {
+	work, err := app.getWork(r, "public", "private")
+	if err != nil {
+		return err
+	}
+	history, err := app.services.Repo.GetWorkHistory(r.Context(), work.ID)
+	if err != nil {
+		return err
+	}
+	return views.BackofficeWorkHistory(c.ViewCtx, work, history).Render(r.Context(), w)
+}
+
 func (app *App) backofficeShowPerson(w http.ResponseWriter, r *http.Request, c *Ctx) error {
 	person, err := app.getPerson(r)
 	if err != nil {

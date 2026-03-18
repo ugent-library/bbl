@@ -209,3 +209,55 @@ func (m *UnsetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int6
 	}
 	return nil
 }
+
+// ============================================================
+// Hide updaters for organization fields
+// ============================================================
+
+// --- HideOrganizationIdentifiers ---
+
+type HideOrganizationIdentifiers struct {
+	OrganizationID ID
+	userID         *ID
+}
+
+func (m *HideOrganizationIdentifiers) name() string       { return "hide:organization_identifiers" }
+func (m *HideOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *HideOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypeOrganization,
+		recordID:   m.OrganizationID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "identifiers", "organization_source_id", "bbl_organization_sources", priorities)
+		},
+	}, nil
+}
+func (m *HideOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", nil, true, nil, m.userID, nil)
+	return err
+}
+
+// --- HideOrganizationRels ---
+
+type HideOrganizationRels struct {
+	OrganizationID ID
+	userID         *ID
+}
+
+func (m *HideOrganizationRels) name() string       { return "hide:organization_rels" }
+func (m *HideOrganizationRels) needs() updateNeeds { return updateNeeds{} }
+func (m *HideOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+	m.userID = userID
+	return &updateEffect{
+		recordType: RecordTypeOrganization,
+		recordID:   m.OrganizationID,
+		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
+			return autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", m.OrganizationID, "rels", "organization_source_id", "bbl_organization_sources", priorities)
+		},
+	}, nil
+}
+func (m *HideOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", nil, true, nil, m.userID, nil)
+	return err
+}
