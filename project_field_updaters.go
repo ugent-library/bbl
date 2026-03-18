@@ -75,22 +75,22 @@ func writeProjectPerson(ctx context.Context, tx pgx.Tx, id, projectID, personID 
 }
 
 // ============================================================
-// Set / Unset mutations for project collectives
+// Set / Unset updaters for project collectives
 // ============================================================
 
 // --- SetProjectTitles (no delete — required) ---
 
 type SetProjectTitles struct {
-	ProjectID ID     `json:"project_id"`
+	ProjectID ID `json:"project_id"`
 	Titles    []Title
 	userID    *ID
 }
 
-func (m *SetProjectTitles) mutationName() string { return "set_project_titles" }
-func (m *SetProjectTitles) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectTitles) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetProjectTitles) name() string       { return "set:project_titles" }
+func (m *SetProjectTitles) needs() updateNeeds { return updateNeeds{} }
+func (m *SetProjectTitles) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -119,11 +119,11 @@ type SetProjectDescriptions struct {
 	userID       *ID
 }
 
-func (m *SetProjectDescriptions) mutationName() string { return "set_project_descriptions" }
-func (m *SetProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetProjectDescriptions) name() string       { return "set:project_descriptions" }
+func (m *SetProjectDescriptions) needs() updateNeeds { return updateNeeds{} }
+func (m *SetProjectDescriptions) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -146,10 +146,10 @@ func (m *SetProjectDescriptions) write(ctx context.Context, tx pgx.Tx, revID int
 
 type UnsetProjectDescriptions struct{ ProjectID ID }
 
-func (m *UnsetProjectDescriptions) mutationName() string { return "unset_project_descriptions" }
-func (m *UnsetProjectDescriptions) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetProjectDescriptions) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetProjectDescriptions) name() string       { return "unset:project_descriptions" }
+func (m *UnsetProjectDescriptions) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetProjectDescriptions) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -172,11 +172,11 @@ type SetProjectIdentifiers struct {
 	userID      *ID
 }
 
-func (m *SetProjectIdentifiers) mutationName() string { return "set_project_identifiers" }
-func (m *SetProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetProjectIdentifiers) name() string       { return "set:project_identifiers" }
+func (m *SetProjectIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *SetProjectIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -199,10 +199,10 @@ func (m *SetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int6
 
 type UnsetProjectIdentifiers struct{ ProjectID ID }
 
-func (m *UnsetProjectIdentifiers) mutationName() string { return "unset_project_identifiers" }
-func (m *UnsetProjectIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetProjectIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetProjectIdentifiers) name() string       { return "unset:project_identifiers" }
+func (m *UnsetProjectIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetProjectIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -220,16 +220,16 @@ func (m *UnsetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx, revID in
 // --- SetProjectPeople / UnsetProjectPeople ---
 
 type SetProjectPeople struct {
-	ProjectID ID     `json:"project_id"`
+	ProjectID ID `json:"project_id"`
 	People    []ProjectPerson
 	userID    *ID
 }
 
-func (m *SetProjectPeople) mutationName() string { return "set_project_people" }
-func (m *SetProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetProjectPeople) name() string       { return "set:project_people" }
+func (m *SetProjectPeople) needs() updateNeeds { return updateNeeds{} }
+func (m *SetProjectPeople) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -252,10 +252,10 @@ func (m *SetProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) er
 
 type UnsetProjectPeople struct{ ProjectID ID }
 
-func (m *UnsetProjectPeople) mutationName() string { return "unset_project_people" }
-func (m *UnsetProjectPeople) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetProjectPeople) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetProjectPeople) name() string       { return "unset:project_people" }
+func (m *UnsetProjectPeople) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetProjectPeople) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {

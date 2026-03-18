@@ -11,17 +11,17 @@ import (
 // CreateWork creates a new work entity.
 type CreateWork struct {
 	WorkID ID     `json:"work_id"`
-	Kind     string `json:"kind"`
-	Status   string `json:"status"` // defaults to WorkStatusPrivate
+	Kind   string `json:"kind"`
+	Status string `json:"status"` // defaults to WorkStatusPrivate
 
 	work *Work // populated by apply
 }
 
-func (m *CreateWork) mutationName() string { return "create_work" }
+func (m *CreateWork) name() string { return "create:work" }
 
-func (m *CreateWork) needs() mutationNeeds { return mutationNeeds{} }
+func (m *CreateWork) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateWork) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *CreateWork) apply(state updateState, userID *ID) (*updateEffect, error) {
 	if m.Status == "" {
 		m.Status = WorkStatusPrivate
 	}
@@ -31,7 +31,7 @@ func (m *CreateWork) apply(state mutationState, userID *ID) (*mutationEffect, er
 		Kind:    m.Kind,
 		Status:  m.Status,
 	}
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		record:     m.work,
@@ -63,13 +63,13 @@ type DeleteWork struct {
 	work *Work // populated by apply
 }
 
-func (m *DeleteWork) mutationName() string { return "delete_work" }
+func (m *DeleteWork) name() string { return "delete:work" }
 
-func (m *DeleteWork) needs() mutationNeeds {
-	return mutationNeeds{workIDs: []ID{m.WorkID}}
+func (m *DeleteWork) needs() updateNeeds {
+	return updateNeeds{workIDs: []ID{m.WorkID}}
 }
 
-func (m *DeleteWork) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *DeleteWork) apply(state updateState, userID *ID) (*updateEffect, error) {
 	w, ok := state.works[m.WorkID]
 	if !ok {
 		return nil, fmt.Errorf("DeleteWork: work %s not found", m.WorkID)
@@ -85,7 +85,7 @@ func (m *DeleteWork) apply(state mutationState, userID *ID) (*mutationEffect, er
 	w.DeletedAt = &now
 	m.work = w
 
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		record:     w,

@@ -13,7 +13,7 @@ import (
 // These insert value rows linked to an assertion via assertion_id.
 // The assertion row must be created first.
 
-// writeWorkAssertion creates an assertion row. Used by both Set mutations and import.
+// writeWorkAssertion creates an assertion row. Used by both Set updaters and import.
 func writeWorkAssertion(ctx context.Context, tx pgx.Tx, revID int64, workID ID, field string, val any, hidden bool, workSourceID *ID, userID *ID, role *string) (int64, error) {
 	var valJSON []byte
 	if val != nil {
@@ -165,22 +165,22 @@ func writeWorkRel(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, work
 }
 
 // ============================================================
-// Set / Unset mutations for work collectives
+// Set / Unset updaters for work collectives
 // ============================================================
 
 // --- SetWorkTitles (no delete — required) ---
 
 type SetWorkTitles struct {
-	WorkID ID     `json:"work_id"`
+	WorkID ID      `json:"work_id"`
 	Titles []Title `json:"titles"`
 	userID *ID
 }
 
-func (m *SetWorkTitles) mutationName() string { return "set_work_titles" }
-func (m *SetWorkTitles) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkTitles) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkTitles) name() string       { return "set:work_titles" }
+func (m *SetWorkTitles) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkTitles) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -209,11 +209,11 @@ type SetWorkAbstracts struct {
 	userID    *ID
 }
 
-func (m *SetWorkAbstracts) mutationName() string { return "set_work_abstracts" }
-func (m *SetWorkAbstracts) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkAbstracts) name() string       { return "set:work_abstracts" }
+func (m *SetWorkAbstracts) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -236,10 +236,10 @@ func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) er
 
 type UnsetWorkAbstracts struct{ WorkID ID }
 
-func (m *UnsetWorkAbstracts) mutationName() string { return "unset_work_abstracts" }
-func (m *UnsetWorkAbstracts) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkAbstracts) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkAbstracts) name() string       { return "unset:work_abstracts" }
+func (m *UnsetWorkAbstracts) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -262,11 +262,11 @@ type SetWorkLaySummaries struct {
 	userID       *ID
 }
 
-func (m *SetWorkLaySummaries) mutationName() string { return "set_work_lay_summaries" }
-func (m *SetWorkLaySummaries) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkLaySummaries) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkLaySummaries) name() string       { return "set:work_lay_summaries" }
+func (m *SetWorkLaySummaries) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -289,10 +289,10 @@ func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetWorkLaySummaries struct{ WorkID ID }
 
-func (m *UnsetWorkLaySummaries) mutationName() string { return "unset_work_lay_summaries" }
-func (m *UnsetWorkLaySummaries) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkLaySummaries) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkLaySummaries) name() string       { return "unset:work_lay_summaries" }
+func (m *UnsetWorkLaySummaries) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -315,11 +315,11 @@ type SetWorkNotes struct {
 	userID *ID
 }
 
-func (m *SetWorkNotes) mutationName() string { return "set_work_notes" }
-func (m *SetWorkNotes) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkNotes) name() string       { return "set:work_notes" }
+func (m *SetWorkNotes) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -342,10 +342,10 @@ func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error 
 
 type UnsetWorkNotes struct{ WorkID ID }
 
-func (m *UnsetWorkNotes) mutationName() string { return "unset_work_notes" }
-func (m *UnsetWorkNotes) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkNotes) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkNotes) name() string       { return "unset:work_notes" }
+func (m *UnsetWorkNotes) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -368,11 +368,11 @@ type SetWorkKeywords struct {
 	userID   *ID
 }
 
-func (m *SetWorkKeywords) mutationName() string { return "set_work_keywords" }
-func (m *SetWorkKeywords) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkKeywords) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkKeywords) name() string       { return "set:work_keywords" }
+func (m *SetWorkKeywords) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -395,10 +395,10 @@ func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) err
 
 type UnsetWorkKeywords struct{ WorkID ID }
 
-func (m *UnsetWorkKeywords) mutationName() string { return "unset_work_keywords" }
-func (m *UnsetWorkKeywords) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkKeywords) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkKeywords) name() string       { return "unset:work_keywords" }
+func (m *UnsetWorkKeywords) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -421,11 +421,11 @@ type SetWorkIdentifiers struct {
 	userID      *ID
 }
 
-func (m *SetWorkIdentifiers) mutationName() string { return "set_work_identifiers" }
-func (m *SetWorkIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkIdentifiers) name() string       { return "set:work_identifiers" }
+func (m *SetWorkIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -448,10 +448,10 @@ func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) 
 
 type UnsetWorkIdentifiers struct{ WorkID ID }
 
-func (m *UnsetWorkIdentifiers) mutationName() string { return "unset_work_identifiers" }
-func (m *UnsetWorkIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkIdentifiers) name() string       { return "unset:work_identifiers" }
+func (m *UnsetWorkIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -474,11 +474,11 @@ type SetWorkClassifications struct {
 	userID          *ID
 }
 
-func (m *SetWorkClassifications) mutationName() string { return "set_work_classifications" }
-func (m *SetWorkClassifications) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkClassifications) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkClassifications) name() string       { return "set:work_classifications" }
+func (m *SetWorkClassifications) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkClassifications) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -501,10 +501,10 @@ func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int
 
 type UnsetWorkClassifications struct{ WorkID ID }
 
-func (m *UnsetWorkClassifications) mutationName() string { return "unset_work_classifications" }
-func (m *UnsetWorkClassifications) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkClassifications) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkClassifications) name() string       { return "unset:work_classifications" }
+func (m *UnsetWorkClassifications) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkClassifications) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -527,11 +527,11 @@ type SetWorkContributors struct {
 	userID       *ID
 }
 
-func (m *SetWorkContributors) mutationName() string { return "set_work_contributors" }
-func (m *SetWorkContributors) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkContributors) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkContributors) name() string       { return "set:work_contributors" }
+func (m *SetWorkContributors) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkContributors) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -554,10 +554,10 @@ func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetWorkContributors struct{ WorkID ID }
 
-func (m *UnsetWorkContributors) mutationName() string { return "unset_work_contributors" }
-func (m *UnsetWorkContributors) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkContributors) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkContributors) name() string       { return "unset:work_contributors" }
+func (m *UnsetWorkContributors) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkContributors) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -580,11 +580,11 @@ type SetWorkProjects struct {
 	userID   *ID
 }
 
-func (m *SetWorkProjects) mutationName() string { return "set_work_projects" }
-func (m *SetWorkProjects) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkProjects) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkProjects) name() string       { return "set:work_projects" }
+func (m *SetWorkProjects) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkProjects) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -607,10 +607,10 @@ func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) err
 
 type UnsetWorkProjects struct{ WorkID ID }
 
-func (m *UnsetWorkProjects) mutationName() string { return "unset_work_projects" }
-func (m *UnsetWorkProjects) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkProjects) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkProjects) name() string       { return "unset:work_projects" }
+func (m *UnsetWorkProjects) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkProjects) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -633,11 +633,11 @@ type SetWorkOrganizations struct {
 	userID        *ID
 }
 
-func (m *SetWorkOrganizations) mutationName() string { return "set_work_organizations" }
-func (m *SetWorkOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkOrganizations) name() string       { return "set:work_organizations" }
+func (m *SetWorkOrganizations) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -660,10 +660,10 @@ func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64
 
 type UnsetWorkOrganizations struct{ WorkID ID }
 
-func (m *UnsetWorkOrganizations) mutationName() string { return "unset_work_organizations" }
-func (m *UnsetWorkOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkOrganizations) name() string       { return "unset:work_organizations" }
+func (m *UnsetWorkOrganizations) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -681,19 +681,19 @@ func (m *UnsetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int
 // --- SetWorkRels / UnsetWorkRels ---
 
 type SetWorkRels struct {
-	WorkID ID     `json:"work_id"`
-	Rels []struct {
+	WorkID ID `json:"work_id"`
+	Rels   []struct {
 		RelatedWorkID ID     `json:"related_work_id"`
 		Kind          string `json:"kind"`
 	} `json:"rels"`
 	userID *ID
 }
 
-func (m *SetWorkRels) mutationName() string { return "set_work_rels" }
-func (m *SetWorkRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkRels) name() string       { return "set:work_rels" }
+func (m *SetWorkRels) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkRels) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -716,10 +716,10 @@ func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 
 type UnsetWorkRels struct{ WorkID ID }
 
-func (m *UnsetWorkRels) mutationName() string { return "unset_work_rels" }
-func (m *UnsetWorkRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetWorkRels) name() string       { return "unset:work_rels" }
+func (m *UnsetWorkRels) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {

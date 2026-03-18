@@ -17,9 +17,9 @@ type Services struct {
 	WorkGetSources  map[string]WorkSourceGetter
 }
 
-// MutateAndIndex writes a revision to the DB and best-effort indexes affected records.
-func (s *Services) MutateAndIndex(ctx context.Context, userID *ID, mutations ...any) (bool, error) {
-	ok, effects, err := s.Repo.Mutate(ctx, userID, mutations...)
+// UpdateAndIndex writes a revision to the DB and best-effort indexes affected records.
+func (s *Services) UpdateAndIndex(ctx context.Context, userID *ID, updates ...any) (bool, error) {
+	ok, effects, err := s.Repo.Update(ctx, userID, updates...)
 	if err != nil || !ok {
 		return ok, err
 	}

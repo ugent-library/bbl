@@ -1175,7 +1175,7 @@ const scenes = [
           <span style="color:#888;font-size:12px;margin-left:12px">source feeds — batch, high-throughput</span>
         </div>
         <div style="margin:8px 0">
-          <span class="flow-box merge" style="min-width:180px">Mutate</span>
+          <span class="flow-box merge" style="min-width:180px">Update</span>
           <span style="color:#888;font-size:12px;margin-left:12px">humans, API users, bots — individual changes</span>
         </div>
       </div>
@@ -1194,25 +1194,25 @@ const scenes = [
     </div>
 
     <div class="viz">
-      <div class="viz-title">The Mutate path</div>
+      <div class="viz-title">The Update path</div>
       <div style="margin:6px 0">For ${C.usr('humans, API consumers, and bots')} — curator edits, researcher self-deposit, programmatic changes.</div>
-      <div style="margin:6px 0">Changes are expressed as named mutations (e.g. "set volume", "hide pages", "unset edition"). For each revision:</div>
+      <div style="margin:6px 0">Changes are expressed as named updates (e.g. "set volume", "hide pages", "unset edition"). For each revision:</div>
       <div class="flow" style="margin-left:16px">
-        <div class="flow-step">All mutations are validated and their effects computed ${C.hl('before anything is written')}</div>
+        <div class="flow-step">All updates are validated and their effects computed ${C.hl('before anything is written')}</div>
         <div class="flow-step">If nothing actually changed — the revision is silently dropped</div>
-        <div class="flow-step">Otherwise: changes are written, auto-pin runs, cache is rebuilt</div>
-        <div class="flow-step">Every mutation is logged with a full before/after diff</div>
+        <div class="flow-step">Otherwise: new assertion rows are written (additive), auto-pin runs, cache is rebuilt</div>
+        <div class="flow-step">Previous human assertions stay — they ${C.usr('are')} the history</div>
       </div>
     </div>` +
 
     tbl(
-      ['', 'Import', 'Mutate'],
+      ['', 'Import', 'Update'],
       [
         ['who',        C.src('automated feeds, CLI batch'),           C.usr('curators, API users, bots')],
-        ['assertions', C.src('owned by source'),                      C.usr('owned by user (optional)')],
-        ['scope',      'batch of records per transaction',            'batch of mutations per transaction'],
-        ['re-import',  'replaces source assertions wholesale',       'replaces per field (copy-on-write)'],
-        ['audit',      'logged as a single import operation',        'each mutation logged with named diff'],
+        ['assertions', C.src('owned by source'),                      C.usr('owned by user')],
+        ['scope',      'batch of records per transaction',            'batch of updates per transaction'],
+        ['re-import',  'replaces source assertions wholesale',       'additive — new rows, old stay as history'],
+        ['history',    'no history (source record has payload)',       'built up from additive assertion rows'],
       ],
       C.hdr('Comparison')
     ) +
@@ -1238,12 +1238,11 @@ const scenes = [
       <div class="viz-title">Human history = additive assertions</div>
       <div style="margin:6px 0">Each human edit creates a ${C.usr('new assertion row')}. Previous assertions stay — they ${C.usr('are')} the history.</div>
       <div style="margin:6px 0">The sequence of assertion rows for a field tells you who said what, when, in what order.</div>
-      <div style="margin:6px 0">No separate mutations table. The assertion row ${C.hl('is')} the change record.</div>
     </div>
 
     <div class="mt flow-diagram" style="padding:12px 16px">
       <div class="viz-title">Audit flow</div>
-      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.usr('Mutate')} (human/API/bot)      ${C.src('Import')} (source feed)
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.usr('Update')} (human/API/bot)      ${C.src('Import')} (source feed)
         │                               │
         └───────────┬───────────────────┘
                     ▼
@@ -1295,7 +1294,7 @@ const scenes = [
       <div class="rule"><span class="num">11.</span> Files, reviews, and takedowns are ${C.dim('workflow state')} — not assertions.</div>
 
       <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">Write Operations &amp; Audit</div>
-      <div class="rule"><span class="num">12.</span> Two write paths: ${C.src('Import')} (source batches) and ${C.usr('Mutate')} (humans, API, bots). No ad-hoc writes.</div>
+      <div class="rule"><span class="num">12.</span> Two write paths: ${C.src('Import')} (source batches) and ${C.usr('Update')} (humans, API, bots). No ad-hoc writes.</div>
       <div class="rule"><span class="num">13.</span> Every state change logged via ${C.hl('revisions')} (who, when). Human assertions are ${C.usr('additive')} — history builds up naturally.</div>
     </div>
 

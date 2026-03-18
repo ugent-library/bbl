@@ -59,16 +59,16 @@ Field values are stored as **assertion rows**, not columns on entity tables. Thi
 - **Collective fields** (identifiers, contributors, titles, abstracts, notes, keywords, classifications, FK relations) go in dedicated relation tables. Grouping key: `(entity_id)` per table — one asserter's entire list wins.
 - **Pinning** determines display value. Always implicit (side effect of writes, never explicit). Auto-pin rule: human assertion exists → it wins; otherwise highest-priority source (`bbl_sources.priority`) wins.
 - **Copy-on-write**: when a human asserts, they create their own assertion row. For collectives, the entire list is copied. Pin is always on the human's row, never on a source's.
-- **Replace semantics**: one human assertion slot per grouping key. New human assertion = DELETE old + INSERT new.
+- **Additive human assertions**: each human edit creates a new assertion row. Previous assertions stay as history. Most recent wins by role priority (curator > user).
 - **Re-import**: DELETE all of this source record's assertions + INSERT new ones. Human assertions are untouched.
-- **Delete**: remove the assertion row → auto-pin re-evaluates → next best assertion gets pinned (or field absent).
-- **`status`/`review_status`** are state columns, NOT assertions — they don't participate in pinning. They have their own mutations (`SetWorkStatus`, `SetWorkReviewStatus`).
+- **Unset**: remove the assertion row → auto-pin re-evaluates → next best assertion gets pinned (or field absent).
+- **`status`/`review_status`** are state columns, NOT assertions — they don't participate in pinning. They have their own updates (`SetWorkStatus`, `SetWorkReviewStatus`).
 - **`kind`** is a regular assertion in `bbl_*_fields`, but on entity creation the system creates its own copy-on-write kind assertion to prevent silent kind changes on re-import.
 - `cache jsonb` on entity table holds pinned values, rebuilt on every write.
 
-**Mutations**: concrete named types per field (`SetWorkVolume`, `DeleteWorkVolume`), not generic field-name params. Required fields (work titles, person name, project titles, org names) have no Delete mutation. Both human (`Mutate`) and import paths write mutation records to `bbl_mutations` for audit/replay.
+**Updates**: concrete named types per field (`SetWorkVolume`, `UnsetWorkVolume`), not generic field-name params. Required fields (work titles, person name, project titles, org names) have no Unset. Wire format: `{"set": "work_volume", ...}`.
 
-Key files: `assertion.go`, `mutations.go`, `*_field_mutations.go`, `*_relation_mutations.go`, `import.go`.
+Key files: `assertion.go`, `updaters.go`, `*_field_updaters.go`, `*_relation_updaters.go`, `import.go`.
 
 ### ID type
 
@@ -76,9 +76,9 @@ Key files: `assertion.go`, `mutations.go`, `*_field_mutations.go`, `*_relation_m
 
 ### Write paths
 
-All state changes go through `Mutate` (human) or `Import*` (source). No ad-hoc direct mutations. One revision = one transaction boundary.
+All state changes go through `Update` (human) or `Import*` (source). No ad-hoc direct writes. One revision = one transaction boundary.
 
-- **Human path (`Mutate`)**: assertion rows get `user_id` set, `*_source_id = NULL`. Replace semantics.
+- **Human path (`Update`)**: assertion rows get `user_id` set, `role` set, `*_source_id = NULL`. Additive — new row inserted, previous stay.
 - **Import path**: assertion rows get `*_source_id` set, `user_id = NULL`. Re-import deletes all assertions for the source record and inserts new ones. Shared low-level write helpers used by both paths.
 - **Ingestion flow**: incoming record → evaluate → auto-accept (match + import), auto-reject, or candidate (ambiguous, staged for review).
 

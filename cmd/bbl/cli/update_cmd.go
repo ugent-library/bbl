@@ -9,17 +9,17 @@ import (
 	"github.com/ugent-library/bbl"
 )
 
-func newMutateCmd(e *env) *cobra.Command {
+func newUpdateCmd(e *env) *cobra.Command {
 	var userIDFlag string
 
 	cmd := &cobra.Command{
-		Use:   "mutate",
-		Short: "Apply mutations from JSONL stdin",
-		Long: `Read mutation objects from stdin (one JSON object per line) and apply them
+		Use:   "update",
+		Short: "Apply updates from JSONL stdin",
+		Long: `Read update objects from stdin (one JSON object per line) and apply them
 as a single revision.
 
 Example:
-  echo '{"mutation": "set_work_volume", "work_id": "01J...", "val": "42"}' | bbl mutate --user 01J...`,
+  echo '{"set": "work_volume", "work_id": "01J...", "val": "42"}' | bbl update --user 01J...`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			svc, err := e.services(ctx)
@@ -36,36 +36,36 @@ Example:
 				userID = &id
 			}
 
-			var mutations []any
+			var updates []any
 			scanner := bufio.NewScanner(os.Stdin)
 			for scanner.Scan() {
 				line := scanner.Bytes()
 				if len(line) == 0 {
 					continue
 				}
-				m, err := bbl.DecodeMutation(line)
+				m, err := bbl.DecodeUpdate(line)
 				if err != nil {
 					return err
 				}
-				mutations = append(mutations, m)
+				updates = append(updates, m)
 			}
 			if err := scanner.Err(); err != nil {
 				return fmt.Errorf("read stdin: %w", err)
 			}
 
-			if len(mutations) == 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), "no mutations to apply")
+			if len(updates) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "no updates to apply")
 				return nil
 			}
 
-			ok, _, err := svc.Repo.Mutate(ctx, userID, mutations...)
+			ok, _, err := svc.Repo.Update(ctx, userID, updates...)
 			if err != nil {
 				return err
 			}
 			if ok {
-				fmt.Fprintf(cmd.OutOrStdout(), "applied %d %s\n", len(mutations), plural(len(mutations), "mutation", "mutations"))
+				fmt.Fprintf(cmd.OutOrStdout(), "applied %d %s\n", len(updates), plural(len(updates), "update", "updates"))
 			} else {
-				fmt.Fprintln(cmd.OutOrStdout(), "no changes (all mutations were noops)")
+				fmt.Fprintln(cmd.OutOrStdout(), "no changes (all updates were noops)")
 			}
 			return nil
 		},

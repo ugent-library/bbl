@@ -255,7 +255,7 @@ for single-row entity reads.
 
 `status` and `review_status` are state columns, not sourced fields. They
 are not assertions and do not participate in pinning. They have their own
-mutations (`SetWorkStatus`, `SetWorkReviewStatus`).
+updates (`SetWorkStatus`, `SetWorkReviewStatus`).
 
 `kind` is a regular assertion in `bbl_work_assertions` -- same pinning rules as
 any other field. But it is structurally important: the pinned kind determines
@@ -401,7 +401,7 @@ bbl_revs (
 )
 ```
 
-Mutate (user path): `user_id` set, `source` typically NULL.
+Update (user path): `user_id` set, `source` typically NULL.
 Import: `source` set, `user_id` optional.
 System batch: both can be NULL.
 
@@ -414,9 +414,9 @@ write from pinned assertion rows across the assertions table and all relation
 tables. The `bbl_works_view` computes the cache via lateral joins against
 pinned, non-hidden assertions.
 
-## Mutations
+## Updates
 
-Mutations are concrete, named types. Three kinds per field:
+Updates are concrete, named types. Three kinds per field:
 
 - **Set** -- sets the value. Expects a value; absence is an error for scalars.
   For collectives, expects at least one item (empty slice is an error).
@@ -427,7 +427,7 @@ Mutations are concrete, named types. Three kinds per field:
 - **Unset** -- withdraws the assertion. Deletes the human assertion row(s),
   auto-pin re-evaluates.
 
-Required fields have no Hide or Unset mutation (hiding/unsetting them would
+Required fields have no Hide or Unset update (hiding/unsetting them would
 always fail validation):
 - Work: titles (at least one)
 - Person: name
@@ -436,7 +436,7 @@ always fail validation):
 
 ### UI mapping
 
-| User action | Mutation | Assertion state |
+| User action | Update | Assertion state |
 |---|---|---|
 | Save a value | Set | `hidden=false`, value stored |
 | Clear / empty a field | Hide | `hidden=true`, no value |
@@ -447,7 +447,7 @@ always fail validation):
 - `CreateWork{Kind}` -- creates entity row + initial assertions
 - `DeleteWork{WorkID}` -- sets status=deleted
 
-### State mutations
+### State updates
 
 `status` and `review_status` are not assertions. Simple state transitions:
 
@@ -456,7 +456,7 @@ SetWorkStatus{WorkID, Val}
 SetWorkReviewStatus{WorkID, Val}
 ```
 
-### Work mutations
+### Work updates
 
 Scalar fields (Set + Unset):
 
@@ -496,7 +496,7 @@ SetWorkOrganizations / UnsetWorkOrganizations
 SetWorkRels / UnsetWorkRels
 ```
 
-### Person mutations
+### Person updates
 
 ```
 SetPersonName                                (no unset -- required)
@@ -507,7 +507,7 @@ SetPersonIdentifiers / UnsetPersonIdentifiers
 SetPersonOrganizations / UnsetPersonOrganizations
 ```
 
-### Project mutations
+### Project updates
 
 ```
 SetProjectTitles                             (no unset -- required)
@@ -516,7 +516,7 @@ SetProjectIdentifiers / UnsetProjectIdentifiers
 SetProjectPeople / UnsetProjectPeople
 ```
 
-### Organization mutations
+### Organization updates
 
 ```
 SetOrganizationNames                         (no unset -- required)
@@ -526,10 +526,10 @@ SetOrganizationRels / UnsetOrganizationRels
 
 ### Write paths
 
-**Human path (Mutate):**
+**Human path (Update):**
 
 ```go
-repo.Mutate(ctx, userID,
+repo.Update(ctx, userID,
     &SetWorkVolume{WorkID: id, Val: "42"},
     &SetWorkPublisher{WorkID: id, Val: "Acme"},
     &UnsetWorkEdition{WorkID: id},
@@ -549,8 +549,8 @@ repo.Mutate(ctx, userID,
 **CLI:**
 
 ```sh
-# Human mutations from stdin
-echo '{"mutation":"set_work_volume","work_id":"01J...","val":"42"}' | bbl mutate --user 01J...
+# Human updates from stdin
+echo '{"set":"work_volume","work_id":"01J...","val":"42"}' | bbl update --user 01J...
 
 # Source import from stdin
 cat records.jsonl | bbl works import plato

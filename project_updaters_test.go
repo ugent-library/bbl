@@ -9,10 +9,10 @@ func TestCreateProject_Apply(t *testing.T) {
 	id := newID()
 	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	m := &CreateProject{
-		ProjectID:  id,
+		ProjectID: id,
 		StartDate: &start,
 	}
-	eff, err := m.apply(mutationState{}, nil)
+	eff, err := m.apply(updateState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestDeleteProject_Apply(t *testing.T) {
 		Version: 1,
 		Status:  ProjectStatusPublic,
 	}
-	state := mutationState{projects: map[ID]*Project{id: existing}}
+	state := updateState{projects: map[ID]*Project{id: existing}}
 
 	m := &DeleteProject{ProjectID: id}
 	eff, err := m.apply(state, nil)
@@ -64,7 +64,7 @@ func TestDeleteProject_AlreadyDeleted(t *testing.T) {
 		Version: 2,
 		Status:  ProjectStatusDeleted,
 	}
-	state := mutationState{projects: map[ID]*Project{id: existing}}
+	state := updateState{projects: map[ID]*Project{id: existing}}
 
 	m := &DeleteProject{ProjectID: id}
 	eff, err := m.apply(state, nil)

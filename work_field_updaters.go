@@ -11,7 +11,7 @@ import (
 // --- shared write helpers ---
 
 // writeCreateWorkField inserts a scalar assertion into bbl_work_assertions.
-// Shared by both Set mutations (human path) and import.
+// Shared by both Set updaters (human path) and import.
 func writeCreateWorkField(ctx context.Context, tx pgx.Tx, revID int64, workID ID, field string, val any, workSourceID *ID, userID *ID, role *string) error {
 	valJSON, err := json.Marshal(val)
 	if err != nil {
@@ -29,9 +29,9 @@ func writeCreateWorkField(ctx context.Context, tx pgx.Tx, revID int64, workID ID
 
 // --- Set/Hide/Unset helpers for scalar fields ---
 
-func applySetWorkField(workID ID, field string, mutUserID **ID, userID *ID) (*mutationEffect, error) {
+func applySetWorkField(workID ID, field string, mutUserID **ID, userID *ID) (*updateEffect, error) {
 	*mutUserID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   workID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -44,8 +44,8 @@ func writeSetWorkField(ctx context.Context, tx pgx.Tx, revID int64, workID ID, f
 	return writeCreateWorkField(ctx, tx, revID, workID, field, val, nil, userID, role)
 }
 
-func applyUnsetWorkField(workID ID, field string) (*mutationEffect, error) {
-	return &mutationEffect{
+func applyUnsetWorkField(workID ID, field string) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   workID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -71,9 +71,9 @@ type SetWorkArticleNumber struct {
 	userID *ID
 }
 
-func (m *SetWorkArticleNumber) mutationName() string { return "set_work_article_number" }
-func (m *SetWorkArticleNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkArticleNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkArticleNumber) name() string       { return "set:work_article_number" }
+func (m *SetWorkArticleNumber) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkArticleNumber) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "article_number", &m.userID, userID)
 }
 func (m *SetWorkArticleNumber) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -82,9 +82,9 @@ func (m *SetWorkArticleNumber) write(ctx context.Context, tx pgx.Tx, revID int64
 
 type UnsetWorkArticleNumber struct{ WorkID ID }
 
-func (m *UnsetWorkArticleNumber) mutationName() string { return "unset_work_article_number" }
-func (m *UnsetWorkArticleNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkArticleNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkArticleNumber) name() string       { return "unset:work_article_number" }
+func (m *UnsetWorkArticleNumber) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkArticleNumber) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "article_number")
 }
 func (m *UnsetWorkArticleNumber) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -99,9 +99,9 @@ type SetWorkBookTitle struct {
 	userID *ID
 }
 
-func (m *SetWorkBookTitle) mutationName() string { return "set_work_book_title" }
-func (m *SetWorkBookTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkBookTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkBookTitle) name() string       { return "set:work_book_title" }
+func (m *SetWorkBookTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkBookTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "book_title", &m.userID, userID)
 }
 func (m *SetWorkBookTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -110,9 +110,9 @@ func (m *SetWorkBookTitle) write(ctx context.Context, tx pgx.Tx, revID int64) er
 
 type UnsetWorkBookTitle struct{ WorkID ID }
 
-func (m *UnsetWorkBookTitle) mutationName() string { return "unset_work_book_title" }
-func (m *UnsetWorkBookTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkBookTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkBookTitle) name() string       { return "unset:work_book_title" }
+func (m *UnsetWorkBookTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkBookTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "book_title")
 }
 func (m *UnsetWorkBookTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -127,9 +127,9 @@ type SetWorkConference struct {
 	userID *ID
 }
 
-func (m *SetWorkConference) mutationName() string { return "set_work_conference" }
-func (m *SetWorkConference) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkConference) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkConference) name() string       { return "set:work_conference" }
+func (m *SetWorkConference) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkConference) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "conference", &m.userID, userID)
 }
 func (m *SetWorkConference) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -138,9 +138,9 @@ func (m *SetWorkConference) write(ctx context.Context, tx pgx.Tx, revID int64) e
 
 type UnsetWorkConference struct{ WorkID ID }
 
-func (m *UnsetWorkConference) mutationName() string { return "unset_work_conference" }
-func (m *UnsetWorkConference) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkConference) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkConference) name() string       { return "unset:work_conference" }
+func (m *UnsetWorkConference) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkConference) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "conference")
 }
 func (m *UnsetWorkConference) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -155,9 +155,9 @@ type SetWorkEdition struct {
 	userID *ID
 }
 
-func (m *SetWorkEdition) mutationName() string { return "set_work_edition" }
-func (m *SetWorkEdition) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkEdition) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkEdition) name() string       { return "set:work_edition" }
+func (m *SetWorkEdition) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkEdition) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "edition", &m.userID, userID)
 }
 func (m *SetWorkEdition) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -166,9 +166,9 @@ func (m *SetWorkEdition) write(ctx context.Context, tx pgx.Tx, revID int64) erro
 
 type UnsetWorkEdition struct{ WorkID ID }
 
-func (m *UnsetWorkEdition) mutationName() string { return "unset_work_edition" }
-func (m *UnsetWorkEdition) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkEdition) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkEdition) name() string       { return "unset:work_edition" }
+func (m *UnsetWorkEdition) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkEdition) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "edition")
 }
 func (m *UnsetWorkEdition) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -183,9 +183,9 @@ type SetWorkIssue struct {
 	userID *ID
 }
 
-func (m *SetWorkIssue) mutationName() string { return "set_work_issue" }
-func (m *SetWorkIssue) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIssue) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkIssue) name() string       { return "set:work_issue" }
+func (m *SetWorkIssue) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkIssue) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "issue", &m.userID, userID)
 }
 func (m *SetWorkIssue) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -194,9 +194,9 @@ func (m *SetWorkIssue) write(ctx context.Context, tx pgx.Tx, revID int64) error 
 
 type UnsetWorkIssue struct{ WorkID ID }
 
-func (m *UnsetWorkIssue) mutationName() string { return "unset_work_issue" }
-func (m *UnsetWorkIssue) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkIssue) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkIssue) name() string       { return "unset:work_issue" }
+func (m *UnsetWorkIssue) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkIssue) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "issue")
 }
 func (m *UnsetWorkIssue) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -211,9 +211,9 @@ type SetWorkIssueTitle struct {
 	userID *ID
 }
 
-func (m *SetWorkIssueTitle) mutationName() string { return "set_work_issue_title" }
-func (m *SetWorkIssueTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkIssueTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkIssueTitle) name() string       { return "set:work_issue_title" }
+func (m *SetWorkIssueTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkIssueTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "issue_title", &m.userID, userID)
 }
 func (m *SetWorkIssueTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -222,9 +222,9 @@ func (m *SetWorkIssueTitle) write(ctx context.Context, tx pgx.Tx, revID int64) e
 
 type UnsetWorkIssueTitle struct{ WorkID ID }
 
-func (m *UnsetWorkIssueTitle) mutationName() string { return "unset_work_issue_title" }
-func (m *UnsetWorkIssueTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkIssueTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkIssueTitle) name() string       { return "unset:work_issue_title" }
+func (m *UnsetWorkIssueTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkIssueTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "issue_title")
 }
 func (m *UnsetWorkIssueTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -239,9 +239,9 @@ type SetWorkJournalAbbreviation struct {
 	userID *ID
 }
 
-func (m *SetWorkJournalAbbreviation) mutationName() string { return "set_work_journal_abbreviation" }
-func (m *SetWorkJournalAbbreviation) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkJournalAbbreviation) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkJournalAbbreviation) name() string       { return "set:work_journal_abbreviation" }
+func (m *SetWorkJournalAbbreviation) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkJournalAbbreviation) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "journal_abbreviation", &m.userID, userID)
 }
 func (m *SetWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -250,9 +250,9 @@ func (m *SetWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx, revID
 
 type UnsetWorkJournalAbbreviation struct{ WorkID ID }
 
-func (m *UnsetWorkJournalAbbreviation) mutationName() string { return "unset_work_journal_abbreviation" }
-func (m *UnsetWorkJournalAbbreviation) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkJournalAbbreviation) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkJournalAbbreviation) name() string       { return "unset:work_journal_abbreviation" }
+func (m *UnsetWorkJournalAbbreviation) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkJournalAbbreviation) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "journal_abbreviation")
 }
 func (m *UnsetWorkJournalAbbreviation) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -267,9 +267,9 @@ type SetWorkJournalTitle struct {
 	userID *ID
 }
 
-func (m *SetWorkJournalTitle) mutationName() string { return "set_work_journal_title" }
-func (m *SetWorkJournalTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkJournalTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkJournalTitle) name() string       { return "set:work_journal_title" }
+func (m *SetWorkJournalTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkJournalTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "journal_title", &m.userID, userID)
 }
 func (m *SetWorkJournalTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -278,9 +278,9 @@ func (m *SetWorkJournalTitle) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetWorkJournalTitle struct{ WorkID ID }
 
-func (m *UnsetWorkJournalTitle) mutationName() string { return "unset_work_journal_title" }
-func (m *UnsetWorkJournalTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkJournalTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkJournalTitle) name() string       { return "unset:work_journal_title" }
+func (m *UnsetWorkJournalTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkJournalTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "journal_title")
 }
 func (m *UnsetWorkJournalTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -295,9 +295,9 @@ type SetWorkPages struct {
 	userID *ID
 }
 
-func (m *SetWorkPages) mutationName() string { return "set_work_pages" }
-func (m *SetWorkPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkPages) name() string       { return "set:work_pages" }
+func (m *SetWorkPages) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkPages) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "pages", &m.userID, userID)
 }
 func (m *SetWorkPages) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -306,9 +306,9 @@ func (m *SetWorkPages) write(ctx context.Context, tx pgx.Tx, revID int64) error 
 
 type UnsetWorkPages struct{ WorkID ID }
 
-func (m *UnsetWorkPages) mutationName() string { return "unset_work_pages" }
-func (m *UnsetWorkPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkPages) name() string       { return "unset:work_pages" }
+func (m *UnsetWorkPages) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkPages) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "pages")
 }
 func (m *UnsetWorkPages) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -323,9 +323,9 @@ type SetWorkPlaceOfPublication struct {
 	userID *ID
 }
 
-func (m *SetWorkPlaceOfPublication) mutationName() string { return "set_work_place_of_publication" }
-func (m *SetWorkPlaceOfPublication) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPlaceOfPublication) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkPlaceOfPublication) name() string       { return "set:work_place_of_publication" }
+func (m *SetWorkPlaceOfPublication) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkPlaceOfPublication) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "place_of_publication", &m.userID, userID)
 }
 func (m *SetWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -334,9 +334,9 @@ func (m *SetWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx, revID 
 
 type UnsetWorkPlaceOfPublication struct{ WorkID ID }
 
-func (m *UnsetWorkPlaceOfPublication) mutationName() string { return "unset_work_place_of_publication" }
-func (m *UnsetWorkPlaceOfPublication) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkPlaceOfPublication) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkPlaceOfPublication) name() string       { return "unset:work_place_of_publication" }
+func (m *UnsetWorkPlaceOfPublication) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkPlaceOfPublication) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "place_of_publication")
 }
 func (m *UnsetWorkPlaceOfPublication) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -351,9 +351,9 @@ type SetWorkPublicationStatus struct {
 	userID *ID
 }
 
-func (m *SetWorkPublicationStatus) mutationName() string { return "set_work_publication_status" }
-func (m *SetWorkPublicationStatus) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublicationStatus) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkPublicationStatus) name() string       { return "set:work_publication_status" }
+func (m *SetWorkPublicationStatus) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkPublicationStatus) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "publication_status", &m.userID, userID)
 }
 func (m *SetWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -362,9 +362,9 @@ func (m *SetWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx, revID i
 
 type UnsetWorkPublicationStatus struct{ WorkID ID }
 
-func (m *UnsetWorkPublicationStatus) mutationName() string { return "unset_work_publication_status" }
-func (m *UnsetWorkPublicationStatus) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkPublicationStatus) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkPublicationStatus) name() string       { return "unset:work_publication_status" }
+func (m *UnsetWorkPublicationStatus) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkPublicationStatus) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "publication_status")
 }
 func (m *UnsetWorkPublicationStatus) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -379,9 +379,9 @@ type SetWorkPublicationYear struct {
 	userID *ID
 }
 
-func (m *SetWorkPublicationYear) mutationName() string { return "set_work_publication_year" }
-func (m *SetWorkPublicationYear) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublicationYear) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkPublicationYear) name() string       { return "set:work_publication_year" }
+func (m *SetWorkPublicationYear) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkPublicationYear) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "publication_year", &m.userID, userID)
 }
 func (m *SetWorkPublicationYear) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -390,9 +390,9 @@ func (m *SetWorkPublicationYear) write(ctx context.Context, tx pgx.Tx, revID int
 
 type UnsetWorkPublicationYear struct{ WorkID ID }
 
-func (m *UnsetWorkPublicationYear) mutationName() string { return "unset_work_publication_year" }
-func (m *UnsetWorkPublicationYear) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkPublicationYear) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkPublicationYear) name() string       { return "unset:work_publication_year" }
+func (m *UnsetWorkPublicationYear) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkPublicationYear) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "publication_year")
 }
 func (m *UnsetWorkPublicationYear) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -407,9 +407,9 @@ type SetWorkPublisher struct {
 	userID *ID
 }
 
-func (m *SetWorkPublisher) mutationName() string { return "set_work_publisher" }
-func (m *SetWorkPublisher) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkPublisher) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkPublisher) name() string       { return "set:work_publisher" }
+func (m *SetWorkPublisher) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkPublisher) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "publisher", &m.userID, userID)
 }
 func (m *SetWorkPublisher) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -418,9 +418,9 @@ func (m *SetWorkPublisher) write(ctx context.Context, tx pgx.Tx, revID int64) er
 
 type UnsetWorkPublisher struct{ WorkID ID }
 
-func (m *UnsetWorkPublisher) mutationName() string { return "unset_work_publisher" }
-func (m *UnsetWorkPublisher) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkPublisher) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkPublisher) name() string       { return "unset:work_publisher" }
+func (m *UnsetWorkPublisher) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkPublisher) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "publisher")
 }
 func (m *UnsetWorkPublisher) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -435,9 +435,9 @@ type SetWorkReportNumber struct {
 	userID *ID
 }
 
-func (m *SetWorkReportNumber) mutationName() string { return "set_work_report_number" }
-func (m *SetWorkReportNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkReportNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkReportNumber) name() string       { return "set:work_report_number" }
+func (m *SetWorkReportNumber) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkReportNumber) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "report_number", &m.userID, userID)
 }
 func (m *SetWorkReportNumber) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -446,9 +446,9 @@ func (m *SetWorkReportNumber) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetWorkReportNumber struct{ WorkID ID }
 
-func (m *UnsetWorkReportNumber) mutationName() string { return "unset_work_report_number" }
-func (m *UnsetWorkReportNumber) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkReportNumber) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkReportNumber) name() string       { return "unset:work_report_number" }
+func (m *UnsetWorkReportNumber) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkReportNumber) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "report_number")
 }
 func (m *UnsetWorkReportNumber) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -463,9 +463,9 @@ type SetWorkSeriesTitle struct {
 	userID *ID
 }
 
-func (m *SetWorkSeriesTitle) mutationName() string { return "set_work_series_title" }
-func (m *SetWorkSeriesTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkSeriesTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkSeriesTitle) name() string       { return "set:work_series_title" }
+func (m *SetWorkSeriesTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkSeriesTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "series_title", &m.userID, userID)
 }
 func (m *SetWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -474,9 +474,9 @@ func (m *SetWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx, revID int64) 
 
 type UnsetWorkSeriesTitle struct{ WorkID ID }
 
-func (m *UnsetWorkSeriesTitle) mutationName() string { return "unset_work_series_title" }
-func (m *UnsetWorkSeriesTitle) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkSeriesTitle) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkSeriesTitle) name() string       { return "unset:work_series_title" }
+func (m *UnsetWorkSeriesTitle) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkSeriesTitle) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "series_title")
 }
 func (m *UnsetWorkSeriesTitle) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -491,9 +491,9 @@ type SetWorkTotalPages struct {
 	userID *ID
 }
 
-func (m *SetWorkTotalPages) mutationName() string { return "set_work_total_pages" }
-func (m *SetWorkTotalPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkTotalPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkTotalPages) name() string       { return "set:work_total_pages" }
+func (m *SetWorkTotalPages) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkTotalPages) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "total_pages", &m.userID, userID)
 }
 func (m *SetWorkTotalPages) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -502,9 +502,9 @@ func (m *SetWorkTotalPages) write(ctx context.Context, tx pgx.Tx, revID int64) e
 
 type UnsetWorkTotalPages struct{ WorkID ID }
 
-func (m *UnsetWorkTotalPages) mutationName() string { return "unset_work_total_pages" }
-func (m *UnsetWorkTotalPages) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkTotalPages) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkTotalPages) name() string       { return "unset:work_total_pages" }
+func (m *UnsetWorkTotalPages) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkTotalPages) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "total_pages")
 }
 func (m *UnsetWorkTotalPages) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -519,9 +519,9 @@ type SetWorkVolume struct {
 	userID *ID
 }
 
-func (m *SetWorkVolume) mutationName() string { return "set_work_volume" }
-func (m *SetWorkVolume) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetWorkVolume) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetWorkVolume) name() string       { return "set:work_volume" }
+func (m *SetWorkVolume) needs() updateNeeds { return updateNeeds{} }
+func (m *SetWorkVolume) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetWorkField(m.WorkID, "volume", &m.userID, userID)
 }
 func (m *SetWorkVolume) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -530,9 +530,9 @@ func (m *SetWorkVolume) write(ctx context.Context, tx pgx.Tx, revID int64) error
 
 type UnsetWorkVolume struct{ WorkID ID }
 
-func (m *UnsetWorkVolume) mutationName() string { return "unset_work_volume" }
-func (m *UnsetWorkVolume) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetWorkVolume) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetWorkVolume) name() string       { return "unset:work_volume" }
+func (m *UnsetWorkVolume) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetWorkVolume) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetWorkField(m.WorkID, "volume")
 }
 func (m *UnsetWorkVolume) write(ctx context.Context, tx pgx.Tx, revID int64) error {

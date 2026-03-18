@@ -65,22 +65,22 @@ func writeOrganizationRel(ctx context.Context, tx pgx.Tx, id, organizationID, re
 }
 
 // ============================================================
-// Set / Unset mutations for organization collectives
+// Set / Unset updaters for organization collectives
 // ============================================================
 
 // --- SetOrganizationNames (no delete — required) ---
 
 type SetOrganizationNames struct {
-	OrganizationID ID     `json:"organization_id"`
+	OrganizationID ID `json:"organization_id"`
 	Names          []Text
 	userID         *ID
 }
 
-func (m *SetOrganizationNames) mutationName() string { return "set_organization_names" }
-func (m *SetOrganizationNames) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationNames) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetOrganizationNames) name() string       { return "set:organization_names" }
+func (m *SetOrganizationNames) needs() updateNeeds { return updateNeeds{} }
+func (m *SetOrganizationNames) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -104,16 +104,16 @@ func (m *SetOrganizationNames) write(ctx context.Context, tx pgx.Tx, revID int64
 // --- SetOrganizationIdentifiers / UnsetOrganizationIdentifiers ---
 
 type SetOrganizationIdentifiers struct {
-	OrganizationID ID     `json:"organization_id"`
+	OrganizationID ID `json:"organization_id"`
 	Identifiers    []Identifier
 	userID         *ID
 }
 
-func (m *SetOrganizationIdentifiers) mutationName() string { return "set_organization_identifiers" }
-func (m *SetOrganizationIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetOrganizationIdentifiers) name() string       { return "set:organization_identifiers" }
+func (m *SetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *SetOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -136,10 +136,10 @@ func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID
 
 type UnsetOrganizationIdentifiers struct{ OrganizationID ID }
 
-func (m *UnsetOrganizationIdentifiers) mutationName() string { return "unset_organization_identifiers" }
-func (m *UnsetOrganizationIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetOrganizationIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetOrganizationIdentifiers) name() string       { return "unset:organization_identifiers" }
+func (m *UnsetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -157,19 +157,19 @@ func (m *UnsetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, rev
 // --- SetOrganizationRels / UnsetOrganizationRels ---
 
 type SetOrganizationRels struct {
-	OrganizationID ID     `json:"organization_id"`
-	Rels []struct {
+	OrganizationID ID `json:"organization_id"`
+	Rels           []struct {
 		RelOrganizationID ID     `json:"rel_organization_id"`
 		Kind              string `json:"kind"`
 	} `json:"rels"`
 	userID *ID
 }
 
-func (m *SetOrganizationRels) mutationName() string { return "set_organization_rels" }
-func (m *SetOrganizationRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetOrganizationRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetOrganizationRels) name() string       { return "set:organization_rels" }
+func (m *SetOrganizationRels) needs() updateNeeds { return updateNeeds{} }
+func (m *SetOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -192,10 +192,10 @@ func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetOrganizationRels struct{ OrganizationID ID }
 
-func (m *UnsetOrganizationRels) mutationName() string { return "unset_organization_rels" }
-func (m *UnsetOrganizationRels) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetOrganizationRels) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetOrganizationRels) name() string       { return "unset:organization_rels" }
+func (m *UnsetOrganizationRels) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {

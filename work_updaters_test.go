@@ -8,9 +8,9 @@ func TestCreateWork_Apply(t *testing.T) {
 	id := newID()
 	m := &CreateWork{
 		WorkID: id,
-		Kind:     "journal_article",
+		Kind:   "journal_article",
 	}
-	eff, err := m.apply(mutationState{}, nil)
+	eff, err := m.apply(updateState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,9 +38,9 @@ func TestCreateWork_Apply(t *testing.T) {
 func TestCreateWork_DefaultStatus(t *testing.T) {
 	m := &CreateWork{
 		WorkID: newID(),
-		Kind:     "book",
+		Kind:   "book",
 	}
-	eff, err := m.apply(mutationState{}, nil)
+	eff, err := m.apply(updateState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,10 +58,10 @@ func TestDeleteWork_Apply(t *testing.T) {
 		Kind:    "journal_article",
 		Status:  WorkStatusPublic,
 	}
-	state := mutationState{works: map[ID]*Work{id: existing}}
+	state := updateState{works: map[ID]*Work{id: existing}}
 
 	m := &DeleteWork{
-		WorkID:   id,
+		WorkID:     id,
 		DeleteKind: WorkDeleteWithdrawn,
 	}
 	eff, err := m.apply(state, nil)
@@ -94,10 +94,10 @@ func TestDeleteWork_AlreadyDeleted(t *testing.T) {
 		Kind:    "journal_article",
 		Status:  WorkStatusDeleted,
 	}
-	state := mutationState{works: map[ID]*Work{id: existing}}
+	state := updateState{works: map[ID]*Work{id: existing}}
 
 	m := &DeleteWork{
-		WorkID:   id,
+		WorkID:     id,
 		DeleteKind: WorkDeleteRetracted,
 	}
 	eff, err := m.apply(state, nil)

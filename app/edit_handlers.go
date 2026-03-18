@@ -35,10 +35,10 @@ func (app *App) backofficeUpdateWork(w http.ResponseWriter, r *http.Request, c *
 		return err
 	}
 
-	mutations := buildWorkMutations(r, profile, work)
+	updates := buildWorkUpdates(r, profile, work)
 
-	if len(mutations) > 0 {
-		_, _, err := app.services.Repo.Mutate(r.Context(), userID(c), mutations...)
+	if len(updates) > 0 {
+		_, _, err := app.services.Repo.Update(r.Context(), userID(c), updates...)
 		if err != nil {
 			return fmt.Errorf("backofficeUpdateWork: %w", err)
 		}
@@ -55,9 +55,9 @@ func userID(c *Ctx) *bbl.ID {
 	return nil
 }
 
-// buildWorkMutations builds Set/Delete mutations from the form for all profile fields.
-func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) []any {
-	var mutations []any
+// buildWorkUpdates builds Set/Delete updates from the form for all profile fields.
+func buildWorkUpdates(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) []any {
+	var updates []any
 	for _, f := range profile.Fields {
 		switch f.Type {
 		case "text", "year":
@@ -65,93 +65,93 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 			switch f.Name {
 			case "article_number":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkArticleNumber{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkArticleNumber{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkArticleNumber{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkArticleNumber{WorkID: work.ID})
 				}
 			case "book_title":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkBookTitle{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkBookTitle{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkBookTitle{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkBookTitle{WorkID: work.ID})
 				}
 			case "edition":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkEdition{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkEdition{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkEdition{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkEdition{WorkID: work.ID})
 				}
 			case "issue":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkIssue{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkIssue{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkIssue{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkIssue{WorkID: work.ID})
 				}
 			case "issue_title":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkIssueTitle{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkIssueTitle{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkIssueTitle{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkIssueTitle{WorkID: work.ID})
 				}
 			case "journal_abbreviation":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkJournalAbbreviation{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkJournalAbbreviation{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkJournalAbbreviation{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkJournalAbbreviation{WorkID: work.ID})
 				}
 			case "journal_title":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkJournalTitle{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkJournalTitle{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkJournalTitle{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkJournalTitle{WorkID: work.ID})
 				}
 			case "place_of_publication":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkPlaceOfPublication{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkPlaceOfPublication{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkPlaceOfPublication{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkPlaceOfPublication{WorkID: work.ID})
 				}
 			case "publication_status":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkPublicationStatus{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkPublicationStatus{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkPublicationStatus{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkPublicationStatus{WorkID: work.ID})
 				}
 			case "publication_year":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkPublicationYear{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkPublicationYear{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkPublicationYear{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkPublicationYear{WorkID: work.ID})
 				}
 			case "publisher":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkPublisher{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkPublisher{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkPublisher{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkPublisher{WorkID: work.ID})
 				}
 			case "report_number":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkReportNumber{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkReportNumber{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkReportNumber{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkReportNumber{WorkID: work.ID})
 				}
 			case "series_title":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkSeriesTitle{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkSeriesTitle{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkSeriesTitle{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkSeriesTitle{WorkID: work.ID})
 				}
 			case "total_pages":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkTotalPages{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkTotalPages{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkTotalPages{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkTotalPages{WorkID: work.ID})
 				}
 			case "volume":
 				if val != "" {
-					mutations = append(mutations, &bbl.SetWorkVolume{WorkID: work.ID, Val: val})
+					updates = append(updates, &bbl.SetWorkVolume{WorkID: work.ID, Val: val})
 				} else {
-					mutations = append(mutations, &bbl.UnsetWorkVolume{WorkID: work.ID})
+					updates = append(updates, &bbl.UnsetWorkVolume{WorkID: work.ID})
 				}
 			}
 		case "text_list":
@@ -167,7 +167,7 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 					}
 				}
 				if len(titles) > 0 {
-					mutations = append(mutations, &bbl.SetWorkTitles{WorkID: work.ID, Titles: titles})
+					updates = append(updates, &bbl.SetWorkTitles{WorkID: work.ID, Titles: titles})
 				}
 			} else {
 				var texts []bbl.Text
@@ -181,15 +181,15 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				switch f.Name {
 				case "abstracts":
 					if len(texts) > 0 {
-						mutations = append(mutations, &bbl.SetWorkAbstracts{WorkID: work.ID, Abstracts: texts})
+						updates = append(updates, &bbl.SetWorkAbstracts{WorkID: work.ID, Abstracts: texts})
 					} else {
-						mutations = append(mutations, &bbl.UnsetWorkAbstracts{WorkID: work.ID})
+						updates = append(updates, &bbl.UnsetWorkAbstracts{WorkID: work.ID})
 					}
 				case "lay_summaries":
 					if len(texts) > 0 {
-						mutations = append(mutations, &bbl.SetWorkLaySummaries{WorkID: work.ID, LaySummaries: texts})
+						updates = append(updates, &bbl.SetWorkLaySummaries{WorkID: work.ID, LaySummaries: texts})
 					} else {
-						mutations = append(mutations, &bbl.UnsetWorkLaySummaries{WorkID: work.ID})
+						updates = append(updates, &bbl.UnsetWorkLaySummaries{WorkID: work.ID})
 					}
 				}
 			}
@@ -202,26 +202,26 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				}
 			}
 			if len(keywords) > 0 {
-				mutations = append(mutations, &bbl.SetWorkKeywords{WorkID: work.ID, Keywords: keywords})
+				updates = append(updates, &bbl.SetWorkKeywords{WorkID: work.ID, Keywords: keywords})
 			} else {
-				mutations = append(mutations, &bbl.UnsetWorkKeywords{WorkID: work.ID})
+				updates = append(updates, &bbl.UnsetWorkKeywords{WorkID: work.ID})
 			}
 		case "extent":
 			start := strings.TrimSpace(r.FormValue(f.Name + ".start"))
 			end := strings.TrimSpace(r.FormValue(f.Name + ".end"))
 			if start != "" || end != "" {
-				mutations = append(mutations, &bbl.SetWorkPages{WorkID: work.ID, Val: bbl.Extent{Start: start, End: end}})
+				updates = append(updates, &bbl.SetWorkPages{WorkID: work.ID, Val: bbl.Extent{Start: start, End: end}})
 			} else {
-				mutations = append(mutations, &bbl.UnsetWorkPages{WorkID: work.ID})
+				updates = append(updates, &bbl.UnsetWorkPages{WorkID: work.ID})
 			}
 		case "conference":
 			name := strings.TrimSpace(r.FormValue(f.Name + ".name"))
 			organizer := strings.TrimSpace(r.FormValue(f.Name + ".organizer"))
 			location := strings.TrimSpace(r.FormValue(f.Name + ".location"))
 			if name != "" || organizer != "" || location != "" {
-				mutations = append(mutations, &bbl.SetWorkConference{WorkID: work.ID, Val: bbl.Conference{Name: name, Organizer: organizer, Location: location}})
+				updates = append(updates, &bbl.SetWorkConference{WorkID: work.ID, Val: bbl.Conference{Name: name, Organizer: organizer, Location: location}})
 			} else {
-				mutations = append(mutations, &bbl.UnsetWorkConference{WorkID: work.ID})
+				updates = append(updates, &bbl.UnsetWorkConference{WorkID: work.ID})
 			}
 		case "note_list":
 			kinds := r.Form[f.Name+".kind"]
@@ -235,9 +235,9 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				}
 			}
 			if len(notes) > 0 {
-				mutations = append(mutations, &bbl.SetWorkNotes{WorkID: work.ID, Notes: notes})
+				updates = append(updates, &bbl.SetWorkNotes{WorkID: work.ID, Notes: notes})
 			} else {
-				mutations = append(mutations, &bbl.UnsetWorkNotes{WorkID: work.ID})
+				updates = append(updates, &bbl.UnsetWorkNotes{WorkID: work.ID})
 			}
 		case "contributor_list":
 			var contributors []bbl.WorkContributor
@@ -267,12 +267,12 @@ func buildWorkMutations(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) 
 				contributors = append(contributors, co)
 			}
 			if len(contributors) > 0 {
-				mutations = append(mutations, &bbl.SetWorkContributors{WorkID: work.ID, Contributors: contributors})
+				updates = append(updates, &bbl.SetWorkContributors{WorkID: work.ID, Contributors: contributors})
 			} else {
-				mutations = append(mutations, &bbl.UnsetWorkContributors{WorkID: work.ID})
+				updates = append(updates, &bbl.UnsetWorkContributors{WorkID: work.ID})
 			}
 		}
 	}
-	return mutations
+	return updates
 }
 

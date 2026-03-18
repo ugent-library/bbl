@@ -17,49 +17,55 @@
 
 ## Assertion model
 Every field value is stored as an **assertion row** — not as a column on the entity table.
+Full design doc: `docs/assertion-model.md`.
 
 Key concepts:
-- Each assertion has a UUID, a value, and either a `*_source_id` (FK to `*_sources`) or a `user_id` (FK to `bbl_users`). Exactly one is set.
-- **Scalar fields** (volume, year, etc.) go in `bbl_*_fields` tables with `(entity_id, field, val jsonb)`.
-- **Collective fields** (identifiers, contributors, titles, etc.) go in dedicated tables (e.g. `bbl_work_identifiers`, `bbl_work_contributors`).
-- **Pinning** determines which assertion is displayed. Human assertions always win; otherwise the highest-priority source wins. Auto-pin runs after every write.
-- **No `pinned_by` column.** Pin authority is derived: `user_id IS NOT NULL` = human (always wins), `*_source_id IS NOT NULL` = source (priority-based).
+- Each assertion has a bigint ID (from a shared sequence), a value, and either a `*_source_id` (FK to `*_sources`) or a `user_id` (FK to `bbl_users`). Exactly one is set.
+- **Scalar fields** store their value inline in the assertion row (`val jsonb`).
+- **Collective fields** (identifiers, contributors, titles, etc.) store values in dedicated relation tables with `assertion_id` FK.
+- **Pinning** determines which assertion is displayed. Priority: recent curator > curator > recent user > user > source by priority. The `role` column on the assertion row stores the user's role at assertion time.
+- **No `pinned_by` column.** Pin authority is derived: `user_id IS NOT NULL` = human, `*_source_id IS NOT NULL` = source.
+- **Additive human assertions**: each human edit creates a new assertion row. Previous assertions stay as history. Only Unset deletes.
+- **Copy-on-write**: when a human asserts a value (including selecting an existing source value), they create their own assertion row. For collectives, the entire list is copied.
 
-### Mutations
-- State changes go through `Mutate` with typed mutation structs.
-- Mutations use **concrete named types** per field: `SetWorkVolume`, `DeleteWorkVolume`, `SetWorkTitles`, etc. No generic `SetWorkField` with a field name parameter.
-- **Set** always expects a value. **Delete** removes the human assertion; auto-pin re-evaluates.
-- Required fields (work titles, person name, project titles, org names) have no Delete mutation.
-- Both human (Mutate) and import paths write mutation records to `bbl_mutations` for replayable history.
+### Updates
+- State changes go through `Update` with typed updater structs.
+- Updaters use **concrete named types** per field: `SetWorkVolume`, `UnsetWorkVolume`, `SetWorkTitles`, etc. No generic `SetWorkField` with a field name parameter.
+- **Set** creates a new assertion row. **Hide** creates an assertion with `hidden=true`. **Unset** removes the human assertion; auto-pin re-evaluates.
+- Required fields (work titles, person name, project titles, org names) have no Unset.
+- Wire format: `{"set": "work_volume", "work_id": "...", "val": "42"}`.
 
 ### Import path
 - `ImportWorks`/`ImportPeople`/etc. take `iter.Seq2` iterators.
 - Import creates source-linked assertions (`*_source_id` set, `user_id = NULL`).
 - On re-import, existing source assertions are deleted and replaced; human assertions are untouched.
-- Shared write helpers (e.g. `writeWorkTitle`, `writeWorkIdentifier`) are used by both mutations and import.
+- Shared write helpers (e.g. `writeWorkTitle`, `writeWorkIdentifier`) are used by both updates and import.
 
 ### Key files
-- `assertion.go` — assertion types
-- `mutations.go` — mutation interface, `mutationEffect`, `Mutate`
-- `work_field_mutations.go` — scalar field Set/Delete for works
-- `work_relation_mutations.go` — collective Set/Delete for works + shared write helpers
-- `person_field_mutations.go`, `project_field_mutations.go`, `organization_field_mutations.go` — same pattern
-- `import.go` — auto-pin helpers, cache rebuild
+- `assertion.go` — auto-pin logic
+- `updaters.go` — updater interface, `updateEffect`, types
+- `work_field_updaters.go` — scalar field Set/Unset for works
+- `work_relation_updaters.go` — collective Set/Unset for works + shared write helpers
+- `person_field_updaters.go`, `project_field_updaters.go`, `organization_field_updaters.go` — same pattern
+- `import.go` — import helpers, cache rebuild
+- `revs.go` — `Update()` method, revision creation
+- `update_decoding.go` — JSON wire format decoder
 - `docs/assertion-model.md` — full design doc
 
 ## Coding principles
-- Follow existing Go style in the touched area.
-- Respect command-query separation.
-- Fix root causes, not surface workarounds.
+- Follow existing Go style in the touched area. No ORM, plain SQL via pgx.
+- Touch only files relevant to the request. Avoid unrelated cleanup.
+- At architecture decision points, ask instead of locking in irreversible design choices.
 - Do not add comments unless needed for non-obvious behavior.
 - Do not add dependencies without clear justification.
 - Do not add license/copyright headers.
+- Return sentinel errors bare (`return nil, ErrNotFound`). Wrap unexpected errors with method name: `fmt.Errorf("MethodName: %w", err)`.
 
 ## State change invariants
-- All state changes go through `Mutate` (human) or `Import*` (source). No ad-hoc direct mutations.
-- One revision = one transaction boundary.
-- All mutations are recorded in `bbl_mutations` for audit and replay.
+- All state changes go through `Update` (human) or `Import*` (source). No ad-hoc direct writes.
+- One revision = one transaction boundary. Every assertion carries its `rev_id`.
 - Auto-pin runs after every write to re-evaluate which assertions are displayed.
+- Human assertions are additive — history builds up naturally from assertion rows.
 
 ## Data model rules
 - Inspect the PostgreSQL schema (`migrations/00001_schema.sql`) before proposing structural changes.

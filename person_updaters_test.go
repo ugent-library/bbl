@@ -5,7 +5,7 @@ import "testing"
 func TestCreatePerson_Apply(t *testing.T) {
 	id := newID()
 	m := &CreatePerson{PersonID: id}
-	eff, err := m.apply(mutationState{}, nil)
+	eff, err := m.apply(updateState{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestDeletePerson_Apply(t *testing.T) {
 		Version: 1,
 		Status:  PersonStatusPublic,
 	}
-	state := mutationState{people: map[ID]*Person{id: existing}}
+	state := updateState{people: map[ID]*Person{id: existing}}
 
 	m := &DeletePerson{PersonID: id}
 	eff, err := m.apply(state, nil)
@@ -57,7 +57,7 @@ func TestDeletePerson_AlreadyDeleted(t *testing.T) {
 		Version: 2,
 		Status:  PersonStatusDeleted,
 	}
-	state := mutationState{people: map[ID]*Person{id: existing}}
+	state := updateState{people: map[ID]*Person{id: existing}}
 
 	m := &DeletePerson{PersonID: id}
 	eff, err := m.apply(state, nil)

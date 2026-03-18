@@ -14,43 +14,43 @@ type RevEffect struct {
 	Record     any    // *Work, *Person, *Project, *Organization
 }
 
-// AddRev executes a batch of mutations atomically.
-// Each mutation must be a pointer to a type implementing the unexported mutation
+// AddRev executes a batch of updaters atomically.
+// Each updater must be a pointer to a type implementing the unexported updater
 // interface (e.g. *CreateWork, *DeletePerson, *CreateWorkTitle).
 //
 // Returns (true, effects, nil) when a rev was written, (false, nil, nil) when
-// every mutation was a noop.
+// every updater was a noop.
 //
 // Execution order:
-//  1. Type-assert each arg to mutation interface
+//  1. Type-assert each arg to updater interface
 //  2. Collect needs → batch prefetch with FOR UPDATE
-//  3. Apply all mutations (pure, no DB)
+//  3. Apply all updaters (pure, no DB)
 //  4. If all nil → rollback, return (false, nil, nil)
 //  5. Insert bbl_revs row
-//  6. Write each non-noop mutation + audit rows
-//  7. Bump version for entities affected only by field mutations
+//  6. Write each non-noop updater + audit rows
+//  7. Bump version for entities affected only by field updaters
 //  8. Run auto-pin for affected grouping keys
 //  9. Rebuild cache for affected entities
 //  10. Return deduplicated RevEffects
-func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, []RevEffect, error) {
-	// 1. Type-assert to mutation interface.
-	muts := make([]mutation, len(mutations))
-	for i, arg := range mutations {
-		m, ok := arg.(mutation)
+func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []RevEffect, error) {
+	// 1. Type-assert to updater interface.
+	muts := make([]updater, len(updates))
+	for i, arg := range updates {
+		m, ok := arg.(updater)
 		if !ok {
-			return false, nil, fmt.Errorf("Mutate: argument %d (%T) does not implement mutation", i, arg)
+			return false, nil, fmt.Errorf("Update: argument %d (%T) does not implement updater", i, arg)
 		}
 		muts[i] = m
 	}
 
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
 	// 2. Collect needs and batch prefetch.
-	var needs mutationNeeds
+	var needs updateNeeds
 	for _, m := range muts {
 		n := m.needs()
 		needs.organizationIDs = append(needs.organizationIDs, n.organizationIDs...)
@@ -59,17 +59,17 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 		needs.workIDs = append(needs.workIDs, n.workIDs...)
 	}
 
-	state, err := fetchMutationState(ctx, tx, needs)
+	state, err := fetchUpdateState(ctx, tx, needs)
 	if err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 3. Apply all mutations (pure — no DB access).
-	effects := make([]*mutationEffect, len(muts))
+	// 3. Apply all updaters (pure — no DB access).
+	effects := make([]*updateEffect, len(muts))
 	for i, m := range muts {
 		eff, err := m.apply(state, userID)
 		if err != nil {
-			return false, nil, fmt.Errorf("Mutate: %s: %w", m.mutationName(), err)
+			return false, nil, fmt.Errorf("Update: %s: %w", m.name(), err)
 		}
 		effects[i] = eff // nil = noop
 	}
@@ -102,7 +102,7 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 			continue
 		}
 		if err := r.validateRecord(eff); err != nil {
-			return false, nil, fmt.Errorf("Mutate: %s: %w", muts[i].mutationName(), err)
+			return false, nil, fmt.Errorf("Update: %s: %w", muts[i].name(), err)
 		}
 	}
 
@@ -111,12 +111,12 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO bbl_revs (user_id) VALUES ($1) RETURNING id`,
 		userID).Scan(&revID); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 6. Write each non-noop mutation.
-	// Track which entities were touched by lifecycle mutations (record != nil)
-	// vs field-only mutations (record == nil).
+	// 6. Write each non-noop updater.
+	// Track which entities were touched by lifecycle updaters (record != nil)
+	// vs field-only updaters (record == nil).
 	var changedWorkIDs, changedPersonIDs, changedProjectIDs, changedOrganizationIDs []ID
 	lifecycleEntities := make(map[string]map[ID]bool) // recordType → recordID → true
 	seen := make(map[string]map[ID]bool)              // all affected entities
@@ -126,7 +126,7 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 			continue
 		}
 		if err := muts[i].write(ctx, tx, revID); err != nil {
-			return false, nil, fmt.Errorf("Mutate: %w", err)
+			return false, nil, fmt.Errorf("Update: %w", err)
 		}
 
 		// Track affected entities.
@@ -136,7 +136,7 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 		seen[eff.recordType][eff.recordID] = true
 
 		if eff.record != nil {
-			// Lifecycle mutation — entity row already written with version bump.
+			// Lifecycle updater — entity row already written with version bump.
 			if lifecycleEntities[eff.recordType] == nil {
 				lifecycleEntities[eff.recordType] = make(map[ID]bool)
 			}
@@ -158,11 +158,11 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 		}
 	}
 
-	// 7. Bump version + updated_at for entities affected only by field mutations.
+	// 7. Bump version + updated_at for entities affected only by field updaters.
 	for rt, ids := range seen {
 		for id := range ids {
 			if lifecycleEntities[rt][id] {
-				continue // lifecycle mutation already bumped version
+				continue // lifecycle updater already bumped version
 			}
 			var q string
 			switch rt {
@@ -177,7 +177,7 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 			}
 			if q != "" {
 				if _, err := tx.Exec(ctx, q, id, userID); err != nil {
-					return false, nil, fmt.Errorf("Mutate: bump version %s %s: %w", rt, id, err)
+					return false, nil, fmt.Errorf("Update: bump version %s %s: %w", rt, id, err)
 				}
 			}
 		}
@@ -187,39 +187,39 @@ func (r *Repo) Mutate(ctx context.Context, userID *ID, mutations ...any) (bool, 
 	if hasAutoPin {
 		priorities, err := fetchSourcePriorities(ctx, tx)
 		if err != nil {
-			return false, nil, fmt.Errorf("Mutate: %w", err)
+			return false, nil, fmt.Errorf("Update: %w", err)
 		}
 		for _, eff := range effects {
 			if eff == nil || eff.autoPin == nil {
 				continue
 			}
 			if err := eff.autoPin(ctx, tx, priorities); err != nil {
-				return false, nil, fmt.Errorf("Mutate: autoPin: %w", err)
+				return false, nil, fmt.Errorf("Update: autoPin: %w", err)
 			}
 		}
 	}
 
 	// 9. Rebuild caches for affected entities.
 	if err := rebuildWorkCache(ctx, tx, changedWorkIDs); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 	if err := rebuildPersonCache(ctx, tx, changedPersonIDs); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 	if err := rebuildProjectCache(ctx, tx, changedProjectIDs); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 	if err := rebuildOrganizationCache(ctx, tx, changedOrganizationIDs); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return false, nil, fmt.Errorf("Mutate: %w", err)
+		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
 	// 10. Build deduplicated RevEffects.
-	// For lifecycle mutations, use the in-memory record. For field-only
-	// mutations, the record is nil — callers that need the full entity
+	// For lifecycle updaters, use the in-memory record. For field-only
+	// updaters, the record is nil — callers that need the full entity
 	// should re-read from the repo.
 	var revEffects []RevEffect
 	for rt, ids := range seen {
@@ -257,8 +257,8 @@ func fetchSourcePriorities(ctx context.Context, tx pgx.Tx) (map[string]int, erro
 	return priorities, rows.Err()
 }
 
-func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mutationState, error) {
-	state := mutationState{}
+func fetchUpdateState(ctx context.Context, tx pgx.Tx, needs updateNeeds) (updateState, error) {
+	state := updateState{}
 	if len(needs.organizationIDs) > 0 {
 		rows, err := tx.Query(ctx, `
 			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
@@ -268,11 +268,11 @@ func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mu
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.organizationIDs))
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
 		orgs, err := pgx.CollectRows(rows, scanOrganizationRow)
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
 		state.organizations = make(map[ID]*Organization, len(orgs))
 		for _, o := range orgs {
@@ -287,11 +287,11 @@ func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mu
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.personIDs))
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		people, err := pgx.CollectRows(rows, scanPersonMutationRow)
+		people, err := pgx.CollectRows(rows, scanPersonUpdateRow)
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
 		state.people = make(map[ID]*Person, len(people))
 		for _, p := range people {
@@ -307,11 +307,11 @@ func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mu
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.workIDs))
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		works, err := pgx.CollectRows(rows, scanWorkMutationRow)
+		works, err := pgx.CollectRows(rows, scanWorkUpdateRow)
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
 		state.works = make(map[ID]*Work, len(works))
 		for _, w := range works {
@@ -327,11 +327,11 @@ func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mu
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.projectIDs))
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		projects, err := pgx.CollectRows(rows, scanProjectMutationRow)
+		projects, err := pgx.CollectRows(rows, scanProjectUpdateRow)
 		if err != nil {
-			return state, fmt.Errorf("fetchMutationState: %w", err)
+			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
 		state.projects = make(map[ID]*Project, len(projects))
 		for _, p := range projects {
@@ -341,8 +341,8 @@ func fetchMutationState(ctx context.Context, tx pgx.Tx, needs mutationNeeds) (mu
 	return state, nil
 }
 
-// scanWorkMutationRow scans a work row for mutation state (no cache column).
-func scanWorkMutationRow(row pgx.CollectableRow) (*Work, error) {
+// scanWorkUpdateRow scans a work row for updater state (no cache column).
+func scanWorkUpdateRow(row pgx.CollectableRow) (*Work, error) {
 	var w Work
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var reviewStatus, deleteKind pgtype.Text
@@ -380,8 +380,8 @@ func scanWorkMutationRow(row pgx.CollectableRow) (*Work, error) {
 	return &w, nil
 }
 
-// scanPersonMutationRow scans a person row for mutation state.
-func scanPersonMutationRow(row pgx.CollectableRow) (*Person, error) {
+// scanPersonUpdateRow scans a person row for updater state.
+func scanPersonUpdateRow(row pgx.CollectableRow) (*Person, error) {
 	var p Person
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var deletedAt pgtype.Timestamptz
@@ -411,8 +411,8 @@ func scanPersonMutationRow(row pgx.CollectableRow) (*Person, error) {
 	return &p, nil
 }
 
-// scanProjectMutationRow scans a project row for mutation state.
-func scanProjectMutationRow(row pgx.CollectableRow) (*Project, error) {
+// scanProjectUpdateRow scans a project row for updater state.
+func scanProjectUpdateRow(row pgx.CollectableRow) (*Project, error) {
 	var p Project
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var startDate, endDate, deletedAt pgtype.Timestamptz
@@ -451,7 +451,7 @@ func scanProjectMutationRow(row pgx.CollectableRow) (*Project, error) {
 
 // setRecordActorIDs sets created_by_id, updated_by_id, and deleted_by_id on the
 // record based on the record's current state and the acting user.
-func setRecordActorIDs(eff *mutationEffect, userID *ID) {
+func setRecordActorIDs(eff *updateEffect, userID *ID) {
 	switch rec := eff.record.(type) {
 	case *Work:
 		if rec.CreatedByID == nil {
@@ -488,8 +488,8 @@ func setRecordActorIDs(eff *mutationEffect, userID *ID) {
 	}
 }
 
-// validateRecord runs entity validation on a mutation result.
-func (r *Repo) validateRecord(eff *mutationEffect) error {
+// validateRecord runs entity validation on a updater result.
+func (r *Repo) validateRecord(eff *updateEffect) error {
 	switch rec := eff.record.(type) {
 	case *Work:
 		if r.WorkProfiles != nil {

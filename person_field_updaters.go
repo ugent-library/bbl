@@ -11,7 +11,7 @@ import (
 // --- shared write helpers ---
 
 // writeCreatePersonField inserts a scalar assertion into bbl_person_assertions.
-// Shared by both Set mutations (human path) and import.
+// Shared by both Set updaters (human path) and import.
 func writeCreatePersonField(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string, val any, personSourceID *ID, userID *ID, role *string) error {
 	valJSON, err := json.Marshal(val)
 	if err != nil {
@@ -29,9 +29,9 @@ func writeCreatePersonField(ctx context.Context, tx pgx.Tx, revID int64, personI
 
 // --- Set/Unset helpers for scalar fields ---
 
-func applySetPersonField(personID ID, field string, val string, mutUserID **ID, userID *ID) (*mutationEffect, error) {
+func applySetPersonField(personID ID, field string, val string, mutUserID **ID, userID *ID) (*updateEffect, error) {
 	*mutUserID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -44,8 +44,8 @@ func writeSetPersonField(ctx context.Context, tx pgx.Tx, revID int64, personID I
 	return writeCreatePersonField(ctx, tx, revID, personID, field, val, nil, userID, role)
 }
 
-func applyUnsetPersonField(personID ID, field string) (*mutationEffect, error) {
-	return &mutationEffect{
+func applyUnsetPersonField(personID ID, field string) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -108,20 +108,20 @@ func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, personID, organ
 }
 
 // ============================================================
-// Set / Unset mutations for person scalar fields
+// Set / Unset updaters for person scalar fields
 // ============================================================
 
 // --- SetPersonName (no delete — required) ---
 
 type SetPersonName struct {
-	PersonID ID     `json:"person_id"`
+	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
 }
 
-func (m *SetPersonName) mutationName() string { return "set_person_name" }
-func (m *SetPersonName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonName) name() string       { return "set:person_name" }
+func (m *SetPersonName) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetPersonField(m.PersonID, "name", m.Val, &m.userID, userID)
 }
 func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -131,14 +131,14 @@ func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx, revID int64) error
 // --- SetPersonGivenName / UnsetPersonGivenName ---
 
 type SetPersonGivenName struct {
-	PersonID ID     `json:"person_id"`
+	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
 }
 
-func (m *SetPersonGivenName) mutationName() string { return "set_person_given_name" }
-func (m *SetPersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonGivenName) name() string       { return "set:person_given_name" }
+func (m *SetPersonGivenName) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetPersonField(m.PersonID, "given_name", m.Val, &m.userID, userID)
 }
 func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -147,9 +147,9 @@ func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) 
 
 type UnsetPersonGivenName struct{ PersonID ID }
 
-func (m *UnsetPersonGivenName) mutationName() string { return "unset_person_given_name" }
-func (m *UnsetPersonGivenName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetPersonGivenName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetPersonGivenName) name() string       { return "unset:person_given_name" }
+func (m *UnsetPersonGivenName) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetPersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetPersonField(m.PersonID, "given_name")
 }
 func (m *UnsetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -159,14 +159,14 @@ func (m *UnsetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64
 // --- SetPersonMiddleName / UnsetPersonMiddleName ---
 
 type SetPersonMiddleName struct {
-	PersonID ID     `json:"person_id"`
+	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
 }
 
-func (m *SetPersonMiddleName) mutationName() string { return "set_person_middle_name" }
-func (m *SetPersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonMiddleName) name() string       { return "set:person_middle_name" }
+func (m *SetPersonMiddleName) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetPersonField(m.PersonID, "middle_name", m.Val, &m.userID, userID)
 }
 func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -175,9 +175,9 @@ func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetPersonMiddleName struct{ PersonID ID }
 
-func (m *UnsetPersonMiddleName) mutationName() string { return "unset_person_middle_name" }
-func (m *UnsetPersonMiddleName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetPersonMiddleName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetPersonMiddleName) name() string       { return "unset:person_middle_name" }
+func (m *UnsetPersonMiddleName) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetPersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetPersonField(m.PersonID, "middle_name")
 }
 func (m *UnsetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -187,14 +187,14 @@ func (m *UnsetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int6
 // --- SetPersonFamilyName / UnsetPersonFamilyName ---
 
 type SetPersonFamilyName struct {
-	PersonID ID     `json:"person_id"`
+	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
 }
 
-func (m *SetPersonFamilyName) mutationName() string { return "set_person_family_name" }
-func (m *SetPersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonFamilyName) name() string       { return "set:person_family_name" }
+func (m *SetPersonFamilyName) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applySetPersonField(m.PersonID, "family_name", m.Val, &m.userID, userID)
 }
 func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -203,9 +203,9 @@ func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64)
 
 type UnsetPersonFamilyName struct{ PersonID ID }
 
-func (m *UnsetPersonFamilyName) mutationName() string { return "unset_person_family_name" }
-func (m *UnsetPersonFamilyName) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetPersonFamilyName) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *UnsetPersonFamilyName) name() string       { return "unset:person_family_name" }
+func (m *UnsetPersonFamilyName) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetPersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
 	return applyUnsetPersonField(m.PersonID, "family_name")
 }
 func (m *UnsetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
@@ -213,7 +213,7 @@ func (m *UnsetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int6
 }
 
 // ============================================================
-// Set / Unset mutations for person collectives
+// Set / Unset updaters for person collectives
 // ============================================================
 
 // --- SetPersonIdentifiers / UnsetPersonIdentifiers ---
@@ -224,11 +224,11 @@ type SetPersonIdentifiers struct {
 	userID      *ID
 }
 
-func (m *SetPersonIdentifiers) mutationName() string { return "set_person_identifiers" }
-func (m *SetPersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonIdentifiers) name() string       { return "set:person_identifiers" }
+func (m *SetPersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -251,10 +251,10 @@ func (m *SetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64
 
 type UnsetPersonIdentifiers struct{ PersonID ID }
 
-func (m *UnsetPersonIdentifiers) mutationName() string { return "unset_person_identifiers" }
-func (m *UnsetPersonIdentifiers) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetPersonIdentifiers) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetPersonIdentifiers) name() string       { return "unset:person_identifiers" }
+func (m *UnsetPersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -277,11 +277,11 @@ type SetPersonOrganizations struct {
 	userID        *ID
 }
 
-func (m *SetPersonOrganizations) mutationName() string { return "set_person_organizations" }
-func (m *SetPersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *SetPersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
+func (m *SetPersonOrganizations) name() string       { return "set:person_organizations" }
+func (m *SetPersonOrganizations) needs() updateNeeds { return updateNeeds{} }
+func (m *SetPersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
 	m.userID = userID
-	return &mutationEffect{
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
@@ -304,10 +304,10 @@ func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int
 
 type UnsetPersonOrganizations struct{ PersonID ID }
 
-func (m *UnsetPersonOrganizations) mutationName() string { return "unset_person_organizations" }
-func (m *UnsetPersonOrganizations) needs() mutationNeeds  { return mutationNeeds{} }
-func (m *UnsetPersonOrganizations) apply(state mutationState, userID *ID) (*mutationEffect, error) {
-	return &mutationEffect{
+func (m *UnsetPersonOrganizations) name() string       { return "unset:person_organizations" }
+func (m *UnsetPersonOrganizations) needs() updateNeeds { return updateNeeds{} }
+func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
