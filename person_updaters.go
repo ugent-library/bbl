@@ -19,7 +19,7 @@ func (m *CreatePerson) name() string { return "create:person" }
 
 func (m *CreatePerson) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreatePerson) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *CreatePerson) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	m.person = &Person{
 		ID:      m.PersonID,
 		Version: 1,
@@ -60,7 +60,7 @@ func (m *DeletePerson) needs() updateNeeds {
 	return updateNeeds{personIDs: []ID{m.PersonID}}
 }
 
-func (m *DeletePerson) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *DeletePerson) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	p, ok := state.people[m.PersonID]
 	if !ok {
 		return nil, fmt.Errorf("DeletePerson: person %s not found", m.PersonID)

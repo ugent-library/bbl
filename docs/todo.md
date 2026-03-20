@@ -1,16 +1,14 @@
 # TODO
 
+
 ## Model
 
-- [ ] Update rules: diff against pinned, only assert differences (see `docs/update-rules.md`)
-- [ ] `needs()` returns `*updateNeeds` with entity IDs; `Update()` batch-fetches full entities
-- [ ] `matches()` on each updater to detect noops against pinned values (scalars + collectives)
-- [ ] Add missing `Hide*` updaters for all entity types
-- [ ] Auto-pin integration tests (role-aware: curator > user > source, recency within same role)
-- [ ] Wire `role` through `Update()` — pass the user's role at assertion time (currently nil)
-- [ ] Assertion history GC: prune unpinned rows for same (entity, field, user, role)
+- [ ] Union pinning: autoPinUnion + field catalog declaring union fields (identifiers, classifications)
+- [ ] Auto-pin integration tests (human > source, exclusive + union collections)
 - [ ] Review/lock mechanism: explicit curator endorsement (separate from assertion)
+- [ ] `fieldUpdater` sub-interface (`entityType()`, `entityID()`, `field()`) so Update() can centralize curator lock checks and future per-field concerns instead of repeating them in every apply()
 - [ ] Candidates
+- [ ] Investigate: should source re-imports also log to bbl_history? Currently only human edits are tracked there; source history relies on the source record's original payload.
 - [ ] Authorization layer
 - [ ] Collections (two types: query-based / dynamic, and manual / rules-based)
 

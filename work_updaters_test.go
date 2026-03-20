@@ -10,7 +10,7 @@ func TestCreateWork_Apply(t *testing.T) {
 		WorkID: id,
 		Kind:   "journal_article",
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestCreateWork_DefaultStatus(t *testing.T) {
 		WorkID: newID(),
 		Kind:   "book",
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestDeleteWork_Apply(t *testing.T) {
 		WorkID:     id,
 		DeleteKind: WorkDeleteWithdrawn,
 	}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestDeleteWork_AlreadyDeleted(t *testing.T) {
 		WorkID:     id,
 		DeleteKind: WorkDeleteRetracted,
 	}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -207,33 +208,21 @@ func importWorkFields(ctx context.Context, tx pgx.Tx, revID int64, workID ID, so
 // Each collective field that has data gets one assertion row, then value rows linked to it.
 func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID, source string, sourceRecordID ID, in *ImportWorkInput) error {
 	if len(in.Identifiers) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "identifiers", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, id := range in.Identifiers {
-			if err := writeWorkIdentifier(ctx, tx, newID(), aID, workID, id.Scheme, id.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "identifiers", id, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Classifications) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "classifications", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, cl := range in.Classifications {
-			if err := writeWorkClassification(ctx, tx, newID(), aID, workID, cl.Scheme, cl.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "classifications", cl, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Contributors) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "contributors", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
-		for i, c := range in.Contributors {
+		for _, c := range in.Contributors {
 			var personID *ID
 			name, givenName, familyName := c.Name, c.GivenName, c.FamilyName
 			if c.PersonRef != nil {
@@ -245,107 +234,112 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID,
 					}
 				}
 			}
-			if err := writeWorkContributor(ctx, tx, newID(), aID, workID, i, c.Kind, personID, name, givenName, familyName, c.Roles); err != nil {
+			kind := c.Kind
+			if kind == "" {
+				kind = "person"
+			}
+			if name == "" {
+				name = strings.TrimSpace(givenName + " " + familyName)
+			}
+			val := struct {
+				Kind       string   `json:"kind,omitempty"`
+				Name       string   `json:"name"`
+				GivenName  string   `json:"given_name,omitempty"`
+				FamilyName string   `json:"family_name,omitempty"`
+				Roles      []string `json:"roles,omitempty"`
+			}{kind, name, givenName, familyName, c.Roles}
+			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "contributors", val, false, &sourceRecordID, nil, nil)
+			if err != nil {
+				return err
+			}
+			if err := writeWorkContributor(ctx, tx, aID, personID, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Titles) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "titles", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, t := range in.Titles {
-			if err := writeWorkTitle(ctx, tx, newID(), aID, workID, t.Lang, t.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "titles", t, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Abstracts) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "abstracts", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, a := range in.Abstracts {
-			if err := writeWorkAbstract(ctx, tx, newID(), aID, workID, a.Lang, a.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "abstracts", a, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.LaySummaries) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "lay_summaries", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, ls := range in.LaySummaries {
-			if err := writeWorkLaySummary(ctx, tx, newID(), aID, workID, ls.Lang, ls.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "lay_summaries", ls, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Notes) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "notes", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, n := range in.Notes {
-			if err := writeWorkNote(ctx, tx, newID(), aID, workID, n.Val, n.Kind); err != nil {
+			val := struct {
+				Val  string `json:"val"`
+				Kind string `json:"kind,omitempty"`
+			}{n.Val, n.Kind}
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "notes", val, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Keywords) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "keywords", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, kw := range in.Keywords {
-			if err := writeWorkKeyword(ctx, tx, newID(), aID, workID, kw.Val); err != nil {
+			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "keywords", kw, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Projects) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "projects", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, p := range in.Projects {
 			project, err := resolveProjectRef(ctx, tx, p.Ref, source)
 			if err != nil {
 				continue
 			}
-			if err := writeWorkProject(ctx, tx, newID(), aID, workID, project.ID); err != nil {
+			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "projects", nil, false, &sourceRecordID, nil, nil)
+			if err != nil {
+				return err
+			}
+			if err := writeWorkProject(ctx, tx, aID, project.ID); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Organizations) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "organizations", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, o := range in.Organizations {
 			org, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
 			if err != nil {
 				continue
 			}
-			if err := writeWorkOrganization(ctx, tx, newID(), aID, workID, org.ID); err != nil {
+			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "organizations", nil, false, &sourceRecordID, nil, nil)
+			if err != nil {
+				return err
+			}
+			if err := writeWorkOrganization(ctx, tx, aID, org.ID); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.RelatedWorks) > 0 {
-		aID, err := writeWorkAssertion(ctx, tx, revID, workID, "rels", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, rel := range in.RelatedWorks {
 			relWork, err := resolveWorkRef(ctx, tx, rel.Ref, source)
 			if err != nil {
 				continue
 			}
-			if err := writeWorkRel(ctx, tx, newID(), aID, workID, relWork.ID, rel.Kind); err != nil {
+			val := struct {
+				Kind string `json:"kind"`
+			}{rel.Kind}
+			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "rels", val, false, &sourceRecordID, nil, nil)
+			if err != nil {
+				return err
+			}
+			if err := writeWorkRel(ctx, tx, aID, relWork.ID, rel.Kind); err != nil {
 				return err
 			}
 		}
@@ -650,18 +644,25 @@ func parseWorkCache(w *Work, cache []byte) error {
 		return nil
 	}
 	var d struct {
-		StrFields       []struct {
+		StrFields []struct {
 			Field string          `json:"field"`
 			Val   json.RawMessage `json:"val"`
 		} `json:"str_fields,omitempty"`
 		Identifiers     []WorkIdentifier     `json:"identifiers,omitempty"`
 		Classifications []WorkClassification `json:"classifications,omitempty"`
-		Contributors    []WorkContributor    `json:"contributors,omitempty"`
 		Titles          []Title              `json:"titles,omitempty"`
 		Abstracts       []Text               `json:"abstracts,omitempty"`
 		LaySummaries    []Text               `json:"lay_summaries,omitempty"`
 		Notes           []Note               `json:"notes,omitempty"`
 		Keywords        []Keyword            `json:"keywords,omitempty"`
+		Contributors []struct {
+			Val            json.RawMessage `json:"val"`
+			PersonID       *ID             `json:"person_id,omitempty"`
+			OrganizationID *ID             `json:"organization_id,omitempty"`
+		} `json:"contributors,omitempty"`
+		Projects      []ID                  `json:"projects,omitempty"`
+		Organizations []ID                  `json:"organizations,omitempty"`
+		Rels          []WorkRel             `json:"rels,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parseWorkCache: %w", err)
@@ -671,12 +672,22 @@ func parseWorkCache(w *Work, cache []byte) error {
 	}
 	w.Identifiers = d.Identifiers
 	w.Classifications = d.Classifications
-	w.Contributors = d.Contributors
 	w.Titles = d.Titles
 	w.Abstracts = d.Abstracts
 	w.LaySummaries = d.LaySummaries
 	w.Notes = d.Notes
 	w.Keywords = d.Keywords
+	for _, c := range d.Contributors {
+		var co WorkContributor
+		if c.Val != nil {
+			json.Unmarshal(c.Val, &co)
+		}
+		co.PersonID = c.PersonID
+		w.Contributors = append(w.Contributors, co)
+	}
+	w.Projects = d.Projects
+	w.Organizations = d.Organizations
+	w.Rels = d.Rels
 	return nil
 }
 

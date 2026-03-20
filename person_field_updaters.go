@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -29,8 +30,14 @@ func writeCreatePersonField(ctx context.Context, tx pgx.Tx, revID int64, personI
 
 // --- Set/Unset helpers for scalar fields ---
 
-func applySetPersonField(personID ID, field string, val string, mutUserID **ID, userID *ID) (*updateEffect, error) {
+func applySetPersonField(state updateState, personID ID, field string, mutUserID **ID, mutRole **string, userID *ID, role string) (*updateEffect, error) {
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[personID], field) {
+			return nil, ErrCuratorLock
+		}
+	}
 	*mutUserID = userID
+	*mutRole = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
@@ -41,10 +48,21 @@ func applySetPersonField(personID ID, field string, val string, mutUserID **ID, 
 }
 
 func writeSetPersonField(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string, val string, userID *ID, role *string) error {
+	if err := logPersonHistory(ctx, tx, personID, field, revID); err != nil {
+		return fmt.Errorf("writeSetPersonField(%s): %w", field, err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, personID, field); err != nil {
+		return fmt.Errorf("writeSetPersonField(%s): %w", field, err)
+	}
 	return writeCreatePersonField(ctx, tx, revID, personID, field, val, nil, userID, role)
 }
 
-func applyUnsetPersonField(personID ID, field string) (*updateEffect, error) {
+func applyUnsetPersonField(state updateState, role string, personID ID, field string) (*updateEffect, error) {
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[personID], field) {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
@@ -54,7 +72,10 @@ func applyUnsetPersonField(personID ID, field string) (*updateEffect, error) {
 	}, nil
 }
 
-func writeUnsetPersonField(ctx context.Context, tx pgx.Tx, personID ID, field string) error {
+func writeUnsetPersonField(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string) error {
+	if err := logPersonHistory(ctx, tx, personID, field, revID); err != nil {
+		return fmt.Errorf("writeUnsetPersonField(%s): %w", field, err)
+	}
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`,
 		personID, field); err != nil {
@@ -65,8 +86,17 @@ func writeUnsetPersonField(ctx context.Context, tx pgx.Tx, personID ID, field st
 
 // --- Hide helpers for scalar fields ---
 
-func applyHidePersonField(personID ID, field string, mutUserID **ID, userID *ID) (*updateEffect, error) {
+func applyHidePersonField(state updateState, personID ID, field string, mutUserID **ID, mutRole **string, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.personAssertions[personID], field) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[personID], field) {
+			return nil, ErrCuratorLock
+		}
+	}
 	*mutUserID = userID
+	*mutRole = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   personID,
@@ -77,6 +107,12 @@ func applyHidePersonField(personID ID, field string, mutUserID **ID, userID *ID)
 }
 
 func writeHidePersonField(ctx context.Context, tx pgx.Tx, revID int64, personID ID, field string, userID *ID, role *string) error {
+	if err := logPersonHistory(ctx, tx, personID, field, revID); err != nil {
+		return fmt.Errorf("writeHidePersonField(%s): %w", field, err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, personID, field); err != nil {
+		return fmt.Errorf("writeHidePersonField(%s): %w", field, err)
+	}
 	_, err := tx.Exec(ctx, `
 		INSERT INTO bbl_person_assertions (rev_id, person_id, field, val, hidden, person_source_id, user_id, role)
 		VALUES ($1, $2, $3, NULL, true, NULL, $4, $5)`,
@@ -109,22 +145,11 @@ func writePersonAssertion(ctx context.Context, tx pgx.Tx, revID int64, personID 
 	return id, nil
 }
 
-func writePersonIdentifier(ctx context.Context, tx pgx.Tx, id, personID ID, assertionID int64, scheme, val string) error {
+func writePersonOrganization(ctx context.Context, tx pgx.Tx, assertionID int64, orgID ID, validFrom, validTo *time.Time) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_person_identifiers (id, assertion_id, person_id, scheme, val)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, personID, scheme, val)
-	if err != nil {
-		return fmt.Errorf("writePersonIdentifier: %w", err)
-	}
-	return nil
-}
-
-func writePersonOrganization(ctx context.Context, tx pgx.Tx, id, personID, organizationID ID, assertionID int64) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_person_organizations (id, assertion_id, person_id, organization_id)
+		INSERT INTO bbl_person_assertion_organizations (assertion_id, organization_id, valid_from, valid_to)
 		VALUES ($1, $2, $3, $4)`,
-		id, assertionID, personID, organizationID)
+		assertionID, orgID, validFrom, validTo)
 	if err != nil {
 		return fmt.Errorf("writePersonOrganization: %w", err)
 	}
@@ -141,15 +166,19 @@ type SetPersonName struct {
 	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
+	role     *string
 }
 
 func (m *SetPersonName) name() string       { return "set:person_name" }
-func (m *SetPersonName) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applySetPersonField(m.PersonID, "name", m.Val, &m.userID, userID)
+func (m *SetPersonName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.Name == m.Val {
+		return nil, nil
+	}
+	return applySetPersonField(state, m.PersonID, "name", &m.userID, &m.role, userID, role)
 }
 func (m *SetPersonName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeSetPersonField(ctx, tx, revID, m.PersonID, "name", m.Val, m.userID, nil)
+	return writeSetPersonField(ctx, tx, revID, m.PersonID, "name", m.Val, m.userID, m.role)
 }
 
 // --- SetPersonGivenName / UnsetPersonGivenName ---
@@ -158,26 +187,33 @@ type SetPersonGivenName struct {
 	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
+	role     *string
 }
 
 func (m *SetPersonGivenName) name() string       { return "set:person_given_name" }
-func (m *SetPersonGivenName) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applySetPersonField(m.PersonID, "given_name", m.Val, &m.userID, userID)
+func (m *SetPersonGivenName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonGivenName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.GivenName == m.Val {
+		return nil, nil
+	}
+	return applySetPersonField(state, m.PersonID, "given_name", &m.userID, &m.role, userID, role)
 }
 func (m *SetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeSetPersonField(ctx, tx, revID, m.PersonID, "given_name", m.Val, m.userID, nil)
+	return writeSetPersonField(ctx, tx, revID, m.PersonID, "given_name", m.Val, m.userID, m.role)
 }
 
 type UnsetPersonGivenName struct{ PersonID ID }
 
 func (m *UnsetPersonGivenName) name() string       { return "unset:person_given_name" }
-func (m *UnsetPersonGivenName) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetPersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyUnsetPersonField(m.PersonID, "given_name")
+func (m *UnsetPersonGivenName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *UnsetPersonGivenName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.GivenName == "" {
+		return nil, nil
+	}
+	return applyUnsetPersonField(state, role, m.PersonID, "given_name")
 }
 func (m *UnsetPersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeUnsetPersonField(ctx, tx, m.PersonID, "given_name")
+	return writeUnsetPersonField(ctx, tx, revID, m.PersonID, "given_name")
 }
 
 // --- SetPersonMiddleName / UnsetPersonMiddleName ---
@@ -186,26 +222,33 @@ type SetPersonMiddleName struct {
 	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
+	role     *string
 }
 
 func (m *SetPersonMiddleName) name() string       { return "set:person_middle_name" }
-func (m *SetPersonMiddleName) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applySetPersonField(m.PersonID, "middle_name", m.Val, &m.userID, userID)
+func (m *SetPersonMiddleName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonMiddleName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.MiddleName == m.Val {
+		return nil, nil
+	}
+	return applySetPersonField(state, m.PersonID, "middle_name", &m.userID, &m.role, userID, role)
 }
 func (m *SetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeSetPersonField(ctx, tx, revID, m.PersonID, "middle_name", m.Val, m.userID, nil)
+	return writeSetPersonField(ctx, tx, revID, m.PersonID, "middle_name", m.Val, m.userID, m.role)
 }
 
 type UnsetPersonMiddleName struct{ PersonID ID }
 
 func (m *UnsetPersonMiddleName) name() string       { return "unset:person_middle_name" }
-func (m *UnsetPersonMiddleName) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetPersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyUnsetPersonField(m.PersonID, "middle_name")
+func (m *UnsetPersonMiddleName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *UnsetPersonMiddleName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.MiddleName == "" {
+		return nil, nil
+	}
+	return applyUnsetPersonField(state, role, m.PersonID, "middle_name")
 }
 func (m *UnsetPersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeUnsetPersonField(ctx, tx, m.PersonID, "middle_name")
+	return writeUnsetPersonField(ctx, tx, revID, m.PersonID, "middle_name")
 }
 
 // --- SetPersonFamilyName / UnsetPersonFamilyName ---
@@ -214,26 +257,33 @@ type SetPersonFamilyName struct {
 	PersonID ID `json:"person_id"`
 	Val      string
 	userID   *ID
+	role     *string
 }
 
 func (m *SetPersonFamilyName) name() string       { return "set:person_family_name" }
-func (m *SetPersonFamilyName) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applySetPersonField(m.PersonID, "family_name", m.Val, &m.userID, userID)
+func (m *SetPersonFamilyName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonFamilyName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.FamilyName == m.Val {
+		return nil, nil
+	}
+	return applySetPersonField(state, m.PersonID, "family_name", &m.userID, &m.role, userID, role)
 }
 func (m *SetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeSetPersonField(ctx, tx, revID, m.PersonID, "family_name", m.Val, m.userID, nil)
+	return writeSetPersonField(ctx, tx, revID, m.PersonID, "family_name", m.Val, m.userID, m.role)
 }
 
 type UnsetPersonFamilyName struct{ PersonID ID }
 
 func (m *UnsetPersonFamilyName) name() string       { return "unset:person_family_name" }
-func (m *UnsetPersonFamilyName) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetPersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyUnsetPersonField(m.PersonID, "family_name")
+func (m *UnsetPersonFamilyName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *UnsetPersonFamilyName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && p.FamilyName == "" {
+		return nil, nil
+	}
+	return applyUnsetPersonField(state, role, m.PersonID, "family_name")
 }
 func (m *UnsetPersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeUnsetPersonField(ctx, tx, m.PersonID, "family_name")
+	return writeUnsetPersonField(ctx, tx, revID, m.PersonID, "family_name")
 }
 
 // ============================================================
@@ -246,12 +296,22 @@ type SetPersonIdentifiers struct {
 	PersonID    ID
 	Identifiers []Identifier `json:"identifiers"`
 	userID      *ID
+	role        *string
 }
 
 func (m *SetPersonIdentifiers) name() string       { return "set:person_identifiers" }
-func (m *SetPersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetPersonIdentifiers) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && slicesEqual(p.Identifiers, m.Identifiers) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -261,12 +321,14 @@ func (m *SetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEffe
 	}, nil
 }
 func (m *SetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "identifiers", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "identifiers", revID); err != nil {
+		return fmt.Errorf("SetPersonIdentifiers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "identifiers"); err != nil {
 		return fmt.Errorf("SetPersonIdentifiers: %w", err)
 	}
 	for _, ident := range m.Identifiers {
-		if err := writePersonIdentifier(ctx, tx, newID(), m.PersonID, assertionID, ident.Scheme, ident.Val); err != nil {
+		if _, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "identifiers", ident, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetPersonIdentifiers: %w", err)
 		}
 	}
@@ -276,8 +338,16 @@ func (m *SetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64
 type UnsetPersonIdentifiers struct{ PersonID ID }
 
 func (m *UnsetPersonIdentifiers) name() string       { return "unset:person_identifiers" }
-func (m *UnsetPersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetPersonIdentifiers) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *UnsetPersonIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && len(p.Identifiers) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -287,6 +357,9 @@ func (m *UnsetPersonIdentifiers) apply(state updateState, userID *ID) (*updateEf
 	}, nil
 }
 func (m *UnsetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "identifiers", revID); err != nil {
+		return fmt.Errorf("UnsetPersonIdentifiers: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.PersonID); err != nil {
 		return fmt.Errorf("UnsetPersonIdentifiers: %w", err)
 	}
@@ -299,12 +372,22 @@ type SetPersonOrganizations struct {
 	PersonID      ID
 	Organizations []PersonOrganization `json:"organizations"`
 	userID        *ID
+	role          *string
 }
 
 func (m *SetPersonOrganizations) name() string       { return "set:person_organizations" }
-func (m *SetPersonOrganizations) needs() updateNeeds { return updateNeeds{} }
-func (m *SetPersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetPersonOrganizations) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && personOrganizationsEqual(p.Organizations, m.Organizations) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -314,12 +397,18 @@ func (m *SetPersonOrganizations) apply(state updateState, userID *ID) (*updateEf
 	}, nil
 }
 func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
+		return fmt.Errorf("SetPersonOrganizations: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "organizations"); err != nil {
 		return fmt.Errorf("SetPersonOrganizations: %w", err)
 	}
 	for _, org := range m.Organizations {
-		if err := writePersonOrganization(ctx, tx, newID(), m.PersonID, org.OrganizationID, assertionID); err != nil {
+		assertionID, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetPersonOrganizations: %w", err)
+		}
+		if err := writePersonOrganization(ctx, tx, assertionID, org.OrganizationID, nil, nil); err != nil {
 			return fmt.Errorf("SetPersonOrganizations: %w", err)
 		}
 	}
@@ -328,9 +417,19 @@ func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int
 
 type UnsetPersonOrganizations struct{ PersonID ID }
 
-func (m *UnsetPersonOrganizations) name() string       { return "unset:person_organizations" }
-func (m *UnsetPersonOrganizations) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetPersonOrganizations) name() string { return "unset:person_organizations" }
+func (m *UnsetPersonOrganizations) needs() updateNeeds {
+	return updateNeeds{personIDs: []ID{m.PersonID}}
+}
+func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && len(p.Organizations) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -340,6 +439,9 @@ func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID) (*update
 	}, nil
 }
 func (m *UnsetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
+		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.PersonID); err != nil {
 		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
 	}
@@ -355,15 +457,16 @@ func (m *UnsetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID i
 type HidePersonGivenName struct {
 	PersonID ID
 	userID   *ID
+	role     *string
 }
 
 func (m *HidePersonGivenName) name() string       { return "hide:person_given_name" }
-func (m *HidePersonGivenName) needs() updateNeeds { return updateNeeds{} }
-func (m *HidePersonGivenName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyHidePersonField(m.PersonID, "given_name", &m.userID, userID)
+func (m *HidePersonGivenName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *HidePersonGivenName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	return applyHidePersonField(state, m.PersonID, "given_name", &m.userID, &m.role, userID, role)
 }
 func (m *HidePersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeHidePersonField(ctx, tx, revID, m.PersonID, "given_name", m.userID, nil)
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "given_name", m.userID, m.role)
 }
 
 // --- HidePersonMiddleName ---
@@ -371,15 +474,16 @@ func (m *HidePersonGivenName) write(ctx context.Context, tx pgx.Tx, revID int64)
 type HidePersonMiddleName struct {
 	PersonID ID
 	userID   *ID
+	role     *string
 }
 
 func (m *HidePersonMiddleName) name() string       { return "hide:person_middle_name" }
-func (m *HidePersonMiddleName) needs() updateNeeds { return updateNeeds{} }
-func (m *HidePersonMiddleName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyHidePersonField(m.PersonID, "middle_name", &m.userID, userID)
+func (m *HidePersonMiddleName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *HidePersonMiddleName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	return applyHidePersonField(state, m.PersonID, "middle_name", &m.userID, &m.role, userID, role)
 }
 func (m *HidePersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeHidePersonField(ctx, tx, revID, m.PersonID, "middle_name", m.userID, nil)
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "middle_name", m.userID, m.role)
 }
 
 // --- HidePersonFamilyName ---
@@ -387,15 +491,16 @@ func (m *HidePersonMiddleName) write(ctx context.Context, tx pgx.Tx, revID int64
 type HidePersonFamilyName struct {
 	PersonID ID
 	userID   *ID
+	role     *string
 }
 
 func (m *HidePersonFamilyName) name() string       { return "hide:person_family_name" }
-func (m *HidePersonFamilyName) needs() updateNeeds { return updateNeeds{} }
-func (m *HidePersonFamilyName) apply(state updateState, userID *ID) (*updateEffect, error) {
-	return applyHidePersonField(m.PersonID, "family_name", &m.userID, userID)
+func (m *HidePersonFamilyName) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *HidePersonFamilyName) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	return applyHidePersonField(state, m.PersonID, "family_name", &m.userID, &m.role, userID, role)
 }
 func (m *HidePersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	return writeHidePersonField(ctx, tx, revID, m.PersonID, "family_name", m.userID, nil)
+	return writeHidePersonField(ctx, tx, revID, m.PersonID, "family_name", m.userID, m.role)
 }
 
 // --- HidePersonIdentifiers ---
@@ -403,12 +508,22 @@ func (m *HidePersonFamilyName) write(ctx context.Context, tx pgx.Tx, revID int64
 type HidePersonIdentifiers struct {
 	PersonID ID
 	userID   *ID
+	role     *string
 }
 
 func (m *HidePersonIdentifiers) name() string       { return "hide:person_identifiers" }
-func (m *HidePersonIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *HidePersonIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *HidePersonIdentifiers) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *HidePersonIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.personAssertions[m.PersonID], "identifiers") {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -418,7 +533,13 @@ func (m *HidePersonIdentifiers) apply(state updateState, userID *ID) (*updateEff
 	}, nil
 }
 func (m *HidePersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "identifiers", nil, true, nil, m.userID, nil)
+	if err := logPersonHistory(ctx, tx, m.PersonID, "identifiers", revID); err != nil {
+		return fmt.Errorf("HidePersonIdentifiers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "identifiers"); err != nil {
+		return fmt.Errorf("HidePersonIdentifiers: %w", err)
+	}
+	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "identifiers", nil, true, nil, m.userID, m.role)
 	return err
 }
 
@@ -427,12 +548,24 @@ func (m *HidePersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int6
 type HidePersonOrganizations struct {
 	PersonID ID
 	userID   *ID
+	role     *string
 }
 
-func (m *HidePersonOrganizations) name() string       { return "hide:person_organizations" }
-func (m *HidePersonOrganizations) needs() updateNeeds { return updateNeeds{} }
-func (m *HidePersonOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *HidePersonOrganizations) name() string { return "hide:person_organizations" }
+func (m *HidePersonOrganizations) needs() updateNeeds {
+	return updateNeeds{personIDs: []ID{m.PersonID}}
+}
+func (m *HidePersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.personAssertions[m.PersonID], "organizations") {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
@@ -442,6 +575,12 @@ func (m *HidePersonOrganizations) apply(state updateState, userID *ID) (*updateE
 	}, nil
 }
 func (m *HidePersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, true, nil, m.userID, nil)
+	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
+		return fmt.Errorf("HidePersonOrganizations: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "organizations"); err != nil {
+		return fmt.Errorf("HidePersonOrganizations: %w", err)
+	}
+	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, true, nil, m.userID, m.role)
 	return err
 }

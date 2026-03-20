@@ -241,7 +241,7 @@ func buildWorkUpdates(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) []
 			}
 		case "contributor_list":
 			var contributors []bbl.WorkContributor
-			for i, g := range formGroups(r.Form, "contributors") {
+			for _, g := range formGroups(r.Form, "contributors") {
 				name := strings.TrimSpace(g.Get("name"))
 				gn := strings.TrimSpace(g.Get("given_name"))
 				fn := strings.TrimSpace(g.Get("family_name"))
@@ -252,7 +252,6 @@ func buildWorkUpdates(r *http.Request, profile *bbl.WorkKind, work *bbl.Work) []
 					continue
 				}
 				co := bbl.WorkContributor{
-					Position:   i,
 					Kind:       g.Get("kind"),
 					Name:       name,
 					GivenName:  gn,

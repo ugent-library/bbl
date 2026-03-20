@@ -177,23 +177,15 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 
 func importProjectTextFields(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, sourceRecordID ID, in *ImportProjectInput) error {
 	if len(in.Titles) > 0 {
-		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "titles", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, t := range in.Titles {
-			if err := writeProjectTitle(ctx, tx, newID(), projectID, aID, t.Lang, t.Val); err != nil {
+			if _, err := writeProjectAssertion(ctx, tx, revID, projectID, "titles", t, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
 	}
 	if len(in.Descriptions) > 0 {
-		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "descriptions", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, d := range in.Descriptions {
-			if err := writeProjectDescription(ctx, tx, newID(), projectID, aID, d.Lang, d.Val); err != nil {
+			if _, err := writeProjectAssertion(ctx, tx, revID, projectID, "descriptions", d, false, &sourceRecordID, nil, nil); err != nil {
 				return err
 			}
 		}
@@ -203,16 +195,19 @@ func importProjectTextFields(ctx context.Context, tx pgx.Tx, revID int64, projec
 
 func importProjectRelations(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
 	if len(in.Participants) > 0 {
-		aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "people", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
 		for _, p := range in.Participants {
 			person, err := resolvePersonRef(ctx, tx, p.Ref, source)
 			if err != nil {
 				continue
 			}
-			if err := writeProjectPerson(ctx, tx, newID(), projectID, person.ID, aID, p.Role); err != nil {
+			val := struct {
+				Role string `json:"role,omitempty"`
+			}{p.Role}
+			aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "people", val, false, &sourceRecordID, nil, nil)
+			if err != nil {
+				return err
+			}
+			if err := writeProjectPerson(ctx, tx, aID, person.ID, p.Role); err != nil {
 				return err
 			}
 		}
@@ -345,10 +340,10 @@ func parseProjectCache(p *Project, cache []byte) error {
 		return nil
 	}
 	var d struct {
-		Titles       []Title         `json:"titles,omitempty"`
-		Descriptions []Text          `json:"descriptions,omitempty"`
-		Identifiers  []Identifier    `json:"identifiers,omitempty"`
-		People       []ProjectPerson `json:"people,omitempty"`
+		Titles       []Title               `json:"titles,omitempty"`
+		Descriptions []Text                `json:"descriptions,omitempty"`
+		Identifiers  []Identifier          `json:"identifiers,omitempty"`
+		People       []ProjectPerson       `json:"people,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parseProjectCache: %w", err)

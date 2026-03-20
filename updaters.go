@@ -25,7 +25,8 @@ type updater interface {
 
 	// apply computes the effect of the update. Pure: no DB access.
 	// Returns nil when the update is a noop (no change).
-	apply(state updateState, userID *ID) (*updateEffect, error)
+	// role is the user's role at assertion time (e.g. "curator", "user").
+	apply(state updateState, userID *ID, role string) (*updateEffect, error)
 
 	// write executes the update's SQL against the transaction.
 	// Called only for non-noop updates, after the bbl_revs row is inserted.
@@ -58,4 +59,40 @@ type updateState struct {
 	projects      map[ID]*Project
 	works         map[ID]*Work
 	priorities    map[string]int // source priorities for auto-pin
+
+	// Per-entity per-field assertion info. All pinned assertions per field,
+	// not just the winner. Enables noop, curator lock, and union reasoning.
+	workAssertions         map[ID]map[string][]assertionInfo
+	personAssertions       map[ID]map[string][]assertionInfo
+	projectAssertions      map[ID]map[string][]assertionInfo
+	organizationAssertions map[ID]map[string][]assertionInfo
+}
+
+// assertionInfo describes one pinned assertion for a field.
+type assertionInfo struct {
+	Human  bool   `json:"human"`            // user_id IS NOT NULL
+	Role   string `json:"role,omitempty"`   // role of human asserter
+	Hidden bool   `json:"hidden"`
+	Pinned bool   `json:"pinned"`
+	Source string `json:"source,omitempty"` // source name, empty for human
+}
+
+// fieldHidden reports whether a field is hidden by any pinned asserter.
+func fieldHidden(assertions map[string][]assertionInfo, field string) bool {
+	for _, a := range assertions[field] {
+		if a.Hidden && a.Pinned {
+			return true
+		}
+	}
+	return false
+}
+
+// fieldCuratorLocked reports whether a field has a curator assertion.
+func fieldCuratorLocked(assertions map[string][]assertionInfo, field string) bool {
+	for _, a := range assertions[field] {
+		if a.Human && a.Role == "curator" {
+			return true
+		}
+	}
+	return false
 }

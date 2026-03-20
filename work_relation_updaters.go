@@ -4,14 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
 
-// --- shared write helpers for relation tables ---
-// These insert value rows linked to an assertion via assertion_id.
-// The assertion row must be created first.
+// --- shared write helpers ---
 
 // writeWorkAssertion creates an assertion row. Used by both Set updaters and import.
 func writeWorkAssertion(ctx context.Context, tx pgx.Tx, revID int64, workID ID, field string, val any, hidden bool, workSourceID *ID, userID *ID, role *string) (int64, error) {
@@ -34,130 +31,46 @@ func writeWorkAssertion(ctx context.Context, tx pgx.Tx, revID int64, workID ID, 
 	return id, nil
 }
 
-func writeWorkIdentifier(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, scheme, val string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_identifiers (id, assertion_id, work_id, scheme, val)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, workID, scheme, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkIdentifier: %w", err)
-	}
-	return nil
-}
+// --- extension table helpers for FK-bearing collectives ---
 
-func writeWorkClassification(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, scheme, val string) error {
+func writeWorkContributor(ctx context.Context, tx pgx.Tx, assertionID int64, personID *ID, organizationID *ID) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_classifications (id, assertion_id, work_id, scheme, val)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, workID, scheme, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkClassification: %w", err)
-	}
-	return nil
-}
-
-func writeWorkContributor(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, position int, kind string, personID *ID, name, givenName, familyName string, roles []string) error {
-	if kind == "" {
-		kind = "person"
-	}
-	if name == "" {
-		name = strings.TrimSpace(givenName + " " + familyName)
-	}
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_contributors
-		    (id, assertion_id, work_id, position, kind, person_id, name, given_name, family_name, roles)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		id, assertionID, workID, position, kind, personID,
-		name, nilIfEmpty(givenName), nilIfEmpty(familyName),
-		roles)
+		INSERT INTO bbl_work_assertion_contributors (assertion_id, person_id, organization_id)
+		VALUES ($1, $2, $3)`,
+		assertionID, personID, organizationID)
 	if err != nil {
 		return fmt.Errorf("writeWorkContributor: %w", err)
 	}
 	return nil
 }
 
-func writeWorkTitle(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
+func writeWorkProject(ctx context.Context, tx pgx.Tx, assertionID int64, projectID ID) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_titles (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
-		id, assertionID, workID, lang, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkTitle: %w", err)
-	}
-	return nil
-}
-
-func writeWorkAbstract(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_abstracts (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
-		id, assertionID, workID, lang, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkAbstract: %w", err)
-	}
-	return nil
-}
-
-func writeWorkLaySummary(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, lang, val string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_lay_summaries (id, assertion_id, work_id, lang, val)
-		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
-		id, assertionID, workID, lang, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkLaySummary: %w", err)
-	}
-	return nil
-}
-
-func writeWorkNote(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, val, kind string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_notes (id, assertion_id, work_id, val, kind)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, workID, val, nilIfEmpty(kind))
-	if err != nil {
-		return fmt.Errorf("writeWorkNote: %w", err)
-	}
-	return nil
-}
-
-func writeWorkKeyword(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID ID, val string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_keywords (id, assertion_id, work_id, val)
-		VALUES ($1, $2, $3, $4)`,
-		id, assertionID, workID, val)
-	if err != nil {
-		return fmt.Errorf("writeWorkKeyword: %w", err)
-	}
-	return nil
-}
-
-func writeWorkProject(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, projectID ID) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_projects (id, assertion_id, work_id, project_id)
-		VALUES ($1, $2, $3, $4)`,
-		id, assertionID, workID, projectID)
+		INSERT INTO bbl_work_assertion_projects (assertion_id, project_id)
+		VALUES ($1, $2)`,
+		assertionID, projectID)
 	if err != nil {
 		return fmt.Errorf("writeWorkProject: %w", err)
 	}
 	return nil
 }
 
-func writeWorkOrganization(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, orgID ID) error {
+func writeWorkOrganization(ctx context.Context, tx pgx.Tx, assertionID int64, organizationID ID) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_organizations (id, assertion_id, work_id, organization_id)
-		VALUES ($1, $2, $3, $4)`,
-		id, assertionID, workID, orgID)
+		INSERT INTO bbl_work_assertion_organizations (assertion_id, organization_id)
+		VALUES ($1, $2)`,
+		assertionID, organizationID)
 	if err != nil {
 		return fmt.Errorf("writeWorkOrganization: %w", err)
 	}
 	return nil
 }
 
-func writeWorkRel(ctx context.Context, tx pgx.Tx, id ID, assertionID int64, workID, relatedWorkID ID, kind string) error {
+func writeWorkRel(ctx context.Context, tx pgx.Tx, assertionID int64, relatedWorkID ID, kind string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_work_rels (id, assertion_id, work_id, related_work_id, kind)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, workID, relatedWorkID, kind)
+		INSERT INTO bbl_work_assertion_rels (assertion_id, related_work_id, kind)
+		VALUES ($1, $2, $3)`,
+		assertionID, relatedWorkID, kind)
 	if err != nil {
 		return fmt.Errorf("writeWorkRel: %w", err)
 	}
@@ -174,12 +87,22 @@ type SetWorkTitles struct {
 	WorkID ID      `json:"work_id"`
 	Titles []Title `json:"titles"`
 	userID *ID
+	role   *string
 }
 
 func (m *SetWorkTitles) name() string       { return "set:work_titles" }
-func (m *SetWorkTitles) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkTitles) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkTitles) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkTitles) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Titles, m.Titles) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "titles") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -189,12 +112,14 @@ func (m *SetWorkTitles) apply(state updateState, userID *ID) (*updateEffect, err
 	}, nil
 }
 func (m *SetWorkTitles) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "titles", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "titles", revID); err != nil {
+		return fmt.Errorf("SetWorkTitles: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'titles' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkTitles: %w", err)
 	}
 	for _, t := range m.Titles {
-		if err := writeWorkTitle(ctx, tx, newID(), assertionID, m.WorkID, t.Lang, t.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "titles", t, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkTitles: %w", err)
 		}
 	}
@@ -207,12 +132,22 @@ type SetWorkAbstracts struct {
 	WorkID    ID
 	Abstracts []Text `json:"abstracts"`
 	userID    *ID
+	role      *string
 }
 
 func (m *SetWorkAbstracts) name() string       { return "set:work_abstracts" }
-func (m *SetWorkAbstracts) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkAbstracts) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkAbstracts) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Abstracts, m.Abstracts) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "abstracts") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -222,12 +157,14 @@ func (m *SetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect, 
 	}, nil
 }
 func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "abstracts", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "abstracts", revID); err != nil {
+		return fmt.Errorf("SetWorkAbstracts: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'abstracts' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkAbstracts: %w", err)
 	}
 	for _, t := range m.Abstracts {
-		if err := writeWorkAbstract(ctx, tx, newID(), assertionID, m.WorkID, t.Lang, t.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "abstracts", t, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkAbstracts: %w", err)
 		}
 	}
@@ -237,8 +174,16 @@ func (m *SetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) er
 type UnsetWorkAbstracts struct{ WorkID ID }
 
 func (m *UnsetWorkAbstracts) name() string       { return "unset:work_abstracts" }
-func (m *UnsetWorkAbstracts) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkAbstracts) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkAbstracts) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Abstracts) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "abstracts") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -248,6 +193,9 @@ func (m *UnsetWorkAbstracts) apply(state updateState, userID *ID) (*updateEffect
 	}, nil
 }
 func (m *UnsetWorkAbstracts) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "abstracts", revID); err != nil {
+		return fmt.Errorf("UnsetWorkAbstracts: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'abstracts' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkAbstracts: %w", err)
 	}
@@ -260,12 +208,22 @@ type SetWorkLaySummaries struct {
 	WorkID       ID
 	LaySummaries []Text `json:"lay_summaries"`
 	userID       *ID
+	role         *string
 }
 
 func (m *SetWorkLaySummaries) name() string       { return "set:work_lay_summaries" }
-func (m *SetWorkLaySummaries) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkLaySummaries) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkLaySummaries) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.LaySummaries, m.LaySummaries) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "lay_summaries") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -275,12 +233,14 @@ func (m *SetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEffec
 	}, nil
 }
 func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "lay_summaries", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "lay_summaries", revID); err != nil {
+		return fmt.Errorf("SetWorkLaySummaries: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'lay_summaries' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkLaySummaries: %w", err)
 	}
 	for _, t := range m.LaySummaries {
-		if err := writeWorkLaySummary(ctx, tx, newID(), assertionID, m.WorkID, t.Lang, t.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "lay_summaries", t, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkLaySummaries: %w", err)
 		}
 	}
@@ -290,8 +250,16 @@ func (m *SetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64)
 type UnsetWorkLaySummaries struct{ WorkID ID }
 
 func (m *UnsetWorkLaySummaries) name() string       { return "unset:work_lay_summaries" }
-func (m *UnsetWorkLaySummaries) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkLaySummaries) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkLaySummaries) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.LaySummaries) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "lay_summaries") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -301,6 +269,9 @@ func (m *UnsetWorkLaySummaries) apply(state updateState, userID *ID) (*updateEff
 	}, nil
 }
 func (m *UnsetWorkLaySummaries) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "lay_summaries", revID); err != nil {
+		return fmt.Errorf("UnsetWorkLaySummaries: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'lay_summaries' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkLaySummaries: %w", err)
 	}
@@ -313,12 +284,22 @@ type SetWorkNotes struct {
 	WorkID ID     `json:"work_id"`
 	Notes  []Note `json:"notes"`
 	userID *ID
+	role   *string
 }
 
 func (m *SetWorkNotes) name() string       { return "set:work_notes" }
-func (m *SetWorkNotes) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkNotes) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkNotes) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Notes, m.Notes) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "notes") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -328,12 +309,14 @@ func (m *SetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, erro
 	}, nil
 }
 func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "notes", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "notes", revID); err != nil {
+		return fmt.Errorf("SetWorkNotes: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'notes' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkNotes: %w", err)
 	}
 	for _, n := range m.Notes {
-		if err := writeWorkNote(ctx, tx, newID(), assertionID, m.WorkID, n.Val, n.Kind); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "notes", n, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkNotes: %w", err)
 		}
 	}
@@ -343,8 +326,16 @@ func (m *SetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error 
 type UnsetWorkNotes struct{ WorkID ID }
 
 func (m *UnsetWorkNotes) name() string       { return "unset:work_notes" }
-func (m *UnsetWorkNotes) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkNotes) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkNotes) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Notes) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "notes") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -354,6 +345,9 @@ func (m *UnsetWorkNotes) apply(state updateState, userID *ID) (*updateEffect, er
 	}, nil
 }
 func (m *UnsetWorkNotes) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "notes", revID); err != nil {
+		return fmt.Errorf("UnsetWorkNotes: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'notes' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkNotes: %w", err)
 	}
@@ -366,12 +360,22 @@ type SetWorkKeywords struct {
 	WorkID   ID
 	Keywords []Keyword `json:"keywords"`
 	userID   *ID
+	role     *string
 }
 
 func (m *SetWorkKeywords) name() string       { return "set:work_keywords" }
-func (m *SetWorkKeywords) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkKeywords) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkKeywords) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Keywords, m.Keywords) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "keywords") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -381,12 +385,14 @@ func (m *SetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect, e
 	}, nil
 }
 func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "keywords", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "keywords", revID); err != nil {
+		return fmt.Errorf("SetWorkKeywords: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'keywords' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkKeywords: %w", err)
 	}
 	for _, k := range m.Keywords {
-		if err := writeWorkKeyword(ctx, tx, newID(), assertionID, m.WorkID, k.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "keywords", k, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkKeywords: %w", err)
 		}
 	}
@@ -396,8 +402,16 @@ func (m *SetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) err
 type UnsetWorkKeywords struct{ WorkID ID }
 
 func (m *UnsetWorkKeywords) name() string       { return "unset:work_keywords" }
-func (m *UnsetWorkKeywords) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkKeywords) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkKeywords) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Keywords) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "keywords") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -407,6 +421,9 @@ func (m *UnsetWorkKeywords) apply(state updateState, userID *ID) (*updateEffect,
 	}, nil
 }
 func (m *UnsetWorkKeywords) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "keywords", revID); err != nil {
+		return fmt.Errorf("UnsetWorkKeywords: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'keywords' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkKeywords: %w", err)
 	}
@@ -419,12 +436,22 @@ type SetWorkIdentifiers struct {
 	WorkID      ID
 	Identifiers []WorkIdentifier
 	userID      *ID
+	role        *string
 }
 
 func (m *SetWorkIdentifiers) name() string       { return "set:work_identifiers" }
-func (m *SetWorkIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkIdentifiers) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Identifiers, m.Identifiers) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -434,12 +461,14 @@ func (m *SetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffect
 	}, nil
 }
 func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "identifiers", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "identifiers", revID); err != nil {
+		return fmt.Errorf("SetWorkIdentifiers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkIdentifiers: %w", err)
 	}
 	for _, ident := range m.Identifiers {
-		if err := writeWorkIdentifier(ctx, tx, newID(), assertionID, m.WorkID, ident.Scheme, ident.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "identifiers", ident, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkIdentifiers: %w", err)
 		}
 	}
@@ -449,8 +478,16 @@ func (m *SetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) 
 type UnsetWorkIdentifiers struct{ WorkID ID }
 
 func (m *UnsetWorkIdentifiers) name() string       { return "unset:work_identifiers" }
-func (m *UnsetWorkIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkIdentifiers) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Identifiers) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -460,6 +497,9 @@ func (m *UnsetWorkIdentifiers) apply(state updateState, userID *ID) (*updateEffe
 	}, nil
 }
 func (m *UnsetWorkIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "identifiers", revID); err != nil {
+		return fmt.Errorf("UnsetWorkIdentifiers: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkIdentifiers: %w", err)
 	}
@@ -472,12 +512,22 @@ type SetWorkClassifications struct {
 	WorkID          ID
 	Classifications []WorkClassification
 	userID          *ID
+	role            *string
 }
 
 func (m *SetWorkClassifications) name() string       { return "set:work_classifications" }
-func (m *SetWorkClassifications) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkClassifications) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkClassifications) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkClassifications) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Classifications, m.Classifications) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "classifications") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -487,12 +537,14 @@ func (m *SetWorkClassifications) apply(state updateState, userID *ID) (*updateEf
 	}, nil
 }
 func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "classifications", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "classifications", revID); err != nil {
+		return fmt.Errorf("SetWorkClassifications: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'classifications' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkClassifications: %w", err)
 	}
 	for _, c := range m.Classifications {
-		if err := writeWorkClassification(ctx, tx, newID(), assertionID, m.WorkID, c.Scheme, c.Val); err != nil {
+		if _, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "classifications", c, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetWorkClassifications: %w", err)
 		}
 	}
@@ -502,8 +554,16 @@ func (m *SetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int
 type UnsetWorkClassifications struct{ WorkID ID }
 
 func (m *UnsetWorkClassifications) name() string       { return "unset:work_classifications" }
-func (m *UnsetWorkClassifications) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkClassifications) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkClassifications) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkClassifications) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Classifications) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "classifications") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -513,6 +573,9 @@ func (m *UnsetWorkClassifications) apply(state updateState, userID *ID) (*update
 	}, nil
 }
 func (m *UnsetWorkClassifications) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "classifications", revID); err != nil {
+		return fmt.Errorf("UnsetWorkClassifications: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'classifications' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkClassifications: %w", err)
 	}
@@ -525,12 +588,22 @@ type SetWorkContributors struct {
 	WorkID       ID
 	Contributors []WorkContributor `json:"contributors"`
 	userID       *ID
+	role         *string
 }
 
 func (m *SetWorkContributors) name() string       { return "set:work_contributors" }
-func (m *SetWorkContributors) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkContributors) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkContributors) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkContributors) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && contributorsEqual(w.Contributors, m.Contributors) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "contributors") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -540,12 +613,25 @@ func (m *SetWorkContributors) apply(state updateState, userID *ID) (*updateEffec
 	}, nil
 }
 func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "contributors", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "contributors", revID); err != nil {
 		return fmt.Errorf("SetWorkContributors: %w", err)
 	}
-	for i, c := range m.Contributors {
-		if err := writeWorkContributor(ctx, tx, newID(), assertionID, m.WorkID, i, c.Kind, c.PersonID, c.Name, c.GivenName, c.FamilyName, c.Roles); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'contributors' AND user_id IS NOT NULL`, m.WorkID); err != nil {
+		return fmt.Errorf("SetWorkContributors: %w", err)
+	}
+	for _, c := range m.Contributors {
+		val := struct {
+			Kind       string   `json:"kind,omitempty"`
+			Name       string   `json:"name"`
+			GivenName  string   `json:"given_name,omitempty"`
+			FamilyName string   `json:"family_name,omitempty"`
+			Roles      []string `json:"roles,omitempty"`
+		}{c.Kind, c.Name, c.GivenName, c.FamilyName, c.Roles}
+		assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "contributors", val, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetWorkContributors: %w", err)
+		}
+		if err := writeWorkContributor(ctx, tx, assertionID, c.PersonID, nil); err != nil {
 			return fmt.Errorf("SetWorkContributors: %w", err)
 		}
 	}
@@ -555,8 +641,16 @@ func (m *SetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64)
 type UnsetWorkContributors struct{ WorkID ID }
 
 func (m *UnsetWorkContributors) name() string       { return "unset:work_contributors" }
-func (m *UnsetWorkContributors) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkContributors) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkContributors) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkContributors) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Contributors) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "contributors") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -566,6 +660,9 @@ func (m *UnsetWorkContributors) apply(state updateState, userID *ID) (*updateEff
 	}, nil
 }
 func (m *UnsetWorkContributors) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "contributors", revID); err != nil {
+		return fmt.Errorf("UnsetWorkContributors: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'contributors' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkContributors: %w", err)
 	}
@@ -578,12 +675,22 @@ type SetWorkProjects struct {
 	WorkID   ID
 	Projects []ID `json:"projects"`
 	userID   *ID
+	role     *string
 }
 
 func (m *SetWorkProjects) name() string       { return "set:work_projects" }
-func (m *SetWorkProjects) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkProjects) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkProjects) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkProjects) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Projects, m.Projects) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "projects") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -593,12 +700,18 @@ func (m *SetWorkProjects) apply(state updateState, userID *ID) (*updateEffect, e
 	}, nil
 }
 func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "projects", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "projects", revID); err != nil {
+		return fmt.Errorf("SetWorkProjects: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'projects' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkProjects: %w", err)
 	}
 	for _, pid := range m.Projects {
-		if err := writeWorkProject(ctx, tx, newID(), assertionID, m.WorkID, pid); err != nil {
+		assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "projects", nil, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetWorkProjects: %w", err)
+		}
+		if err := writeWorkProject(ctx, tx, assertionID, pid); err != nil {
 			return fmt.Errorf("SetWorkProjects: %w", err)
 		}
 	}
@@ -608,8 +721,16 @@ func (m *SetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) err
 type UnsetWorkProjects struct{ WorkID ID }
 
 func (m *UnsetWorkProjects) name() string       { return "unset:work_projects" }
-func (m *UnsetWorkProjects) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkProjects) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkProjects) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkProjects) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Projects) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "projects") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -619,6 +740,9 @@ func (m *UnsetWorkProjects) apply(state updateState, userID *ID) (*updateEffect,
 	}, nil
 }
 func (m *UnsetWorkProjects) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "projects", revID); err != nil {
+		return fmt.Errorf("UnsetWorkProjects: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'projects' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkProjects: %w", err)
 	}
@@ -631,12 +755,22 @@ type SetWorkOrganizations struct {
 	WorkID        ID
 	Organizations []ID `json:"organizations"`
 	userID        *ID
+	role          *string
 }
 
 func (m *SetWorkOrganizations) name() string       { return "set:work_organizations" }
-func (m *SetWorkOrganizations) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkOrganizations) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && slicesEqual(w.Organizations, m.Organizations) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "organizations") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -646,12 +780,18 @@ func (m *SetWorkOrganizations) apply(state updateState, userID *ID) (*updateEffe
 	}, nil
 }
 func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "organizations", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "organizations", revID); err != nil {
+		return fmt.Errorf("SetWorkOrganizations: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkOrganizations: %w", err)
 	}
 	for _, oid := range m.Organizations {
-		if err := writeWorkOrganization(ctx, tx, newID(), assertionID, m.WorkID, oid); err != nil {
+		assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "organizations", nil, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetWorkOrganizations: %w", err)
+		}
+		if err := writeWorkOrganization(ctx, tx, assertionID, oid); err != nil {
 			return fmt.Errorf("SetWorkOrganizations: %w", err)
 		}
 	}
@@ -661,8 +801,16 @@ func (m *SetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64
 type UnsetWorkOrganizations struct{ WorkID ID }
 
 func (m *UnsetWorkOrganizations) name() string       { return "unset:work_organizations" }
-func (m *UnsetWorkOrganizations) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkOrganizations) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkOrganizations) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Organizations) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "organizations") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -672,6 +820,9 @@ func (m *UnsetWorkOrganizations) apply(state updateState, userID *ID) (*updateEf
 	}, nil
 }
 func (m *UnsetWorkOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "organizations", revID); err != nil {
+		return fmt.Errorf("UnsetWorkOrganizations: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkOrganizations: %w", err)
 	}
@@ -687,12 +838,22 @@ type SetWorkRels struct {
 		Kind          string `json:"kind"`
 	} `json:"rels"`
 	userID *ID
+	role   *string
 }
 
 func (m *SetWorkRels) name() string       { return "set:work_rels" }
-func (m *SetWorkRels) needs() updateNeeds { return updateNeeds{} }
-func (m *SetWorkRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetWorkRels) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *SetWorkRels) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && workRelsMatch(w.Rels, m.Rels) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "rels") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -702,12 +863,21 @@ func (m *SetWorkRels) apply(state updateState, userID *ID) (*updateEffect, error
 	}, nil
 }
 func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "rels", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "rels", revID); err != nil {
+		return fmt.Errorf("SetWorkRels: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("SetWorkRels: %w", err)
 	}
 	for _, r := range m.Rels {
-		if err := writeWorkRel(ctx, tx, newID(), assertionID, m.WorkID, r.RelatedWorkID, r.Kind); err != nil {
+		val := struct {
+			Kind string `json:"kind"`
+		}{r.Kind}
+		assertionID, err := writeWorkAssertion(ctx, tx, revID, m.WorkID, "rels", val, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetWorkRels: %w", err)
+		}
+		if err := writeWorkRel(ctx, tx, assertionID, r.RelatedWorkID, r.Kind); err != nil {
 			return fmt.Errorf("SetWorkRels: %w", err)
 		}
 	}
@@ -717,8 +887,16 @@ func (m *SetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
 type UnsetWorkRels struct{ WorkID ID }
 
 func (m *UnsetWorkRels) name() string       { return "unset:work_rels" }
-func (m *UnsetWorkRels) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetWorkRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetWorkRels) needs() updateNeeds { return updateNeeds{workIDs: []ID{m.WorkID}} }
+func (m *UnsetWorkRels) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if w := state.works[m.WorkID]; w != nil && len(w.Rels) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.workAssertions[m.WorkID], "rels") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
 		recordID:   m.WorkID,
@@ -728,6 +906,9 @@ func (m *UnsetWorkRels) apply(state updateState, userID *ID) (*updateEffect, err
 	}, nil
 }
 func (m *UnsetWorkRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logWorkHistory(ctx, tx, m.WorkID, "rels", revID); err != nil {
+		return fmt.Errorf("UnsetWorkRels: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_work_assertions WHERE work_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.WorkID); err != nil {
 		return fmt.Errorf("UnsetWorkRels: %w", err)
 	}

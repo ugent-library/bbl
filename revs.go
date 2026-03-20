@@ -64,10 +64,18 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 3. Apply all updaters (pure — no DB access).
+	// 3. Look up the user's role for assertion attribution.
+	var role string
+	if userID != nil {
+		if err := tx.QueryRow(ctx, `SELECT role FROM bbl_users WHERE id = $1`, userID).Scan(&role); err != nil {
+			return false, nil, fmt.Errorf("Update: lookup user role: %w", err)
+		}
+	}
+
+	// 4. Apply all updaters (pure — no DB access).
 	effects := make([]*updateEffect, len(muts))
 	for i, m := range muts {
-		eff, err := m.apply(state, userID)
+		eff, err := m.apply(state, userID, role)
 		if err != nil {
 			return false, nil, fmt.Errorf("Update: %s: %w", m.name(), err)
 		}
@@ -263,98 +271,117 @@ func fetchUpdateState(ctx context.Context, tx pgx.Tx, needs updateNeeds) (update
 		rows, err := tx.Query(ctx, `
 			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
 			       kind, status, start_date, end_date,
-			       deleted_at, deleted_by_id
+			       deleted_at, deleted_by_id,
+			       cache
 			FROM bbl_organizations
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.organizationIDs))
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		orgs, err := pgx.CollectRows(rows, scanOrganizationRow)
+		results, err := pgx.CollectRows(rows, scanOrganizationUpdateRow)
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		state.organizations = make(map[ID]*Organization, len(orgs))
-		for _, o := range orgs {
-			state.organizations[o.ID] = o
+		state.organizations = make(map[ID]*Organization, len(results))
+		state.organizationAssertions = make(map[ID]map[string][]assertionInfo, len(results))
+		for _, r := range results {
+			state.organizations[r.organization.ID] = r.organization
+			state.organizationAssertions[r.organization.ID] = r.assertions
 		}
 	}
 	if len(needs.personIDs) > 0 {
 		rows, err := tx.Query(ctx, `
 			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
-			       status, deleted_at, deleted_by_id
+			       status, deleted_at, deleted_by_id,
+			       cache
 			FROM bbl_people
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.personIDs))
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		people, err := pgx.CollectRows(rows, scanPersonUpdateRow)
+		results, err := pgx.CollectRows(rows, scanPersonUpdateRow)
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		state.people = make(map[ID]*Person, len(people))
-		for _, p := range people {
-			state.people[p.ID] = p
+		state.people = make(map[ID]*Person, len(results))
+		state.personAssertions = make(map[ID]map[string][]assertionInfo, len(results))
+		for _, r := range results {
+			state.people[r.person.ID] = r.person
+			state.personAssertions[r.person.ID] = r.assertions
 		}
 	}
 	if len(needs.workIDs) > 0 {
 		rows, err := tx.Query(ctx, `
 			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
 			       kind, status, review_status, delete_kind,
-			       deleted_at, deleted_by_id
+			       deleted_at, deleted_by_id,
+			       cache
 			FROM bbl_works
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.workIDs))
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		works, err := pgx.CollectRows(rows, scanWorkUpdateRow)
+		results, err := pgx.CollectRows(rows, scanWorkUpdateRow)
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		state.works = make(map[ID]*Work, len(works))
-		for _, w := range works {
-			state.works[w.ID] = w
+		state.works = make(map[ID]*Work, len(results))
+		state.workAssertions = make(map[ID]map[string][]assertionInfo, len(results))
+		for _, r := range results {
+			state.works[r.work.ID] = r.work
+			state.workAssertions[r.work.ID] = r.assertions
 		}
 	}
 	if len(needs.projectIDs) > 0 {
 		rows, err := tx.Query(ctx, `
 			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
 			       status, start_date, end_date,
-			       deleted_at, deleted_by_id
+			       deleted_at, deleted_by_id,
+			       cache
 			FROM bbl_projects
 			WHERE id = ANY($1)
 			FOR UPDATE`, dedup(needs.projectIDs))
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		projects, err := pgx.CollectRows(rows, scanProjectUpdateRow)
+		results, err := pgx.CollectRows(rows, scanProjectUpdateRow)
 		if err != nil {
 			return state, fmt.Errorf("fetchUpdateState: %w", err)
 		}
-		state.projects = make(map[ID]*Project, len(projects))
-		for _, p := range projects {
-			state.projects[p.ID] = p
+		state.projects = make(map[ID]*Project, len(results))
+		state.projectAssertions = make(map[ID]map[string][]assertionInfo, len(results))
+		for _, r := range results {
+			state.projects[r.project.ID] = r.project
+			state.projectAssertions[r.project.ID] = r.assertions
 		}
 	}
 	return state, nil
 }
 
-// scanWorkUpdateRow scans a work row for updater state (no cache column).
-func scanWorkUpdateRow(row pgx.CollectableRow) (*Work, error) {
+type workUpdateData struct {
+	work       *Work
+	assertions map[string][]assertionInfo
+}
+
+// scanWorkUpdateRow scans a work row for updater state, including cache.
+func scanWorkUpdateRow(row pgx.CollectableRow) (workUpdateData, error) {
 	var w Work
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var reviewStatus, deleteKind pgtype.Text
 	var deletedAt pgtype.Timestamptz
+	var cache []byte
 	err := row.Scan(
 		&w.ID, &w.Version, &w.CreatedAt, &w.UpdatedAt,
 		&createdByID, &updatedByID,
 		&w.Kind, &w.Status, &reviewStatus, &deleteKind,
 		&deletedAt, &deletedByID,
+		&cache,
 	)
 	if err != nil {
-		return nil, err
+		return workUpdateData{}, err
 	}
 	if createdByID.Valid {
 		id := ID(createdByID.Bytes)
@@ -377,21 +404,31 @@ func scanWorkUpdateRow(row pgx.CollectableRow) (*Work, error) {
 	if deletedAt.Valid {
 		w.DeletedAt = &deletedAt.Time
 	}
-	return &w, nil
+	if err := parseWorkCache(&w, cache); err != nil {
+		return workUpdateData{}, err
+	}
+	return workUpdateData{work: &w, assertions: parseAssertionsInfo(cache)}, nil
 }
 
-// scanPersonUpdateRow scans a person row for updater state.
-func scanPersonUpdateRow(row pgx.CollectableRow) (*Person, error) {
+type personUpdateData struct {
+	person     *Person
+	assertions map[string][]assertionInfo
+}
+
+// scanPersonUpdateRow scans a person row for updater state, including cache.
+func scanPersonUpdateRow(row pgx.CollectableRow) (personUpdateData, error) {
 	var p Person
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var deletedAt pgtype.Timestamptz
+	var cache []byte
 	err := row.Scan(
 		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
 		&createdByID, &updatedByID,
 		&p.Status, &deletedAt, &deletedByID,
+		&cache,
 	)
 	if err != nil {
-		return nil, err
+		return personUpdateData{}, err
 	}
 	if createdByID.Valid {
 		id := ID(createdByID.Bytes)
@@ -408,22 +445,32 @@ func scanPersonUpdateRow(row pgx.CollectableRow) (*Person, error) {
 	if deletedAt.Valid {
 		p.DeletedAt = &deletedAt.Time
 	}
-	return &p, nil
+	if err := parsePersonCache(&p, cache); err != nil {
+		return personUpdateData{}, err
+	}
+	return personUpdateData{person: &p, assertions: parseAssertionsInfo(cache)}, nil
 }
 
-// scanProjectUpdateRow scans a project row for updater state.
-func scanProjectUpdateRow(row pgx.CollectableRow) (*Project, error) {
+type projectUpdateData struct {
+	project    *Project
+	assertions map[string][]assertionInfo
+}
+
+// scanProjectUpdateRow scans a project row for updater state, including cache.
+func scanProjectUpdateRow(row pgx.CollectableRow) (projectUpdateData, error) {
 	var p Project
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var startDate, endDate, deletedAt pgtype.Timestamptz
+	var cache []byte
 	err := row.Scan(
 		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
 		&createdByID, &updatedByID,
 		&p.Status, &startDate, &endDate,
 		&deletedAt, &deletedByID,
+		&cache,
 	)
 	if err != nil {
-		return nil, err
+		return projectUpdateData{}, err
 	}
 	if createdByID.Valid {
 		id := ID(createdByID.Bytes)
@@ -446,7 +493,51 @@ func scanProjectUpdateRow(row pgx.CollectableRow) (*Project, error) {
 	if deletedAt.Valid {
 		p.DeletedAt = &deletedAt.Time
 	}
-	return &p, nil
+	if err := parseProjectCache(&p, cache); err != nil {
+		return projectUpdateData{}, err
+	}
+	return projectUpdateData{project: &p, assertions: parseAssertionsInfo(cache)}, nil
+}
+
+type organizationUpdateData struct {
+	organization *Organization
+	assertions   map[string][]assertionInfo
+}
+
+// scanOrganizationUpdateRow scans an organization row for updater state, including cache and assertions info.
+func scanOrganizationUpdateRow(row pgx.CollectableRow) (organizationUpdateData, error) {
+	var o Organization
+	var createdByID, updatedByID, deletedByID pgtype.UUID
+	var deletedAt pgtype.Timestamptz
+	var cache []byte
+	if err := row.Scan(
+		&o.ID, &o.Version, &o.CreatedAt, &o.UpdatedAt,
+		&createdByID, &updatedByID,
+		&o.Kind, &o.Status, &o.StartDate, &o.EndDate,
+		&deletedAt, &deletedByID,
+		&cache,
+	); err != nil {
+		return organizationUpdateData{}, err
+	}
+	if createdByID.Valid {
+		id := ID(createdByID.Bytes)
+		o.CreatedByID = &id
+	}
+	if updatedByID.Valid {
+		id := ID(updatedByID.Bytes)
+		o.UpdatedByID = &id
+	}
+	if deletedByID.Valid {
+		id := ID(deletedByID.Bytes)
+		o.DeletedByID = &id
+	}
+	if deletedAt.Valid {
+		o.DeletedAt = &deletedAt.Time
+	}
+	if err := parseOrganizationCache(&o, cache); err != nil {
+		return organizationUpdateData{}, err
+	}
+	return organizationUpdateData{organization: &o, assertions: parseAssertionsInfo(cache)}, nil
 }
 
 // setRecordActorIDs sets created_by_id, updated_by_id, and deleted_by_id on the

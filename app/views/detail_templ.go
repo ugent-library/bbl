@@ -10,7 +10,6 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/ugent-library/bbl"
 )
@@ -53,7 +52,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to works"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 15, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 14, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -66,7 +65,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(workTitle(c, work))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 16, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 15, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -79,7 +78,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Kind"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 18, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 17, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -92,7 +91,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(work.Kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 19, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 18, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -105,7 +104,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 20, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 19, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -118,7 +117,7 @@ func ShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(work.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 21, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 20, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -175,7 +174,7 @@ func ShowPerson(c Ctx, person *bbl.Person) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to people"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 30, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 29, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -188,7 +187,7 @@ func ShowPerson(c Ctx, person *bbl.Person) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(person.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 31, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 30, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -245,7 +244,7 @@ func ShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to projects"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 39, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 38, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -258,7 +257,7 @@ func ShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(projectTitle(c, project))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 40, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 39, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -271,7 +270,7 @@ func ShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 42, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 41, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -284,7 +283,7 @@ func ShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(project.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 43, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 42, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -341,7 +340,7 @@ func ShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to organizations"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 52, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 51, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -354,7 +353,7 @@ func ShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(organizationName(c, org))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 53, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 52, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -367,7 +366,7 @@ func ShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Kind"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 55, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 54, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -380,7 +379,7 @@ func ShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(org.Kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 56, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 55, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -438,7 +437,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var27 string
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to works"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 67, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 66, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 			if templ_7745c5c3_Err != nil {
@@ -451,7 +450,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(workTitle(c, work))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 68, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 67, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 			if templ_7745c5c3_Err != nil {
@@ -473,7 +472,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Edit"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 70, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 69, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 			if templ_7745c5c3_Err != nil {
@@ -495,7 +494,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("History"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 71, Col: 102}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 70, Col: 102}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
@@ -508,7 +507,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Kind"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 74, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 73, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -521,7 +520,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var34 string
 			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(work.Kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 75, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 74, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
@@ -534,7 +533,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 76, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 75, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -547,7 +546,7 @@ func BackofficeShowWork(c Ctx, work *bbl.Work) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(work.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 77, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 76, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -604,7 +603,7 @@ func BackofficeShowPerson(c Ctx, person *bbl.Person) templ.Component {
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to people"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 86, Col: 60}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 85, Col: 60}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -617,7 +616,7 @@ func BackofficeShowPerson(c Ctx, person *bbl.Person) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(person.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 87, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 86, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 			if templ_7745c5c3_Err != nil {
@@ -674,7 +673,7 @@ func BackofficeShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var43 string
 			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to projects"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 95, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 94, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 			if templ_7745c5c3_Err != nil {
@@ -687,7 +686,7 @@ func BackofficeShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var44 string
 			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(projectTitle(c, project))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 96, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 95, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 			if templ_7745c5c3_Err != nil {
@@ -700,7 +699,7 @@ func BackofficeShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var45 string
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 98, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 97, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
@@ -713,7 +712,7 @@ func BackofficeShowProject(c Ctx, project *bbl.Project) templ.Component {
 			var templ_7745c5c3_Var46 string
 			templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(project.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 99, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 98, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 			if templ_7745c5c3_Err != nil {
@@ -770,7 +769,7 @@ func BackofficeShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var49 string
 			templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to organizations"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 108, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 107, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 			if templ_7745c5c3_Err != nil {
@@ -783,7 +782,7 @@ func BackofficeShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var50 string
 			templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(organizationName(c, org))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 109, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 108, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 			if templ_7745c5c3_Err != nil {
@@ -796,7 +795,7 @@ func BackofficeShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var51 string
 			templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Kind"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 111, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 110, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 			if templ_7745c5c3_Err != nil {
@@ -809,7 +808,7 @@ func BackofficeShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 			var templ_7745c5c3_Var52 string
 			templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(org.Kind)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 112, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 111, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 			if templ_7745c5c3_Err != nil {
@@ -829,7 +828,7 @@ func BackofficeShowOrganization(c Ctx, org *bbl.Organization) templ.Component {
 	})
 }
 
-func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) templ.Component {
+func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkHistoryEntry) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -875,7 +874,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 			var templ_7745c5c3_Var56 string
 			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Back to work"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 121, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 120, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 			if templ_7745c5c3_Err != nil {
@@ -888,7 +887,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 			var templ_7745c5c3_Var57 string
 			templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(workTitle(c, work))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 122, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 121, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 			if templ_7745c5c3_Err != nil {
@@ -901,7 +900,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 			var templ_7745c5c3_Var58 string
 			templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("History"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 122, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 121, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 			if templ_7745c5c3_Err != nil {
@@ -919,7 +918,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 				var templ_7745c5c3_Var59 string
 				templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(group.field)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 125, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 124, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 				if templ_7745c5c3_Err != nil {
@@ -932,7 +931,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Value"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 130, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 129, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 				if templ_7745c5c3_Err != nil {
@@ -945,7 +944,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 				var templ_7745c5c3_Var61 string
 				templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("By"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 131, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 130, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 				if templ_7745c5c3_Err != nil {
@@ -958,7 +957,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 				var templ_7745c5c3_Var62 string
 				templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("Date"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 132, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 131, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 				if templ_7745c5c3_Err != nil {
@@ -978,6 +977,11 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
+					} else if a.IsHistory {
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<span style=\"color:#999;font-size:0.85em\">was</span>")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</td><td>")
 					if templ_7745c5c3_Err != nil {
@@ -991,7 +995,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						var templ_7745c5c3_Var63 string
 						templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("(hidden)"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 145, Col: 34}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 146, Col: 34}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 						if templ_7745c5c3_Err != nil {
@@ -1003,9 +1007,9 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						}
 					} else if a.Val == nil {
 						var templ_7745c5c3_Var64 string
-						templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d %s", a.Size, a.Field))
+						templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(a.Field)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 147, Col: 50}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 148, Col: 20}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 						if templ_7745c5c3_Err != nil {
@@ -1015,7 +1019,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						var templ_7745c5c3_Var65 string
 						templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(assertionDisplayVal(a))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 149, Col: 35}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 150, Col: 35}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 						if templ_7745c5c3_Err != nil {
@@ -1030,7 +1034,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						var templ_7745c5c3_Var66 string
 						templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(a.Source)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 154, Col: 21}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 155, Col: 21}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 						if templ_7745c5c3_Err != nil {
@@ -1040,7 +1044,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						var templ_7745c5c3_Var67 string
 						templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(a.UserID.String())
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 156, Col: 30}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 157, Col: 30}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 						if templ_7745c5c3_Err != nil {
@@ -1058,7 +1062,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 							var templ_7745c5c3_Var68 string
 							templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(a.Role)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 158, Col: 21}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 159, Col: 21}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 							if templ_7745c5c3_Err != nil {
@@ -1075,9 +1079,9 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var69 string
-					templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(a.AssertedAt.Format("2006-01-02 15:04"))
+					templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(a.RevAt.Format("2006-01-02 15:04"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 162, Col: 54}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 163, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 					if templ_7745c5c3_Err != nil {
@@ -1101,7 +1105,7 @@ func BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) t
 				var templ_7745c5c3_Var70 string
 				templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(c.Loc("No assertions."))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 170, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `app/views/detail.templ`, Line: 171, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 				if templ_7745c5c3_Err != nil {
@@ -1157,10 +1161,10 @@ func organizationName(c Ctx, o *bbl.Organization) string {
 
 type assertionGroup struct {
 	field      string
-	assertions []bbl.WorkAssertion
+	assertions []bbl.WorkHistoryEntry
 }
 
-func groupAssertionsByField(history []bbl.WorkAssertion) []assertionGroup {
+func groupAssertionsByField(history []bbl.WorkHistoryEntry) []assertionGroup {
 	var groups []assertionGroup
 	seen := make(map[string]int) // field → index in groups
 	for _, a := range history {
@@ -1175,7 +1179,7 @@ func groupAssertionsByField(history []bbl.WorkAssertion) []assertionGroup {
 	return groups
 }
 
-func assertionDisplayVal(a bbl.WorkAssertion) string {
+func assertionDisplayVal(a bbl.WorkHistoryEntry) string {
 	if a.Val == nil {
 		return ""
 	}

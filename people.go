@@ -174,30 +174,22 @@ func importPersonFields(ctx context.Context, tx pgx.Tx, revID int64, personID ID
 }
 
 func importPersonRelations(ctx context.Context, tx pgx.Tx, revID int64, personID ID, source string, sourceRecordID ID, in *ImportPersonInput) error {
-	if len(in.Identifiers) > 0 {
-		aID, err := writePersonAssertion(ctx, tx, revID, personID, "identifiers", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
+	for _, id := range in.Identifiers {
+		if _, err := writePersonAssertion(ctx, tx, revID, personID, "identifiers", id, false, &sourceRecordID, nil, nil); err != nil {
 			return err
 		}
-		for _, id := range in.Identifiers {
-			if err := writePersonIdentifier(ctx, tx, newID(), personID, aID, id.Scheme, id.Val); err != nil {
-				return err
-			}
-		}
 	}
-	if len(in.Affiliations) > 0 {
+	for _, a := range in.Affiliations {
+		org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
+		if err != nil {
+			continue
+		}
 		aID, err := writePersonAssertion(ctx, tx, revID, personID, "organizations", nil, false, &sourceRecordID, nil, nil)
 		if err != nil {
 			return err
 		}
-		for _, a := range in.Affiliations {
-			org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
-			if err != nil {
-				continue
-			}
-			if err := writePersonOrganization(ctx, tx, newID(), personID, org.ID, aID); err != nil {
-				return err
-			}
+		if err := writePersonOrganization(ctx, tx, aID, org.ID, nil, nil); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
-// --- shared write helpers for organization relation tables ---
+// --- shared write helpers for organization assertion tables ---
 
 func writeOrganizationAssertion(ctx context.Context, tx pgx.Tx, revID int64, organizationID ID, field string, val any, hidden bool, organizationSourceID *ID, userID *ID, role *string) (int64, error) {
 	var valJSON []byte
@@ -31,33 +30,11 @@ func writeOrganizationAssertion(ctx context.Context, tx pgx.Tx, revID int64, org
 	return id, nil
 }
 
-func writeOrganizationName(ctx context.Context, tx pgx.Tx, id, organizationID ID, assertionID int64, lang, val string) error {
+func writeOrganizationRel(ctx context.Context, tx pgx.Tx, assertionID int64, relOrganizationID ID, kind string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_organization_names (id, assertion_id, organization_id, lang, val)
-		VALUES ($1, $2, $3, COALESCE(NULLIF($4, ''), 'und'), $5)`,
-		id, assertionID, organizationID, lang, val)
-	if err != nil {
-		return fmt.Errorf("writeOrganizationName: %w", err)
-	}
-	return nil
-}
-
-func writeOrganizationIdentifier(ctx context.Context, tx pgx.Tx, id, organizationID ID, assertionID int64, scheme, val string) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_organization_identifiers (id, assertion_id, organization_id, scheme, val)
-		VALUES ($1, $2, $3, $4, $5)`,
-		id, assertionID, organizationID, scheme, val)
-	if err != nil {
-		return fmt.Errorf("writeOrganizationIdentifier: %w", err)
-	}
-	return nil
-}
-
-func writeOrganizationRel(ctx context.Context, tx pgx.Tx, id, organizationID, relOrganizationID ID, assertionID int64, kind string, startDate, endDate *time.Time) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_organization_rels (id, assertion_id, organization_id, rel_organization_id, kind, start_date, end_date)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id, assertionID, organizationID, relOrganizationID, kind, startDate, endDate)
+		INSERT INTO bbl_organization_assertion_rels (assertion_id, rel_organization_id, kind)
+		VALUES ($1, $2, $3)`,
+		assertionID, relOrganizationID, kind)
 	if err != nil {
 		return fmt.Errorf("writeOrganizationRel: %w", err)
 	}
@@ -74,12 +51,22 @@ type SetOrganizationNames struct {
 	OrganizationID ID `json:"organization_id"`
 	Names          []Text
 	userID         *ID
+	role           *string
 }
 
 func (m *SetOrganizationNames) name() string       { return "set:organization_names" }
-func (m *SetOrganizationNames) needs() updateNeeds { return updateNeeds{} }
-func (m *SetOrganizationNames) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetOrganizationNames) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *SetOrganizationNames) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if o := state.organizations[m.OrganizationID]; o != nil && slicesEqual(o.Names, m.Names) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "names") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -89,12 +76,14 @@ func (m *SetOrganizationNames) apply(state updateState, userID *ID) (*updateEffe
 	}, nil
 }
 func (m *SetOrganizationNames) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "names", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "names", revID); err != nil {
+		return fmt.Errorf("SetOrganizationNames: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.OrganizationID, "names"); err != nil {
 		return fmt.Errorf("SetOrganizationNames: %w", err)
 	}
 	for _, t := range m.Names {
-		if err := writeOrganizationName(ctx, tx, newID(), m.OrganizationID, assertionID, t.Lang, t.Val); err != nil {
+		if _, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "names", t, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetOrganizationNames: %w", err)
 		}
 	}
@@ -107,12 +96,22 @@ type SetOrganizationIdentifiers struct {
 	OrganizationID ID `json:"organization_id"`
 	Identifiers    []Identifier
 	userID         *ID
+	role           *string
 }
 
 func (m *SetOrganizationIdentifiers) name() string       { return "set:organization_identifiers" }
-func (m *SetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *SetOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *SetOrganizationIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if o := state.organizations[m.OrganizationID]; o != nil && slicesEqual(o.Identifiers, m.Identifiers) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -122,12 +121,14 @@ func (m *SetOrganizationIdentifiers) apply(state updateState, userID *ID) (*upda
 	}, nil
 }
 func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "identifiers", revID); err != nil {
+		return fmt.Errorf("SetOrganizationIdentifiers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.OrganizationID, "identifiers"); err != nil {
 		return fmt.Errorf("SetOrganizationIdentifiers: %w", err)
 	}
 	for _, ident := range m.Identifiers {
-		if err := writeOrganizationIdentifier(ctx, tx, newID(), m.OrganizationID, assertionID, ident.Scheme, ident.Val); err != nil {
+		if _, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", ident, false, nil, m.userID, m.role); err != nil {
 			return fmt.Errorf("SetOrganizationIdentifiers: %w", err)
 		}
 	}
@@ -137,8 +138,16 @@ func (m *SetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID
 type UnsetOrganizationIdentifiers struct{ OrganizationID ID }
 
 func (m *UnsetOrganizationIdentifiers) name() string       { return "unset:organization_identifiers" }
-func (m *UnsetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *UnsetOrganizationIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if o := state.organizations[m.OrganizationID]; o != nil && len(o.Identifiers) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -148,6 +157,9 @@ func (m *UnsetOrganizationIdentifiers) apply(state updateState, userID *ID) (*up
 	}, nil
 }
 func (m *UnsetOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "identifiers", revID); err != nil {
+		return fmt.Errorf("UnsetOrganizationIdentifiers: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'identifiers' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
 		return fmt.Errorf("UnsetOrganizationIdentifiers: %w", err)
 	}
@@ -163,12 +175,22 @@ type SetOrganizationRels struct {
 		Kind              string `json:"kind"`
 	} `json:"rels"`
 	userID *ID
+	role   *string
 }
 
 func (m *SetOrganizationRels) name() string       { return "set:organization_rels" }
-func (m *SetOrganizationRels) needs() updateNeeds { return updateNeeds{} }
-func (m *SetOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *SetOrganizationRels) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *SetOrganizationRels) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if o := state.organizations[m.OrganizationID]; o != nil && orgRelsMatch(o.Rels, m.Rels) {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "rels") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -178,12 +200,21 @@ func (m *SetOrganizationRels) apply(state updateState, userID *ID) (*updateEffec
 	}, nil
 }
 func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", nil, false, nil, m.userID, nil)
-	if err != nil {
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "rels", revID); err != nil {
+		return fmt.Errorf("SetOrganizationRels: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.OrganizationID, "rels"); err != nil {
 		return fmt.Errorf("SetOrganizationRels: %w", err)
 	}
 	for _, r := range m.Rels {
-		if err := writeOrganizationRel(ctx, tx, newID(), m.OrganizationID, r.RelOrganizationID, assertionID, r.Kind, nil, nil); err != nil {
+		val := struct {
+			Kind string `json:"kind"`
+		}{r.Kind}
+		assertionID, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", val, false, nil, m.userID, m.role)
+		if err != nil {
+			return fmt.Errorf("SetOrganizationRels: %w", err)
+		}
+		if err := writeOrganizationRel(ctx, tx, assertionID, r.RelOrganizationID, r.Kind); err != nil {
 			return fmt.Errorf("SetOrganizationRels: %w", err)
 		}
 	}
@@ -193,8 +224,16 @@ func (m *SetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64)
 type UnsetOrganizationRels struct{ OrganizationID ID }
 
 func (m *UnsetOrganizationRels) name() string       { return "unset:organization_rels" }
-func (m *UnsetOrganizationRels) needs() updateNeeds { return updateNeeds{} }
-func (m *UnsetOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *UnsetOrganizationRels) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *UnsetOrganizationRels) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if o := state.organizations[m.OrganizationID]; o != nil && len(o.Rels) == 0 {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "rels") {
+			return nil, ErrCuratorLock
+		}
+	}
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -204,6 +243,9 @@ func (m *UnsetOrganizationRels) apply(state updateState, userID *ID) (*updateEff
 	}, nil
 }
 func (m *UnsetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "rels", revID); err != nil {
+		return fmt.Errorf("UnsetOrganizationRels: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = 'rels' AND user_id IS NOT NULL`, m.OrganizationID); err != nil {
 		return fmt.Errorf("UnsetOrganizationRels: %w", err)
 	}
@@ -219,12 +261,22 @@ func (m *UnsetOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int6
 type HideOrganizationIdentifiers struct {
 	OrganizationID ID
 	userID         *ID
+	role           *string
 }
 
 func (m *HideOrganizationIdentifiers) name() string       { return "hide:organization_identifiers" }
-func (m *HideOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{} }
-func (m *HideOrganizationIdentifiers) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *HideOrganizationIdentifiers) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *HideOrganizationIdentifiers) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.organizationAssertions[m.OrganizationID], "identifiers") {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "identifiers") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -234,7 +286,13 @@ func (m *HideOrganizationIdentifiers) apply(state updateState, userID *ID) (*upd
 	}, nil
 }
 func (m *HideOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", nil, true, nil, m.userID, nil)
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "identifiers", revID); err != nil {
+		return fmt.Errorf("HideOrganizationIdentifiers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.OrganizationID, "identifiers"); err != nil {
+		return fmt.Errorf("HideOrganizationIdentifiers: %w", err)
+	}
+	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "identifiers", nil, true, nil, m.userID, m.role)
 	return err
 }
 
@@ -243,12 +301,22 @@ func (m *HideOrganizationIdentifiers) write(ctx context.Context, tx pgx.Tx, revI
 type HideOrganizationRels struct {
 	OrganizationID ID
 	userID         *ID
+	role           *string
 }
 
 func (m *HideOrganizationRels) name() string       { return "hide:organization_rels" }
-func (m *HideOrganizationRels) needs() updateNeeds { return updateNeeds{} }
-func (m *HideOrganizationRels) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *HideOrganizationRels) needs() updateNeeds { return updateNeeds{organizationIDs: []ID{m.OrganizationID}} }
+func (m *HideOrganizationRels) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.organizationAssertions[m.OrganizationID], "rels") {
+		return nil, nil
+	}
+	if role != "curator" {
+		if fieldCuratorLocked(state.organizationAssertions[m.OrganizationID], "rels") {
+			return nil, ErrCuratorLock
+		}
+	}
 	m.userID = userID
+	m.role = &role
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
@@ -258,6 +326,12 @@ func (m *HideOrganizationRels) apply(state updateState, userID *ID) (*updateEffe
 	}, nil
 }
 func (m *HideOrganizationRels) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", nil, true, nil, m.userID, nil)
+	if err := logOrganizationHistory(ctx, tx, m.OrganizationID, "rels", revID); err != nil {
+		return fmt.Errorf("HideOrganizationRels: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_organization_assertions WHERE organization_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.OrganizationID, "rels"); err != nil {
+		return fmt.Errorf("HideOrganizationRels: %w", err)
+	}
+	_, err := writeOrganizationAssertion(ctx, tx, revID, m.OrganizationID, "rels", nil, true, nil, m.userID, m.role)
 	return err
 }

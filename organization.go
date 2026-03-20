@@ -33,13 +33,10 @@ type Organization struct {
 
 // OrganizationRel links two organizations with a typed, optionally temporal relationship.
 type OrganizationRel struct {
-	ID                ID         `json:"id"`
-	OrganizationID    ID         `json:"organization_id"`
 	RelOrganizationID ID         `json:"rel_organization_id"`
 	Kind              string     `json:"kind"`
 	StartDate         *time.Time `json:"start_date,omitempty"`
 	EndDate           *time.Time `json:"end_date,omitempty"`
-	Source            string     `json:"source,omitempty"`
 }
 
 // ImportOrganizationInput carries all data for one organization record arriving from a source.

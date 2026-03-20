@@ -126,7 +126,7 @@ CREATE INDEX ON bbl_grants (user_id) WHERE revoked_at IS NULL AND expires_at IS 
 CREATE INDEX ON bbl_grants (expires_at) WHERE expires_at IS NOT NULL;
 
 -- ============================================================
--- AUDIT: REVS & ASSERTION SEQUENCE
+-- AUDIT: REVS & HISTORY
 -- Defined early so assertion tables can FK to bbl_revs.
 -- ============================================================
 
@@ -137,7 +137,17 @@ CREATE TABLE bbl_revs (
     source     text REFERENCES bbl_sources (id)  -- NULL for human revs; both informational
 );
 
-CREATE SEQUENCE bbl_assertion_seq;
+CREATE TABLE bbl_history (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    rev_id      bigint NOT NULL REFERENCES bbl_revs (id),
+    record_type text NOT NULL,
+    record_id   uuid NOT NULL,
+    field       text NOT NULL,
+    val         jsonb,
+    hidden      bool
+);
+
+CREATE INDEX ON bbl_history (record_type, record_id);
 
 -- ============================================================
 -- ORGANIZATIONS
@@ -175,7 +185,7 @@ CREATE TABLE bbl_organization_sources (
 CREATE INDEX ON bbl_organization_sources (source, source_id);
 
 CREATE TABLE bbl_organization_assertions (
-    id                     bigint PRIMARY KEY DEFAULT nextval('bbl_assertion_seq'),
+    id                     bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     rev_id                 bigint NOT NULL REFERENCES bbl_revs (id),
     organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     field                  text NOT NULL,
@@ -190,50 +200,22 @@ CREATE TABLE bbl_organization_assertions (
     CHECK (num_nonnulls(organization_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_organization_assertions (organization_id, field, organization_source_id)
-  WHERE organization_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_organization_assertions (organization_id, field)
+CREATE INDEX ON bbl_organization_assertions (organization_id, field)
   WHERE pinned = true;
 
-CREATE TABLE bbl_organization_identifiers (
-    id                     uuid PRIMARY KEY,
-    assertion_id           bigint NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
-    organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    scheme                 text NOT NULL,
-    val                    text NOT NULL,
-    CHECK (scheme <> ''),
-    CHECK (val <> '')
-);
+-- Extension table: organization rels need FK columns.
+-- Identifiers and names are inlined in bbl_organization_assertions.
 
-CREATE INDEX ON bbl_organization_identifiers (organization_id);
-CREATE INDEX ON bbl_organization_identifiers (scheme, val);
-
-CREATE TABLE bbl_organization_names (
-    id                     uuid PRIMARY KEY,
-    assertion_id           bigint NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
-    organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    lang                   text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val                    text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_organization_names (organization_id);
-
-CREATE TABLE bbl_organization_rels (
-    id                     uuid PRIMARY KEY,
-    assertion_id           bigint NOT NULL REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
-    organization_id        uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    rel_organization_id    uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    kind                   text NOT NULL,
-    start_date             date,
-    end_date               date,
-    CHECK (organization_id <> rel_organization_id),
+CREATE TABLE bbl_organization_assertion_rels (
+    assertion_id        bigint PRIMARY KEY REFERENCES bbl_organization_assertions (id) ON DELETE CASCADE,
+    rel_organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    kind                text NOT NULL,
+    start_date          date,
+    end_date            date,
     CHECK (kind <> '')
 );
 
-CREATE INDEX ON bbl_organization_rels (organization_id);
-CREATE INDEX ON bbl_organization_rels (rel_organization_id);
-CREATE INDEX ON bbl_organization_rels (organization_id) WHERE end_date IS NULL;
+CREATE INDEX ON bbl_organization_assertion_rels (rel_organization_id);
 
 -- ============================================================
 -- PEOPLE
@@ -273,7 +255,7 @@ CREATE TABLE bbl_person_sources (
 CREATE INDEX ON bbl_person_sources (source, source_id);
 
 CREATE TABLE bbl_person_assertions (
-    id               bigint PRIMARY KEY DEFAULT nextval('bbl_assertion_seq'),
+    id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     rev_id           bigint NOT NULL REFERENCES bbl_revs (id),
     person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     field            text NOT NULL,
@@ -288,35 +270,20 @@ CREATE TABLE bbl_person_assertions (
     CHECK (num_nonnulls(person_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_person_assertions (person_id, field, person_source_id)
-  WHERE person_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_person_assertions (person_id, field)
+CREATE INDEX ON bbl_person_assertions (person_id, field)
   WHERE pinned = true;
 
-CREATE TABLE bbl_person_identifiers (
-    id               uuid PRIMARY KEY,
-    assertion_id     bigint NOT NULL REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
-    person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
-    scheme           text NOT NULL,
-    val              text NOT NULL,
-    CHECK (scheme <> ''),
-    CHECK (val <> '')
+-- Extension table: person-organization links need FK columns.
+-- Identifiers are inlined in bbl_person_assertions.
+
+CREATE TABLE bbl_person_assertion_organizations (
+    assertion_id    bigint PRIMARY KEY REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
+    valid_from      date,
+    valid_to        date
 );
 
-CREATE INDEX ON bbl_person_identifiers (person_id);
-CREATE INDEX ON bbl_person_identifiers (scheme, val);
-
-CREATE TABLE bbl_person_organizations (
-    id               uuid PRIMARY KEY,
-    assertion_id     bigint NOT NULL REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
-    person_id        uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
-    organization_id  uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
-    valid_from       date,
-    valid_to         date
-);
-
-CREATE INDEX ON bbl_person_organizations (person_id);
-CREATE INDEX ON bbl_person_organizations (organization_id);
+CREATE INDEX ON bbl_person_assertion_organizations (organization_id);
 
 -- ============================================================
 -- PROJECTS
@@ -352,7 +319,7 @@ CREATE TABLE bbl_project_sources (
 CREATE INDEX ON bbl_project_sources (source, source_id);
 
 CREATE TABLE bbl_project_assertions (
-    id                bigint PRIMARY KEY DEFAULT nextval('bbl_assertion_seq'),
+    id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     rev_id            bigint NOT NULL REFERENCES bbl_revs (id),
     project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
     field             text NOT NULL,
@@ -367,57 +334,20 @@ CREATE TABLE bbl_project_assertions (
     CHECK (num_nonnulls(project_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_project_assertions (project_id, field, project_source_id)
-  WHERE project_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_project_assertions (project_id, field)
+CREATE INDEX ON bbl_project_assertions (project_id, field)
   WHERE pinned = true;
 
-CREATE TABLE bbl_project_titles (
-    id                uuid PRIMARY KEY,
-    assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
-    project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    lang              text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val               text NOT NULL,
-    CHECK (val <> '')
-);
+-- Extension table: project-person links need FK columns.
+-- Titles, descriptions, identifiers are inlined in bbl_project_assertions.
 
-CREATE INDEX ON bbl_project_titles (project_id);
-
-CREATE TABLE bbl_project_descriptions (
-    id                uuid PRIMARY KEY,
-    assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
-    project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    lang              text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val               text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_project_descriptions (project_id);
-
-CREATE TABLE bbl_project_identifiers (
-    id                uuid PRIMARY KEY,
-    assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
-    project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    scheme            text NOT NULL,
-    val               text NOT NULL,
-    CHECK (scheme <> ''),
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_project_identifiers (project_id);
-CREATE INDEX ON bbl_project_identifiers (scheme, val);
-
-CREATE TABLE bbl_project_people (
-    id                uuid PRIMARY KEY,
-    assertion_id      bigint NOT NULL REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
-    project_id        uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE CASCADE,
-    person_id         uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
-    role              text,
+CREATE TABLE bbl_project_assertion_people (
+    assertion_id bigint PRIMARY KEY REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
+    person_id    uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
+    role         text,
     CHECK (role <> '')
 );
 
-CREATE INDEX ON bbl_project_people (project_id);
-CREATE INDEX ON bbl_project_people (person_id);
+CREATE INDEX ON bbl_project_assertion_people (person_id);
 
 -- ============================================================
 -- PERSON CANDIDATES
@@ -580,14 +510,15 @@ CREATE INDEX ON bbl_work_sources (source, source_id);
 CREATE INDEX ON bbl_work_sources (candidate_id) WHERE candidate_id IS NOT NULL;
 
 -- Assertions table: tracks who asserted what about which field.
--- Scalar values are inlined (val). Collective values live in relation tables with assertion_id FK.
+-- Scalar values and collection items are inlined (val jsonb).
+-- FK-bearing items have a thin extension table for the FK columns.
 
 CREATE TABLE bbl_work_assertions (
-    id             bigint PRIMARY KEY DEFAULT nextval('bbl_assertion_seq'),
+    id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     rev_id         bigint NOT NULL REFERENCES bbl_revs (id),
     work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     field          text NOT NULL,
-    val            jsonb,              -- scalar value; NULL for collective fields
+    val            jsonb,
     hidden         bool NOT NULL DEFAULT false,
     work_source_id uuid REFERENCES bbl_work_sources (id) ON DELETE CASCADE,
     user_id        uuid REFERENCES bbl_users (id) ON DELETE SET NULL,
@@ -598,140 +529,44 @@ CREATE TABLE bbl_work_assertions (
     CHECK (num_nonnulls(work_source_id, user_id) = 1)
 );
 
-CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field, work_source_id)
-  WHERE work_source_id IS NOT NULL;
-CREATE UNIQUE INDEX ON bbl_work_assertions (work_id, field)
+CREATE INDEX ON bbl_work_assertions (work_id, field)
   WHERE pinned = true;
 
-CREATE TABLE bbl_work_identifiers (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    scheme         text NOT NULL,
-    val            text NOT NULL,
-    CHECK (scheme <> ''),
-    CHECK (val <> '')
+-- Extension tables: only for collection items that need FK columns.
+-- Pure-value collectives (identifiers, classifications, titles, abstracts,
+-- lay summaries, notes, keywords) are inlined in bbl_work_assertions.
+
+CREATE TABLE bbl_work_assertion_contributors (
+    assertion_id    bigint PRIMARY KEY REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    person_id       uuid REFERENCES bbl_people (id) ON DELETE SET NULL,
+    organization_id uuid REFERENCES bbl_organizations (id) ON DELETE SET NULL
 );
 
-CREATE INDEX ON bbl_work_identifiers (work_id);
-CREATE INDEX ON bbl_work_identifiers (scheme, val);
+CREATE INDEX ON bbl_work_assertion_contributors (person_id) WHERE person_id IS NOT NULL;
+CREATE INDEX ON bbl_work_assertion_contributors (organization_id) WHERE organization_id IS NOT NULL;
 
-CREATE TABLE bbl_work_classifications (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    scheme         text NOT NULL,
-    val            text NOT NULL,
-    CHECK (scheme <> ''),
-    CHECK (val <> '')
+CREATE TABLE bbl_work_assertion_projects (
+    assertion_id bigint PRIMARY KEY REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
+    project_id   uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE RESTRICT
 );
 
-CREATE INDEX ON bbl_work_classifications (work_id);
-CREATE INDEX ON bbl_work_classifications (scheme, val);
+CREATE INDEX ON bbl_work_assertion_projects (project_id);
 
-CREATE TABLE bbl_work_contributors (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    position       int NOT NULL,
-    kind           text NOT NULL DEFAULT 'person' CHECK (kind IN ('person', 'organization')),
-    person_id      uuid REFERENCES bbl_people (id) ON DELETE SET NULL,
-    name           text NOT NULL,
-    given_name     text,
-    family_name    text,
-    roles          text[] NOT NULL DEFAULT '{}'
-);
-
-CREATE INDEX ON bbl_work_contributors (work_id);
-CREATE INDEX ON bbl_work_contributors (person_id) WHERE person_id IS NOT NULL;
-CREATE INDEX ON bbl_work_contributors USING gin (roles) WHERE roles != '{}';
-
-CREATE TABLE bbl_work_titles (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val            text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_work_titles (work_id);
-
-CREATE TABLE bbl_work_abstracts (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val            text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_work_abstracts (work_id);
-
-CREATE TABLE bbl_work_lay_summaries (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    lang           text NOT NULL DEFAULT 'und' CHECK (lang <> ''),
-    val            text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_work_lay_summaries (work_id);
-
-CREATE TABLE bbl_work_notes (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    val            text NOT NULL,
-    kind           text,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_work_notes (work_id);
-
-CREATE TABLE bbl_work_keywords (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    val            text NOT NULL,
-    CHECK (val <> '')
-);
-
-CREATE INDEX ON bbl_work_keywords (work_id);
-
-CREATE TABLE bbl_work_projects (
-    id             uuid PRIMARY KEY,
-    assertion_id   bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id        uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
-    project_id     uuid NOT NULL REFERENCES bbl_projects (id) ON DELETE RESTRICT
-);
-
-CREATE INDEX ON bbl_work_projects (work_id);
-CREATE INDEX ON bbl_work_projects (project_id);
-
-CREATE TABLE bbl_work_organizations (
-    id              uuid PRIMARY KEY,
-    assertion_id    bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+CREATE TABLE bbl_work_assertion_organizations (
+    assertion_id    bigint PRIMARY KEY REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE RESTRICT
 );
 
-CREATE INDEX ON bbl_work_organizations (work_id);
-CREATE INDEX ON bbl_work_organizations (organization_id);
+CREATE INDEX ON bbl_work_assertion_organizations (organization_id);
 
-CREATE TABLE bbl_work_rels (
-    id              uuid PRIMARY KEY,
-    assertion_id    bigint NOT NULL REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
-    work_id         uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
+CREATE TABLE bbl_work_assertion_rels (
+    assertion_id    bigint PRIMARY KEY REFERENCES bbl_work_assertions (id) ON DELETE CASCADE,
     related_work_id uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
     kind            text NOT NULL,
-    CHECK (work_id <> related_work_id),
     CHECK (kind <> '')
 );
 
-CREATE INDEX ON bbl_work_rels (work_id);
-CREATE INDEX ON bbl_work_rels (related_work_id);
+CREATE INDEX ON bbl_work_assertion_rels (related_work_id);
 
 CREATE TABLE bbl_work_files (
     work_id             uuid NOT NULL REFERENCES bbl_works (id) ON DELETE CASCADE,
@@ -851,109 +686,11 @@ CREATE INDEX ON bbl_subscriptions (topic) WHERE status = 'active';
 -- VIEWS
 -- ============================================================
 
-CREATE VIEW bbl_works_view AS
-SELECT w.*,
-       w_sf.str_fields,
-       w_i.identifiers,
-       w_cl.classifications,
-       w_c.contributors,
-       w_t.titles,
-       w_a.abstracts,
-       w_ls.lay_summaries,
-       w_n.notes,
-       w_kw.keywords
-FROM bbl_works w
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('field', sf.field, 'val', sf.val)
-    ORDER BY sf.field
-  ) FILTER (WHERE sf.work_id IS NOT NULL) AS str_fields
-  FROM bbl_work_assertions sf
-  WHERE sf.work_id = w.id AND sf.pinned = true AND sf.hidden = false AND sf.val IS NOT NULL
-) w_sf ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('scheme', i.scheme, 'val', i.val)
-    ORDER BY i.scheme, i.val
-  ) FILTER (WHERE i.work_id IS NOT NULL) AS identifiers
-  FROM bbl_work_identifiers i
-  JOIN bbl_work_assertions a ON a.id = i.assertion_id
-  WHERE i.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_i ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('scheme', cl.scheme, 'val', cl.val)
-    ORDER BY cl.scheme, cl.val
-  ) FILTER (WHERE cl.work_id IS NOT NULL) AS classifications
-  FROM bbl_work_classifications cl
-  JOIN bbl_work_assertions a ON a.id = cl.assertion_id
-  WHERE cl.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_cl ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object(
-      'position', c.position,
-      'kind', c.kind,
-      'person_id', c.person_id,
-      'name', c.name,
-      'given_name', c.given_name,
-      'family_name', c.family_name,
-      'roles', c.roles
-    ) ORDER BY c.position
-  ) FILTER (WHERE c.work_id IS NOT NULL) AS contributors
-  FROM bbl_work_contributors c
-  JOIN bbl_work_assertions a ON a.id = c.assertion_id
-  WHERE c.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_c ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('lang', t.lang, 'val', t.val)
-    ORDER BY t.lang, t.val
-  ) FILTER (WHERE t.work_id IS NOT NULL) AS titles
-  FROM bbl_work_titles t
-  JOIN bbl_work_assertions a ON a.id = t.assertion_id
-  WHERE t.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_t ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('lang', ab.lang, 'val', ab.val)
-    ORDER BY ab.lang
-  ) FILTER (WHERE ab.work_id IS NOT NULL) AS abstracts
-  FROM bbl_work_abstracts ab
-  JOIN bbl_work_assertions a ON a.id = ab.assertion_id
-  WHERE ab.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_a ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('lang', ls.lang, 'val', ls.val)
-    ORDER BY ls.lang
-  ) FILTER (WHERE ls.work_id IS NOT NULL) AS lay_summaries
-  FROM bbl_work_lay_summaries ls
-  JOIN bbl_work_assertions a ON a.id = ls.assertion_id
-  WHERE ls.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_ls ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('kind', n.kind, 'val', n.val)
-    ORDER BY n.kind
-  ) FILTER (WHERE n.work_id IS NOT NULL) AS notes
-  FROM bbl_work_notes n
-  JOIN bbl_work_assertions a ON a.id = n.assertion_id
-  WHERE n.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_n ON true
-LEFT JOIN LATERAL (
-  SELECT json_agg(
-    json_build_object('val', kw.val)
-    ORDER BY kw.val
-  ) FILTER (WHERE kw.work_id IS NOT NULL) AS keywords
-  FROM bbl_work_keywords kw
-  JOIN bbl_work_assertions a ON a.id = kw.assertion_id
-  WHERE kw.work_id = w.id AND a.pinned = true AND a.hidden = false
-) w_kw ON true;
+-- View: all pinned assertion values for a work, grouped by field.
+-- Scalar fields have position IS NULL. Collection items have position set.
+-- Contributors join to extension table for person_id/organization_id.
 
 -- +goose down
-
-DROP VIEW IF EXISTS bbl_works_view;
 DROP TABLE IF EXISTS bbl_subscriptions CASCADE;
 DROP TABLE IF EXISTS bbl_list_items CASCADE;
 DROP TABLE IF EXISTS bbl_lists CASCADE;
@@ -962,17 +699,10 @@ DROP TABLE IF EXISTS bbl_work_representations CASCADE;
 DROP TABLE IF EXISTS bbl_work_collections CASCADE;
 DROP TABLE IF EXISTS bbl_work_reviews CASCADE;
 DROP TABLE IF EXISTS bbl_work_files CASCADE;
-DROP TABLE IF EXISTS bbl_work_rels CASCADE;
-DROP TABLE IF EXISTS bbl_work_projects CASCADE;
-DROP TABLE IF EXISTS bbl_work_organizations CASCADE;
-DROP TABLE IF EXISTS bbl_work_keywords CASCADE;
-DROP TABLE IF EXISTS bbl_work_notes CASCADE;
-DROP TABLE IF EXISTS bbl_work_lay_summaries CASCADE;
-DROP TABLE IF EXISTS bbl_work_abstracts CASCADE;
-DROP TABLE IF EXISTS bbl_work_titles CASCADE;
-DROP TABLE IF EXISTS bbl_work_contributors CASCADE;
-DROP TABLE IF EXISTS bbl_work_classifications CASCADE;
-DROP TABLE IF EXISTS bbl_work_identifiers CASCADE;
+DROP TABLE IF EXISTS bbl_work_assertion_rels CASCADE;
+DROP TABLE IF EXISTS bbl_work_assertion_projects CASCADE;
+DROP TABLE IF EXISTS bbl_work_assertion_organizations CASCADE;
+DROP TABLE IF EXISTS bbl_work_assertion_contributors CASCADE;
 DROP TABLE IF EXISTS bbl_work_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_work_sources CASCADE;
 DROP TABLE IF EXISTS bbl_work_candidate_organizations CASCADE;
@@ -984,26 +714,20 @@ DROP TABLE IF EXISTS bbl_works CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidate_scores CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidate_identifiers CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidates CASCADE;
-DROP TABLE IF EXISTS bbl_revs CASCADE;
-DROP SEQUENCE IF EXISTS bbl_assertion_seq CASCADE;
-DROP TABLE IF EXISTS bbl_project_people CASCADE;
-DROP TABLE IF EXISTS bbl_project_descriptions CASCADE;
-DROP TABLE IF EXISTS bbl_project_titles CASCADE;
-DROP TABLE IF EXISTS bbl_project_sources CASCADE;
-DROP TABLE IF EXISTS bbl_project_identifiers CASCADE;
+DROP TABLE IF EXISTS bbl_project_assertion_people CASCADE;
 DROP TABLE IF EXISTS bbl_project_assertions CASCADE;
+DROP TABLE IF EXISTS bbl_project_sources CASCADE;
 DROP TABLE IF EXISTS bbl_projects CASCADE;
-DROP TABLE IF EXISTS bbl_person_organizations CASCADE;
-DROP TABLE IF EXISTS bbl_person_identifiers CASCADE;
+DROP TABLE IF EXISTS bbl_person_assertion_organizations CASCADE;
 DROP TABLE IF EXISTS bbl_person_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_person_sources CASCADE;
 DROP TABLE IF EXISTS bbl_people CASCADE;
-DROP TABLE IF EXISTS bbl_organization_sources CASCADE;
-DROP TABLE IF EXISTS bbl_organization_rels CASCADE;
-DROP TABLE IF EXISTS bbl_organization_names CASCADE;
-DROP TABLE IF EXISTS bbl_organization_identifiers CASCADE;
+DROP TABLE IF EXISTS bbl_organization_assertion_rels CASCADE;
 DROP TABLE IF EXISTS bbl_organization_assertions CASCADE;
+DROP TABLE IF EXISTS bbl_organization_sources CASCADE;
 DROP TABLE IF EXISTS bbl_organizations CASCADE;
+DROP TABLE IF EXISTS bbl_history CASCADE;
+DROP TABLE IF EXISTS bbl_revs CASCADE;
 DROP TABLE IF EXISTS bbl_grants CASCADE;
 DROP TABLE IF EXISTS bbl_user_tokens CASCADE;
 DROP TABLE IF EXISTS bbl_user_proxies CASCADE;

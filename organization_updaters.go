@@ -22,7 +22,7 @@ func (m *CreateOrganization) name() string { return "create:organization" }
 
 func (m *CreateOrganization) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateOrganization) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *CreateOrganization) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	m.org = &Organization{
 		ID:        m.OrganizationID,
 		Version:   1,
@@ -68,7 +68,7 @@ func (m *DeleteOrganization) needs() updateNeeds {
 	return updateNeeds{organizationIDs: []ID{m.OrganizationID}}
 }
 
-func (m *DeleteOrganization) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *DeleteOrganization) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	o, ok := state.organizations[m.OrganizationID]
 	if !ok {
 		return nil, fmt.Errorf("DeleteOrganization: organization %s not found", m.OrganizationID)

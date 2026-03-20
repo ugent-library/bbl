@@ -5,7 +5,7 @@ import "testing"
 func TestSetWorkArticleNumber_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkArticleNumber{WorkID: workID, Val: "e12345"}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestSetWorkConference_Apply(t *testing.T) {
 		WorkID: workID,
 		Val:    Conference{Name: "ICSE 2024", Location: "Lisbon"},
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestSetWorkPages_Apply(t *testing.T) {
 		WorkID: workID,
 		Val:    Extent{Start: "1", End: "42"},
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestSetWorkPages_Apply(t *testing.T) {
 func TestSetWorkVolume_Apply(t *testing.T) {
 	workID := newID()
 	m := &SetWorkVolume{WorkID: workID, Val: "42"}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestSetWorkVolume_Apply(t *testing.T) {
 func TestUnsetWorkVolume_Apply(t *testing.T) {
 	workID := newID()
 	m := &UnsetWorkVolume{WorkID: workID}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}

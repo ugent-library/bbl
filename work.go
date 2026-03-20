@@ -69,6 +69,10 @@ type Work struct {
 	LaySummaries    []Text               `json:"lay_summaries,omitempty"`
 	Notes           []Note               `json:"notes,omitempty"`
 	Keywords        []Keyword            `json:"keywords,omitempty"`
+	Projects        []ID                 `json:"projects,omitempty"`
+	Organizations   []ID                 `json:"organizations,omitempty"`
+	Rels            []WorkRel            `json:"rels,omitempty"`
+
 }
 
 // ImportWorkInput carries all data for one work record arriving from a source.
@@ -158,13 +162,18 @@ type WorkClassification struct {
 
 // WorkContributor is a contributor read from the cache column.
 type WorkContributor struct {
-	Position   int      `json:"position"`
 	Kind       string   `json:"kind,omitempty"`        // "person" (default) or "organization"
 	PersonID   *ID      `json:"person_id,omitempty"`
 	Name       string   `json:"name,omitempty"`
 	GivenName  string   `json:"given_name,omitempty"`
 	FamilyName string   `json:"family_name,omitempty"`
 	Roles      []string `json:"roles,omitempty"`
+}
+
+// WorkRel links two works with a typed relationship.
+type WorkRel struct {
+	RelatedWorkID ID     `json:"related_work_id"`
+	Kind          string `json:"kind"`
 }
 
 // WorkSourceIter is implemented by sources that can iterate all records.

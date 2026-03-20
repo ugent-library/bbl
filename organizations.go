@@ -86,16 +86,19 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 		orgID := info.orgID
 		srcRecID := info.srcRecID
 		if len(in.Rels) > 0 {
-			aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "rels", nil, false, &srcRecID, nil, nil)
-			if err != nil {
-				return n, err
-			}
 			for _, rel := range in.Rels {
 				relOrg, err := resolveOrganizationRef(ctx, tx, rel.Ref, source)
 				if err != nil {
 					continue
 				}
-				if err := writeOrganizationRel(ctx, tx, newID(), orgID, relOrg.ID, aID, rel.Kind, rel.StartDate, rel.EndDate); err != nil {
+				val := struct {
+					Kind string `json:"kind"`
+				}{rel.Kind}
+				aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "rels", val, false, &srcRecID, nil, nil)
+				if err != nil {
+					return n, err
+				}
+				if err := writeOrganizationRel(ctx, tx, aID, relOrg.ID, rel.Kind); err != nil {
 					return n, err
 				}
 			}
@@ -171,12 +174,8 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 
 	// Insert identifiers.
 	if len(in.Identifiers) > 0 {
-		aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "identifiers", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return ID{}, ID{}, false, err
-		}
 		for _, id := range in.Identifiers {
-			if err := writeOrganizationIdentifier(ctx, tx, newID(), orgID, aID, id.Scheme, id.Val); err != nil {
+			if _, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "identifiers", id, false, &sourceRecordID, nil, nil); err != nil {
 				return ID{}, ID{}, false, err
 			}
 		}
@@ -184,12 +183,8 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 
 	// Insert names.
 	if len(in.Names) > 0 {
-		aID, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "names", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return ID{}, ID{}, false, err
-		}
 		for _, t := range in.Names {
-			if err := writeOrganizationName(ctx, tx, newID(), orgID, aID, t.Lang, t.Val); err != nil {
+			if _, err := writeOrganizationAssertion(ctx, tx, revID, orgID, "names", t, false, &sourceRecordID, nil, nil); err != nil {
 				return ID{}, ID{}, false, err
 			}
 		}
@@ -328,9 +323,9 @@ func parseOrganizationCache(o *Organization, cache []byte) error {
 		return nil
 	}
 	var d struct {
-		Identifiers []Identifier      `json:"identifiers,omitempty"`
-		Names       []Text            `json:"names,omitempty"`
-		Rels        []OrganizationRel `json:"rels,omitempty"`
+		Identifiers []Identifier          `json:"identifiers,omitempty"`
+		Names       []Text                `json:"names,omitempty"`
+		Rels        []OrganizationRel     `json:"rels,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parseOrganizationCache: %w", err)

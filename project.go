@@ -48,7 +48,7 @@ type ImportProjectInput struct {
 
 	// Text list fields.
 	Titles       []Title `json:"titles,omitempty"`
-	Descriptions []Text `json:"descriptions,omitempty"`
+	Descriptions []Text  `json:"descriptions,omitempty"`
 
 	Participants []ImportProjectParticipant `json:"participants,omitempty"`
 

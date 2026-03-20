@@ -2,7 +2,6 @@ package views
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/ugent-library/bbl"
 )
@@ -115,7 +114,7 @@ templ BackofficeShowOrganization(c Ctx, org *bbl.Organization) {
 	}
 }
 
-templ BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) {
+templ BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkHistoryEntry) {
 	@Layout(c, c.Loc("History")+" - "+c.Loc("Backoffice")) {
 		<main>
 			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>{ c.Loc("Back to work") }</a></p>
@@ -138,13 +137,15 @@ templ BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) 
 									<td>
 										if a.Pinned {
 											<strong>&#9733;</strong>
+										} else if a.IsHistory {
+											<span style="color:#999;font-size:0.85em">was</span>
 										}
 									</td>
 									<td>
 										if a.Hidden {
 											<em>{ c.Loc("(hidden)") }</em>
 										} else if a.Val == nil {
-											{ fmt.Sprintf("%d %s", a.Size, a.Field) }
+											{ a.Field }
 										} else {
 											{ assertionDisplayVal(a) }
 										}
@@ -159,7 +160,7 @@ templ BackofficeWorkHistory(c Ctx, work *bbl.Work, history []bbl.WorkAssertion) 
 											}
 										}
 									</td>
-									<td>{ a.AssertedAt.Format("2006-01-02 15:04") }</td>
+									<td>{ a.RevAt.Format("2006-01-02 15:04") }</td>
 								</tr>
 							}
 						</tbody>
@@ -204,10 +205,10 @@ func organizationName(c Ctx, o *bbl.Organization) string {
 
 type assertionGroup struct {
 	field      string
-	assertions []bbl.WorkAssertion
+	assertions []bbl.WorkHistoryEntry
 }
 
-func groupAssertionsByField(history []bbl.WorkAssertion) []assertionGroup {
+func groupAssertionsByField(history []bbl.WorkHistoryEntry) []assertionGroup {
 	var groups []assertionGroup
 	seen := make(map[string]int) // field → index in groups
 	for _, a := range history {
@@ -222,7 +223,7 @@ func groupAssertionsByField(history []bbl.WorkAssertion) []assertionGroup {
 	return groups
 }
 
-func assertionDisplayVal(a bbl.WorkAssertion) string {
+func assertionDisplayVal(a bbl.WorkHistoryEntry) string {
 	if a.Val == nil {
 		return ""
 	}

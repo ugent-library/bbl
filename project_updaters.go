@@ -22,7 +22,7 @@ func (m *CreateProject) name() string { return "create:project" }
 
 func (m *CreateProject) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateProject) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *CreateProject) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	if m.Status == "" {
 		m.Status = ProjectStatusPublic
 	}
@@ -68,7 +68,7 @@ func (m *DeleteProject) needs() updateNeeds {
 	return updateNeeds{projectIDs: []ID{m.ProjectID}}
 }
 
-func (m *DeleteProject) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *DeleteProject) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	p, ok := state.projects[m.ProjectID]
 	if !ok {
 		return nil, fmt.Errorf("DeleteProject: project %s not found", m.ProjectID)

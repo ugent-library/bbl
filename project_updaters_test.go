@@ -12,7 +12,7 @@ func TestCreateProject_Apply(t *testing.T) {
 		ProjectID: id,
 		StartDate: &start,
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestDeleteProject_Apply(t *testing.T) {
 	state := updateState{projects: map[ID]*Project{id: existing}}
 
 	m := &DeleteProject{ProjectID: id}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestDeleteProject_AlreadyDeleted(t *testing.T) {
 	state := updateState{projects: map[ID]*Project{id: existing}}
 
 	m := &DeleteProject{ProjectID: id}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}

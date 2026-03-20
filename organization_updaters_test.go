@@ -8,7 +8,7 @@ func TestCreateOrganization_Apply(t *testing.T) {
 		OrganizationID: id,
 		Kind:           "department",
 	}
-	eff, err := m.apply(updateState{}, nil)
+	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestDeleteOrganization_Apply(t *testing.T) {
 	state := updateState{organizations: map[ID]*Organization{id: existing}}
 
 	m := &DeleteOrganization{OrganizationID: id}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestDeleteOrganization_AlreadyDeleted(t *testing.T) {
 	state := updateState{organizations: map[ID]*Organization{id: existing}}
 
 	m := &DeleteOrganization{OrganizationID: id}
-	eff, err := m.apply(state, nil)
+	eff, err := m.apply(state, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}

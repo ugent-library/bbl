@@ -21,7 +21,7 @@ func (m *CreateWork) name() string { return "create:work" }
 
 func (m *CreateWork) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateWork) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *CreateWork) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	if m.Status == "" {
 		m.Status = WorkStatusPrivate
 	}
@@ -69,7 +69,7 @@ func (m *DeleteWork) needs() updateNeeds {
 	return updateNeeds{workIDs: []ID{m.WorkID}}
 }
 
-func (m *DeleteWork) apply(state updateState, userID *ID) (*updateEffect, error) {
+func (m *DeleteWork) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
 	w, ok := state.works[m.WorkID]
 	if !ok {
 		return nil, fmt.Errorf("DeleteWork: work %s not found", m.WorkID)

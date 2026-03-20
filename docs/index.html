@@ -278,7 +278,7 @@ function tbl(headers, rows, caption) {
 }
 
 const fldHeaders = ['work', 'field', 'val', 'hidden', 'source', 'user', 'pinned'];
-const contribHeaders = ['work', 'pos', 'name', 'assertion'];
+const contribHeaders = ['work', 'name', 'assertion'];
 
 const scenes = [
 
@@ -523,45 +523,51 @@ const scenes = [
       C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt caption">${C.usr('Green dot')} = human assertion. It ${C.pin('gets the pin')} over sources, regardless of source priority.
-    Source assertions are ${C.hdr('untouched')} — the curator created a new row.</div>`;
+    Source assertions are ${C.hdr('untouched')} — the curator created their own assertion.</div>`;
   }
 },
 
-// ─── 6b: Another human asserts over the curator ───
+// ─── 6b: Curator lock ───
 {
-  title: "Assertions — History builds up (human over human)",
+  title: "Assertions — Curator lock & one human assertion per field",
   build() {
     return `
-    <div class="mb">${C.hdr('User')} (${C.usr('U99')}) later corrects volume again → ${C.usr('additive, no replace')}</div>
+    <div class="mb">${C.hdr('At most one human assertion exists per field.')} A new edit replaces the previous one.</div>
     <div class="viz">
-      <div class="viz-title">Human assertions are additive — both stay, most recent curator wins</div>
-      ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'curator U42'], ['human', 'user U99']])}
+      <div class="viz-title">One human assertion per field</div>
+      ${legend([['wos', 'wos'], ['scopus', 'scopus'], ['human', 'curator U42']])}
       ${fieldRow('volume',
-        dot('wos', '"42a"', false) +
+        dot('wos', '"42"', false) +
         dot('scopus', '"vol. 42"', false) +
-        dot('human', '"42a" (U42, curator)', true) +
-        dot('human', '"42b" (U99, user)', false))}
-      ${fieldRow('year',
-        dot('wos', '"2025"', true) +
-        dot('scopus', '"2025"', false))}
+        dot('human', '"42a" (U42, curator)', true))}
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">How human edits work</div>
+      <div style="margin:6px 0">A Set ${C.usr('replaces')} the previous human assertion. The old value is saved to ${C.hl('bbl_history')} first.</div>
+      <div style="margin:6px 0">One human assertion per field — always clean, always deterministic.</div>
+    </div>
+
+    <div class="mt viz">
+      <div class="viz-title">Curator lock</div>
+      <div style="margin:6px 0">A curator's assertion acts as a ${C.pin('lock')} on that field:</div>
+      <div style="margin:6px 0">${C.usr('Users cannot edit this field')} — the system rejects the attempt.</div>
+      <div style="margin:6px 0">${C.usr('Another curator can overwrite')} — their Set replaces the previous curator's assertion.</div>
+      <div style="margin:6px 0">If the curator ${C.hl('Unsets')}, the field falls back to the best source — there is no user assertion underneath.</div>
     </div>` +
     tbl([...fldHeaders, 'role'],
       [
-        [C.hl('W001'), 'volume', C.dim('"42a"'),     '', C.dim('wos'),    '—',          '',            ''],
+        [C.hl('W001'), 'volume', C.dim('"42"'),      '', C.dim('wos'),    '—',          '',            ''],
         [C.hl('W001'), 'volume', C.dim('"vol. 42"'), '', C.dim('scopus'), '—',          '',            ''],
         [C.hl('W001'), 'volume', C.usr('"42a"'),     '', '—',             C.usr('U42'), C.pin('★ yes'), C.usr('curator')],
-        [C.hl('W001'), 'volume', C.dim('"42b"'),     '', '—',             C.dim('U99'), '',             C.dim('user')],
-        [C.hl('W001'), 'year',   C.src('"2025"'),    '', C.src('wos'),    '—',          C.pin('★ yes'), ''],
-        [C.hl('W001'), 'year',   C.dim('"2025"'),    '', C.dim('scopus'), '—',          '',             ''],
       ],
       C.hdr('bbl_work_assertions')
     ) +
     `<div class="mt flow">
-      <div class="flow-step">${C.usr('Additive')}: U99's assertion is a new row, U42's stays</div>
-      <div class="flow-step">${C.pin('Curator > user')}: U42's curator assertion still wins (role priority)</div>
-      <div class="flow-step">If U42 ${C.hl('unsets')} → U99's assertion gets pinned (fallback)</div>
-      <div class="flow-step">If U99 were also a curator → most ${C.hl('recent')} curator would win</div>
-      <div class="flow-step">History = the stack of assertion rows. ${C.dim('Pruneable by app logic.')}</div>
+      <div class="flow-step">${C.usr('One human assertion per field')}: a new edit replaces the old one</div>
+      <div class="flow-step">${C.pin('Curator lock')}: regular users cannot overwrite a curator's assertion</div>
+      <div class="flow-step">${C.hl('History')}: old value saved to bbl_history before being replaced</div>
+      <div class="flow-step">If U42 ${C.hl('unsets')} → field falls back to ${C.src('wos')} (highest priority source)</div>
     </div>`;
   }
 },
@@ -688,12 +694,12 @@ const scenes = [
   }
 },
 
-// ─── 9: Collective fields ───
+// ─── 9: List fields ───
 {
-  title: "Assertions — Collective fields (contributors)",
+  title: "Assertions — List fields (contributors)",
   build() {
     return `
-    <div class="mb">${C.hdr('Collective fields')}: the ENTIRE LIST from one asserter is pinned — not individual rows.</div>
+    <div class="mb">${C.hdr('List fields')}: the ENTIRE LIST from one asserter is pinned — not individual items.</div>
     <div class="viz">
       <div class="viz-title">Each dot represents a complete list, not a single person</div>
       ${legend([['wos', 'wos'], ['scopus', 'scopus']])}
@@ -704,12 +710,12 @@ const scenes = [
     </div>` +
     tbl(contribHeaders,
       [
-        [C.hl('W001'), '1', C.src('A. Einstein'), C.src('A1 (wos)')],
-        [C.hl('W001'), '2', C.src('N. Bohr'),     C.src('A1 (wos)')],
-        [C.hl('W001'), '3', C.src('M. Curie'),    C.src('A1 (wos)')],
+        [C.hl('W001'), C.src('A. Einstein'), C.src('A1 (wos)')],
+        [C.hl('W001'), C.src('N. Bohr'),     C.src('A1 (wos)')],
+        [C.hl('W001'), C.src('M. Curie'),    C.src('A1 (wos)')],
         '---',
-        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
-        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
+        [C.hl('W001'), C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
+        [C.hl('W001'), C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
       ],
       C.hdr('bbl_work_contributors — rows FK to assertion, pinning on assertion table')
     ) +
@@ -718,7 +724,7 @@ const scenes = [
   }
 },
 
-// ─── 10: Collective + human edit ───
+// ─── 10: List field + human edit ───
 {
   title: "Assertions — Human edits contributors (copy-on-write)",
   build() {
@@ -734,17 +740,17 @@ const scenes = [
     </div>` +
     tbl(contribHeaders,
       [
-        [C.hl('W001'), '1', C.usr('A. Einstein'),              C.usr('A3 (U42) ★')],
-        [C.hl('W001'), '2', C.usr('N. Bohr'),                  C.usr('A3 (U42) ★')],
-        [C.hl('W001'), '3', C.usr('M. Curie'),                 C.usr('A3 (U42) ★')],
-        [C.hl('W001'), '4', C.usr('R. Feynman') + ' ← added!', C.usr('A3 (U42) ★')],
+        [C.hl('W001'), C.usr('A. Einstein'),              C.usr('A3 (U42) ★')],
+        [C.hl('W001'), C.usr('N. Bohr'),                  C.usr('A3 (U42) ★')],
+        [C.hl('W001'), C.usr('M. Curie'),                 C.usr('A3 (U42) ★')],
+        [C.hl('W001'), C.usr('R. Feynman') + ' ← added!', C.usr('A3 (U42) ★')],
         '---',
-        [C.hl('W001'), '1', C.dim('A. Einstein'), C.dim('A1 (wos)')],
-        [C.hl('W001'), '2', C.dim('N. Bohr'),     C.dim('A1 (wos)')],
-        [C.hl('W001'), '3', C.dim('M. Curie'),    C.dim('A1 (wos)')],
+        [C.hl('W001'), C.dim('A. Einstein'), C.dim('A1 (wos)')],
+        [C.hl('W001'), C.dim('N. Bohr'),     C.dim('A1 (wos)')],
+        [C.hl('W001'), C.dim('M. Curie'),    C.dim('A1 (wos)')],
         '---',
-        [C.hl('W001'), '1', C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
-        [C.hl('W001'), '2', C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
+        [C.hl('W001'), C.dim('Einstein, A.'), C.dim('A2 (scopus)')],
+        [C.hl('W001'), C.dim('Bohr, N.'),     C.dim('A2 (scopus)')],
       ],
       C.hdr('bbl_work_contributors — rows FK to assertions table, pinning tracked there')
     ) +
@@ -836,20 +842,17 @@ const scenes = [
     </div>
 
     <div class="mt flow-diagram" style="padding:12px 16px">
-      <div class="viz-title">Assertion ownership</div>
-      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.src('Source registry')}       all known sources + priorities
+      <div class="viz-title">How assertions are owned</div>
+      <pre style="color:#aaa;line-height:1.8;font-size:13px">  ${C.src('Source')}                 registered data feed (e.g. WoS, Scopus)
         │
         ▼
   ${C.src('Source record')}         per-entity contribution (raw payload, timestamps)
         │
-        ├─▶ ${C.hl('scalar assertions')}      value inline (val jsonb)
-        ├─▶ ${C.hl('collective assertions')} contributors, identifiers, etc.
-        │     └─ value rows FK to assertion
-        └─▶ ${C.hl('...')}                   (all fields, one assertions table)
+        └─▶ ${C.hl('assertions')}          one per field (scalars + collection items)
 
-  ${C.usr('User')}                  human asserters
+  ${C.usr('User')}                  human asserter (curator or regular user)
         │
-        └─▶ assertions owned by user</pre>
+        └─▶ ${C.hl('assertions')}          at most one per field, replaces on edit</pre>
     </div>
 
     <div class="mt caption">${C.dim('Every assertion has exactly one owner — either a source record or a user, never both.')}</div>`;
@@ -894,7 +897,7 @@ const scenes = [
       <div class="viz-title">Every entity has</div>
       <div style="margin:6px 0">An ${C.hl('identity')} — unique ID, version number (bumped on every write), status, timestamps</div>
       <div style="margin:6px 0">${C.src('Source records')} — one per contributing source, with original payload preserved</div>
-      <div style="margin:6px 0">${C.hl('Assertion rows')} — scalar fields and collective relations, each owned by a source or user</div>
+      <div style="margin:6px 0">${C.hl('Assertions')} — scalar fields and list fields (contributors, titles, etc.), each owned by a source or user</div>
       <div style="margin:6px 0">${C.pin('A cache')} — JSON snapshot of pinned values, rebuilt on every write</div>
     </div>
 
@@ -1200,8 +1203,8 @@ const scenes = [
       <div class="flow" style="margin-left:16px">
         <div class="flow-step">All updates are validated and their effects computed ${C.hl('before anything is written')}</div>
         <div class="flow-step">If nothing actually changed — the revision is silently dropped</div>
-        <div class="flow-step">Otherwise: new assertion rows are written (additive), auto-pin runs, cache is rebuilt</div>
-        <div class="flow-step">Previous human assertions stay — they ${C.usr('are')} the history</div>
+        <div class="flow-step">Otherwise: human assertions are written (replacing any previous), auto-pin runs, cache is rebuilt</div>
+        <div class="flow-step">Old values are saved to ${C.hl('bbl_history')} before being replaced</div>
       </div>
     </div>` +
 
@@ -1211,8 +1214,8 @@ const scenes = [
         ['who',        C.src('automated feeds, CLI batch'),           C.usr('curators, API users, bots')],
         ['assertions', C.src('owned by source'),                      C.usr('owned by user')],
         ['scope',      'batch of records per transaction',            'batch of updates per transaction'],
-        ['re-import',  'replaces source assertions wholesale',       'additive — new rows, old stay as history'],
-        ['history',    'no history (source record has payload)',       'built up from additive assertion rows'],
+        ['re-import',  'replaces source assertions wholesale',       'replaces previous human assertion, old saved to history'],
+        ['history',    'source record preserves original payload',    'bbl_history captures old values before each replace'],
       ],
       C.hdr('Comparison')
     ) +
@@ -1226,18 +1229,19 @@ const scenes = [
   title: "Writes — The audit trail",
   build() {
     return `
-    <div class="mb">${C.hdr('History is built from assertions, not a separate log.')}</div>
+    <div class="mb">${C.hdr('Every change is recorded — who did what, when, and what was there before.')}</div>
 
     <div class="viz">
       <div class="viz-title">Revisions</div>
-      <div style="margin:6px 0">A ${C.hl('revision')} is one atomic batch of changes by one actor — a transaction boundary.</div>
+      <div style="margin:6px 0">A ${C.hl('revision')} is one atomic batch of changes by one actor.</div>
       <div style="margin:6px 0">Records who made the change, when, and which source (if any). Every assertion carries its ${C.hl('rev_id')}.</div>
     </div>
 
     <div class="viz">
-      <div class="viz-title">Human history = additive assertions</div>
-      <div style="margin:6px 0">Each human edit creates a ${C.usr('new assertion row')}. Previous assertions stay — they ${C.usr('are')} the history.</div>
-      <div style="margin:6px 0">The sequence of assertion rows for a field tells you who said what, when, in what order.</div>
+      <div class="viz-title">History table</div>
+      <div style="margin:6px 0">When a human edit replaces an existing value, the ${C.usr('old value is saved')} to ${C.hl('bbl_history')} first.</div>
+      <div style="margin:6px 0">Linear history per entity: query ${C.hl('bbl_history')} + current assertions, ordered by rev_id.</div>
+      <div style="margin:6px 0">For collection fields (contributors, titles, etc.), the history table stores a snapshot of the whole list.</div>
     </div>
 
     <div class="mt flow-diagram" style="padding:12px 16px">
@@ -1249,22 +1253,22 @@ const scenes = [
             ${C.hl('Revision')}  (who, when, which source)
                     │
                     ▼
-            ${C.hl('Assertions')}  (new rows, additive for humans)
+            ${C.hl('Assertions')}  written or replaced
                     │
+                    ├─ ${C.usr('bbl_history')}  old values saved before replace
                     ├─ activity feed
-                    ├─ incremental index catch-up
-                    └─ pruneable by app logic</pre>
+                    └─ incremental index catch-up</pre>
     </div>
 
     <div class="mt viz">
       <div class="viz-title">Key properties</div>
-      <div style="margin:6px 0">${C.usr('Additive human edits')} — each edit is a new row. Previous assertions stay for history. Only Unset deletes.</div>
-      <div style="margin:6px 0">${C.src('Source re-imports')} — delete + re-insert, no history kept. The source record has the original payload.</div>
-      <div style="margin:6px 0">${C.hl('Prunable')} — unpinned human assertions can be garbage-collected without affecting current state.</div>
+      <div style="margin:6px 0">${C.usr('Human edits')} — at most one human assertion per field. A new edit replaces the old one; previous value saved to bbl_history.</div>
+      <div style="margin:6px 0">${C.src('Source re-imports')} — old source assertions removed, new ones written. Source record preserves the original payload.</div>
+      <div style="margin:6px 0">${C.hl('History table')} — append-only. List fields store a JSON snapshot of the whole list.</div>
       <div style="margin:6px 0">${C.cand('Both paths')} — imports and human edits write the same assertion tables. One place to look.</div>
     </div>
 
-    <div class="mt caption">${C.dim('No separate audit log needed. Assertions = state + history. Revisions = transaction envelopes.')}</div>`;
+    <div class="mt caption">${C.dim('Assertions = current state. History table = previous values. Revisions = transaction envelopes.')}</div>`;
   }
 },
 
@@ -1278,7 +1282,7 @@ const scenes = [
 
       <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">The Assertion Model</div>
       <div class="rule"><span class="num">1.</span> Every field value is an ${C.hl('assertion')} with an origin (${C.src('source')} or ${C.usr('human')}). Nothing is overwritten.</div>
-      <div class="rule"><span class="num">2.</span> One assertion per field is ${C.pin('pinned')} for display. ${C.usr('Curator > user > source')}; most recent wins within same level.</div>
+      <div class="rule"><span class="num">2.</span> One assertion per field is ${C.pin('pinned')} for display. ${C.usr('Human always wins')} over source. Curator assertion acts as a lock — users cannot override it.</div>
       <div class="rule"><span class="num">3.</span> Three operations: ${C.usr('Set')} (assert value), ${C.pin('Hide')} (assert absence), ${C.hl('Unset')} (withdraw, source wins back).</div>
       <div class="rule"><span class="num">4.</span> Re-import replaces only the source's own assertions. ${C.usr('Human pins are never disturbed.')}</div>
       <div class="rule"><span class="num">5.</span> ${C.pin('Cache')} rebuilt from pinned values on every write. One JSON snapshot for display, search, and export.</div>
@@ -1295,7 +1299,7 @@ const scenes = [
 
       <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px">Write Operations &amp; Audit</div>
       <div class="rule"><span class="num">12.</span> Two write paths: ${C.src('Import')} (source batches) and ${C.usr('Update')} (humans, API, bots). No ad-hoc writes.</div>
-      <div class="rule"><span class="num">13.</span> Every state change logged via ${C.hl('revisions')} (who, when). Human assertions are ${C.usr('additive')} — history builds up naturally.</div>
+      <div class="rule"><span class="num">13.</span> Every state change logged via ${C.hl('revisions')} (who, when). Old values saved to ${C.hl('bbl_history')} before being replaced.</div>
     </div>
 
     <div class="mt flow-diagram" style="padding:12px 16px">
