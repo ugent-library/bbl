@@ -77,10 +77,10 @@ func TestUnsetPersonIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestSetPersonOrganizations_Apply(t *testing.T) {
+func TestSetPersonAffiliations_Apply(t *testing.T) {
 	personID := newID()
 	orgID := newID()
-	m := &SetPersonOrganizations{PersonID: personID, Organizations: []PersonOrganization{{OrganizationID: orgID}}}
+	m := &SetPersonAffiliations{PersonID: personID, Affiliations: []PersonAffiliation{{OrganizationID: orgID}}}
 	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
@@ -93,9 +93,9 @@ func TestSetPersonOrganizations_Apply(t *testing.T) {
 	}
 }
 
-func TestUnsetPersonOrganizations_Apply(t *testing.T) {
+func TestUnsetPersonAffiliations_Apply(t *testing.T) {
 	personID := newID()
-	m := &UnsetPersonOrganizations{PersonID: personID}
+	m := &UnsetPersonAffiliations{PersonID: personID}
 	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)

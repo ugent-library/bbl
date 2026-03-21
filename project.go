@@ -28,14 +28,13 @@ type Project struct {
 	Titles       []Title         `json:"titles,omitempty"`
 	Descriptions []Text          `json:"descriptions,omitempty"`
 	Identifiers  []Identifier    `json:"identifiers,omitempty"`
-	People       []ProjectPerson `json:"people,omitempty"`
+	Participants []ProjectParticipant `json:"participants,omitempty"`
 }
 
-// ProjectPerson is a participant read from the cache column.
-type ProjectPerson struct {
+// ProjectParticipant is a participant read from the cache column.
+type ProjectParticipant struct {
 	PersonID ID     `json:"person_id"`
 	Role     string `json:"role,omitempty"`
-	Source   string `json:"source,omitempty"`
 }
 
 // ImportProjectInput carries all data for one project record arriving from a source.

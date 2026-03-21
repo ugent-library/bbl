@@ -218,7 +218,7 @@ func rebuildPersonCache(ctx context.Context, tx pgx.Tx, personIDs []ID) error {
 			'middle_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'middle_name' AND sf.pinned = true AND NOT sf.hidden), ''),
 			'family_name', COALESCE((SELECT sf.val #>> '{}' FROM bbl_person_assertions sf WHERE sf.person_id = p.id AND sf.field = 'family_name' AND sf.pinned = true AND NOT sf.hidden), ''),
 			'identifiers', (SELECT json_agg(a.val ORDER BY a.id) FROM bbl_person_assertions a WHERE a.person_id = p.id AND a.field = 'identifiers' AND a.pinned = true AND NOT a.hidden),
-			'organizations', (SELECT json_agg(json_build_object('val', a.val, 'organization_id', po.organization_id) ORDER BY a.id) FROM bbl_person_assertions a LEFT JOIN bbl_person_assertion_organizations po ON po.assertion_id = a.id WHERE a.person_id = p.id AND a.field = 'organizations' AND a.pinned = true AND NOT a.hidden),
+			'affiliations', (SELECT json_agg(json_build_object('val', a.val, 'organization_id', po.organization_id) ORDER BY a.id) FROM bbl_person_assertions a LEFT JOIN bbl_person_assertion_affiliations po ON po.assertion_id = a.id WHERE a.person_id = p.id AND a.field = 'affiliations' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_person_assertions a LEFT JOIN bbl_person_sources s ON s.id = a.person_source_id WHERE a.person_id = p.id AND a.pinned = true GROUP BY a.field) sub)
 		)
 		WHERE p.id = ANY($1)`, dedup(personIDs))
@@ -239,7 +239,7 @@ func rebuildProjectCache(ctx context.Context, tx pgx.Tx, projectIDs []ID) error 
 			'titles', (SELECT json_agg(a.val ORDER BY a.id) FROM bbl_project_assertions a WHERE a.project_id = p.id AND a.field = 'titles' AND a.pinned = true AND NOT a.hidden),
 			'descriptions', (SELECT json_agg(a.val ORDER BY a.id) FROM bbl_project_assertions a WHERE a.project_id = p.id AND a.field = 'descriptions' AND a.pinned = true AND NOT a.hidden),
 			'identifiers', (SELECT json_agg(a.val ORDER BY a.id) FROM bbl_project_assertions a WHERE a.project_id = p.id AND a.field = 'identifiers' AND a.pinned = true AND NOT a.hidden),
-			'people', (SELECT json_agg(json_build_object('val', a.val, 'person_id', pp.person_id, 'role', pp.role) ORDER BY a.id) FROM bbl_project_assertions a LEFT JOIN bbl_project_assertion_people pp ON pp.assertion_id = a.id WHERE a.project_id = p.id AND a.field = 'people' AND a.pinned = true AND NOT a.hidden),
+			'participants', (SELECT json_agg(json_build_object('val', a.val, 'person_id', pp.person_id, 'role', pp.role) ORDER BY a.id) FROM bbl_project_assertions a LEFT JOIN bbl_project_assertion_participants pp ON pp.assertion_id = a.id WHERE a.project_id = p.id AND a.field = 'participants' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_project_assertions a LEFT JOIN bbl_project_sources s ON s.id = a.project_source_id WHERE a.project_id = p.id AND a.pinned = true GROUP BY a.field) sub)
 		)
 		WHERE p.id = ANY($1)`, dedup(projectIDs))

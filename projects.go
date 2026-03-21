@@ -203,11 +203,11 @@ func importProjectRelations(ctx context.Context, tx pgx.Tx, revID int64, project
 			val := struct {
 				Role string `json:"role,omitempty"`
 			}{p.Role}
-			aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "people", val, false, &sourceRecordID, nil, nil)
+			aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "participants", val, false, &sourceRecordID, nil, nil)
 			if err != nil {
 				return err
 			}
-			if err := writeProjectPerson(ctx, tx, aID, person.ID, p.Role); err != nil {
+			if err := writeProjectParticipant(ctx, tx, aID, person.ID, p.Role); err != nil {
 				return err
 			}
 		}
@@ -342,8 +342,8 @@ func parseProjectCache(p *Project, cache []byte) error {
 	var d struct {
 		Titles       []Title               `json:"titles,omitempty"`
 		Descriptions []Text                `json:"descriptions,omitempty"`
-		Identifiers  []Identifier          `json:"identifiers,omitempty"`
-		People       []ProjectPerson       `json:"people,omitempty"`
+		Identifiers  []Identifier         `json:"identifiers,omitempty"`
+		Participants []ProjectParticipant `json:"participants,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parseProjectCache: %w", err)
@@ -351,6 +351,6 @@ func parseProjectCache(p *Project, cache []byte) error {
 	p.Titles = d.Titles
 	p.Descriptions = d.Descriptions
 	p.Identifiers = d.Identifiers
-	p.People = d.People
+	p.Participants = d.Participants
 	return nil
 }

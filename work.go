@@ -157,7 +157,6 @@ type WorkIdentifier struct {
 type WorkClassification struct {
 	Scheme string `json:"scheme"`
 	Val    string `json:"val"`
-	Source string `json:"source,omitempty"`
 }
 
 // WorkContributor is a contributor read from the cache column.

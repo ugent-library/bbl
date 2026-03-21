@@ -28,14 +28,13 @@ type Person struct {
 	MiddleName    string               `json:"middle_name,omitempty"`
 	FamilyName    string               `json:"family_name,omitempty"`
 	Identifiers   []Identifier         `json:"identifiers,omitempty"`
-	Organizations []PersonOrganization `json:"organizations,omitempty"`
+	Affiliations []PersonAffiliation `json:"affiliations,omitempty"`
 }
 
-// PersonOrganization is an affiliation read from the cache column.
-type PersonOrganization struct {
+// PersonAffiliation is an affiliation read from the cache column.
+type PersonAffiliation struct {
 	OrganizationID ID     `json:"organization_id"`
 	Role           string `json:"role,omitempty"`
-	Source         string `json:"source,omitempty"`
 }
 
 // ImportPersonInput carries all data for one person record arriving from a source.

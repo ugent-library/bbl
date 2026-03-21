@@ -47,8 +47,8 @@ func contributorsEqual(a, b []WorkContributor) bool {
 	return true
 }
 
-// personOrganizationsEqual compares two PersonOrganization slices for equality.
-func personOrganizationsEqual(a, b []PersonOrganization) bool {
+// personAffiliationsEqual compares two PersonAffiliation slices for equality.
+func personAffiliationsEqual(a, b []PersonAffiliation) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -60,8 +60,8 @@ func personOrganizationsEqual(a, b []PersonOrganization) bool {
 	return true
 }
 
-// projectPeopleEqual compares two ProjectPerson slices for equality.
-func projectPeopleEqual(a, b []ProjectPerson) bool {
+// projectParticipantsEqual compares two ProjectParticipant slices for equality.
+func projectParticipantsEqual(a, b []ProjectParticipant) bool {
 	if len(a) != len(b) {
 		return false
 	}

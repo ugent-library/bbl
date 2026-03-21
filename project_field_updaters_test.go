@@ -74,10 +74,10 @@ func TestUnsetProjectIdentifiers_Apply(t *testing.T) {
 	}
 }
 
-func TestSetProjectPeople_Apply(t *testing.T) {
+func TestSetProjectParticipants_Apply(t *testing.T) {
 	projectID := newID()
 	personID := newID()
-	m := &SetProjectPeople{ProjectID: projectID, People: []ProjectPerson{{PersonID: personID, Role: "PI"}}}
+	m := &SetProjectParticipants{ProjectID: projectID, Participants: []ProjectParticipant{{PersonID: personID, Role: "PI"}}}
 	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)
@@ -90,9 +90,9 @@ func TestSetProjectPeople_Apply(t *testing.T) {
 	}
 }
 
-func TestUnsetProjectPeople_Apply(t *testing.T) {
+func TestUnsetProjectParticipants_Apply(t *testing.T) {
 	projectID := newID()
-	m := &UnsetProjectPeople{ProjectID: projectID}
+	m := &UnsetProjectParticipants{ProjectID: projectID}
 	eff, err := m.apply(updateState{}, nil, "")
 	if err != nil {
 		t.Fatal(err)

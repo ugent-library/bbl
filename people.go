@@ -184,11 +184,11 @@ func importPersonRelations(ctx context.Context, tx pgx.Tx, revID int64, personID
 		if err != nil {
 			continue
 		}
-		aID, err := writePersonAssertion(ctx, tx, revID, personID, "organizations", nil, false, &sourceRecordID, nil, nil)
+		aID, err := writePersonAssertion(ctx, tx, revID, personID, "affiliations", nil, false, &sourceRecordID, nil, nil)
 		if err != nil {
 			return err
 		}
-		if err := writePersonOrganization(ctx, tx, aID, org.ID, nil, nil); err != nil {
+		if err := writePersonAffiliation(ctx, tx, aID, org.ID, nil, nil); err != nil {
 			return err
 		}
 	}
@@ -338,8 +338,8 @@ func parsePersonCache(p *Person, cache []byte) error {
 		GivenName     string               `json:"given_name,omitempty"`
 		MiddleName    string               `json:"middle_name,omitempty"`
 		FamilyName    string               `json:"family_name,omitempty"`
-		Identifiers   []Identifier         `json:"identifiers,omitempty"`
-		Organizations []PersonOrganization `json:"organizations,omitempty"`
+		Identifiers  []Identifier        `json:"identifiers,omitempty"`
+		Affiliations []PersonAffiliation `json:"affiliations,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parsePersonCache: %w", err)
@@ -349,6 +349,6 @@ func parsePersonCache(p *Person, cache []byte) error {
 	p.MiddleName = d.MiddleName
 	p.FamilyName = d.FamilyName
 	p.Identifiers = d.Identifiers
-	p.Organizations = d.Organizations
+	p.Affiliations = d.Affiliations
 	return nil
 }

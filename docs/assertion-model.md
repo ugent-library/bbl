@@ -289,8 +289,8 @@ CREATE TABLE bbl_work_assertion_rels (
 ```
 
 Same pattern for:
-- `bbl_person_assertion_organizations` (organization_id, valid_from, valid_to)
-- `bbl_project_assertion_people` (person_id, role)
+- `bbl_person_assertion_affiliations` (organization_id, valid_from, valid_to)
+- `bbl_project_assertion_participants` (person_id, role)
 - `bbl_organization_assertion_rels` (rel_organization_id, kind, start_date, end_date)
 
 ### position (fracdex)

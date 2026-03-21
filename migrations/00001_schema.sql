@@ -273,17 +273,17 @@ CREATE TABLE bbl_person_assertions (
 CREATE INDEX ON bbl_person_assertions (person_id, field)
   WHERE pinned = true;
 
--- Extension table: person-organization links need FK columns.
+-- Extension table: person affiliation links need FK columns.
 -- Identifiers are inlined in bbl_person_assertions.
 
-CREATE TABLE bbl_person_assertion_organizations (
+CREATE TABLE bbl_person_assertion_affiliations (
     assertion_id    bigint PRIMARY KEY REFERENCES bbl_person_assertions (id) ON DELETE CASCADE,
     organization_id uuid NOT NULL REFERENCES bbl_organizations (id) ON DELETE CASCADE,
     valid_from      date,
     valid_to        date
 );
 
-CREATE INDEX ON bbl_person_assertion_organizations (organization_id);
+CREATE INDEX ON bbl_person_assertion_affiliations (organization_id);
 
 -- ============================================================
 -- PROJECTS
@@ -337,17 +337,17 @@ CREATE TABLE bbl_project_assertions (
 CREATE INDEX ON bbl_project_assertions (project_id, field)
   WHERE pinned = true;
 
--- Extension table: project-person links need FK columns.
+-- Extension table: project participant links need FK columns.
 -- Titles, descriptions, identifiers are inlined in bbl_project_assertions.
 
-CREATE TABLE bbl_project_assertion_people (
+CREATE TABLE bbl_project_assertion_participants (
     assertion_id bigint PRIMARY KEY REFERENCES bbl_project_assertions (id) ON DELETE CASCADE,
     person_id    uuid NOT NULL REFERENCES bbl_people (id) ON DELETE CASCADE,
     role         text,
     CHECK (role <> '')
 );
 
-CREATE INDEX ON bbl_project_assertion_people (person_id);
+CREATE INDEX ON bbl_project_assertion_participants (person_id);
 
 -- ============================================================
 -- PERSON CANDIDATES
@@ -714,11 +714,11 @@ DROP TABLE IF EXISTS bbl_works CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidate_scores CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidate_identifiers CASCADE;
 DROP TABLE IF EXISTS bbl_person_candidates CASCADE;
-DROP TABLE IF EXISTS bbl_project_assertion_people CASCADE;
+DROP TABLE IF EXISTS bbl_project_assertion_participants CASCADE;
 DROP TABLE IF EXISTS bbl_project_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_project_sources CASCADE;
 DROP TABLE IF EXISTS bbl_projects CASCADE;
-DROP TABLE IF EXISTS bbl_person_assertion_organizations CASCADE;
+DROP TABLE IF EXISTS bbl_person_assertion_affiliations CASCADE;
 DROP TABLE IF EXISTS bbl_person_assertions CASCADE;
 DROP TABLE IF EXISTS bbl_person_sources CASCADE;
 DROP TABLE IF EXISTS bbl_people CASCADE;

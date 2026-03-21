@@ -30,13 +30,13 @@ func writeProjectAssertion(ctx context.Context, tx pgx.Tx, revID int64, projectI
 	return id, nil
 }
 
-func writeProjectPerson(ctx context.Context, tx pgx.Tx, assertionID int64, personID ID, role string) error {
+func writeProjectParticipant(ctx context.Context, tx pgx.Tx, assertionID int64, personID ID, role string) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_project_assertion_people (assertion_id, person_id, role)
+		INSERT INTO bbl_project_assertion_participants (assertion_id, person_id, role)
 		VALUES ($1, $2, $3)`,
 		assertionID, personID, nilIfEmpty(role))
 	if err != nil {
-		return fmt.Errorf("writeProjectPerson: %w", err)
+		return fmt.Errorf("writeProjectParticipant: %w", err)
 	}
 	return nil
 }
@@ -242,23 +242,25 @@ func (m *UnsetProjectIdentifiers) write(ctx context.Context, tx pgx.Tx, revID in
 	return nil
 }
 
-// --- SetProjectPeople / UnsetProjectPeople ---
+// --- SetProjectParticipants / UnsetProjectParticipants ---
 
-type SetProjectPeople struct {
-	ProjectID ID `json:"project_id"`
-	People    []ProjectPerson
-	userID    *ID
-	role      *string
+type SetProjectParticipants struct {
+	ProjectID    ID `json:"project_id"`
+	Participants []ProjectParticipant
+	userID       *ID
+	role         *string
 }
 
-func (m *SetProjectPeople) name() string       { return "set:project_people" }
-func (m *SetProjectPeople) needs() updateNeeds { return updateNeeds{projectIDs: []ID{m.ProjectID}} }
-func (m *SetProjectPeople) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if p := state.projects[m.ProjectID]; p != nil && projectPeopleEqual(p.People, m.People) {
+func (m *SetProjectParticipants) name() string { return "set:project_participants" }
+func (m *SetProjectParticipants) needs() updateNeeds {
+	return updateNeeds{projectIDs: []ID{m.ProjectID}}
+}
+func (m *SetProjectParticipants) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.projects[m.ProjectID]; p != nil && projectParticipantsEqual(p.Participants, m.Participants) {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "people") {
+		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "participants") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -268,42 +270,44 @@ func (m *SetProjectPeople) apply(state updateState, userID *ID, role string) (*u
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "participants", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logProjectHistory(ctx, tx, m.ProjectID, "people", revID); err != nil {
-		return fmt.Errorf("SetProjectPeople: %w", err)
+func (m *SetProjectParticipants) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logProjectHistory(ctx, tx, m.ProjectID, "participants", revID); err != nil {
+		return fmt.Errorf("SetProjectParticipants: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.ProjectID, "people"); err != nil {
-		return fmt.Errorf("SetProjectPeople: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.ProjectID, "participants"); err != nil {
+		return fmt.Errorf("SetProjectParticipants: %w", err)
 	}
-	for _, p := range m.People {
+	for _, p := range m.Participants {
 		val := struct {
 			Role string `json:"role,omitempty"`
 		}{p.Role}
-		assertionID, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "people", val, false, nil, m.userID, m.role)
+		assertionID, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "participants", val, false, nil, m.userID, m.role)
 		if err != nil {
-			return fmt.Errorf("SetProjectPeople: %w", err)
+			return fmt.Errorf("SetProjectParticipants: %w", err)
 		}
-		if err := writeProjectPerson(ctx, tx, assertionID, p.PersonID, p.Role); err != nil {
-			return fmt.Errorf("SetProjectPeople: %w", err)
+		if err := writeProjectParticipant(ctx, tx, assertionID, p.PersonID, p.Role); err != nil {
+			return fmt.Errorf("SetProjectParticipants: %w", err)
 		}
 	}
 	return nil
 }
 
-type UnsetProjectPeople struct{ ProjectID ID }
+type UnsetProjectParticipants struct{ ProjectID ID }
 
-func (m *UnsetProjectPeople) name() string       { return "unset:project_people" }
-func (m *UnsetProjectPeople) needs() updateNeeds { return updateNeeds{projectIDs: []ID{m.ProjectID}} }
-func (m *UnsetProjectPeople) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if p := state.projects[m.ProjectID]; p != nil && len(p.People) == 0 {
+func (m *UnsetProjectParticipants) name() string { return "unset:project_participants" }
+func (m *UnsetProjectParticipants) needs() updateNeeds {
+	return updateNeeds{projectIDs: []ID{m.ProjectID}}
+}
+func (m *UnsetProjectParticipants) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.projects[m.ProjectID]; p != nil && len(p.Participants) == 0 {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "people") {
+		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "participants") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -311,16 +315,16 @@ func (m *UnsetProjectPeople) apply(state updateState, userID *ID, role string) (
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "participants", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logProjectHistory(ctx, tx, m.ProjectID, "people", revID); err != nil {
-		return fmt.Errorf("UnsetProjectPeople: %w", err)
+func (m *UnsetProjectParticipants) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logProjectHistory(ctx, tx, m.ProjectID, "participants", revID); err != nil {
+		return fmt.Errorf("UnsetProjectParticipants: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'people' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
-		return fmt.Errorf("UnsetProjectPeople: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = 'participants' AND user_id IS NOT NULL`, m.ProjectID); err != nil {
+		return fmt.Errorf("UnsetProjectParticipants: %w", err)
 	}
 	return nil
 }
@@ -409,22 +413,24 @@ func (m *HideProjectIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int
 	return err
 }
 
-// --- HideProjectPeople ---
+// --- HideProjectParticipants ---
 
-type HideProjectPeople struct {
+type HideProjectParticipants struct {
 	ProjectID ID
 	userID    *ID
 	role      *string
 }
 
-func (m *HideProjectPeople) name() string       { return "hide:project_people" }
-func (m *HideProjectPeople) needs() updateNeeds { return updateNeeds{projectIDs: []ID{m.ProjectID}} }
-func (m *HideProjectPeople) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if fieldHidden(state.projectAssertions[m.ProjectID], "people") {
+func (m *HideProjectParticipants) name() string { return "hide:project_participants" }
+func (m *HideProjectParticipants) needs() updateNeeds {
+	return updateNeeds{projectIDs: []ID{m.ProjectID}}
+}
+func (m *HideProjectParticipants) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.projectAssertions[m.ProjectID], "participants") {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "people") {
+		if fieldCuratorLocked(state.projectAssertions[m.ProjectID], "participants") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -434,17 +440,17 @@ func (m *HideProjectPeople) apply(state updateState, userID *ID, role string) (*
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "people", "project_source_id", "bbl_project_sources", priorities)
+			return autoPin(ctx, tx, "bbl_project_assertions", "project_id", m.ProjectID, "participants", "project_source_id", "bbl_project_sources", priorities)
 		},
 	}, nil
 }
-func (m *HideProjectPeople) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logProjectHistory(ctx, tx, m.ProjectID, "people", revID); err != nil {
-		return fmt.Errorf("HideProjectPeople: %w", err)
+func (m *HideProjectParticipants) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logProjectHistory(ctx, tx, m.ProjectID, "participants", revID); err != nil {
+		return fmt.Errorf("HideProjectParticipants: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.ProjectID, "people"); err != nil {
-		return fmt.Errorf("HideProjectPeople: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_project_assertions WHERE project_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.ProjectID, "participants"); err != nil {
+		return fmt.Errorf("HideProjectParticipants: %w", err)
 	}
-	_, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "people", nil, true, nil, m.userID, m.role)
+	_, err := writeProjectAssertion(ctx, tx, revID, m.ProjectID, "participants", nil, true, nil, m.userID, m.role)
 	return err
 }

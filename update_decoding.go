@@ -221,10 +221,10 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetPersonIdentifiers{}
 	case "unset:person_identifiers":
 		m = &UnsetPersonIdentifiers{}
-	case "set:person_organizations":
-		m = &SetPersonOrganizations{}
-	case "unset:person_organizations":
-		m = &UnsetPersonOrganizations{}
+	case "set:person_affiliations":
+		m = &SetPersonAffiliations{}
+	case "unset:person_affiliations":
+		m = &UnsetPersonAffiliations{}
 	// Person hides
 	case "hide:person_given_name":
 		m = &HidePersonGivenName{}
@@ -234,8 +234,8 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &HidePersonFamilyName{}
 	case "hide:person_identifiers":
 		m = &HidePersonIdentifiers{}
-	case "hide:person_organizations":
-		m = &HidePersonOrganizations{}
+	case "hide:person_affiliations":
+		m = &HidePersonAffiliations{}
 	// Project lifecycle
 	case "create:project":
 		m = &CreateProject{}
@@ -252,17 +252,17 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetProjectIdentifiers{}
 	case "unset:project_identifiers":
 		m = &UnsetProjectIdentifiers{}
-	case "set:project_people":
-		m = &SetProjectPeople{}
-	case "unset:project_people":
-		m = &UnsetProjectPeople{}
+	case "set:project_participants":
+		m = &SetProjectParticipants{}
+	case "unset:project_participants":
+		m = &UnsetProjectParticipants{}
 	// Project hides
 	case "hide:project_descriptions":
 		m = &HideProjectDescriptions{}
 	case "hide:project_identifiers":
 		m = &HideProjectIdentifiers{}
-	case "hide:project_people":
-		m = &HideProjectPeople{}
+	case "hide:project_participants":
+		m = &HideProjectParticipants{}
 	// Organization lifecycle
 	case "create:organization":
 		m = &CreateOrganization{}

@@ -145,13 +145,13 @@ func writePersonAssertion(ctx context.Context, tx pgx.Tx, revID int64, personID 
 	return id, nil
 }
 
-func writePersonOrganization(ctx context.Context, tx pgx.Tx, assertionID int64, orgID ID, validFrom, validTo *time.Time) error {
+func writePersonAffiliation(ctx context.Context, tx pgx.Tx, assertionID int64, orgID ID, validFrom, validTo *time.Time) error {
 	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_person_assertion_organizations (assertion_id, organization_id, valid_from, valid_to)
+		INSERT INTO bbl_person_assertion_affiliations (assertion_id, organization_id, valid_from, valid_to)
 		VALUES ($1, $2, $3, $4)`,
 		assertionID, orgID, validFrom, validTo)
 	if err != nil {
-		return fmt.Errorf("writePersonOrganization: %w", err)
+		return fmt.Errorf("writePersonAffiliation: %w", err)
 	}
 	return nil
 }
@@ -366,23 +366,23 @@ func (m *UnsetPersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int
 	return nil
 }
 
-// --- SetPersonOrganizations / UnsetPersonOrganizations ---
+// --- SetPersonAffiliations / UnsetPersonAffiliations ---
 
-type SetPersonOrganizations struct {
-	PersonID      ID
-	Organizations []PersonOrganization `json:"organizations"`
-	userID        *ID
-	role          *string
+type SetPersonAffiliations struct {
+	PersonID     ID
+	Affiliations []PersonAffiliation `json:"affiliations"`
+	userID       *ID
+	role         *string
 }
 
-func (m *SetPersonOrganizations) name() string       { return "set:person_organizations" }
-func (m *SetPersonOrganizations) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
-func (m *SetPersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if p := state.people[m.PersonID]; p != nil && personOrganizationsEqual(p.Organizations, m.Organizations) {
+func (m *SetPersonAffiliations) name() string       { return "set:person_affiliations" }
+func (m *SetPersonAffiliations) needs() updateNeeds { return updateNeeds{personIDs: []ID{m.PersonID}} }
+func (m *SetPersonAffiliations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && personAffiliationsEqual(p.Affiliations, m.Affiliations) {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "affiliations") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -392,41 +392,41 @@ func (m *SetPersonOrganizations) apply(state updateState, userID *ID, role strin
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "affiliations", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
-func (m *SetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
-		return fmt.Errorf("SetPersonOrganizations: %w", err)
+func (m *SetPersonAffiliations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "affiliations", revID); err != nil {
+		return fmt.Errorf("SetPersonAffiliations: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "organizations"); err != nil {
-		return fmt.Errorf("SetPersonOrganizations: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "affiliations"); err != nil {
+		return fmt.Errorf("SetPersonAffiliations: %w", err)
 	}
-	for _, org := range m.Organizations {
-		assertionID, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, false, nil, m.userID, m.role)
+	for _, aff := range m.Affiliations {
+		assertionID, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "affiliations", nil, false, nil, m.userID, m.role)
 		if err != nil {
-			return fmt.Errorf("SetPersonOrganizations: %w", err)
+			return fmt.Errorf("SetPersonAffiliations: %w", err)
 		}
-		if err := writePersonOrganization(ctx, tx, assertionID, org.OrganizationID, nil, nil); err != nil {
-			return fmt.Errorf("SetPersonOrganizations: %w", err)
+		if err := writePersonAffiliation(ctx, tx, assertionID, aff.OrganizationID, nil, nil); err != nil {
+			return fmt.Errorf("SetPersonAffiliations: %w", err)
 		}
 	}
 	return nil
 }
 
-type UnsetPersonOrganizations struct{ PersonID ID }
+type UnsetPersonAffiliations struct{ PersonID ID }
 
-func (m *UnsetPersonOrganizations) name() string { return "unset:person_organizations" }
-func (m *UnsetPersonOrganizations) needs() updateNeeds {
+func (m *UnsetPersonAffiliations) name() string { return "unset:person_affiliations" }
+func (m *UnsetPersonAffiliations) needs() updateNeeds {
 	return updateNeeds{personIDs: []ID{m.PersonID}}
 }
-func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if p := state.people[m.PersonID]; p != nil && len(p.Organizations) == 0 {
+func (m *UnsetPersonAffiliations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if p := state.people[m.PersonID]; p != nil && len(p.Affiliations) == 0 {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "affiliations") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -434,16 +434,16 @@ func (m *UnsetPersonOrganizations) apply(state updateState, userID *ID, role str
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "affiliations", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
-func (m *UnsetPersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
-		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
+func (m *UnsetPersonAffiliations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "affiliations", revID); err != nil {
+		return fmt.Errorf("UnsetPersonAffiliations: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'organizations' AND user_id IS NOT NULL`, m.PersonID); err != nil {
-		return fmt.Errorf("UnsetPersonOrganizations: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = 'affiliations' AND user_id IS NOT NULL`, m.PersonID); err != nil {
+		return fmt.Errorf("UnsetPersonAffiliations: %w", err)
 	}
 	return nil
 }
@@ -543,24 +543,24 @@ func (m *HidePersonIdentifiers) write(ctx context.Context, tx pgx.Tx, revID int6
 	return err
 }
 
-// --- HidePersonOrganizations ---
+// --- HidePersonAffiliations ---
 
-type HidePersonOrganizations struct {
+type HidePersonAffiliations struct {
 	PersonID ID
 	userID   *ID
 	role     *string
 }
 
-func (m *HidePersonOrganizations) name() string { return "hide:person_organizations" }
-func (m *HidePersonOrganizations) needs() updateNeeds {
+func (m *HidePersonAffiliations) name() string { return "hide:person_affiliations" }
+func (m *HidePersonAffiliations) needs() updateNeeds {
 	return updateNeeds{personIDs: []ID{m.PersonID}}
 }
-func (m *HidePersonOrganizations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	if fieldHidden(state.personAssertions[m.PersonID], "organizations") {
+func (m *HidePersonAffiliations) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+	if fieldHidden(state.personAssertions[m.PersonID], "affiliations") {
 		return nil, nil
 	}
 	if role != "curator" {
-		if fieldCuratorLocked(state.personAssertions[m.PersonID], "organizations") {
+		if fieldCuratorLocked(state.personAssertions[m.PersonID], "affiliations") {
 			return nil, ErrCuratorLock
 		}
 	}
@@ -570,17 +570,17 @@ func (m *HidePersonOrganizations) apply(state updateState, userID *ID, role stri
 		recordType: RecordTypePerson,
 		recordID:   m.PersonID,
 		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "organizations", "person_source_id", "bbl_person_sources", priorities)
+			return autoPin(ctx, tx, "bbl_person_assertions", "person_id", m.PersonID, "affiliations", "person_source_id", "bbl_person_sources", priorities)
 		},
 	}, nil
 }
-func (m *HidePersonOrganizations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	if err := logPersonHistory(ctx, tx, m.PersonID, "organizations", revID); err != nil {
-		return fmt.Errorf("HidePersonOrganizations: %w", err)
+func (m *HidePersonAffiliations) write(ctx context.Context, tx pgx.Tx, revID int64) error {
+	if err := logPersonHistory(ctx, tx, m.PersonID, "affiliations", revID); err != nil {
+		return fmt.Errorf("HidePersonAffiliations: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "organizations"); err != nil {
-		return fmt.Errorf("HidePersonOrganizations: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM bbl_person_assertions WHERE person_id = $1 AND field = $2 AND user_id IS NOT NULL`, m.PersonID, "affiliations"); err != nil {
+		return fmt.Errorf("HidePersonAffiliations: %w", err)
 	}
-	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "organizations", nil, true, nil, m.userID, m.role)
+	_, err := writePersonAssertion(ctx, tx, revID, m.PersonID, "affiliations", nil, true, nil, m.userID, m.role)
 	return err
 }
