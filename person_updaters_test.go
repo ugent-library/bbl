@@ -4,7 +4,7 @@ import "testing"
 
 func TestCreatePerson_Apply(t *testing.T) {
 	id := newID()
-	m := &CreatePerson{PersonID: id}
+	m := &CreatePerson{ID: id}
 	state := updateState{records: make(map[ID]*recordState)}
 	eff, err := m.apply(state, &User{Role: RoleUser})
 	if err != nil {

@@ -364,11 +364,11 @@ Required fields have no Hide or Unset:
 ### Wire format
 
 ```json
-{"create": "work", "work_id": "01J...", "kind": "journal_article"}
-{"delete": "work", "work_id": "01J..."}
-{"set": "work_volume", "work_id": "01J...", "val": "42"}
-{"hide": "work_volume", "work_id": "01J..."}
-{"unset": "work_volume", "work_id": "01J..."}
+{"create": "work", "id": "01J...", "kind": "journal_article"}
+{"delete": "work", "id": "01J..."}
+{"set": "work:volume", "id": "01J...", "val": "42"}
+{"hide": "work:volume", "id": "01J..."}
+{"unset": "work:volume", "id": "01J..."}
 ```
 
 Five verbs, one shape.

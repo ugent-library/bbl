@@ -4,7 +4,7 @@ import "fmt"
 
 // CreateWork creates a new work entity.
 type CreateWork struct {
-	WorkID ID     `json:"work_id"`
+	ID     ID     `json:"id"`
 	Kind   string `json:"kind"`
 	Status string `json:"status"` // defaults to WorkStatusPrivate
 }
@@ -17,9 +17,9 @@ func (m *CreateWork) apply(state updateState, user *User) (*updateEffect, error)
 	if m.Status == "" {
 		m.Status = WorkStatusPrivate
 	}
-	state.records[m.WorkID] = &recordState{
+	state.records[m.ID] = &recordState{
 		recordType: RecordTypeWork,
-		id:         m.WorkID,
+		id:         m.ID,
 		status:     m.Status,
 		kind:       m.Kind,
 		fields:     make(map[string]any),
@@ -27,7 +27,7 @@ func (m *CreateWork) apply(state updateState, user *User) (*updateEffect, error)
 	}
 	return &updateEffect{
 		recordType: RecordTypeWork,
-		recordID:   m.WorkID,
+		recordID:   m.ID,
 	}, nil
 }
 
@@ -35,12 +35,12 @@ func (m *CreateWork) write(revID int64, user *User) (string, []any) {
 	return `INSERT INTO bbl_works
 		    (id, version, created_by_id, updated_by_id, kind, status)
 		VALUES ($1, 1, $2, $3, $4, $5)`,
-		[]any{m.WorkID, &user.ID, &user.ID, m.Kind, m.Status}
+		[]any{m.ID, &user.ID, &user.ID, m.Kind, m.Status}
 }
 
 // DeleteWork soft-deletes a work.
 type DeleteWork struct {
-	WorkID     ID     `json:"work_id"`
+	WorkID     ID     `json:"id"`
 	DeleteKind string // withdrawn, retracted, takedown
 }
 

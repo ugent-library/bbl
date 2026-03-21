@@ -7,10 +7,10 @@ import (
 
 // CreateOrganization creates a new organization entity.
 type CreateOrganization struct {
-	OrganizationID ID
-	Kind           string
-	StartDate      *time.Time
-	EndDate        *time.Time
+	ID        ID `json:"id"`
+	Kind      string
+	StartDate *time.Time
+	EndDate   *time.Time
 }
 
 func (m *CreateOrganization) name() string { return "create:organization" }
@@ -18,9 +18,9 @@ func (m *CreateOrganization) name() string { return "create:organization" }
 func (m *CreateOrganization) needs() updateNeeds { return updateNeeds{} }
 
 func (m *CreateOrganization) apply(state updateState, user *User) (*updateEffect, error) {
-	state.records[m.OrganizationID] = &recordState{
+	state.records[m.ID] = &recordState{
 		recordType: RecordTypeOrganization,
-		id:         m.OrganizationID,
+		id:         m.ID,
 		status:     OrganizationStatusPublic,
 		kind:       m.Kind,
 		fields:     make(map[string]any),
@@ -28,7 +28,7 @@ func (m *CreateOrganization) apply(state updateState, user *User) (*updateEffect
 	}
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
-		recordID:   m.OrganizationID,
+		recordID:   m.ID,
 	}, nil
 }
 
@@ -37,13 +37,13 @@ func (m *CreateOrganization) write(revID int64, user *User) (string, []any) {
 		    (id, version, created_by_id, updated_by_id,
 		     kind, status, start_date, end_date)
 		VALUES ($1, 1, $2, $3, $4, $5, $6, $7)`,
-		[]any{m.OrganizationID, &user.ID, &user.ID,
+		[]any{m.ID, &user.ID, &user.ID,
 			m.Kind, OrganizationStatusPublic, m.StartDate, m.EndDate}
 }
 
 // DeleteOrganization soft-deletes an organization.
 type DeleteOrganization struct {
-	OrganizationID ID `json:"organization_id"`
+	OrganizationID ID `json:"id"`
 }
 
 func (m *DeleteOrganization) name() string { return "delete:organization" }

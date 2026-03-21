@@ -33,7 +33,7 @@ Key concepts:
 - Updaters use **concrete named types** per field: `SetWorkVolume`, `UnsetWorkVolume`, `SetWorkTitles`, etc. No generic `SetWorkField` with a field name parameter.
 - **Set** creates a new assertion row. **Hide** creates an assertion with `hidden=true`. **Unset** removes the human assertion; auto-pin re-evaluates.
 - Required fields (work titles, person name, project titles, org names) have no Unset.
-- Wire format: `{"set": "work_volume", "work_id": "...", "val": "42"}`.
+- Wire format: `{"set": "work:volume", "id": "...", "val": "42"}`.
 
 ### Import path
 - `ImportWorks`/`ImportPeople`/etc. take `iter.Seq2` iterators.

@@ -12,7 +12,7 @@ func TestUpdateSetScalarField(t *testing.T) {
 
 	// Create a work.
 	workID := newID()
-	ok, _, err := repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	ok, _, err := repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 	if err != nil {
 		t.Fatalf("create work: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestUpdateSetTitles(t *testing.T) {
 	user := createTestUser(t, repo, RoleUser)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	titles := []Title{
 		{Lang: "eng", Val: "A Great Paper"},
@@ -88,7 +88,7 @@ func TestUpdateSetContributors(t *testing.T) {
 	personID := createTestPerson(t, repo)
 
 	workID := newID()
-	_, _, err := repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	_, _, err := repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 	if err != nil {
 		t.Fatalf("create work: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestUpdateSetWorkProjects(t *testing.T) {
 	projectID := createTestProject(t, repo)
 
 	workID := newID()
-	_, _, err := repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	_, _, err := repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 	if err != nil {
 		t.Fatalf("create work: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestUpdateUnsetField(t *testing.T) {
 	user := createTestUser(t, repo, RoleUser)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 	repo.Update(ctx, user, &Set{RecordType: "work", RecordID: workID, Field: "volume", Val: "10"})
 
 	// Unset the field.
@@ -219,7 +219,7 @@ func TestUpdateSetContributorsNoop(t *testing.T) {
 	user := createTestUser(t, repo, RoleUser)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	contributors := []WorkContributor{
 		{Kind: "person", Name: "Jane Doe", GivenName: "Jane", FamilyName: "Doe", Roles: []string{"author"}},
@@ -253,7 +253,7 @@ func TestUpdateSetContributorsWithPersonIDNoop(t *testing.T) {
 	personID := createTestPerson(t, repo)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	contributors := []WorkContributor{
 		{Kind: "person", Name: "Jane Doe", GivenName: "Jane", FamilyName: "Doe", PersonID: &personID, Roles: []string{"author"}},
@@ -286,7 +286,7 @@ func TestUpdateSetWorkProjectsNoop(t *testing.T) {
 	projectID := createTestProject(t, repo)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	// First set.
 	ok, _, err := repo.Update(ctx, user, &Set{RecordType: "work", RecordID: workID, Field: "projects", Val: []ID{projectID}})
@@ -313,7 +313,7 @@ func TestUpdateSetTitlesNoop(t *testing.T) {
 	user := createTestUser(t, repo, RoleUser)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	titles := []Title{{Lang: "eng", Val: "A Great Paper"}}
 
@@ -342,7 +342,7 @@ func TestUpdateHideField(t *testing.T) {
 	user := createTestUser(t, repo, RoleUser)
 
 	workID := newID()
-	repo.Update(ctx, user, &CreateWork{WorkID: workID, Kind: "journal_article"})
+	repo.Update(ctx, user, &CreateWork{ID: workID, Kind: "journal_article"})
 
 	ok, _, err := repo.Update(ctx, user, &Hide{RecordType: "work", RecordID: workID, Field: "volume"})
 	if err != nil {

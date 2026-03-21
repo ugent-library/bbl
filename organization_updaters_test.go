@@ -5,8 +5,8 @@ import "testing"
 func TestCreateOrganization_Apply(t *testing.T) {
 	id := newID()
 	m := &CreateOrganization{
-		OrganizationID: id,
-		Kind:           "department",
+		ID:   id,
+		Kind: "department",
 	}
 	state := updateState{records: make(map[ID]*recordState)}
 	eff, err := m.apply(state, &User{Role: RoleUser})

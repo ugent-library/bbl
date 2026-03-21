@@ -7,7 +7,7 @@ import (
 
 // CreateProject creates a new project entity.
 type CreateProject struct {
-	ProjectID ID     `json:"project_id"`
+	ID        ID     `json:"id"`
 	Status    string // defaults to ProjectStatusPublic
 	StartDate *time.Time
 	EndDate   *time.Time
@@ -21,16 +21,16 @@ func (m *CreateProject) apply(state updateState, user *User) (*updateEffect, err
 	if m.Status == "" {
 		m.Status = ProjectStatusPublic
 	}
-	state.records[m.ProjectID] = &recordState{
+	state.records[m.ID] = &recordState{
 		recordType: RecordTypeProject,
-		id:         m.ProjectID,
+		id:         m.ID,
 		status:     m.Status,
 		fields:     make(map[string]any),
 		assertions: make(map[string]*fieldState),
 	}
 	return &updateEffect{
 		recordType: RecordTypeProject,
-		recordID:   m.ProjectID,
+		recordID:   m.ID,
 	}, nil
 }
 
@@ -39,12 +39,12 @@ func (m *CreateProject) write(revID int64, user *User) (string, []any) {
 		    (id, version, created_by_id, updated_by_id, status,
 		     start_date, end_date)
 		VALUES ($1, 1, $2, $3, $4, $5, $6)`,
-		[]any{m.ProjectID, &user.ID, &user.ID, m.Status, m.StartDate, m.EndDate}
+		[]any{m.ID, &user.ID, &user.ID, m.Status, m.StartDate, m.EndDate}
 }
 
 // DeleteProject soft-deletes a project.
 type DeleteProject struct {
-	ProjectID ID `json:"project_id"`
+	ProjectID ID `json:"id"`
 }
 
 func (m *DeleteProject) name() string { return "delete:project" }

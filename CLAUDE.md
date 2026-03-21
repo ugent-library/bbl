@@ -66,9 +66,9 @@ Field values are stored as **assertion rows**, not columns on entity tables. Thi
 - **`kind`** is a regular assertion in `bbl_*_fields`, but on entity creation the system creates its own copy-on-write kind assertion to prevent silent kind changes on re-import.
 - `cache jsonb` on entity table holds pinned values, rebuilt on every write.
 
-**Updates**: concrete named types per field (`SetWorkVolume`, `UnsetWorkVolume`), not generic field-name params. Required fields (work titles, person name, project titles, org names) have no Unset. Wire format: `{"set": "work_volume", ...}`.
+**Updates**: generic `Set`/`Hide`/`Unset` field updaters + lifecycle updaters (`CreateWork`, `DeleteWork`, etc.). Required fields (work titles, person name, project titles, org names) have no Unset. Wire format: `{"set": "work:volume", "id": "01J...", "val": "42"}`.
 
-Key files: `assertion.go`, `updaters.go`, `*_field_updaters.go`, `*_relation_updaters.go`, `import.go`.
+Key files: `assertion.go`, `updaters.go`, `field_update.go`, `field_type.go`, `field_catalog.go`, `import.go`.
 
 ### ID type
 

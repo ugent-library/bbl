@@ -7,8 +7,8 @@ import (
 func TestCreateWork_Apply(t *testing.T) {
 	id := newID()
 	m := &CreateWork{
-		WorkID: id,
-		Kind:   "journal_article",
+		ID:   id,
+		Kind: "journal_article",
 	}
 	state := updateState{records: make(map[ID]*recordState)}
 	eff, err := m.apply(state, &User{Role: RoleUser})
@@ -35,15 +35,15 @@ func TestCreateWork_Apply(t *testing.T) {
 
 func TestCreateWork_DefaultStatus(t *testing.T) {
 	m := &CreateWork{
-		WorkID: newID(),
-		Kind:   "book",
+		ID:   newID(),
+		Kind: "book",
 	}
 	state := updateState{records: make(map[ID]*recordState)}
 	_, err := m.apply(state, &User{Role: RoleUser})
 	if err != nil {
 		t.Fatal(err)
 	}
-	rs := state.records[m.WorkID]
+	rs := state.records[m.ID]
 	if rs.status != WorkStatusPrivate {
 		t.Errorf("expected default status private, got %q", rs.status)
 	}

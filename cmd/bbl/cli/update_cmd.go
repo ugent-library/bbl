@@ -19,7 +19,7 @@ func newUpdateCmd(e *env) *cobra.Command {
 as a single revision.
 
 Example:
-  echo '{"set": "work_volume", "work_id": "01J...", "val": "42"}' | bbl update --user 01J...`,
+  echo '{"set": "work:volume", "id": "01J...", "val": "42"}' | bbl update --user 01J...`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			svc, err := e.services(ctx)
