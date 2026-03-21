@@ -7,103 +7,168 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// WorkProfiles holds the resolved work profiles, loaded once at startup.
-// Kind order matches definition order in the YAML file.
-type WorkProfiles struct {
-	Kinds []WorkKind `yaml:"work_kinds"`
+// FieldDef describes one field in a profile.
+type FieldDef struct {
+	ft       *fieldType
+	Name     string
+	Type     string   // resolved fieldType name (for views)
+	Required string   // "", "always", "public"
+	Schemes  []string // for identifier, classification
 }
 
-// WorkKind pairs a kind name with its profile.
-type WorkKind struct {
-	Name   string         `yaml:"name"`
-	Fields []WorkFieldDef `yaml:"fields"`
+// IsRequired reports whether the field has any required constraint.
+func (f FieldDef) IsRequired() bool { return f.Required != "" }
+
+// Profiles holds resolved profiles for all entity types, loaded once at startup.
+type Profiles struct {
+	Work         map[string][]FieldDef
+	Organization map[string][]FieldDef
+	Person       []FieldDef
+	Project      []FieldDef
+	workKinds    []string // ordered from YAML
+	orgKinds     []string
 }
 
-// WorkFieldDef describes one field in a kind profile.
-type WorkFieldDef struct {
-	Name     string   `yaml:"name"`
-	Type     string   `yaml:"-"` // resolved from workFieldCatalog at load time
-	Required bool     `yaml:"required,omitempty"`
-	Schemes  []string `yaml:"schemes,omitempty"` // for identifier_list, classification_list
-}
+// WorkKinds returns work kind names in definition order.
+func (p *Profiles) WorkKinds() []string { return p.workKinds }
 
-// workFieldCatalog is the canonical set of field names and their types.
-// Every field name used in a profile YAML must exist here with a matching type.
-// Relation fields (stored in separate tables) are included alongside scalar fields.
-var workFieldCatalog = map[string]string{
-	// Scalar fields
-	"article_number":       "text",
-	"book_title":           "text",
-	"edition":              "text",
-	"issue":                "text",
-	"issue_title":          "text",
-	"journal_abbreviation": "text",
-	"journal_title":        "text",
-	"place_of_publication": "text",
-	"publication_status":   "text",
-	"publication_year":     "year",
-	"publisher":            "text",
-	"report_number":        "text",
-	"series_title":         "text",
-	"total_pages":          "text",
-	"volume":               "text",
+// OrganizationKinds returns organization kind names in definition order.
+func (p *Profiles) OrganizationKinds() []string { return p.orgKinds }
 
-	// Compound scalar fields (stored as JSON in bbl_work_assertions)
-	"conference": "conference",
-	"pages":      "extent",
-
-	// Relation fields (stored in separate tables)
-	"abstracts":       "text_list",
-	"classifications": "classification_list",
-	"contributors":    "contributor_list",
-	"identifiers":     "identifier_list",
-	"keywords":        "string_list",
-	"lay_summaries":   "text_list",
-	"notes":           "note_list",
-	"titles":          "text_list",
-}
-
-// LoadWorkProfiles reads the YAML profile config and validates field names
-// against the Go field catalog. Returns an error if any field name is unknown
-// or has a mismatched type.
-func LoadWorkProfiles(path string) (*WorkProfiles, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var p WorkProfiles
-	if err := yaml.Unmarshal(b, &p); err != nil {
-		return nil, fmt.Errorf("parse profiles: %w", err)
-	}
-	if len(p.Kinds) == 0 {
-		return nil, fmt.Errorf("parse profiles: no kinds defined")
-	}
-	for _, wk := range p.Kinds {
-		if len(wk.Fields) == 0 {
-			return nil, fmt.Errorf("profile %q: no fields defined", wk.Name)
-		}
-		for i := range wk.Fields {
-			f := &wk.Fields[i]
-			catalogType, ok := workFieldCatalog[f.Name]
-			if !ok {
-				return nil, fmt.Errorf("profile %q field %d: unknown field name %q", wk.Name, i, f.Name)
-			}
-			f.Type = catalogType
-		}
-	}
-	return &p, nil
-}
-
-// Profile returns the kind definition, or nil if unknown.
-func (p *WorkProfiles) Profile(kind string) *WorkKind {
+// FieldDefs returns the field definitions for a record type and kind.
+// Returns nil if the record type or kind is unknown.
+func (p *Profiles) FieldDefs(recordType, kind string) []FieldDef {
 	if p == nil {
 		return nil
 	}
-	for i := range p.Kinds {
-		if p.Kinds[i].Name == kind {
-			return &p.Kinds[i]
-		}
+	switch recordType {
+	case "work":
+		return p.Work[kind]
+	case "person":
+		return p.Person
+	case "project":
+		return p.Project
+	case "organization":
+		return p.Organization[kind]
 	}
 	return nil
 }
 
+// --- YAML loading ---
+
+type profilesFile struct {
+	WorkKinds []profileKind `yaml:"work_kinds"`
+	OrgKinds  []profileKind `yaml:"organization_kinds"`
+	Person    profileKind   `yaml:"person"`
+	Project   profileKind   `yaml:"project"`
+}
+
+type profileKind struct {
+	Name   string            `yaml:"name,omitempty"`
+	Fields []profileFieldDef `yaml:"fields"`
+}
+
+type profileFieldDef struct {
+	Name     string   `yaml:"name"`
+	Required string   `yaml:"required,omitempty"`
+	Schemes  []string `yaml:"schemes,omitempty"`
+}
+
+// LoadProfiles reads the YAML profile config and validates field names
+// against the field type registry. Returns an error if any field name
+// is unknown or any section is missing.
+func LoadProfiles(path string) (*Profiles, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var f profilesFile
+	if err := yaml.Unmarshal(b, &f); err != nil {
+		return nil, fmt.Errorf("parse profiles: %w", err)
+	}
+
+	p := &Profiles{
+		Work:         make(map[string][]FieldDef),
+		Organization: make(map[string][]FieldDef),
+	}
+
+	// Work kinds.
+	if len(f.WorkKinds) == 0 {
+		return nil, fmt.Errorf("parse profiles: no work kinds defined")
+	}
+	for _, wk := range f.WorkKinds {
+		defs, err := resolveFieldDefs("work", wk.Name, wk.Fields)
+		if err != nil {
+			return nil, err
+		}
+		p.Work[wk.Name] = defs
+		p.workKinds = append(p.workKinds, wk.Name)
+	}
+
+	// Organization kinds.
+	if len(f.OrgKinds) == 0 {
+		return nil, fmt.Errorf("parse profiles: no organization kinds defined")
+	}
+	for _, ok := range f.OrgKinds {
+		defs, err := resolveFieldDefs("organization", ok.Name, ok.Fields)
+		if err != nil {
+			return nil, err
+		}
+		p.Organization[ok.Name] = defs
+		p.orgKinds = append(p.orgKinds, ok.Name)
+	}
+
+	// Person.
+	if len(f.Person.Fields) == 0 {
+		return nil, fmt.Errorf("parse profiles: no person fields defined")
+	}
+	defs, err := resolveFieldDefs("person", "person", f.Person.Fields)
+	if err != nil {
+		return nil, err
+	}
+	p.Person = defs
+
+	// Project.
+	if len(f.Project.Fields) == 0 {
+		return nil, fmt.Errorf("parse profiles: no project fields defined")
+	}
+	defs, err = resolveFieldDefs("project", "project", f.Project.Fields)
+	if err != nil {
+		return nil, err
+	}
+	p.Project = defs
+
+	return p, nil
+}
+
+func resolveFieldDefs(entityType, profileName string, fields []profileFieldDef) ([]FieldDef, error) {
+	if len(fields) == 0 {
+		return nil, fmt.Errorf("profile %q: no fields defined", profileName)
+	}
+	fieldTypes, ok := entityFieldTypes[entityType]
+	if !ok {
+		return nil, fmt.Errorf("profile %q: unknown entity type %q", profileName, entityType)
+	}
+	defs := make([]FieldDef, len(fields))
+	for i, f := range fields {
+		ftName, ok := fieldTypes[f.Name]
+		if !ok {
+			return nil, fmt.Errorf("profile %q field %d: unknown field name %q", profileName, i, f.Name)
+		}
+		ft, ok := fieldTypeRegistry[ftName]
+		if !ok {
+			return nil, fmt.Errorf("profile %q field %d: unknown field type %q for field %q", profileName, i, ftName, f.Name)
+		}
+		if f.Required != "" && f.Required != "always" && f.Required != "public" {
+			return nil, fmt.Errorf("profile %q field %q: invalid required value %q (must be empty, \"always\", or \"public\")", profileName, f.Name, f.Required)
+		}
+		defs[i] = FieldDef{
+			ft:       ft,
+			Name:     f.Name,
+			Type:     ftName,
+			Required: f.Required,
+			Schemes:  f.Schemes,
+		}
+	}
+	return defs, nil
+}

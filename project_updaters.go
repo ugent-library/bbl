@@ -1,11 +1,8 @@
 package bbl
 
 import (
-	"context"
 	"fmt"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // CreateProject creates a new project entity.
@@ -14,52 +11,40 @@ type CreateProject struct {
 	Status    string // defaults to ProjectStatusPublic
 	StartDate *time.Time
 	EndDate   *time.Time
-
-	project *Project // populated by apply
 }
 
 func (m *CreateProject) name() string { return "create:project" }
 
 func (m *CreateProject) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateProject) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
+func (m *CreateProject) apply(state updateState, user *User) (*updateEffect, error) {
 	if m.Status == "" {
 		m.Status = ProjectStatusPublic
 	}
-	m.project = &Project{
-		ID:        m.ProjectID,
-		Version:   1,
-		Status:    m.Status,
-		StartDate: m.StartDate,
-		EndDate:   m.EndDate,
+	state.records[m.ProjectID] = &recordState{
+		recordType: RecordTypeProject,
+		id:         m.ProjectID,
+		status:     m.Status,
+		fields:     make(map[string]any),
+		assertions: make(map[string]*fieldState),
 	}
 	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
-		record:     m.project,
 	}, nil
 }
 
-func (m *CreateProject) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	p := m.project
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_projects
+func (m *CreateProject) write(revID int64, user *User) (string, []any) {
+	return `INSERT INTO bbl_projects
 		    (id, version, created_by_id, updated_by_id, status,
-		     start_date, end_date, deleted_at, deleted_by_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		p.ID, p.Version, p.CreatedByID, p.UpdatedByID, p.Status,
-		p.StartDate, p.EndDate, p.DeletedAt, p.DeletedByID)
-	if err != nil {
-		return fmt.Errorf("CreateProject.write: %w", err)
-	}
-	return nil
+		     start_date, end_date)
+		VALUES ($1, 1, $2, $3, $4, $5, $6)`,
+		[]any{m.ProjectID, &user.ID, &user.ID, m.Status, m.StartDate, m.EndDate}
 }
 
 // DeleteProject soft-deletes a project.
 type DeleteProject struct {
 	ProjectID ID `json:"project_id"`
-
-	project *Project // populated by apply
 }
 
 func (m *DeleteProject) name() string { return "delete:project" }
@@ -68,40 +53,24 @@ func (m *DeleteProject) needs() updateNeeds {
 	return updateNeeds{projectIDs: []ID{m.ProjectID}}
 }
 
-func (m *DeleteProject) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	p, ok := state.projects[m.ProjectID]
-	if !ok {
+func (m *DeleteProject) apply(state updateState, user *User) (*updateEffect, error) {
+	rs := state.records[m.ProjectID]
+	if rs == nil {
 		return nil, fmt.Errorf("DeleteProject: project %s not found", m.ProjectID)
 	}
-	if p.Status == ProjectStatusDeleted {
+	if rs.status == ProjectStatusDeleted {
 		return nil, nil // noop
 	}
-
-	now := time.Now()
-	p.Version++
-	p.Status = ProjectStatusDeleted
-	p.DeletedAt = &now
-	m.project = p
-
 	return &updateEffect{
 		recordType: RecordTypeProject,
 		recordID:   m.ProjectID,
-		record:     p,
 	}, nil
 }
 
-func (m *DeleteProject) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	p := m.project
-	_, err := tx.Exec(ctx, `
-		UPDATE bbl_projects
-		SET version = $2, updated_at = transaction_timestamp(),
-		    updated_by_id = $3, status = $4,
-		    deleted_at = $5, deleted_by_id = $6
+func (m *DeleteProject) write(revID int64, user *User) (string, []any) {
+	return `UPDATE bbl_projects
+		SET status = $2,
+		    deleted_at = transaction_timestamp(), deleted_by_id = $3
 		WHERE id = $1`,
-		p.ID, p.Version, p.UpdatedByID,
-		p.Status, p.DeletedAt, p.DeletedByID)
-	if err != nil {
-		return fmt.Errorf("DeleteProject.write: %w", err)
-	}
-	return nil
+		[]any{m.ProjectID, ProjectStatusDeleted, &user.ID}
 }

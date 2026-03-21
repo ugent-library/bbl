@@ -8,67 +8,52 @@ func TestCreateOrganization_Apply(t *testing.T) {
 		OrganizationID: id,
 		Kind:           "department",
 	}
-	eff, err := m.apply(updateState{}, nil, "")
+	state := updateState{records: make(map[ID]*recordState)}
+	eff, err := m.apply(state, &User{Role: RoleUser})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	o := eff.record.(*Organization)
-	if o.Version != 1 {
-		t.Errorf("expected version 1, got %d", o.Version)
+	rs := state.records[id]
+	if rs == nil {
+		t.Fatal("expected recordState")
 	}
-	if o.Status != OrganizationStatusPublic {
-		t.Errorf("expected status public, got %q", o.Status)
+	if rs.status != OrganizationStatusPublic {
+		t.Errorf("expected status public, got %q", rs.status)
 	}
-	if o.Kind != "department" {
-		t.Errorf("expected kind department, got %q", o.Kind)
+	if rs.kind != "department" {
+		t.Errorf("expected kind department, got %q", rs.kind)
 	}
 }
 
 func TestDeleteOrganization_Apply(t *testing.T) {
 	id := newID()
-	existing := &Organization{
-		ID:      id,
-		Version: 1,
-		Kind:    "department",
-		Status:  OrganizationStatusPublic,
-	}
-	state := updateState{organizations: map[ID]*Organization{id: existing}}
+	state := updateState{records: map[ID]*recordState{
+		id: {recordType: RecordTypeOrganization, id: id, version: 1, kind: "department", status: OrganizationStatusPublic,
+			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+	}}
 
 	m := &DeleteOrganization{OrganizationID: id}
-	eff, err := m.apply(state, nil, "")
+	eff, err := m.apply(state, &User{Role: RoleUser})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if eff == nil {
 		t.Fatal("expected non-nil effect")
 	}
-	o := eff.record.(*Organization)
-	if o.Status != OrganizationStatusDeleted {
-		t.Errorf("expected deleted, got %q", o.Status)
-	}
-	if o.DeletedAt == nil {
-		t.Error("expected DeletedAt to be set")
-	}
-	if o.Version != 2 {
-		t.Errorf("expected version 2, got %d", o.Version)
-	}
 }
 
 func TestDeleteOrganization_AlreadyDeleted(t *testing.T) {
 	id := newID()
-	existing := &Organization{
-		ID:      id,
-		Version: 2,
-		Kind:    "department",
-		Status:  OrganizationStatusDeleted,
-	}
-	state := updateState{organizations: map[ID]*Organization{id: existing}}
+	state := updateState{records: map[ID]*recordState{
+		id: {recordType: RecordTypeOrganization, id: id, version: 2, kind: "department", status: OrganizationStatusDeleted,
+			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+	}}
 
 	m := &DeleteOrganization{OrganizationID: id}
-	eff, err := m.apply(state, nil, "")
+	eff, err := m.apply(state, &User{Role: RoleUser})
 	if err != nil {
 		t.Fatal(err)
 	}

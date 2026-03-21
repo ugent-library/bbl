@@ -10,9 +10,9 @@ import (
 // No interface is defined — PostgreSQL features are used pervasively
 // and there are no plans to support another database.
 type Repo struct {
-	db           *pgxpool.Pool
-	tokenKey     []byte        // 32-byte AES-256-GCM key for encrypting user tokens
-	WorkProfiles *WorkProfiles // nil = no profile validation
+	db       *pgxpool.Pool
+	tokenKey []byte    // 32-byte AES-256-GCM key for encrypting user tokens
+	Profiles *Profiles // nil = no profile validation
 }
 
 func NewRepo(ctx context.Context, connString string, tokenKey []byte) (*Repo, error) {

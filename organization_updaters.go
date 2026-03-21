@@ -1,11 +1,8 @@
 package bbl
 
 import (
-	"context"
 	"fmt"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // CreateOrganization creates a new organization entity.
@@ -14,52 +11,39 @@ type CreateOrganization struct {
 	Kind           string
 	StartDate      *time.Time
 	EndDate        *time.Time
-
-	org *Organization // populated by apply
 }
 
 func (m *CreateOrganization) name() string { return "create:organization" }
 
 func (m *CreateOrganization) needs() updateNeeds { return updateNeeds{} }
 
-func (m *CreateOrganization) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	m.org = &Organization{
-		ID:        m.OrganizationID,
-		Version:   1,
-		Kind:      m.Kind,
-		Status:    OrganizationStatusPublic,
-		StartDate: m.StartDate,
-		EndDate:   m.EndDate,
+func (m *CreateOrganization) apply(state updateState, user *User) (*updateEffect, error) {
+	state.records[m.OrganizationID] = &recordState{
+		recordType: RecordTypeOrganization,
+		id:         m.OrganizationID,
+		status:     OrganizationStatusPublic,
+		kind:       m.Kind,
+		fields:     make(map[string]any),
+		assertions: make(map[string]*fieldState),
 	}
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		record:     m.org,
 	}, nil
 }
 
-func (m *CreateOrganization) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	o := m.org
-	_, err := tx.Exec(ctx, `
-		INSERT INTO bbl_organizations
+func (m *CreateOrganization) write(revID int64, user *User) (string, []any) {
+	return `INSERT INTO bbl_organizations
 		    (id, version, created_by_id, updated_by_id,
-		     kind, status, start_date, end_date,
-		     deleted_at, deleted_by_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		o.ID, o.Version, o.CreatedByID, o.UpdatedByID,
-		o.Kind, o.Status, o.StartDate, o.EndDate,
-		o.DeletedAt, o.DeletedByID)
-	if err != nil {
-		return fmt.Errorf("CreateOrganization.write: %w", err)
-	}
-	return nil
+		     kind, status, start_date, end_date)
+		VALUES ($1, 1, $2, $3, $4, $5, $6, $7)`,
+		[]any{m.OrganizationID, &user.ID, &user.ID,
+			m.Kind, OrganizationStatusPublic, m.StartDate, m.EndDate}
 }
 
 // DeleteOrganization soft-deletes an organization.
 type DeleteOrganization struct {
 	OrganizationID ID `json:"organization_id"`
-
-	org *Organization // populated by apply
 }
 
 func (m *DeleteOrganization) name() string { return "delete:organization" }
@@ -68,40 +52,24 @@ func (m *DeleteOrganization) needs() updateNeeds {
 	return updateNeeds{organizationIDs: []ID{m.OrganizationID}}
 }
 
-func (m *DeleteOrganization) apply(state updateState, userID *ID, role string) (*updateEffect, error) {
-	o, ok := state.organizations[m.OrganizationID]
-	if !ok {
+func (m *DeleteOrganization) apply(state updateState, user *User) (*updateEffect, error) {
+	rs := state.records[m.OrganizationID]
+	if rs == nil {
 		return nil, fmt.Errorf("DeleteOrganization: organization %s not found", m.OrganizationID)
 	}
-	if o.Status == OrganizationStatusDeleted {
+	if rs.status == OrganizationStatusDeleted {
 		return nil, nil // noop
 	}
-
-	now := time.Now()
-	o.Version++
-	o.Status = OrganizationStatusDeleted
-	o.DeletedAt = &now
-	m.org = o
-
 	return &updateEffect{
 		recordType: RecordTypeOrganization,
 		recordID:   m.OrganizationID,
-		record:     o,
 	}, nil
 }
 
-func (m *DeleteOrganization) write(ctx context.Context, tx pgx.Tx, revID int64) error {
-	o := m.org
-	_, err := tx.Exec(ctx, `
-		UPDATE bbl_organizations
-		SET version = $2, updated_at = transaction_timestamp(),
-		    updated_by_id = $3, status = $4,
-		    deleted_at = $5, deleted_by_id = $6
+func (m *DeleteOrganization) write(revID int64, user *User) (string, []any) {
+	return `UPDATE bbl_organizations
+		SET status = $2,
+		    deleted_at = transaction_timestamp(), deleted_by_id = $3
 		WHERE id = $1`,
-		o.ID, o.Version, o.UpdatedByID,
-		o.Status, o.DeletedAt, o.DeletedByID)
-	if err != nil {
-		return fmt.Errorf("DeleteOrganization.write: %w", err)
-	}
-	return nil
+		[]any{m.OrganizationID, OrganizationStatusDeleted, &user.ID}
 }

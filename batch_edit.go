@@ -83,32 +83,37 @@ func ReadWorkBatch(ctx context.Context, repo *Repo, r io.Reader) (*BatchResult, 
 			return nil, fmt.Errorf("ReadWorkBatch: %w", err)
 		}
 
-		for col, csvVal := range row.values {
-			if csvVal == current[col] {
+		for field, ft := range csvFieldTypes("work") {
+			csvCols := ft.csv.columns(field)
+
+			changed := false
+			for _, col := range csvCols {
+				if row.values[col] != current[col] {
+					changed = true
+					break
+				}
+			}
+			if !changed {
 				result.Skipped++
 				continue
 			}
 
-			update, err := buildScalarUpdate(row.workID, col, csvVal, row.values)
-			if err != nil {
-				return nil, fmt.Errorf("ReadWorkBatch: %w", err)
-			}
-			if update == nil {
-				continue
-			}
-
-			fieldName := canonicalFieldName(col)
-			if fieldRev, ok := fieldRevs[fieldName]; ok && fieldRev > row.revID {
+			if fieldRev, ok := fieldRevs[field]; ok && fieldRev > row.revID {
 				result.Conflicts = append(result.Conflicts, BatchConflict{
 					WorkID:     row.workID,
-					Field:      col,
-					CurrentVal: current[col],
-					CSVVal:     csvVal,
+					Field:      field,
+					CurrentVal: current[csvCols[0]],
+					CSVVal:     row.values[csvCols[0]],
 				})
 				continue
 			}
 
-			result.updates = append(result.updates, update)
+			val, hasData := ft.csv.unflatten(field, row.values)
+			if hasData {
+				result.updates = append(result.updates, &Set{RecordType: "work", RecordID: row.workID, Field: field, Val: val})
+			} else {
+				result.updates = append(result.updates, &Hide{RecordType: "work", RecordID: row.workID, Field: field})
+			}
 		}
 	}
 	return result, nil
@@ -170,17 +175,28 @@ func parseBatchCSV(r io.Reader) ([]batchRow, error) {
 	return rows, nil
 }
 
+// csvFieldTypes returns field name → fieldType for all CSV-enabled fields
+// of the given entity type.
+func csvFieldTypes(entityType string) map[string]*fieldType {
+	fieldTypes, ok := entityFieldTypes[entityType]
+	if !ok {
+		return nil
+	}
+	out := make(map[string]*fieldType)
+	for field, ftName := range fieldTypes {
+		ft := fieldTypeRegistry[ftName]
+		if ft != nil && ft.csv != nil {
+			out[field] = ft
+		}
+	}
+	return out
+}
+
+// scalarBatchColumns returns all CSV columns for CSV-enabled fields.
 func scalarBatchColumns() []string {
 	var cols []string
-	for field, typ := range workFieldCatalog {
-		switch typ {
-		case "text", "year":
-			cols = append(cols, field)
-		case "extent":
-			cols = append(cols, field+".start", field+".end")
-		case "conference":
-			cols = append(cols, field+".name", field+".organizer", field+".location")
-		}
+	for field, ft := range csvFieldTypes("work") {
+		cols = append(cols, ft.csv.columns(field)...)
 	}
 	return cols
 }
@@ -244,143 +260,18 @@ func getWorkFieldRevIDs(ctx context.Context, repo *Repo, workID ID) (map[string]
 	return revs, rows.Err()
 }
 
+// flattenScalarField uses the fieldType's CSV codec to flatten a DB value
+// into CSV column→value pairs.
 func flattenScalarField(fields map[string]string, field string, val json.RawMessage) {
-	switch field {
-	case "conference":
-		var c Conference
-		if json.Unmarshal(val, &c) == nil {
-			fields["conference.name"] = c.Name
-			fields["conference.organizer"] = c.Organizer
-			fields["conference.location"] = c.Location
-		}
-	case "pages":
-		var e Extent
-		if json.Unmarshal(val, &e) == nil {
-			fields["pages.start"] = e.Start
-			fields["pages.end"] = e.End
-		}
-	default:
-		var s string
-		if json.Unmarshal(val, &s) == nil {
-			fields[field] = s
-		}
+	ft, err := resolveFieldType("work", field)
+	if err != nil || ft.csv == nil {
+		return
 	}
-}
-
-func canonicalFieldName(col string) string {
-	switch col {
-	case "pages.start", "pages.end":
-		return "pages"
-	case "conference.name", "conference.organizer", "conference.location":
-		return "conference"
-	default:
-		return col
+	goVal, err := ft.unmarshal(val)
+	if err != nil {
+		return
 	}
-}
-
-func buildScalarUpdate(workID ID, col, csvVal string, allValues map[string]string) (any, error) {
-	switch col {
-	case "pages.start":
-		start := allValues["pages.start"]
-		end := allValues["pages.end"]
-		if start == "" && end == "" {
-			return &HideWorkPages{WorkID: workID}, nil
-		}
-		return &SetWorkPages{WorkID: workID, Val: Extent{Start: start, End: end}}, nil
-	case "pages.end":
-		return nil, nil
-	case "conference.name":
-		name := allValues["conference.name"]
-		org := allValues["conference.organizer"]
-		loc := allValues["conference.location"]
-		if name == "" && org == "" && loc == "" {
-			return &HideWorkConference{WorkID: workID}, nil
-		}
-		return &SetWorkConference{WorkID: workID, Val: Conference{Name: name, Organizer: org, Location: loc}}, nil
-	case "conference.organizer", "conference.location":
-		return nil, nil
-	}
-
-	if csvVal == "" {
-		return buildHideUpdate(workID, col)
-	}
-	return buildSetUpdate(workID, col, csvVal)
-}
-
-func buildSetUpdate(workID ID, field, val string) (any, error) {
-	switch field {
-	case "article_number":
-		return &SetWorkArticleNumber{WorkID: workID, Val: val}, nil
-	case "book_title":
-		return &SetWorkBookTitle{WorkID: workID, Val: val}, nil
-	case "edition":
-		return &SetWorkEdition{WorkID: workID, Val: val}, nil
-	case "issue":
-		return &SetWorkIssue{WorkID: workID, Val: val}, nil
-	case "issue_title":
-		return &SetWorkIssueTitle{WorkID: workID, Val: val}, nil
-	case "journal_abbreviation":
-		return &SetWorkJournalAbbreviation{WorkID: workID, Val: val}, nil
-	case "journal_title":
-		return &SetWorkJournalTitle{WorkID: workID, Val: val}, nil
-	case "place_of_publication":
-		return &SetWorkPlaceOfPublication{WorkID: workID, Val: val}, nil
-	case "publication_status":
-		return &SetWorkPublicationStatus{WorkID: workID, Val: val}, nil
-	case "publication_year":
-		return &SetWorkPublicationYear{WorkID: workID, Val: val}, nil
-	case "publisher":
-		return &SetWorkPublisher{WorkID: workID, Val: val}, nil
-	case "report_number":
-		return &SetWorkReportNumber{WorkID: workID, Val: val}, nil
-	case "series_title":
-		return &SetWorkSeriesTitle{WorkID: workID, Val: val}, nil
-	case "total_pages":
-		return &SetWorkTotalPages{WorkID: workID, Val: val}, nil
-	case "volume":
-		return &SetWorkVolume{WorkID: workID, Val: val}, nil
-	default:
-		return nil, fmt.Errorf("unknown scalar field %q", field)
-	}
-}
-
-func buildHideUpdate(workID ID, field string) (any, error) {
-	switch field {
-	case "article_number":
-		return &HideWorkArticleNumber{WorkID: workID}, nil
-	case "book_title":
-		return &HideWorkBookTitle{WorkID: workID}, nil
-	case "conference":
-		return &HideWorkConference{WorkID: workID}, nil
-	case "edition":
-		return &HideWorkEdition{WorkID: workID}, nil
-	case "issue":
-		return &HideWorkIssue{WorkID: workID}, nil
-	case "issue_title":
-		return &HideWorkIssueTitle{WorkID: workID}, nil
-	case "journal_abbreviation":
-		return &HideWorkJournalAbbreviation{WorkID: workID}, nil
-	case "journal_title":
-		return &HideWorkJournalTitle{WorkID: workID}, nil
-	case "pages":
-		return &HideWorkPages{WorkID: workID}, nil
-	case "place_of_publication":
-		return &HideWorkPlaceOfPublication{WorkID: workID}, nil
-	case "publication_status":
-		return &HideWorkPublicationStatus{WorkID: workID}, nil
-	case "publication_year":
-		return &HideWorkPublicationYear{WorkID: workID}, nil
-	case "publisher":
-		return &HideWorkPublisher{WorkID: workID}, nil
-	case "report_number":
-		return &HideWorkReportNumber{WorkID: workID}, nil
-	case "series_title":
-		return &HideWorkSeriesTitle{WorkID: workID}, nil
-	case "total_pages":
-		return &HideWorkTotalPages{WorkID: workID}, nil
-	case "volume":
-		return &HideWorkVolume{WorkID: workID}, nil
-	default:
-		return nil, fmt.Errorf("unknown scalar field %q", field)
+	for k, v := range ft.csv.flatten(field, goVal) {
+		fields[k] = v
 	}
 }

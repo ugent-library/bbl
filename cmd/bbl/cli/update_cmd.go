@@ -27,13 +27,16 @@ Example:
 				return err
 			}
 
-			var userID *bbl.ID
-			if userIDFlag != "" {
-				id, err := bbl.ParseID(userIDFlag)
-				if err != nil {
-					return fmt.Errorf("invalid user ID: %w", err)
-				}
-				userID = &id
+			if userIDFlag == "" {
+				return fmt.Errorf("--user is required")
+			}
+			id, err := bbl.ParseID(userIDFlag)
+			if err != nil {
+				return fmt.Errorf("invalid user ID: %w", err)
+			}
+			user, err := svc.Repo.GetUser(ctx, id)
+			if err != nil {
+				return fmt.Errorf("get user: %w", err)
 			}
 
 			var updates []any
@@ -58,7 +61,7 @@ Example:
 				return nil
 			}
 
-			ok, _, err := svc.Repo.Update(ctx, userID, updates...)
+			ok, err := svc.UpdateAndIndex(ctx, user, updates...)
 			if err != nil {
 				return err
 			}

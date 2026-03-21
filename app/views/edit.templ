@@ -9,7 +9,7 @@ import (
 	"github.com/ugent-library/vo"
 )
 
-templ BackofficeEditWork(c Ctx, work *bbl.Work, profile *bbl.WorkKind, errs vo.Errors) {
+templ BackofficeEditWork(c Ctx, work *bbl.Work, profile []bbl.FieldDef, errs vo.Errors) {
 	@Layout(c, c.Loc("Edit %s", workTitle(c, work))+" - "+c.Loc("Backoffice")) {
 		<main>
 			<p><a href={ templ.SafeURL("/backoffice/works/" + work.ID.String()) }>{ c.Loc("Back to work") }</a></p>
@@ -23,7 +23,7 @@ templ BackofficeEditWork(c Ctx, work *bbl.Work, profile *bbl.WorkKind, errs vo.E
 				</ul>
 			}
 			<form method="post" action={ templ.SafeURL(fmt.Sprintf("/backoffice/works/%s/edit", work.ID)) }>
-				for _, f := range profile.Fields {
+				for _, f := range profile {
 					@editField(c, f, work)
 				}
 				<div>
@@ -35,13 +35,13 @@ templ BackofficeEditWork(c Ctx, work *bbl.Work, profile *bbl.WorkKind, errs vo.E
 	}
 }
 
-templ editField(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editField(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	switch f.Type {
-		case "text", "year":
+		case "string":
 			<fieldset>
 				<label for={ f.Name }>
 					{ fieldLabel(c, f.Name) }
-					if f.Required {
+					if f.IsRequired() {
 						<span>*</span>
 					}
 				</label>
@@ -52,34 +52,32 @@ templ editField(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 					value={ workAttrString(work, f.Name) }
 				/>
 			</fieldset>
-		case "text_list":
-			if f.Name == "titles" {
-				@editTitleList(c, f, work)
-			} else {
-				@editTextList(c, f, work)
-			}
-		case "string_list":
+		case "title":
+			@editTitleList(c, f, work)
+		case "text":
+			@editTextList(c, f, work)
+		case "keyword":
 			@editKeywords(c, work)
 		case "extent":
 			@editExtent(c, f, work)
 		case "conference":
 			@editConference(c, f, work)
-		case "note_list":
+		case "note":
 			@editNoteList(c, f, work)
-		case "identifier_list":
+		case "identifier":
 			@showIdentifiers(c, work)
-		case "classification_list":
+		case "classification":
 			@showClassifications(c, work)
-		case "contributor_list":
+		case "workContributor":
 			@editContributors(c, work)
 	}
 }
 
-templ editTitleList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editTitleList(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
 		<legend>
 			{ fieldLabel(c, f.Name) }
-			if f.Required {
+			if f.IsRequired() {
 				<span>*</span>
 			}
 		</legend>
@@ -103,11 +101,11 @@ templ editTitleList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	</fieldset>
 }
 
-templ editTextList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editTextList(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
 		<legend>
 			{ fieldLabel(c, f.Name) }
-			if f.Required {
+			if f.IsRequired() {
 				<span>*</span>
 			}
 		</legend>
@@ -152,7 +150,7 @@ templ editKeywords(c Ctx, work *bbl.Work) {
 	</fieldset>
 }
 
-templ editExtent(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editExtent(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	<fieldset>
 		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<label>
@@ -166,7 +164,7 @@ templ editExtent(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	</fieldset>
 }
 
-templ editConference(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editConference(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	<fieldset>
 		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<label>
@@ -184,7 +182,7 @@ templ editConference(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
 	</fieldset>
 }
 
-templ editNoteList(c Ctx, f bbl.WorkFieldDef, work *bbl.Work) {
+templ editNoteList(c Ctx, f bbl.FieldDef, work *bbl.Work) {
 	<fieldset data-repeatable={ f.Name }>
 		<legend>{ fieldLabel(c, f.Name) }</legend>
 		<div data-repeatable-items>

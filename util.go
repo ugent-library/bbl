@@ -1,9 +1,9 @@
 package bbl
 
-import "slices"
+import "encoding/json"
 
 // dedup returns ids with duplicates removed, preserving order.
-func dedup(ids []ID) []ID {
+func dedupIDs(ids []ID) []ID {
 	seen := make(map[ID]struct{}, len(ids))
 	out := make([]ID, 0, len(ids))
 	for _, id := range ids {
@@ -15,9 +15,17 @@ func dedup(ids []ID) []ID {
 	return out
 }
 
-// slicesEqual reports whether two slices of comparable elements are equal.
-func slicesEqual[T comparable](a, b []T) bool {
-	return slices.Equal(a, b)
+// dedupStrings deduplicates a string slice, preserving order.
+func dedupStrings(ss []string) []string {
+	seen := make(map[string]bool, len(ss))
+	out := make([]string, 0, len(ss))
+	for _, s := range ss {
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // idPtrEqual reports whether two *ID pointers are equal (both nil or same value).
@@ -31,78 +39,30 @@ func idPtrEqual(a, b *ID) bool {
 	return *a == *b
 }
 
-// contributorsEqual compares two WorkContributor slices for equality.
-func contributorsEqual(a, b []WorkContributor) bool {
-	if len(a) != len(b) {
-		return false
+// jsonSet injects a key-value pair into a JSON object.
+// If val is null or empty, returns the original unchanged.
+func jsonSet(obj json.RawMessage, key string, val json.RawMessage) json.RawMessage {
+	if len(val) == 0 {
+		return obj
 	}
-	for i := range a {
-		if a[i].Kind != b[i].Kind || a[i].Name != b[i].Name ||
-			a[i].GivenName != b[i].GivenName || a[i].FamilyName != b[i].FamilyName ||
-			!idPtrEqual(a[i].PersonID, b[i].PersonID) ||
-			!slicesEqual(a[i].Roles, b[i].Roles) {
-			return false
-		}
-	}
-	return true
+	m := make(map[string]json.RawMessage)
+	json.Unmarshal(obj, &m)
+	m[key] = val
+	out, _ := json.Marshal(m)
+	return out
 }
 
-// personAffiliationsEqual compares two PersonAffiliation slices for equality.
-func personAffiliationsEqual(a, b []PersonAffiliation) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].OrganizationID != b[i].OrganizationID || a[i].Role != b[i].Role {
-			return false
+// jsonBuild constructs a JSON object from key-value pairs.
+// Keys with nil values are omitted.
+func jsonBuild(kvs ...any) json.RawMessage {
+	m := make(map[string]json.RawMessage, len(kvs)/2)
+	for i := 0; i < len(kvs); i += 2 {
+		k := kvs[i].(string)
+		v := kvs[i+1].(json.RawMessage)
+		if v != nil {
+			m[k] = v
 		}
 	}
-	return true
-}
-
-// projectParticipantsEqual compares two ProjectParticipant slices for equality.
-func projectParticipantsEqual(a, b []ProjectParticipant) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].PersonID != b[i].PersonID || a[i].Role != b[i].Role {
-			return false
-		}
-	}
-	return true
-}
-
-// workRelsMatch compares cached WorkRel slice against a slice of items
-// that have RelatedWorkID and Kind fields.
-func workRelsMatch(cached []WorkRel, input []struct {
-	RelatedWorkID ID     `json:"related_work_id"`
-	Kind          string `json:"kind"`
-}) bool {
-	if len(cached) != len(input) {
-		return false
-	}
-	for i := range cached {
-		if cached[i].RelatedWorkID != input[i].RelatedWorkID || cached[i].Kind != input[i].Kind {
-			return false
-		}
-	}
-	return true
-}
-
-// orgRelsMatch compares cached OrganizationRel slice against the anonymous
-// struct slice used by SetOrganizationRels.
-func orgRelsMatch(cached []OrganizationRel, input []struct {
-	RelOrganizationID ID     `json:"rel_organization_id"`
-	Kind              string `json:"kind"`
-}) bool {
-	if len(cached) != len(input) {
-		return false
-	}
-	for i := range cached {
-		if cached[i].RelOrganizationID != input[i].RelOrganizationID || cached[i].Kind != input[i].Kind {
-			return false
-		}
-	}
-	return true
+	out, _ := json.Marshal(m)
+	return out
 }

@@ -2,6 +2,7 @@ package bbl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -10,30 +11,28 @@ import (
 
 // RevEffect describes a record affected by a revision.
 type RevEffect struct {
-	RecordType string // "work", "person", "project", "organization"
-	Record     any    // *Work, *Person, *Project, *Organization
+	RecordType string
+	RecordID   ID
+	Version    int
 }
 
-// AddRev executes a batch of updaters atomically.
-// Each updater must be a pointer to a type implementing the unexported updater
-// interface (e.g. *CreateWork, *DeletePerson, *CreateWorkTitle).
+// Update executes a batch of updaters atomically.
 //
-// Returns (true, effects, nil) when a rev was written, (false, nil, nil) when
-// every updater was a noop.
-//
-// Execution order:
-//  1. Type-assert each arg to updater interface
-//  2. Collect needs → batch prefetch with FOR UPDATE
-//  3. Apply all updaters (pure, no DB)
-//  4. If all nil → rollback, return (false, nil, nil)
-//  5. Insert bbl_revs row
-//  6. Write each non-noop updater + audit rows
-//  7. Bump version for entities affected only by field updaters
-//  8. Run auto-pin for affected grouping keys
-//  9. Rebuild cache for affected entities
-//  10. Return deduplicated RevEffects
-func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []RevEffect, error) {
-	// 1. Type-assert to updater interface.
+// Flow:
+//  1. Parse updaters
+//  2. Collect needs → fetch state (lock rows + pinned field state → recordState)
+//  3. Apply all updaters (mutate recordState)
+//  4. If all noop → return (false, nil, nil)
+//  5. Validate (rs.fields + profile defs)
+//  6. Insert bbl_revs row
+//  7. Write all (field batch + lifecycle writes)
+//  8. Bump version + updated_at + updated_by_id for all existing affected records
+//  9. Auto-pin for affected grouping keys
+//  10. Rebuild cache for affected entities
+//  11. Commit
+//  12. Return (true, []RevEffect, nil)
+func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []RevEffect, error) {
+	// 1. Parse updaters.
 	muts := make([]updater, len(updates))
 	for i, arg := range updates {
 		m, ok := arg.(updater)
@@ -49,7 +48,7 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 	}
 	defer tx.Rollback(ctx)
 
-	// 2. Collect needs and batch prefetch.
+	// 2. Fetch state: lock rows + pinned field state → recordState.
 	var needs updateNeeds
 	for _, m := range muts {
 		n := m.needs()
@@ -59,30 +58,22 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 		needs.workIDs = append(needs.workIDs, n.workIDs...)
 	}
 
-	state, err := fetchUpdateState(ctx, tx, needs)
+	state, err := fetchState(ctx, tx, needs, muts)
 	if err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 3. Look up the user's role for assertion attribution.
-	var role string
-	if userID != nil {
-		if err := tx.QueryRow(ctx, `SELECT role FROM bbl_users WHERE id = $1`, userID).Scan(&role); err != nil {
-			return false, nil, fmt.Errorf("Update: lookup user role: %w", err)
-		}
-	}
-
-	// 4. Apply all updaters (pure — no DB access).
+	// 3. Apply all updaters.
 	effects := make([]*updateEffect, len(muts))
 	for i, m := range muts {
-		eff, err := m.apply(state, userID, role)
+		eff, err := m.apply(state, user)
 		if err != nil {
 			return false, nil, fmt.Errorf("Update: %s: %w", m.name(), err)
 		}
-		effects[i] = eff // nil = noop
+		effects[i] = eff
 	}
 
-	// 4. If all nil, nothing to write.
+	// 4. If all noop, nothing to write.
 	allNoop := true
 	for _, eff := range effects {
 		if eff != nil {
@@ -94,83 +85,87 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 		return false, nil, nil
 	}
 
-	// Set actor IDs on non-noop entity lifecycle records.
-	if userID != nil {
+	// 5. Validate.
+	if r.Profiles != nil {
+		validated := make(map[ID]bool)
 		for _, eff := range effects {
-			if eff == nil || eff.record == nil {
+			if eff == nil || validated[eff.recordID] {
 				continue
 			}
-			setRecordActorIDs(eff, userID)
+			validated[eff.recordID] = true
+
+			rs := state.records[eff.recordID]
+			if rs == nil {
+				continue
+			}
+
+			defs := r.Profiles.FieldDefs(eff.recordType, rs.kind)
+			if defs == nil {
+				continue
+			}
+
+			if errs := validateRecord(rs.status, rs.fields, defs); errs != nil {
+				return false, nil, errs.ToError()
+			}
 		}
 	}
 
-	// Validate non-noop entity lifecycle records.
-	for i, eff := range effects {
-		if eff == nil || eff.record == nil {
-			continue
-		}
-		if err := r.validateRecord(eff); err != nil {
-			return false, nil, fmt.Errorf("Update: %s: %w", muts[i].name(), err)
-		}
-	}
-
-	// 5. Insert bbl_revs row.
+	// 6. Insert bbl_revs row.
 	var revID int64
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO bbl_revs (user_id) VALUES ($1) RETURNING id`,
-		userID).Scan(&revID); err != nil {
+		&user.ID).Scan(&revID); err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 6. Write each non-noop updater.
-	// Track which entities were touched by lifecycle updaters (record != nil)
-	// vs field-only updaters (record == nil).
-	var changedWorkIDs, changedPersonIDs, changedProjectIDs, changedOrganizationIDs []ID
-	lifecycleEntities := make(map[string]map[ID]bool) // recordType → recordID → true
-	seen := make(map[string]map[ID]bool)              // all affected entities
-	hasAutoPin := false
-	for i, eff := range effects {
-		if eff == nil {
-			continue
-		}
-		if err := muts[i].write(ctx, tx, revID); err != nil {
-			return false, nil, fmt.Errorf("Update: %w", err)
-		}
+	// 7. Write all.
+	// Field ops go through the assertion batch pipeline.
+	if err := executeFieldWrites(ctx, tx, revID, user, muts, effects); err != nil {
+		return false, nil, fmt.Errorf("Update: %w", err)
+	}
 
-		// Track affected entities.
-		if seen[eff.recordType] == nil {
-			seen[eff.recordType] = make(map[ID]bool)
-		}
-		seen[eff.recordType][eff.recordID] = true
-
-		if eff.record != nil {
-			// Lifecycle updater — entity row already written with version bump.
-			if lifecycleEntities[eff.recordType] == nil {
-				lifecycleEntities[eff.recordType] = make(map[ID]bool)
-			}
-			lifecycleEntities[eff.recordType][eff.recordID] = true
-		}
-
-		switch eff.recordType {
-		case RecordTypeWork:
-			changedWorkIDs = append(changedWorkIDs, eff.recordID)
-		case RecordTypePerson:
-			changedPersonIDs = append(changedPersonIDs, eff.recordID)
-		case RecordTypeProject:
-			changedProjectIDs = append(changedProjectIDs, eff.recordID)
-		case RecordTypeOrganization:
-			changedOrganizationIDs = append(changedOrganizationIDs, eff.recordID)
-		}
-		if eff.autoPin != nil {
-			hasAutoPin = true
+	// Lifecycle ops + version bumps go through a single batch.
+	affected := make(map[ID]string) // id → recordType
+	for _, eff := range effects {
+		if eff != nil {
+			affected[eff.recordID] = eff.recordType
 		}
 	}
 
-	// 7. Bump version + updated_at for entities affected only by field updaters.
-	for rt, ids := range seen {
-		for id := range ids {
-			if lifecycleEntities[rt][id] {
-				continue // lifecycle updater already bumped version
+	var changedWorkIDs, changedPersonIDs, changedProjectIDs, changedOrganizationIDs []ID
+	{
+		batch := &pgx.Batch{}
+
+		// Queue lifecycle writes.
+		for i, eff := range effects {
+			if eff == nil {
+				continue
+			}
+			switch muts[i].(type) {
+			case *Set, *Hide, *Unset:
+				continue
+			}
+			if sql, args := muts[i].write(revID, user); sql != "" {
+				batch.Queue(sql, args...)
+			}
+		}
+
+		// Queue version bumps for existing records.
+		for id, rt := range affected {
+			switch rt {
+			case RecordTypeWork:
+				changedWorkIDs = append(changedWorkIDs, id)
+			case RecordTypePerson:
+				changedPersonIDs = append(changedPersonIDs, id)
+			case RecordTypeProject:
+				changedProjectIDs = append(changedProjectIDs, id)
+			case RecordTypeOrganization:
+				changedOrganizationIDs = append(changedOrganizationIDs, id)
+			}
+
+			rs := state.records[id]
+			if rs == nil || rs.version == 0 {
+				continue // new entity — Create already inserted with version=1
 			}
 			var q string
 			switch rt {
@@ -184,14 +179,32 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 				q = `UPDATE bbl_organizations SET version = version + 1, updated_at = transaction_timestamp(), updated_by_id = $2 WHERE id = $1`
 			}
 			if q != "" {
-				if _, err := tx.Exec(ctx, q, id, userID); err != nil {
-					return false, nil, fmt.Errorf("Update: bump version %s %s: %w", rt, id, err)
+				batch.Queue(q, id, &user.ID)
+			}
+		}
+
+		if batch.Len() > 0 {
+			results := tx.SendBatch(ctx, batch)
+			for i := 0; i < batch.Len(); i++ {
+				if _, err := results.Exec(); err != nil {
+					results.Close()
+					return false, nil, fmt.Errorf("Update: write batch: %w", err)
 				}
+			}
+			if err := results.Close(); err != nil {
+				return false, nil, fmt.Errorf("Update: close write batch: %w", err)
 			}
 		}
 	}
 
-	// 8. Run auto-pin for affected grouping keys.
+	// 9. Auto-pin.
+	hasAutoPin := false
+	for _, eff := range effects {
+		if eff != nil && eff.autoPin != nil {
+			hasAutoPin = true
+			break
+		}
+	}
 	if hasAutoPin {
 		priorities, err := fetchSourcePriorities(ctx, tx)
 		if err != nil {
@@ -207,7 +220,7 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 		}
 	}
 
-	// 9. Rebuild caches for affected entities.
+	// 10. Rebuild caches.
 	if err := rebuildWorkCache(ctx, tx, changedWorkIDs); err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
@@ -221,27 +234,23 @@ func (r *Repo) Update(ctx context.Context, userID *ID, updates ...any) (bool, []
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
+	// 11. Commit.
 	if err := tx.Commit(ctx); err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 10. Build deduplicated RevEffects.
-	// For lifecycle updaters, use the in-memory record. For field-only
-	// updaters, the record is nil — callers that need the full entity
-	// should re-read from the repo.
-	var revEffects []RevEffect
-	for rt, ids := range seen {
-		for id := range ids {
-			var rec any
-			// Find the record from lifecycle effects if available.
-			for _, eff := range effects {
-				if eff != nil && eff.recordType == rt && eff.recordID == id && eff.record != nil {
-					rec = eff.record
-					break
-				}
-			}
-			revEffects = append(revEffects, RevEffect{RecordType: rt, Record: rec})
+	// 12. Return effects.
+	revEffects := make([]RevEffect, 0, len(affected))
+	for id, rt := range affected {
+		version := 1 // new entities
+		if rs := state.records[id]; rs != nil && rs.version > 0 {
+			version = rs.version + 1
 		}
+		revEffects = append(revEffects, RevEffect{
+			RecordType: rt,
+			RecordID:   id,
+			Version:    version,
+		})
 	}
 	return true, revEffects, nil
 }
@@ -265,343 +274,269 @@ func fetchSourcePriorities(ctx context.Context, tx pgx.Tx) (map[string]int, erro
 	return priorities, rows.Err()
 }
 
-func fetchUpdateState(ctx context.Context, tx pgx.Tx, needs updateNeeds) (updateState, error) {
-	state := updateState{}
-	if len(needs.organizationIDs) > 0 {
-		rows, err := tx.Query(ctx, `
-			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
-			       kind, status, start_date, end_date,
-			       deleted_at, deleted_by_id,
-			       cache
-			FROM bbl_organizations
-			WHERE id = ANY($1)
-			FOR UPDATE`, dedup(needs.organizationIDs))
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		results, err := pgx.CollectRows(rows, scanOrganizationUpdateRow)
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		state.organizations = make(map[ID]*Organization, len(results))
-		state.organizationAssertions = make(map[ID]map[string][]assertionInfo, len(results))
-		for _, r := range results {
-			state.organizations[r.organization.ID] = r.organization
-			state.organizationAssertions[r.organization.ID] = r.assertions
-		}
+// fetchState locks entity rows and fetches pinned field state in one pass.
+// Builds map[ID]*recordState with status, kind, version, and field values.
+func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []updater) (updateState, error) {
+	state := updateState{
+		records: make(map[ID]*recordState),
+	}
+
+	// Phase 1: lock rows and build recordState stubs.
+	type lockQuery struct {
+		rt  string
+		ids []ID
+		sql string
+	}
+	var lockQueries []lockQuery
+	if len(needs.workIDs) > 0 {
+		lockQueries = append(lockQueries, lockQuery{
+			rt: RecordTypeWork, ids: dedupIDs(needs.workIDs),
+			sql: `SELECT id, version, kind, status FROM bbl_works WHERE id = ANY($1) FOR UPDATE`,
+		})
 	}
 	if len(needs.personIDs) > 0 {
-		rows, err := tx.Query(ctx, `
-			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
-			       status, deleted_at, deleted_by_id,
-			       cache
-			FROM bbl_people
-			WHERE id = ANY($1)
-			FOR UPDATE`, dedup(needs.personIDs))
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		results, err := pgx.CollectRows(rows, scanPersonUpdateRow)
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		state.people = make(map[ID]*Person, len(results))
-		state.personAssertions = make(map[ID]map[string][]assertionInfo, len(results))
-		for _, r := range results {
-			state.people[r.person.ID] = r.person
-			state.personAssertions[r.person.ID] = r.assertions
-		}
-	}
-	if len(needs.workIDs) > 0 {
-		rows, err := tx.Query(ctx, `
-			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
-			       kind, status, review_status, delete_kind,
-			       deleted_at, deleted_by_id,
-			       cache
-			FROM bbl_works
-			WHERE id = ANY($1)
-			FOR UPDATE`, dedup(needs.workIDs))
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		results, err := pgx.CollectRows(rows, scanWorkUpdateRow)
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		state.works = make(map[ID]*Work, len(results))
-		state.workAssertions = make(map[ID]map[string][]assertionInfo, len(results))
-		for _, r := range results {
-			state.works[r.work.ID] = r.work
-			state.workAssertions[r.work.ID] = r.assertions
-		}
+		lockQueries = append(lockQueries, lockQuery{
+			rt: RecordTypePerson, ids: dedupIDs(needs.personIDs),
+			sql: `SELECT id, version, '', status FROM bbl_people WHERE id = ANY($1) FOR UPDATE`,
+		})
 	}
 	if len(needs.projectIDs) > 0 {
-		rows, err := tx.Query(ctx, `
-			SELECT id, version, created_at, updated_at, created_by_id, updated_by_id,
-			       status, start_date, end_date,
-			       deleted_at, deleted_by_id,
-			       cache
-			FROM bbl_projects
-			WHERE id = ANY($1)
-			FOR UPDATE`, dedup(needs.projectIDs))
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		results, err := pgx.CollectRows(rows, scanProjectUpdateRow)
-		if err != nil {
-			return state, fmt.Errorf("fetchUpdateState: %w", err)
-		}
-		state.projects = make(map[ID]*Project, len(results))
-		state.projectAssertions = make(map[ID]map[string][]assertionInfo, len(results))
-		for _, r := range results {
-			state.projects[r.project.ID] = r.project
-			state.projectAssertions[r.project.ID] = r.assertions
-		}
+		lockQueries = append(lockQueries, lockQuery{
+			rt: RecordTypeProject, ids: dedupIDs(needs.projectIDs),
+			sql: `SELECT id, version, '', status FROM bbl_projects WHERE id = ANY($1) FOR UPDATE`,
+		})
 	}
-	return state, nil
-}
+	if len(needs.organizationIDs) > 0 {
+		lockQueries = append(lockQueries, lockQuery{
+			rt: RecordTypeOrganization, ids: dedupIDs(needs.organizationIDs),
+			sql: `SELECT id, version, kind, status FROM bbl_organizations WHERE id = ANY($1) FOR UPDATE`,
+		})
+	}
 
-type workUpdateData struct {
-	work       *Work
-	assertions map[string][]assertionInfo
-}
-
-// scanWorkUpdateRow scans a work row for updater state, including cache.
-func scanWorkUpdateRow(row pgx.CollectableRow) (workUpdateData, error) {
-	var w Work
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var reviewStatus, deleteKind pgtype.Text
-	var deletedAt pgtype.Timestamptz
-	var cache []byte
-	err := row.Scan(
-		&w.ID, &w.Version, &w.CreatedAt, &w.UpdatedAt,
-		&createdByID, &updatedByID,
-		&w.Kind, &w.Status, &reviewStatus, &deleteKind,
-		&deletedAt, &deletedByID,
-		&cache,
-	)
-	if err != nil {
-		return workUpdateData{}, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		w.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		w.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		w.DeletedByID = &id
-	}
-	if reviewStatus.Valid {
-		w.ReviewStatus = reviewStatus.String
-	}
-	if deleteKind.Valid {
-		w.DeleteKind = deleteKind.String
-	}
-	if deletedAt.Valid {
-		w.DeletedAt = &deletedAt.Time
-	}
-	if err := parseWorkCache(&w, cache); err != nil {
-		return workUpdateData{}, err
-	}
-	return workUpdateData{work: &w, assertions: parseAssertionsInfo(cache)}, nil
-}
-
-type personUpdateData struct {
-	person     *Person
-	assertions map[string][]assertionInfo
-}
-
-// scanPersonUpdateRow scans a person row for updater state, including cache.
-func scanPersonUpdateRow(row pgx.CollectableRow) (personUpdateData, error) {
-	var p Person
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var deletedAt pgtype.Timestamptz
-	var cache []byte
-	err := row.Scan(
-		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
-		&createdByID, &updatedByID,
-		&p.Status, &deletedAt, &deletedByID,
-		&cache,
-	)
-	if err != nil {
-		return personUpdateData{}, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		p.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		p.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		p.DeletedByID = &id
-	}
-	if deletedAt.Valid {
-		p.DeletedAt = &deletedAt.Time
-	}
-	if err := parsePersonCache(&p, cache); err != nil {
-		return personUpdateData{}, err
-	}
-	return personUpdateData{person: &p, assertions: parseAssertionsInfo(cache)}, nil
-}
-
-type projectUpdateData struct {
-	project    *Project
-	assertions map[string][]assertionInfo
-}
-
-// scanProjectUpdateRow scans a project row for updater state, including cache.
-func scanProjectUpdateRow(row pgx.CollectableRow) (projectUpdateData, error) {
-	var p Project
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var startDate, endDate, deletedAt pgtype.Timestamptz
-	var cache []byte
-	err := row.Scan(
-		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
-		&createdByID, &updatedByID,
-		&p.Status, &startDate, &endDate,
-		&deletedAt, &deletedByID,
-		&cache,
-	)
-	if err != nil {
-		return projectUpdateData{}, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		p.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		p.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		p.DeletedByID = &id
-	}
-	if startDate.Valid {
-		p.StartDate = &startDate.Time
-	}
-	if endDate.Valid {
-		p.EndDate = &endDate.Time
-	}
-	if deletedAt.Valid {
-		p.DeletedAt = &deletedAt.Time
-	}
-	if err := parseProjectCache(&p, cache); err != nil {
-		return projectUpdateData{}, err
-	}
-	return projectUpdateData{project: &p, assertions: parseAssertionsInfo(cache)}, nil
-}
-
-type organizationUpdateData struct {
-	organization *Organization
-	assertions   map[string][]assertionInfo
-}
-
-// scanOrganizationUpdateRow scans an organization row for updater state, including cache and assertions info.
-func scanOrganizationUpdateRow(row pgx.CollectableRow) (organizationUpdateData, error) {
-	var o Organization
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var deletedAt pgtype.Timestamptz
-	var cache []byte
-	if err := row.Scan(
-		&o.ID, &o.Version, &o.CreatedAt, &o.UpdatedAt,
-		&createdByID, &updatedByID,
-		&o.Kind, &o.Status, &o.StartDate, &o.EndDate,
-		&deletedAt, &deletedByID,
-		&cache,
-	); err != nil {
-		return organizationUpdateData{}, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		o.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		o.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		o.DeletedByID = &id
-	}
-	if deletedAt.Valid {
-		o.DeletedAt = &deletedAt.Time
-	}
-	if err := parseOrganizationCache(&o, cache); err != nil {
-		return organizationUpdateData{}, err
-	}
-	return organizationUpdateData{organization: &o, assertions: parseAssertionsInfo(cache)}, nil
-}
-
-// setRecordActorIDs sets created_by_id, updated_by_id, and deleted_by_id on the
-// record based on the record's current state and the acting user.
-func setRecordActorIDs(eff *updateEffect, userID *ID) {
-	switch rec := eff.record.(type) {
-	case *Work:
-		if rec.CreatedByID == nil {
-			rec.CreatedByID = userID
+	if len(lockQueries) > 0 {
+		batch := &pgx.Batch{}
+		for _, lq := range lockQueries {
+			batch.Queue(lq.sql, lq.ids)
 		}
-		rec.UpdatedByID = userID
-		if rec.Status == WorkStatusDeleted {
-			rec.DeletedByID = userID
+		results := tx.SendBatch(ctx, batch)
+		for _, lq := range lockQueries {
+			rows, err := results.Query()
+			if err != nil {
+				results.Close()
+				return state, fmt.Errorf("fetchState: lock %s: %w", lq.rt, err)
+			}
+			for rows.Next() {
+				var id ID
+				var version int
+				var kind, status string
+				if err := rows.Scan(&id, &version, &kind, &status); err != nil {
+					rows.Close()
+					results.Close()
+					return state, fmt.Errorf("fetchState: scan %s: %w", lq.rt, err)
+				}
+				state.records[id] = &recordState{
+					recordType: lq.rt,
+					id:         id,
+					version:    version,
+					status:     status,
+					kind:       kind,
+					fields:     make(map[string]any),
+					assertions: make(map[string]*fieldState),
+				}
+			}
+			rows.Close()
 		}
-	case *Person:
-		if rec.CreatedByID == nil {
-			rec.CreatedByID = userID
-		}
-		rec.UpdatedByID = userID
-		if rec.Status == PersonStatusDeleted {
-			rec.DeletedByID = userID
-		}
-	case *Project:
-		if rec.CreatedByID == nil {
-			rec.CreatedByID = userID
-		}
-		rec.UpdatedByID = userID
-		if rec.Status == ProjectStatusDeleted {
-			rec.DeletedByID = userID
-		}
-	case *Organization:
-		if rec.CreatedByID == nil {
-			rec.CreatedByID = userID
-		}
-		rec.UpdatedByID = userID
-		if rec.Status == OrganizationStatusDeleted {
-			rec.DeletedByID = userID
+		if err := results.Close(); err != nil {
+			return state, fmt.Errorf("fetchState: close lock: %w", err)
 		}
 	}
-}
 
-// validateRecord runs entity validation on a updater result.
-func (r *Repo) validateRecord(eff *updateEffect) error {
-	switch rec := eff.record.(type) {
-	case *Work:
-		if r.WorkProfiles != nil {
-			if errs := ValidateWork(rec, r.WorkProfiles); errs != nil {
-				return errs.ToError()
+	// Phase 2: fetch pinned assertion state for fields being updated.
+	type entityKey struct {
+		rt string
+		id ID
+	}
+	grouped := make(map[entityKey][]string)
+	for _, m := range muts {
+		switch u := m.(type) {
+		case *Set:
+			ek := entityKey{u.RecordType, u.RecordID}
+			grouped[ek] = append(grouped[ek], u.Field)
+		case *Hide:
+			ek := entityKey{u.RecordType, u.RecordID}
+			grouped[ek] = append(grouped[ek], u.Field)
+		case *Unset:
+			ek := entityKey{u.RecordType, u.RecordID}
+			grouped[ek] = append(grouped[ek], u.Field)
+		}
+	}
+
+	if len(grouped) > 0 {
+		type rrInfo struct {
+			rr     *relation
+			offset int // start index in the extra scan slice
+		}
+		type queryInfo struct {
+			ek      entityKey
+			fields  []string
+			joins   string
+			sel     string              // full SELECT clause
+			rrByFT  map[string]*rrInfo  // fieldType name → rrInfo (deduped by rr pointer)
+			rrOrder []*rrInfo           // insertion order for stable scan dest building
+		}
+
+		batch := &pgx.Batch{}
+		var queries []queryInfo
+
+		for ek, fields := range grouped {
+			qi := queryInfo{
+				ek:     ek,
+				fields: dedupStrings(fields),
+				rrByFT: make(map[string]*rrInfo),
+			}
+
+			// Collect unique relations for the requested fields.
+			extraOffset := 0
+			seen := make(map[*relation]*rrInfo)
+			var extraCols []string
+			for _, f := range qi.fields {
+				ft, err := resolveFieldType(ek.rt, f)
+				if err != nil || ft.relation == nil {
+					continue
+				}
+				rr := ft.relation
+				ri, ok := seen[rr]
+				if !ok {
+					ri = &rrInfo{rr: rr, offset: extraOffset}
+					seen[rr] = ri
+					qi.rrOrder = append(qi.rrOrder, ri)
+					qi.joins += " " + rr.joinSQL
+					extraCols = append(extraCols, rr.cols...)
+					extraOffset += len(rr.cols)
+				}
+				qi.rrByFT[f] = ri
+			}
+
+			qi.sel = "a.field, a.val, a.hidden, a.user_id, a.role"
+			for _, c := range extraCols {
+				qi.sel += ", " + c
+			}
+			batch.Queue(fmt.Sprintf(
+				`SELECT %s FROM %s a%s WHERE a.%s = $1 AND a.field = ANY($2) AND a.pinned = true`,
+				qi.sel, assertionsTable(ek.rt), qi.joins, entityIDCol(ek.rt)),
+				ek.id, qi.fields)
+			queries = append(queries, qi)
+		}
+
+		results := tx.SendBatch(ctx, batch)
+		for _, qi := range queries {
+			rows, err := results.Query()
+			if err != nil {
+				results.Close()
+				return state, fmt.Errorf("fetchState: assertions: %w", err)
+			}
+
+			rs := state.records[qi.ek.id]
+
+			type rawAssertion struct {
+				val       json.RawMessage
+				hidden    bool
+				userID    *ID
+				role      string
+				extraCols []any
+			}
+			fieldRows := make(map[string][]rawAssertion)
+
+			for rows.Next() {
+				var field string
+				var valJSON json.RawMessage
+				var hidden bool
+				var uid pgtype.UUID
+				var rl pgtype.Text
+
+				baseDests := []any{&field, &valJSON, &hidden, &uid, &rl}
+
+				// Fresh scan destinations for extension columns, in JOIN order.
+				var extraDests []any
+				for _, ri := range qi.rrOrder {
+					extraDests = append(extraDests, ri.rr.scanDests()...)
+				}
+
+				if err := rows.Scan(append(baseDests, extraDests...)...); err != nil {
+					rows.Close()
+					results.Close()
+					return state, fmt.Errorf("fetchState: scan assertion: %w", err)
+				}
+
+				ra := rawAssertion{val: valJSON, hidden: hidden, extraCols: extraDests}
+				if uid.Valid {
+					id := ID(uid.Bytes)
+					ra.userID = &id
+				}
+				if rl.Valid {
+					ra.role = rl.String
+				}
+				fieldRows[field] = append(fieldRows[field], ra)
+			}
+			rows.Close()
+
+			if rs == nil {
+				continue
+			}
+
+			for field, raws := range fieldRows {
+				first := raws[0]
+				fs := &fieldState{
+					hidden: first.hidden,
+					userID: first.userID,
+					role:   first.role,
+				}
+
+				if !first.hidden {
+					ft, err := resolveFieldType(qi.ek.rt, field)
+					if err == nil {
+						ri := qi.rrByFT[field] // nil for non-FK fields
+
+						if ft.collection {
+							parts := make([]json.RawMessage, len(raws))
+							for i, r := range raws {
+								v := r.val
+								if ri != nil {
+									v = ri.rr.enrichVal(v, r.extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
+								}
+								parts[i] = v
+							}
+							arrJSON, err := json.Marshal(parts)
+							if err == nil {
+								val, err := ft.unmarshal(json.RawMessage(arrJSON))
+								if err == nil {
+									fs.val = val
+									rs.fields[field] = val
+								}
+							}
+						} else {
+							v := raws[0].val
+							if ri != nil {
+								v = ri.rr.enrichVal(v, raws[0].extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
+							}
+							val, err := ft.unmarshal(v)
+							if err == nil {
+								fs.val = val
+								rs.fields[field] = val
+							}
+						}
+					}
+				}
+
+				rs.assertions[field] = fs
 			}
 		}
-	case *Person:
-		if errs := ValidatePerson(rec); errs != nil {
-			return errs.ToError()
-		}
-	case *Project:
-		if errs := ValidateProject(rec); errs != nil {
-			return errs.ToError()
-		}
-	case *Organization:
-		if errs := ValidateOrganization(rec); errs != nil {
-			return errs.ToError()
+		if err := results.Close(); err != nil {
+			return state, fmt.Errorf("fetchState: close assertions: %w", err)
 		}
 	}
-	return nil
+
+	return state, nil
 }
 
 // nilIfEmpty returns nil for empty strings (for nullable text columns).

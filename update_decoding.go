@@ -3,11 +3,12 @@ package bbl
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // DecodeUpdate decodes a JSON-encoded update into a concrete update type.
 //
-// Wire format: {"verb": "target", ...payload}
+// Wire format:
 //
 //	{"set": "work_volume", "work_id": "01J...", "val": "42"}
 //	{"hide": "work_volume", "work_id": "01J..."}
@@ -42,275 +43,126 @@ func DecodeUpdate(data []byte) (any, error) {
 		return nil, fmt.Errorf("decode update: missing operation (set/hide/unset/create/delete)")
 	}
 
+	// Lifecycle operations — typed structs.
+	if op == "create" || op == "delete" {
+		return decodeLifecycle(op, target, data)
+	}
+
+	// Field operations — generic Set/Hide/Unset via catalog.
+	return decodeFieldOp(op, target, data)
+}
+
+// decodeLifecycle handles create/delete with typed structs.
+func decodeLifecycle(op, target string, data []byte) (any, error) {
 	key := op + ":" + target
 	var m any
 	switch key {
-	// Work lifecycle
 	case "create:work":
 		m = &CreateWork{}
 	case "delete:work":
 		m = &DeleteWork{}
-	// Work scalar fields
-	case "set:work_article_number":
-		m = &SetWorkArticleNumber{}
-	case "unset:work_article_number":
-		m = &UnsetWorkArticleNumber{}
-	case "set:work_book_title":
-		m = &SetWorkBookTitle{}
-	case "unset:work_book_title":
-		m = &UnsetWorkBookTitle{}
-	case "set:work_conference":
-		m = &SetWorkConference{}
-	case "unset:work_conference":
-		m = &UnsetWorkConference{}
-	case "set:work_edition":
-		m = &SetWorkEdition{}
-	case "unset:work_edition":
-		m = &UnsetWorkEdition{}
-	case "set:work_issue":
-		m = &SetWorkIssue{}
-	case "unset:work_issue":
-		m = &UnsetWorkIssue{}
-	case "set:work_issue_title":
-		m = &SetWorkIssueTitle{}
-	case "unset:work_issue_title":
-		m = &UnsetWorkIssueTitle{}
-	case "set:work_journal_abbreviation":
-		m = &SetWorkJournalAbbreviation{}
-	case "unset:work_journal_abbreviation":
-		m = &UnsetWorkJournalAbbreviation{}
-	case "set:work_journal_title":
-		m = &SetWorkJournalTitle{}
-	case "unset:work_journal_title":
-		m = &UnsetWorkJournalTitle{}
-	case "set:work_pages":
-		m = &SetWorkPages{}
-	case "unset:work_pages":
-		m = &UnsetWorkPages{}
-	case "set:work_place_of_publication":
-		m = &SetWorkPlaceOfPublication{}
-	case "unset:work_place_of_publication":
-		m = &UnsetWorkPlaceOfPublication{}
-	case "set:work_publication_status":
-		m = &SetWorkPublicationStatus{}
-	case "unset:work_publication_status":
-		m = &UnsetWorkPublicationStatus{}
-	case "set:work_publication_year":
-		m = &SetWorkPublicationYear{}
-	case "unset:work_publication_year":
-		m = &UnsetWorkPublicationYear{}
-	case "set:work_publisher":
-		m = &SetWorkPublisher{}
-	case "unset:work_publisher":
-		m = &UnsetWorkPublisher{}
-	case "set:work_report_number":
-		m = &SetWorkReportNumber{}
-	case "unset:work_report_number":
-		m = &UnsetWorkReportNumber{}
-	case "set:work_series_title":
-		m = &SetWorkSeriesTitle{}
-	case "unset:work_series_title":
-		m = &UnsetWorkSeriesTitle{}
-	case "set:work_total_pages":
-		m = &SetWorkTotalPages{}
-	case "unset:work_total_pages":
-		m = &UnsetWorkTotalPages{}
-	case "set:work_volume":
-		m = &SetWorkVolume{}
-	case "unset:work_volume":
-		m = &UnsetWorkVolume{}
-	// Work scalar hides
-	case "hide:work_article_number":
-		m = &HideWorkArticleNumber{}
-	case "hide:work_book_title":
-		m = &HideWorkBookTitle{}
-	case "hide:work_conference":
-		m = &HideWorkConference{}
-	case "hide:work_edition":
-		m = &HideWorkEdition{}
-	case "hide:work_issue":
-		m = &HideWorkIssue{}
-	case "hide:work_issue_title":
-		m = &HideWorkIssueTitle{}
-	case "hide:work_journal_abbreviation":
-		m = &HideWorkJournalAbbreviation{}
-	case "hide:work_journal_title":
-		m = &HideWorkJournalTitle{}
-	case "hide:work_pages":
-		m = &HideWorkPages{}
-	case "hide:work_place_of_publication":
-		m = &HideWorkPlaceOfPublication{}
-	case "hide:work_publication_status":
-		m = &HideWorkPublicationStatus{}
-	case "hide:work_publication_year":
-		m = &HideWorkPublicationYear{}
-	case "hide:work_publisher":
-		m = &HideWorkPublisher{}
-	case "hide:work_report_number":
-		m = &HideWorkReportNumber{}
-	case "hide:work_series_title":
-		m = &HideWorkSeriesTitle{}
-	case "hide:work_total_pages":
-		m = &HideWorkTotalPages{}
-	case "hide:work_volume":
-		m = &HideWorkVolume{}
-	// Work collectives
-	case "set:work_titles":
-		m = &SetWorkTitles{}
-	case "set:work_abstracts":
-		m = &SetWorkAbstracts{}
-	case "unset:work_abstracts":
-		m = &UnsetWorkAbstracts{}
-	case "set:work_lay_summaries":
-		m = &SetWorkLaySummaries{}
-	case "unset:work_lay_summaries":
-		m = &UnsetWorkLaySummaries{}
-	case "set:work_notes":
-		m = &SetWorkNotes{}
-	case "unset:work_notes":
-		m = &UnsetWorkNotes{}
-	case "set:work_keywords":
-		m = &SetWorkKeywords{}
-	case "unset:work_keywords":
-		m = &UnsetWorkKeywords{}
-	case "set:work_identifiers":
-		m = &SetWorkIdentifiers{}
-	case "unset:work_identifiers":
-		m = &UnsetWorkIdentifiers{}
-	case "set:work_classifications":
-		m = &SetWorkClassifications{}
-	case "unset:work_classifications":
-		m = &UnsetWorkClassifications{}
-	case "set:work_contributors":
-		m = &SetWorkContributors{}
-	case "unset:work_contributors":
-		m = &UnsetWorkContributors{}
-	case "set:work_projects":
-		m = &SetWorkProjects{}
-	case "unset:work_projects":
-		m = &UnsetWorkProjects{}
-	case "set:work_organizations":
-		m = &SetWorkOrganizations{}
-	case "unset:work_organizations":
-		m = &UnsetWorkOrganizations{}
-	case "set:work_rels":
-		m = &SetWorkRels{}
-	case "unset:work_rels":
-		m = &UnsetWorkRels{}
-	// Work collective hides
-	case "hide:work_abstracts":
-		m = &HideWorkAbstracts{}
-	case "hide:work_lay_summaries":
-		m = &HideWorkLaySummaries{}
-	case "hide:work_notes":
-		m = &HideWorkNotes{}
-	case "hide:work_keywords":
-		m = &HideWorkKeywords{}
-	case "hide:work_identifiers":
-		m = &HideWorkIdentifiers{}
-	case "hide:work_classifications":
-		m = &HideWorkClassifications{}
-	case "hide:work_contributors":
-		m = &HideWorkContributors{}
-	case "hide:work_projects":
-		m = &HideWorkProjects{}
-	case "hide:work_organizations":
-		m = &HideWorkOrganizations{}
-	case "hide:work_rels":
-		m = &HideWorkRels{}
-	// Person lifecycle
 	case "create:person":
 		m = &CreatePerson{}
 	case "delete:person":
 		m = &DeletePerson{}
-	// Person fields
-	case "set:person_name":
-		m = &SetPersonName{}
-	case "set:person_given_name":
-		m = &SetPersonGivenName{}
-	case "unset:person_given_name":
-		m = &UnsetPersonGivenName{}
-	case "set:person_middle_name":
-		m = &SetPersonMiddleName{}
-	case "unset:person_middle_name":
-		m = &UnsetPersonMiddleName{}
-	case "set:person_family_name":
-		m = &SetPersonFamilyName{}
-	case "unset:person_family_name":
-		m = &UnsetPersonFamilyName{}
-	case "set:person_identifiers":
-		m = &SetPersonIdentifiers{}
-	case "unset:person_identifiers":
-		m = &UnsetPersonIdentifiers{}
-	case "set:person_affiliations":
-		m = &SetPersonAffiliations{}
-	case "unset:person_affiliations":
-		m = &UnsetPersonAffiliations{}
-	// Person hides
-	case "hide:person_given_name":
-		m = &HidePersonGivenName{}
-	case "hide:person_middle_name":
-		m = &HidePersonMiddleName{}
-	case "hide:person_family_name":
-		m = &HidePersonFamilyName{}
-	case "hide:person_identifiers":
-		m = &HidePersonIdentifiers{}
-	case "hide:person_affiliations":
-		m = &HidePersonAffiliations{}
-	// Project lifecycle
 	case "create:project":
 		m = &CreateProject{}
 	case "delete:project":
 		m = &DeleteProject{}
-	// Project fields
-	case "set:project_titles":
-		m = &SetProjectTitles{}
-	case "set:project_descriptions":
-		m = &SetProjectDescriptions{}
-	case "unset:project_descriptions":
-		m = &UnsetProjectDescriptions{}
-	case "set:project_identifiers":
-		m = &SetProjectIdentifiers{}
-	case "unset:project_identifiers":
-		m = &UnsetProjectIdentifiers{}
-	case "set:project_participants":
-		m = &SetProjectParticipants{}
-	case "unset:project_participants":
-		m = &UnsetProjectParticipants{}
-	// Project hides
-	case "hide:project_descriptions":
-		m = &HideProjectDescriptions{}
-	case "hide:project_identifiers":
-		m = &HideProjectIdentifiers{}
-	case "hide:project_participants":
-		m = &HideProjectParticipants{}
-	// Organization lifecycle
 	case "create:organization":
 		m = &CreateOrganization{}
 	case "delete:organization":
 		m = &DeleteOrganization{}
-	// Organization fields
-	case "set:organization_names":
-		m = &SetOrganizationNames{}
-	case "set:organization_identifiers":
-		m = &SetOrganizationIdentifiers{}
-	case "unset:organization_identifiers":
-		m = &UnsetOrganizationIdentifiers{}
-	case "set:organization_rels":
-		m = &SetOrganizationRels{}
-	case "unset:organization_rels":
-		m = &UnsetOrganizationRels{}
-	// Organization hides
-	case "hide:organization_identifiers":
-		m = &HideOrganizationIdentifiers{}
-	case "hide:organization_rels":
-		m = &HideOrganizationRels{}
 	default:
-		return nil, fmt.Errorf("unknown update %q", key)
+		return nil, fmt.Errorf("unknown lifecycle operation %q", key)
 	}
-
 	if err := json.Unmarshal(data, m); err != nil {
 		return nil, fmt.Errorf("decode %s: %w", key, err)
 	}
 	return m, nil
+}
+
+// decodeFieldOp handles set/hide/unset via the field catalog.
+// Target format: "entity_field" (e.g. "work_volume", "person_given_name").
+func decodeFieldOp(op, target string, data []byte) (any, error) {
+	entityType, field, err := splitTarget(target)
+	if err != nil {
+		return nil, fmt.Errorf("decode %s: %w", op, err)
+	}
+
+	// Validate the field exists in the catalog.
+	ft, err := resolveFieldType(entityType, field)
+	if err != nil {
+		return nil, fmt.Errorf("decode %s:%s: %w", op, target, err)
+	}
+
+	// Parse the entity ID.
+	var idHolder struct {
+		WorkID         *ID `json:"work_id"`
+		PersonID       *ID `json:"person_id"`
+		ProjectID      *ID `json:"project_id"`
+		OrganizationID *ID `json:"organization_id"`
+	}
+	if err := json.Unmarshal(data, &idHolder); err != nil {
+		return nil, fmt.Errorf("decode %s:%s: %w", op, target, err)
+	}
+	var recordID ID
+	switch entityType {
+	case "work":
+		if idHolder.WorkID == nil {
+			return nil, fmt.Errorf("decode %s:%s: missing work_id", op, target)
+		}
+		recordID = *idHolder.WorkID
+	case "person":
+		if idHolder.PersonID == nil {
+			return nil, fmt.Errorf("decode %s:%s: missing person_id", op, target)
+		}
+		recordID = *idHolder.PersonID
+	case "project":
+		if idHolder.ProjectID == nil {
+			return nil, fmt.Errorf("decode %s:%s: missing project_id", op, target)
+		}
+		recordID = *idHolder.ProjectID
+	case "organization":
+		if idHolder.OrganizationID == nil {
+			return nil, fmt.Errorf("decode %s:%s: missing organization_id", op, target)
+		}
+		recordID = *idHolder.OrganizationID
+	}
+
+	switch op {
+	case "set":
+		// Parse val using the fieldType's unmarshal.
+		var valHolder struct {
+			Val json.RawMessage `json:"val"`
+		}
+		if err := json.Unmarshal(data, &valHolder); err != nil {
+			return nil, fmt.Errorf("decode set:%s: %w", target, err)
+		}
+		val, err := ft.unmarshal(valHolder.Val)
+		if err != nil {
+			return nil, fmt.Errorf("decode set:%s: unmarshal val: %w", target, err)
+		}
+		return &Set{RecordType: entityType, RecordID: recordID, Field: field, Val: val}, nil
+
+	case "hide":
+		return &Hide{RecordType: entityType, RecordID: recordID, Field: field}, nil
+
+	case "unset":
+		return &Unset{RecordType: entityType, RecordID: recordID, Field: field}, nil
+	}
+
+	return nil, fmt.Errorf("unknown operation %q", op)
+}
+
+// splitTarget splits "entity_field" into entity type and field name.
+// Entity type is always the first component before the first underscore
+// that matches a known entity type.
+func splitTarget(target string) (string, string, error) {
+	for _, prefix := range []string{"organization_", "project_", "person_", "work_"} {
+		if strings.HasPrefix(target, prefix) {
+			return prefix[:len(prefix)-1], target[len(prefix):], nil
+		}
+	}
+	return "", "", fmt.Errorf("cannot parse entity type from %q", target)
 }

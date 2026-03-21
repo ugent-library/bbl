@@ -223,14 +223,14 @@ func (e *env) newServices(ctx context.Context) (*bbl.Services, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	// --- Work profiles (optional) ---
+	// --- Profiles (optional) ---
 	if cfg.ProfilePath != "" {
-		profiles, err := bbl.LoadWorkProfiles(cfg.ProfilePath)
+		profiles, err := bbl.LoadProfiles(cfg.ProfilePath)
 		if err != nil {
 			repo.Close()
 			return nil, fmt.Errorf("load profiles: %w", err)
 		}
-		repo.WorkProfiles = profiles
+		repo.Profiles = profiles
 	}
 
 	// --- User sources ---

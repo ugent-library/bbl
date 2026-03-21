@@ -2,14 +2,14 @@ work_kinds:
   - name: journal_article
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: identifiers
         schemes: [doi, issn]
       - name: journal_title
-        required: true
+        required: public
       - name: publication_year
-        required: true
+        required: public
       - name: volume
       - name: issue
       - name: pages
@@ -18,10 +18,35 @@ work_kinds:
   - name: book
     fields:
       - name: titles
-        required: true
+        required: always
       - name: identifiers
         schemes: [isbn, doi]
       - name: publication_year
-        required: true
+        required: public
       - name: publisher
       - name: contributors
+
+person:
+  fields:
+    - name: name
+      required: always
+    - name: given_name
+    - name: family_name
+    - name: identifiers
+    - name: affiliations
+
+project:
+  fields:
+    - name: titles
+      required: always
+    - name: descriptions
+    - name: identifiers
+    - name: participants
+
+organization_kinds:
+  - name: department
+    fields:
+      - name: names
+        required: public
+      - name: identifiers
+      - name: rels

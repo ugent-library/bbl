@@ -90,9 +90,13 @@ Example:
 			if userIDFlag == "" {
 				return fmt.Errorf("--user is required")
 			}
-			userID, err := bbl.ParseID(userIDFlag)
+			uid, err := bbl.ParseID(userIDFlag)
 			if err != nil {
 				return fmt.Errorf("invalid user ID: %w", err)
+			}
+			user, err := svc.Repo.GetUser(ctx, uid)
+			if err != nil {
+				return fmt.Errorf("get user: %w", err)
 			}
 
 			result, err := bbl.ReadWorkBatch(ctx, svc.Repo, os.Stdin)
@@ -114,7 +118,7 @@ Example:
 				return nil
 			}
 
-			ok, _, err := svc.Repo.Update(ctx, &userID, updates...)
+			ok, err := svc.UpdateAndIndex(ctx, user, updates...)
 			if err != nil {
 				return err
 			}

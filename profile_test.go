@@ -7,58 +7,61 @@ import (
 	"testing"
 )
 
-func TestWorkFieldCatalog(t *testing.T) {
-	// Verify the catalog has entries and each has a non-empty type.
-	if len(workFieldCatalog) == 0 {
-		t.Fatal("workFieldCatalog is empty")
+func TestWorkFieldTypes(t *testing.T) {
+	// Verify the field type map has entries and each has a non-empty type.
+	if len(workFieldTypes) == 0 {
+		t.Fatal("workFieldTypes is empty")
 	}
-	for name, typ := range workFieldCatalog {
+	for name, typ := range workFieldTypes {
 		if name == "" {
-			t.Error("empty field name in catalog")
+			t.Error("empty field name in workFieldTypes")
 		}
 		if typ == "" {
 			t.Errorf("field %q has empty type", name)
 		}
+		if _, ok := fieldTypeRegistry[typ]; !ok {
+			t.Errorf("field %q: type %q not in fieldTypeRegistry", name, typ)
+		}
 	}
 }
 
-func TestLoadWorkProfiles(t *testing.T) {
-	p, err := LoadWorkProfiles("testdata/profiles.yaml")
+func TestLoadProfiles(t *testing.T) {
+	p, err := LoadProfiles("testdata/profiles.yaml")
 	if err != nil {
-		t.Fatalf("LoadWorkProfiles: %v", err)
+		t.Fatalf("LoadProfiles: %v", err)
 	}
 
-	// Two kinds defined, in YAML order.
-	if got := len(p.Kinds); got != 2 {
-		t.Fatalf("expected 2 kinds, got %d", got)
+	// Two work kinds defined.
+	if got := len(p.Work); got != 2 {
+		t.Fatalf("expected 2 work kinds, got %d", got)
 	}
-	if p.Kinds[0].Name != "journal_article" {
-		t.Errorf("first kind = %q, want journal_article", p.Kinds[0].Name)
+	if p.WorkKinds()[0] != "journal_article" {
+		t.Errorf("first kind = %q, want journal_article", p.WorkKinds()[0])
 	}
-	if p.Kinds[1].Name != "book" {
-		t.Errorf("second kind = %q, want book", p.Kinds[1].Name)
+	if p.WorkKinds()[1] != "book" {
+		t.Errorf("second kind = %q, want book", p.WorkKinds()[1])
 	}
 
 	// journal_article field count and order preserved.
-	ja := p.Profile("journal_article")
+	ja := p.FieldDefs("work", "journal_article")
 	if ja == nil {
 		t.Fatal("journal_article profile is nil")
 	}
-	if got := len(ja.Fields); got != 9 {
+	if got := len(ja); got != 9 {
 		t.Fatalf("journal_article: expected 9 fields, got %d", got)
 	}
-	if ja.Fields[0].Name != "titles" {
-		t.Errorf("first field = %q, want titles", ja.Fields[0].Name)
+	if ja[0].Name != "titles" {
+		t.Errorf("first field = %q, want titles", ja[0].Name)
 	}
-	if !ja.Fields[0].Required {
-		t.Error("titles should be required")
+	if ja[0].Required != "always" {
+		t.Error("titles should be required: always")
 	}
-	// Type resolved from catalog.
-	if ja.Fields[0].Type != "text_list" {
-		t.Errorf("titles type = %q, want text_list", ja.Fields[0].Type)
+	// Type resolved from workFieldTypes.
+	if ja[0].Type != "title" {
+		t.Errorf("titles type = %q, want title", ja[0].Type)
 	}
 	// identifiers schemes.
-	idField := ja.Fields[2]
+	idField := ja[2]
 	if idField.Name != "identifiers" {
 		t.Fatalf("field 2 = %q, want identifiers", idField.Name)
 	}
@@ -67,12 +70,30 @@ func TestLoadWorkProfiles(t *testing.T) {
 	}
 
 	// Unknown kind returns nil.
-	if p.Profile("nonexistent") != nil {
+	if p.FieldDefs("work", "nonexistent") != nil {
 		t.Error("expected nil for unknown kind")
+	}
+
+	// Person fields.
+	if p.Person == nil {
+		t.Fatal("person fields are nil")
+	}
+	if p.Person[0].Name != "name" {
+		t.Errorf("first person field = %q, want name", p.Person[0].Name)
+	}
+
+	// Project fields.
+	if p.Project == nil {
+		t.Fatal("project fields are nil")
+	}
+
+	// Organization kinds.
+	if len(p.Organization) == 0 {
+		t.Fatal("no organization kinds")
 	}
 }
 
-func TestLoadWorkProfilesValidation(t *testing.T) {
+func TestLoadProfilesValidation(t *testing.T) {
 	tests := []struct {
 		name    string
 		yaml    string
@@ -80,18 +101,23 @@ func TestLoadWorkProfilesValidation(t *testing.T) {
 	}{
 		{
 			name:    "unknown field",
-			yaml:    "work_kinds:\n  - name: test\n    fields:\n      - name: bogus\n",
+			yaml:    "work_kinds:\n  - name: test\n    fields:\n      - name: bogus\nperson:\n  fields:\n    - name: name\nproject:\n  fields:\n    - name: titles\norganization_kinds:\n  - name: dept\n    fields:\n      - name: names\n",
 			wantErr: "unknown field name",
 		},
 		{
-			name:    "no kinds",
-			yaml:    "work_kinds: []\n",
-			wantErr: "no kinds defined",
+			name:    "no work kinds",
+			yaml:    "work_kinds: []\nperson:\n  fields:\n    - name: name\nproject:\n  fields:\n    - name: titles\norganization_kinds:\n  - name: dept\n    fields:\n      - name: names\n",
+			wantErr: "no work kinds defined",
 		},
 		{
 			name:    "no fields",
-			yaml:    "work_kinds:\n  - name: test\n    fields: []\n",
+			yaml:    "work_kinds:\n  - name: test\n    fields: []\nperson:\n  fields:\n    - name: name\nproject:\n  fields:\n    - name: titles\norganization_kinds:\n  - name: dept\n    fields:\n      - name: names\n",
 			wantErr: "no fields defined",
+		},
+		{
+			name:    "invalid required",
+			yaml:    "work_kinds:\n  - name: test\n    fields:\n      - name: titles\n        required: bogus\nperson:\n  fields:\n    - name: name\nproject:\n  fields:\n    - name: titles\norganization_kinds:\n  - name: dept\n    fields:\n      - name: names\n",
+			wantErr: "invalid required value",
 		},
 	}
 
@@ -106,7 +132,7 @@ func TestLoadWorkProfilesValidation(t *testing.T) {
 			}
 			f.Close()
 
-			_, err = LoadWorkProfiles(f.Name())
+			_, err = LoadProfiles(f.Name())
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}

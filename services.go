@@ -18,8 +18,8 @@ type Services struct {
 }
 
 // UpdateAndIndex writes a revision to the DB and best-effort indexes affected records.
-func (s *Services) UpdateAndIndex(ctx context.Context, userID *ID, updates ...any) (bool, error) {
-	ok, effects, err := s.Repo.Update(ctx, userID, updates...)
+func (s *Services) UpdateAndIndex(ctx context.Context, user *User, updates ...any) (bool, error) {
+	ok, effects, err := s.Repo.Update(ctx, user, updates...)
 	if err != nil || !ok {
 		return ok, err
 	}
@@ -31,22 +31,42 @@ func (s *Services) indexEffects(ctx context.Context, effects []RevEffect) {
 	if s.Index == nil {
 		return
 	}
+
+	// Group IDs by record type.
+	var workIDs, personIDs, projectIDs, orgIDs []ID
+	versions := make(map[ID]int)
 	for _, e := range effects {
-		var err error
-		switch v := e.Record.(type) {
-		case *Work:
-			err = s.Index.Works().Add(ctx, v)
-		case *Person:
-			err = s.Index.People().Add(ctx, v)
-		case *Project:
-			err = s.Index.Projects().Add(ctx, v)
-		case *Organization:
-			err = s.Index.Organizations().Add(ctx, v)
-		}
-		if err != nil {
-			slog.Error("indexEffects", "record_type", e.RecordType, "err", err)
+		versions[e.RecordID] = e.Version
+		switch e.RecordType {
+		case RecordTypeWork:
+			workIDs = append(workIDs, e.RecordID)
+		case RecordTypePerson:
+			personIDs = append(personIDs, e.RecordID)
+		case RecordTypeProject:
+			projectIDs = append(projectIDs, e.RecordID)
+		case RecordTypeOrganization:
+			orgIDs = append(orgIDs, e.RecordID)
 		}
 	}
+
+	// Batch-read and index, skipping stale reads.
+	if len(workIDs) > 0 {
+		works, err := s.Repo.GetWorks(ctx, workIDs)
+		if err != nil {
+			slog.Error("indexEffects", "record_type", "work", "err", err)
+		} else {
+			for _, w := range works {
+				if w.Version > versions[w.ID] {
+					continue // another write happened, skip
+				}
+				if err := s.Index.Works().Add(ctx, w); err != nil {
+					slog.Error("indexEffects", "record_type", "work", "err", err)
+				}
+			}
+		}
+	}
+	// TODO: add batch-read + index for people, projects, organizations
+	// when GetPeople/GetProjects/GetOrganizations are implemented.
 }
 
 // ImportWorksAndIndex imports works and best-effort indexes changed records.

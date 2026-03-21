@@ -2,17 +2,17 @@ work_kinds:
   - name: journal_article
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [doi, issn, arxiv, pubmed]
       - name: classifications
       - name: journal_title
-        required: true
+        required: public
       - name: journal_abbreviation
       - name: publication_year
-        required: true
+        required: public
       - name: volume
       - name: issue
       - name: pages
@@ -24,7 +24,7 @@ work_kinds:
   - name: book
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -33,7 +33,7 @@ work_kinds:
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: edition
       - name: series_title
       - name: total_pages
@@ -43,18 +43,18 @@ work_kinds:
   - name: book_chapter
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [isbn, doi]
       - name: classifications
       - name: book_title
-        required: true
+        required: public
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: edition
       - name: series_title
       - name: pages
@@ -64,7 +64,7 @@ work_kinds:
   - name: conference_paper
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -72,7 +72,7 @@ work_kinds:
       - name: classifications
       - name: conference
       - name: publication_year
-        required: true
+        required: public
       - name: pages
       - name: book_title
       - name: publisher
@@ -82,7 +82,7 @@ work_kinds:
   - name: dissertation
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -91,7 +91,7 @@ work_kinds:
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: total_pages
       - name: keywords
       - name: notes
@@ -99,14 +99,14 @@ work_kinds:
   - name: preprint
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [doi, arxiv]
       - name: classifications
       - name: publication_year
-        required: true
+        required: public
       - name: series_title
       - name: report_number
       - name: keywords
@@ -115,7 +115,7 @@ work_kinds:
   - name: report
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -124,7 +124,7 @@ work_kinds:
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: series_title
       - name: report_number
       - name: total_pages
@@ -134,7 +134,7 @@ work_kinds:
   - name: working_paper
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -142,7 +142,7 @@ work_kinds:
       - name: classifications
       - name: publisher
       - name: publication_year
-        required: true
+        required: public
       - name: series_title
       - name: report_number
       - name: total_pages
@@ -152,30 +152,30 @@ work_kinds:
   - name: patent
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [doi]
       - name: classifications
       - name: publication_year
-        required: true
+        required: public
       - name: keywords
       - name: notes
 
   - name: newspaper_article
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [doi, issn]
       - name: classifications
       - name: journal_title
-        required: true
+        required: public
       - name: publication_year
-        required: true
+        required: public
       - name: issue
       - name: pages
       - name: keywords
@@ -184,17 +184,17 @@ work_kinds:
   - name: encyclopedia_article
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [isbn, doi]
       - name: classifications
       - name: book_title
-        required: true
+        required: public
       - name: publisher
       - name: publication_year
-        required: true
+        required: public
       - name: edition
       - name: pages
       - name: keywords
@@ -203,16 +203,16 @@ work_kinds:
   - name: book_review
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
         schemes: [doi, issn]
       - name: classifications
       - name: journal_title
-        required: true
+        required: public
       - name: publication_year
-        required: true
+        required: public
       - name: volume
       - name: issue
       - name: pages
@@ -222,7 +222,7 @@ work_kinds:
   - name: edited_book
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -231,7 +231,7 @@ work_kinds:
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: edition
       - name: series_title
       - name: total_pages
@@ -241,7 +241,7 @@ work_kinds:
   - name: conference_proceeding
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -251,7 +251,7 @@ work_kinds:
       - name: publisher
       - name: place_of_publication
       - name: publication_year
-        required: true
+        required: public
       - name: series_title
       - name: total_pages
       - name: keywords
@@ -260,7 +260,7 @@ work_kinds:
   - name: conference_poster
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -268,14 +268,14 @@ work_kinds:
       - name: classifications
       - name: conference
       - name: publication_year
-        required: true
+        required: public
       - name: keywords
       - name: notes
 
   - name: miscellaneous
     fields:
       - name: titles
-        required: true
+        required: always
       - name: abstracts
       - name: contributors
       - name: identifiers
@@ -283,6 +283,45 @@ work_kinds:
       - name: classifications
       - name: publisher
       - name: publication_year
-        required: true
+        required: public
       - name: keywords
       - name: notes
+
+person:
+  fields:
+    - name: name
+      required: always
+    - name: given_name
+    - name: family_name
+    - name: identifiers
+    - name: affiliations
+
+project:
+  fields:
+    - name: titles
+      required: always
+    - name: descriptions
+    - name: identifiers
+    - name: participants
+
+organization_kinds:
+  - name: department
+    fields:
+      - name: names
+        required: public
+      - name: identifiers
+      - name: rels
+
+  - name: faculty
+    fields:
+      - name: names
+        required: public
+      - name: identifiers
+      - name: rels
+
+  - name: institute
+    fields:
+      - name: names
+        required: public
+      - name: identifiers
+      - name: rels

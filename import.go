@@ -2,7 +2,6 @@ package bbl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -99,51 +98,6 @@ func resolvePersonRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*
 	return p, nil
 }
 
-// logHistory logs the old value of a human assertion before it is replaced or deleted.
-// Called by Set/Hide/Unset updaters before DELETE.
-func logHistory(ctx context.Context, tx pgx.Tx, recordType string, assertionsTable, entityIDCol string, entityID ID, field string, revID int64) error {
-	_, err := tx.Exec(ctx, fmt.Sprintf(`
-		INSERT INTO bbl_history (rev_id, record_type, record_id, field, val, hidden)
-		SELECT $1, $2, a.%s, a.field, a.val, a.hidden
-		FROM %s a
-		WHERE a.%s = $3 AND a.field = $4 AND a.user_id IS NOT NULL`,
-		entityIDCol, assertionsTable, entityIDCol),
-		revID, recordType, entityID, field)
-	if err != nil {
-		return fmt.Errorf("logHistory(%s.%s): %w", recordType, field, err)
-	}
-	return nil
-}
-
-// Convenience wrappers per entity type.
-func logWorkHistory(ctx context.Context, tx pgx.Tx, workID ID, field string, revID int64) error {
-	return logHistory(ctx, tx, RecordTypeWork, "bbl_work_assertions", "work_id", workID, field, revID)
-}
-
-func logPersonHistory(ctx context.Context, tx pgx.Tx, personID ID, field string, revID int64) error {
-	return logHistory(ctx, tx, RecordTypePerson, "bbl_person_assertions", "person_id", personID, field, revID)
-}
-
-func logProjectHistory(ctx context.Context, tx pgx.Tx, projectID ID, field string, revID int64) error {
-	return logHistory(ctx, tx, RecordTypeProject, "bbl_project_assertions", "project_id", projectID, field, revID)
-}
-
-func logOrganizationHistory(ctx context.Context, tx pgx.Tx, orgID ID, field string, revID int64) error {
-	return logHistory(ctx, tx, RecordTypeOrganization, "bbl_organization_assertions", "organization_id", orgID, field, revID)
-}
-
-// parseAssertionsInfo extracts the assertions_info key from a cache JSON blob.
-func parseAssertionsInfo(cache []byte) map[string][]assertionInfo {
-	if len(cache) == 0 {
-		return nil
-	}
-	var d struct {
-		AssertionsInfo map[string][]assertionInfo `json:"assertions_info"`
-	}
-	json.Unmarshal(cache, &d)
-	return d.AssertionsInfo
-}
-
 // autoPinAll runs auto-pin for all fields of an entity.
 // Gets distinct fields from the assertions table and calls autoPin for each.
 func autoPinAll(ctx context.Context, tx pgx.Tx, assertionsTable, entityIDCol string, entityID ID, sourceIDCol, sourceTable string, priorities map[string]int) error {
@@ -221,7 +175,7 @@ func rebuildPersonCache(ctx context.Context, tx pgx.Tx, personIDs []ID) error {
 			'affiliations', (SELECT json_agg(json_build_object('val', a.val, 'organization_id', po.organization_id) ORDER BY a.id) FROM bbl_person_assertions a LEFT JOIN bbl_person_assertion_affiliations po ON po.assertion_id = a.id WHERE a.person_id = p.id AND a.field = 'affiliations' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_person_assertions a LEFT JOIN bbl_person_sources s ON s.id = a.person_source_id WHERE a.person_id = p.id AND a.pinned = true GROUP BY a.field) sub)
 		)
-		WHERE p.id = ANY($1)`, dedup(personIDs))
+		WHERE p.id = ANY($1)`, dedupIDs(personIDs))
 	if err != nil {
 		return fmt.Errorf("rebuildPersonCache: %w", err)
 	}
@@ -242,7 +196,7 @@ func rebuildProjectCache(ctx context.Context, tx pgx.Tx, projectIDs []ID) error 
 			'participants', (SELECT json_agg(json_build_object('val', a.val, 'person_id', pp.person_id, 'role', pp.role) ORDER BY a.id) FROM bbl_project_assertions a LEFT JOIN bbl_project_assertion_participants pp ON pp.assertion_id = a.id WHERE a.project_id = p.id AND a.field = 'participants' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_project_assertions a LEFT JOIN bbl_project_sources s ON s.id = a.project_source_id WHERE a.project_id = p.id AND a.pinned = true GROUP BY a.field) sub)
 		)
-		WHERE p.id = ANY($1)`, dedup(projectIDs))
+		WHERE p.id = ANY($1)`, dedupIDs(projectIDs))
 	if err != nil {
 		return fmt.Errorf("rebuildProjectCache: %w", err)
 	}
@@ -262,7 +216,7 @@ func rebuildOrganizationCache(ctx context.Context, tx pgx.Tx, orgIDs []ID) error
 			'rels', (SELECT json_agg(json_build_object('val', a.val, 'rel_organization_id', r.rel_organization_id, 'kind', r.kind, 'start_date', r.start_date, 'end_date', r.end_date) ORDER BY r.kind, r.rel_organization_id) FROM bbl_organization_assertions a LEFT JOIN bbl_organization_assertion_rels r ON r.assertion_id = a.id WHERE a.organization_id = o.id AND a.field = 'rels' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_organization_assertions a LEFT JOIN bbl_organization_sources s ON s.id = a.organization_source_id WHERE a.organization_id = o.id AND a.pinned = true GROUP BY a.field) sub)
 		)
-		WHERE o.id = ANY($1)`, dedup(orgIDs))
+		WHERE o.id = ANY($1)`, dedupIDs(orgIDs))
 	if err != nil {
 		return fmt.Errorf("rebuildOrganizationCache: %w", err)
 	}
@@ -291,7 +245,7 @@ func rebuildWorkCache(ctx context.Context, tx pgx.Tx, workIDs []ID) error {
 			'rels', (SELECT json_agg(json_build_object('related_work_id', r.related_work_id, 'kind', r.kind) ORDER BY a.id) FROM bbl_work_assertions a JOIN bbl_work_assertion_rels r ON r.assertion_id = a.id WHERE a.work_id = w.id AND a.field = 'rels' AND a.pinned = true AND NOT a.hidden),
 			'assertions_info', (SELECT json_object_agg(sub.field, sub.infos) FROM (SELECT a.field, json_agg(json_build_object('human', a.user_id IS NOT NULL, 'role', a.role, 'hidden', a.hidden, 'pinned', a.pinned, 'source', s.source) ORDER BY a.id) AS infos FROM bbl_work_assertions a LEFT JOIN bbl_work_sources s ON s.id = a.work_source_id WHERE a.work_id = w.id AND a.pinned = true GROUP BY a.field) sub)
 		)
-		WHERE w.id = ANY($1)`, dedup(workIDs))
+		WHERE w.id = ANY($1)`, dedupIDs(workIDs))
 	if err != nil {
 		return fmt.Errorf("rebuildWorkCache: %w", err)
 	}
