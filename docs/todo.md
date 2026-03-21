@@ -9,7 +9,6 @@
 - [ ] Union pinning: autoPinUnion + field catalog declaring union fields (identifiers, classifications)
 - [ ] Auto-pin integration tests (human > source, exclusive + union collections)
 - [ ] Review/lock mechanism: explicit curator endorsement (separate from assertion)
-- [ ] `fieldUpdater` sub-interface (`entityType()`, `entityID()`, `field()`) so Update() can centralize curator lock checks and future per-field concerns instead of repeating them in every apply()
 - [ ] Candidates
 - [ ] Investigate: should source re-imports also log to bbl_history? Currently only human edits are tracked there; source history relies on the source record's original payload.
 - [ ] Authorization layer
