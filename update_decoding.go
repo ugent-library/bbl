@@ -197,6 +197,27 @@ func DecodeUpdate(data []byte) (any, error) {
 		m = &SetWorkRels{}
 	case "unset:work_rels":
 		m = &UnsetWorkRels{}
+	// Work collective hides
+	case "hide:work_abstracts":
+		m = &HideWorkAbstracts{}
+	case "hide:work_lay_summaries":
+		m = &HideWorkLaySummaries{}
+	case "hide:work_notes":
+		m = &HideWorkNotes{}
+	case "hide:work_keywords":
+		m = &HideWorkKeywords{}
+	case "hide:work_identifiers":
+		m = &HideWorkIdentifiers{}
+	case "hide:work_classifications":
+		m = &HideWorkClassifications{}
+	case "hide:work_contributors":
+		m = &HideWorkContributors{}
+	case "hide:work_projects":
+		m = &HideWorkProjects{}
+	case "hide:work_organizations":
+		m = &HideWorkOrganizations{}
+	case "hide:work_rels":
+		m = &HideWorkRels{}
 	// Person lifecycle
 	case "create:person":
 		m = &CreatePerson{}
