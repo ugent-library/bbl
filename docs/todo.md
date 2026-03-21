@@ -3,7 +3,7 @@
 
 ## Model
 
-- [ ] Generalize import (use same record and field defs as Update)
+- [ ] Generalize import (use same record and field defs as Update and same validation)
 - [ ] Get rid of field catalog (dynamic fields)
 - [ ] Auto-pin doesn't partake in sql batching
 - [ ] Union pinning: autoPinUnion + field catalog declaring union fields (identifiers, classifications)
