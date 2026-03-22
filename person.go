@@ -33,8 +33,7 @@ type Person struct {
 
 // PersonAffiliation is an affiliation read from the cache column.
 type PersonAffiliation struct {
-	OrganizationID ID     `json:"organization_id"`
-	Role           string `json:"role,omitempty"`
+	OrganizationID ID `json:"organization_id"`
 }
 
 // ImportPersonInput carries all data for one person record arriving from a source.
@@ -57,8 +56,7 @@ type ImportPersonInput struct {
 
 // ImportPersonAffiliation links a person to an organization during import.
 type ImportPersonAffiliation struct {
-	Ref  Ref    `json:"ref"`
-	Role string `json:"role,omitempty"`
+	Ref Ref `json:"ref"`
 }
 
 // PersonSource is the interface implemented by person import sources.

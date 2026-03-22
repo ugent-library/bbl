@@ -46,7 +46,9 @@ func jsonSet(obj json.RawMessage, key string, val json.RawMessage) json.RawMessa
 		return obj
 	}
 	m := make(map[string]json.RawMessage)
-	json.Unmarshal(obj, &m)
+	if err := json.Unmarshal(obj, &m); err != nil {
+		m = make(map[string]json.RawMessage)
+	}
 	m[key] = val
 	out, _ := json.Marshal(m)
 	return out

@@ -65,12 +65,11 @@ func (r *Repo) importPersonBatch(ctx context.Context, source string, records []*
 	var changedPersonIDs []ID
 	var n int
 	for _, in := range records {
-		personID, isNew, err := r.importPersonRecord(ctx, tx, source, in, revID, priorities)
+		personID, err := r.importPersonRecord(ctx, tx, source, in, revID, priorities)
 		if err != nil {
 			return n, fmt.Errorf("importPersonBatch: source_id=%s: %w", in.SourceID, err)
 		}
 		changedPersonIDs = append(changedPersonIDs, personID)
-		_ = isNew
 		n++
 	}
 
@@ -84,7 +83,7 @@ func (r *Repo) importPersonBatch(ctx context.Context, source string, records []*
 	return n, nil
 }
 
-func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportPersonInput, revID int64, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportPersonInput, revID int64, priorities map[string]int) (ID, error) {
 	var personID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -100,7 +99,7 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 			personID = newID()
 		}
 	} else if err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
 	if isNew {
@@ -108,56 +107,60 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 			INSERT INTO bbl_people (id, version, status)
 			VALUES ($1, 1, $2)`,
 			personID, PersonStatusPublic); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_people: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_people: %w", err)
 		}
 		sourceRecordID = newID()
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_person_sources (id, person_id, source, source_id, record, ingested_at)
 			VALUES ($1, $2, $3, $4, $5, transaction_timestamp())`,
 			sourceRecordID, personID, source, in.SourceID, in.SourceRecord); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_person_sources: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_person_sources: %w", err)
 		}
 	} else {
 		if err := deleteSourceAssertions(ctx, tx, "bbl_person_assertions", "person_source_id", sourceRecordID); err != nil {
-			return ID{}, false, err
+			return ID{}, err
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_person_sources SET record = $1, ingested_at = transaction_timestamp()
 			WHERE id = $2`,
 			in.SourceRecord, sourceRecordID); err != nil {
-			return ID{}, false, fmt.Errorf("update bbl_person_sources: %w", err)
+			return ID{}, fmt.Errorf("update bbl_person_sources: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_people SET version = version + 1, updated_at = transaction_timestamp()
 			WHERE id = $1`, personID); err != nil {
-			return ID{}, false, fmt.Errorf("bump version: %w", err)
+			return ID{}, fmt.Errorf("bump version: %w", err)
 		}
 	}
 
-	// Insert scalar field assertions.
-	if err := importPersonFields(ctx, tx, revID, personID, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	// Build assertion rows, validate, write via shared pipeline.
+	rows, err := personImportAssertions(ctx, tx, source, personID, sourceRecordID, in)
+	if err != nil {
+		return ID{}, err
 	}
-
-	// Insert relation assertions.
-	if err := importPersonRelations(ctx, tx, revID, personID, source, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	if defs := r.Profiles.FieldDefs(RecordTypePerson, ""); defs != nil {
+		if errs := validateRecord(PersonStatusPublic, assertionRowFields(rows), defs); errs != nil {
+			return ID{}, errs.ToError()
+		}
+	}
+	if err := writeAssertionRows(ctx, tx, &pgx.Batch{}, 0, revID, rows); err != nil {
+		return ID{}, err
 	}
 
 	// Auto-pin all grouping keys.
 	if err := autoPinRecord(ctx, tx, RecordTypePerson, personID, priorities); err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
-	return personID, isNew, nil
+	return personID, nil
 }
 
-func importPersonFields(ctx context.Context, tx pgx.Tx, revID int64, personID ID, sourceRecordID ID, in *ImportPersonInput) error {
-	type sf struct {
-		field string
-		val   string
-	}
-	for _, f := range []sf{
+// personImportAssertions resolves refs and converts an ImportPersonInput into assertion rows.
+func personImportAssertions(ctx context.Context, tx pgx.Tx, source string, personID ID, sourceRecordID ID, in *ImportPersonInput) ([]assertionRow, error) {
+	var rows []assertionRow
+	src := &sourceRecordID
+
+	for _, f := range []struct{ field, val string }{
 		{"name", in.Name},
 		{"given_name", in.GivenName},
 		{"middle_name", in.MiddleName},
@@ -166,33 +169,35 @@ func importPersonFields(ctx context.Context, tx pgx.Tx, revID int64, personID ID
 		if f.val == "" {
 			continue
 		}
-		if err := writeCreatePersonField(ctx, tx, revID, personID, f.field, f.val, &sourceRecordID, nil, nil); err != nil {
-			return err
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypePerson, recordID: personID,
+			field: f.field, val: f.val, sourceRecordID: src,
+		})
 	}
-	return nil
-}
 
-func importPersonRelations(ctx context.Context, tx pgx.Tx, revID int64, personID ID, source string, sourceRecordID ID, in *ImportPersonInput) error {
-	for _, id := range in.Identifiers {
-		if _, err := writePersonAssertion(ctx, tx, revID, personID, "identifiers", id, false, &sourceRecordID, nil, nil); err != nil {
-			return err
-		}
+	if len(in.Identifiers) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypePerson, recordID: personID,
+			field: "identifiers", val: in.Identifiers, sourceRecordID: src,
+		})
 	}
-	for _, a := range in.Affiliations {
-		org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
-		if err != nil {
-			continue
+
+	if len(in.Affiliations) > 0 {
+		affiliations := make([]PersonAffiliation, 0, len(in.Affiliations))
+		for _, a := range in.Affiliations {
+			org, err := resolveOrganizationRef(ctx, tx, a.Ref, source)
+			if err != nil {
+				return nil, fmt.Errorf("personImportAssertions: resolve organization ref: %w", err)
+			}
+			affiliations = append(affiliations, PersonAffiliation{OrganizationID: org.ID})
 		}
-		aID, err := writePersonAssertion(ctx, tx, revID, personID, "affiliations", nil, false, &sourceRecordID, nil, nil)
-		if err != nil {
-			return err
-		}
-		if err := writePersonAffiliation(ctx, tx, aID, org.ID, nil, nil); err != nil {
-			return err
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypePerson, recordID: personID,
+			field: "affiliations", val: affiliations, sourceRecordID: src,
+		})
 	}
-	return nil
+
+	return rows, nil
 }
 
 // EachPerson returns an iterator over all people, ordered by id.
@@ -227,7 +232,7 @@ func (r *Repo) eachPerson(ctx context.Context, query string, args ...any) iter.S
 		}
 		defer rows.Close()
 		for rows.Next() {
-			p, err := scanPersonRow(rows)
+			p, err := scanPerson(rows)
 			if err != nil {
 				yield(nil, fmt.Errorf("eachPerson: %w", err))
 				return
@@ -262,40 +267,6 @@ func (r *Repo) GetPerson(ctx context.Context, id ID) (*Person, error) {
 
 // scanPerson scans a single person row (including cache) from a QueryRow result.
 func scanPerson(row pgx.Row) (*Person, error) {
-	var p Person
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var deletedAt pgtype.Timestamptz
-	var cache []byte
-	if err := row.Scan(
-		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
-		&createdByID, &updatedByID,
-		&p.Status, &deletedAt, &deletedByID,
-		&cache,
-	); err != nil {
-		return nil, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		p.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		p.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		p.DeletedByID = &id
-	}
-	if deletedAt.Valid {
-		p.DeletedAt = &deletedAt.Time
-	}
-	if err := parsePersonCache(&p, cache); err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func scanPersonRow(row pgx.CollectableRow) (*Person, error) {
 	var p Person
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var deletedAt pgtype.Timestamptz

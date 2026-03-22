@@ -84,12 +84,11 @@ func (r *Repo) importProjectBatch(ctx context.Context, source string, records []
 	var changedProjectIDs []ID
 	var n int
 	for _, in := range records {
-		projectID, isNew, err := r.importProjectRecord(ctx, tx, source, in, revID, priorities)
+		projectID, err := r.importProjectRecord(ctx, tx, source, in, revID, priorities)
 		if err != nil {
 			return n, fmt.Errorf("importProjectBatch: source_id=%s: %w", in.SourceID, err)
 		}
 		changedProjectIDs = append(changedProjectIDs, projectID)
-		_ = isNew
 		n++
 	}
 
@@ -103,7 +102,7 @@ func (r *Repo) importProjectBatch(ctx context.Context, source string, records []
 	return n, nil
 }
 
-func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportProjectInput, revID int64, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportProjectInput, revID int64, priorities map[string]int) (ID, error) {
 	var projectID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -119,7 +118,7 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 			projectID = newID()
 		}
 	} else if err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
 	if isNew {
@@ -131,88 +130,92 @@ func (r *Repo) importProjectRecord(ctx context.Context, tx pgx.Tx, source string
 			INSERT INTO bbl_projects (id, version, status, start_date, end_date)
 			VALUES ($1, 1, $2, $3, $4)`,
 			projectID, status, in.StartDate, in.EndDate); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_projects: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_projects: %w", err)
 		}
 		sourceRecordID = newID()
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_project_sources (id, project_id, source, source_id, record, ingested_at)
 			VALUES ($1, $2, $3, $4, $5, transaction_timestamp())`,
 			sourceRecordID, projectID, source, in.SourceID, in.SourceRecord); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_project_sources: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_project_sources: %w", err)
 		}
 	} else {
 		if err := deleteSourceAssertions(ctx, tx, "bbl_project_assertions", "project_source_id", sourceRecordID); err != nil {
-			return ID{}, false, err
+			return ID{}, err
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_project_sources SET record = $1, ingested_at = transaction_timestamp() WHERE id = $2`,
 			in.SourceRecord, sourceRecordID); err != nil {
-			return ID{}, false, fmt.Errorf("update bbl_project_sources: %w", err)
+			return ID{}, fmt.Errorf("update bbl_project_sources: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_projects SET version = version + 1, updated_at = transaction_timestamp(),
 			       start_date = $2, end_date = $3
 			WHERE id = $1`, projectID, in.StartDate, in.EndDate); err != nil {
-			return ID{}, false, fmt.Errorf("bump version: %w", err)
+			return ID{}, fmt.Errorf("bump version: %w", err)
 		}
 	}
 
-	// Insert text field assertions.
-	if err := importProjectTextFields(ctx, tx, revID, projectID, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	// Build assertion rows, validate, write via shared pipeline.
+	rows, err := projectImportAssertions(ctx, tx, source, projectID, sourceRecordID, in)
+	if err != nil {
+		return ID{}, err
 	}
-
-	// Insert relation assertions.
-	if err := importProjectRelations(ctx, tx, revID, projectID, source, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	if defs := r.Profiles.FieldDefs(RecordTypeProject, ""); defs != nil {
+		status := in.Status
+		if status == "" {
+			status = ProjectStatusPublic
+		}
+		if errs := validateRecord(status, assertionRowFields(rows), defs); errs != nil {
+			return ID{}, errs.ToError()
+		}
+	}
+	if err := writeAssertionRows(ctx, tx, &pgx.Batch{}, 0, revID, rows); err != nil {
+		return ID{}, err
 	}
 
 	// Auto-pin all grouping keys.
 	if err := autoPinRecord(ctx, tx, RecordTypeProject, projectID, priorities); err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
-	return projectID, isNew, nil
+	return projectID, nil
 }
 
-func importProjectTextFields(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, sourceRecordID ID, in *ImportProjectInput) error {
+// projectImportAssertions resolves refs and converts an ImportProjectInput into assertion rows.
+func projectImportAssertions(ctx context.Context, tx pgx.Tx, source string, projectID ID, sourceRecordID ID, in *ImportProjectInput) ([]assertionRow, error) {
+	var rows []assertionRow
+	src := &sourceRecordID
+
 	if len(in.Titles) > 0 {
-		for _, t := range in.Titles {
-			if _, err := writeProjectAssertion(ctx, tx, revID, projectID, "titles", t, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeProject, recordID: projectID,
+			field: "titles", val: in.Titles, sourceRecordID: src,
+		})
 	}
 	if len(in.Descriptions) > 0 {
-		for _, d := range in.Descriptions {
-			if _, err := writeProjectAssertion(ctx, tx, revID, projectID, "descriptions", d, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeProject, recordID: projectID,
+			field: "descriptions", val: in.Descriptions, sourceRecordID: src,
+		})
 	}
-	return nil
-}
 
-func importProjectRelations(ctx context.Context, tx pgx.Tx, revID int64, projectID ID, source string, sourceRecordID ID, in *ImportProjectInput) error {
 	if len(in.Participants) > 0 {
+		participants := make([]ProjectParticipant, 0, len(in.Participants))
 		for _, p := range in.Participants {
 			person, err := resolvePersonRef(ctx, tx, p.Ref, source)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("projectImportAssertions: resolve person ref: %w", err)
 			}
-			val := struct {
-				Role string `json:"role,omitempty"`
-			}{p.Role}
-			aID, err := writeProjectAssertion(ctx, tx, revID, projectID, "participants", val, false, &sourceRecordID, nil, nil)
-			if err != nil {
-				return err
-			}
-			if err := writeProjectParticipant(ctx, tx, aID, person.ID, p.Role); err != nil {
-				return err
-			}
+			participants = append(participants, ProjectParticipant{PersonID: person.ID, Role: p.Role})
 		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeProject, recordID: projectID,
+			field: "participants", val: participants, sourceRecordID: src,
+		})
 	}
-	return nil
+
+	return rows, nil
 }
 
 // EachProject returns an iterator over all projects, ordered by id.
@@ -249,7 +252,7 @@ func (r *Repo) eachProject(ctx context.Context, query string, args ...any) iter.
 		}
 		defer rows.Close()
 		for rows.Next() {
-			p, err := scanProjectRow(rows)
+			p, err := scanProject(rows)
 			if err != nil {
 				yield(nil, fmt.Errorf("eachProject: %w", err))
 				return
@@ -266,41 +269,6 @@ func (r *Repo) eachProject(ctx context.Context, query string, args ...any) iter.
 
 // scanProject scans a single project row (including cache) from a QueryRow result.
 func scanProject(row pgx.Row) (*Project, error) {
-	var p Project
-	var createdByID, updatedByID, deletedByID pgtype.UUID
-	var deletedAt pgtype.Timestamptz
-	var cache []byte
-	if err := row.Scan(
-		&p.ID, &p.Version, &p.CreatedAt, &p.UpdatedAt,
-		&createdByID, &updatedByID,
-		&p.Status, &p.StartDate, &p.EndDate,
-		&deletedAt, &deletedByID,
-		&cache,
-	); err != nil {
-		return nil, err
-	}
-	if createdByID.Valid {
-		id := ID(createdByID.Bytes)
-		p.CreatedByID = &id
-	}
-	if updatedByID.Valid {
-		id := ID(updatedByID.Bytes)
-		p.UpdatedByID = &id
-	}
-	if deletedByID.Valid {
-		id := ID(deletedByID.Bytes)
-		p.DeletedByID = &id
-	}
-	if deletedAt.Valid {
-		p.DeletedAt = &deletedAt.Time
-	}
-	if err := parseProjectCache(&p, cache); err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func scanProjectRow(row pgx.CollectableRow) (*Project, error) {
 	var p Project
 	var createdByID, updatedByID, deletedByID pgtype.UUID
 	var deletedAt pgtype.Timestamptz

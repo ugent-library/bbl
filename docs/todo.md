@@ -3,7 +3,6 @@
 
 ## Model
 
-- [ ] Generalize import (use same record and field defs as Update and same validation)
 - [ ] Get rid of field catalog (dynamic fields)
 - [ ] Union pinning: resolveUnionPin + field catalog declaring union fields (identifiers, classifications); Update path queueAutoPinForField needs Go-side strategy when union is added
 - [ ] Auto-pin integration tests (human > source, exclusive + union collections)

@@ -333,10 +333,10 @@ var ftClassification = fieldType{
 	entities:   []string{"work"},
 	collection: true,
 	equal: func(a, b any) bool {
-		return slices.Equal(a.([]WorkClassification), b.([]WorkClassification))
+		return slices.Equal(a.([]Identifier), b.([]Identifier))
 	},
 	marshal: func(val any) ([]json.RawMessage, error) {
-		items := val.([]WorkClassification)
+		items := val.([]Identifier)
 		out := make([]json.RawMessage, len(items))
 		for i, v := range items {
 			b, err := json.Marshal(v)
@@ -348,7 +348,7 @@ var ftClassification = fieldType{
 		return out, nil
 	},
 	unmarshal: func(raw json.RawMessage) (any, error) {
-		var v []WorkClassification
+		var v []Identifier
 		err := json.Unmarshal(raw, &v)
 		return v, err
 	},

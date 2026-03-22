@@ -44,8 +44,6 @@ func fieldEmpty(val any) bool {
 		return len(v) == 0
 	case []Identifier:
 		return len(v) == 0
-	case []WorkClassification:
-		return len(v) == 0
 	case []WorkContributor:
 		return len(v) == 0
 	case []ID:

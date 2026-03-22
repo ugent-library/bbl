@@ -70,12 +70,11 @@ func (r *Repo) importWorkBatch(ctx context.Context, source string, records []*Im
 	var changedWorkIDs []ID
 	var n int
 	for _, in := range records {
-		workID, isNew, err := r.importWorkRecord(ctx, tx, source, in, revID, priorities)
+		workID, err := r.importWorkRecord(ctx, tx, source, in, revID, priorities)
 		if err != nil {
 			return n, fmt.Errorf("importWorkBatch: source_id=%s: %w", in.SourceID, err)
 		}
 		changedWorkIDs = append(changedWorkIDs, workID)
-		_ = isNew
 		n++
 	}
 
@@ -89,7 +88,7 @@ func (r *Repo) importWorkBatch(ctx context.Context, source string, records []*Im
 	return n, nil
 }
 
-func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportWorkInput, revID int64, priorities map[string]int) (ID, bool, error) {
+func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, in *ImportWorkInput, revID int64, priorities map[string]int) (ID, error) {
 	var workID ID
 	var sourceRecordID ID
 	var isNew bool
@@ -105,7 +104,7 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 			workID = newID()
 		}
 	} else if err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
 	if isNew {
@@ -117,57 +116,65 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 			INSERT INTO bbl_works (id, version, kind, status)
 			VALUES ($1, 1, $2, $3)`,
 			workID, in.Kind, status); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_works: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_works: %w", err)
 		}
 		sourceRecordID = newID()
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bbl_work_sources (id, work_id, source, source_id, record, ingested_at)
 			VALUES ($1, $2, $3, $4, $5, transaction_timestamp())`,
 			sourceRecordID, workID, source, in.SourceID, in.SourceRecord); err != nil {
-			return ID{}, false, fmt.Errorf("insert bbl_work_sources: %w", err)
+			return ID{}, fmt.Errorf("insert bbl_work_sources: %w", err)
 		}
 	} else {
 		if err := deleteSourceAssertions(ctx, tx, "bbl_work_assertions", "work_source_id", sourceRecordID); err != nil {
-			return ID{}, false, err
+			return ID{}, err
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_work_sources SET record = $1, ingested_at = transaction_timestamp()
 			WHERE id = $2`,
 			in.SourceRecord, sourceRecordID); err != nil {
-			return ID{}, false, fmt.Errorf("update bbl_work_sources: %w", err)
+			return ID{}, fmt.Errorf("update bbl_work_sources: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE bbl_works SET version = version + 1, updated_at = transaction_timestamp()
 			WHERE id = $1`, workID); err != nil {
-			return ID{}, false, fmt.Errorf("bump version: %w", err)
+			return ID{}, fmt.Errorf("bump version: %w", err)
 		}
 	}
 
-	// Insert scalar field assertions.
-	if err := importWorkFields(ctx, tx, revID, workID, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	// Build assertion rows, validate, write via shared pipeline.
+	rows, err := workImportAssertions(ctx, tx, source, workID, sourceRecordID, in)
+	if err != nil {
+		return ID{}, err
 	}
-
-	// Insert relation assertions.
-	if err := importWorkRelations(ctx, tx, revID, workID, source, sourceRecordID, in); err != nil {
-		return ID{}, false, err
+	if defs := r.Profiles.FieldDefs(RecordTypeWork, in.Kind); defs != nil {
+		status := in.Status
+		if status == "" {
+			status = WorkStatusPrivate
+		}
+		if errs := validateRecord(status, assertionRowFields(rows), defs); errs != nil {
+			return ID{}, errs.ToError()
+		}
+	}
+	if err := writeAssertionRows(ctx, tx, &pgx.Batch{}, 0, revID, rows); err != nil {
+		return ID{}, err
 	}
 
 	// Auto-pin all grouping keys.
 	if err := autoPinRecord(ctx, tx, RecordTypeWork, workID, priorities); err != nil {
-		return ID{}, false, err
+		return ID{}, err
 	}
 
-	return workID, isNew, nil
+	return workID, nil
 }
 
-// importWorkFields inserts scalar assertion rows for non-empty fields.
-func importWorkFields(ctx context.Context, tx pgx.Tx, revID int64, workID ID, sourceRecordID ID, in *ImportWorkInput) error {
-	type sf struct {
-		field string
-		val   string
-	}
-	for _, f := range []sf{
+// workImportAssertions resolves refs and converts an ImportWorkInput into assertion rows.
+func workImportAssertions(ctx context.Context, tx pgx.Tx, source string, workID ID, sourceRecordID ID, in *ImportWorkInput) ([]assertionRow, error) {
+	var rows []assertionRow
+	src := &sourceRecordID
+
+	// Scalar string fields.
+	for _, f := range []struct{ field, val string }{
 		{"article_number", in.ArticleNumber},
 		{"book_title", in.BookTitle},
 		{"edition", in.Edition},
@@ -187,51 +194,84 @@ func importWorkFields(ctx context.Context, tx pgx.Tx, revID int64, workID ID, so
 		if f.val == "" {
 			continue
 		}
-		if err := writeCreateWorkField(ctx, tx, revID, workID, f.field, f.val, &sourceRecordID, nil, nil); err != nil {
-			return err
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: f.field, val: f.val, sourceRecordID: src,
+		})
 	}
+
+	// Compound scalars.
 	if in.Conference != (Conference{}) {
-		if err := writeCreateWorkField(ctx, tx, revID, workID, "conference", in.Conference, &sourceRecordID, nil, nil); err != nil {
-			return err
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "conference", val: in.Conference, sourceRecordID: src,
+		})
 	}
 	if in.Pages != (Extent{}) {
-		if err := writeCreateWorkField(ctx, tx, revID, workID, "pages", in.Pages, &sourceRecordID, nil, nil); err != nil {
-			return err
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "pages", val: in.Pages, sourceRecordID: src,
+		})
 	}
-	return nil
-}
 
-// importWorkRelations inserts collective assertions + value rows for a work import.
-// Each collective field that has data gets one assertion row, then value rows linked to it.
-func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID, source string, sourceRecordID ID, in *ImportWorkInput) error {
+	// Pure-value collections.
 	if len(in.Identifiers) > 0 {
-		for _, id := range in.Identifiers {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "identifiers", id, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "identifiers", val: in.Identifiers, sourceRecordID: src,
+		})
 	}
 	if len(in.Classifications) > 0 {
-		for _, cl := range in.Classifications {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "classifications", cl, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "classifications", val: in.Classifications, sourceRecordID: src,
+		})
 	}
+	if len(in.Titles) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "titles", val: in.Titles, sourceRecordID: src,
+		})
+	}
+	if len(in.Abstracts) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "abstracts", val: in.Abstracts, sourceRecordID: src,
+		})
+	}
+	if len(in.LaySummaries) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "lay_summaries", val: in.LaySummaries, sourceRecordID: src,
+		})
+	}
+	if len(in.Notes) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "notes", val: in.Notes, sourceRecordID: src,
+		})
+	}
+	if len(in.Keywords) > 0 {
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "keywords", val: in.Keywords, sourceRecordID: src,
+		})
+	}
+
+	// FK-bearing: contributors.
 	if len(in.Contributors) > 0 {
+		contributors := make([]WorkContributor, 0, len(in.Contributors))
 		for _, c := range in.Contributors {
 			var personID *ID
 			name, givenName, familyName := c.Name, c.GivenName, c.FamilyName
 			if c.PersonRef != nil {
 				person, err := resolvePersonRef(ctx, tx, *c.PersonRef, source)
-				if err == nil {
-					personID = &person.ID
-					if name == "" && givenName == "" && familyName == "" {
-						name, givenName, familyName = person.Name, person.GivenName, person.FamilyName
-					}
+				if err != nil {
+					return nil, fmt.Errorf("workImportAssertions: resolve person ref: %w", err)
+				}
+				personID = &person.ID
+				if name == "" && givenName == "" && familyName == "" {
+					name, givenName, familyName = person.Name, person.GivenName, person.FamilyName
 				}
 			}
 			kind := c.Kind
@@ -241,110 +281,66 @@ func importWorkRelations(ctx context.Context, tx pgx.Tx, revID int64, workID ID,
 			if name == "" {
 				name = strings.TrimSpace(givenName + " " + familyName)
 			}
-			val := struct {
-				Kind       string   `json:"kind,omitempty"`
-				Name       string   `json:"name"`
-				GivenName  string   `json:"given_name,omitempty"`
-				FamilyName string   `json:"family_name,omitempty"`
-				Roles      []string `json:"roles,omitempty"`
-			}{kind, name, givenName, familyName, c.Roles}
-			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "contributors", val, false, &sourceRecordID, nil, nil)
-			if err != nil {
-				return err
-			}
-			if err := writeWorkContributor(ctx, tx, aID, personID, nil); err != nil {
-				return err
-			}
+			contributors = append(contributors, WorkContributor{
+				Kind: kind, Name: name, GivenName: givenName, FamilyName: familyName,
+				PersonID: personID, Roles: c.Roles,
+			})
 		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "contributors", val: contributors, sourceRecordID: src,
+		})
 	}
-	if len(in.Titles) > 0 {
-		for _, t := range in.Titles {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "titles", t, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
-	}
-	if len(in.Abstracts) > 0 {
-		for _, a := range in.Abstracts {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "abstracts", a, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
-	}
-	if len(in.LaySummaries) > 0 {
-		for _, ls := range in.LaySummaries {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "lay_summaries", ls, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
-	}
-	if len(in.Notes) > 0 {
-		for _, n := range in.Notes {
-			val := struct {
-				Val  string `json:"val"`
-				Kind string `json:"kind,omitempty"`
-			}{n.Val, n.Kind}
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "notes", val, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
-	}
-	if len(in.Keywords) > 0 {
-		for _, kw := range in.Keywords {
-			if _, err := writeWorkAssertion(ctx, tx, revID, workID, "keywords", kw, false, &sourceRecordID, nil, nil); err != nil {
-				return err
-			}
-		}
-	}
+
+	// FK-bearing: projects.
 	if len(in.Projects) > 0 {
+		projectIDs := make([]ID, 0, len(in.Projects))
 		for _, p := range in.Projects {
 			project, err := resolveProjectRef(ctx, tx, p.Ref, source)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("workImportAssertions: resolve project ref: %w", err)
 			}
-			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "projects", nil, false, &sourceRecordID, nil, nil)
-			if err != nil {
-				return err
-			}
-			if err := writeWorkProject(ctx, tx, aID, project.ID); err != nil {
-				return err
-			}
+			projectIDs = append(projectIDs, project.ID)
 		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "projects", val: projectIDs, sourceRecordID: src,
+		})
 	}
+
+	// FK-bearing: organizations.
 	if len(in.Organizations) > 0 {
+		orgIDs := make([]ID, 0, len(in.Organizations))
 		for _, o := range in.Organizations {
 			org, err := resolveOrganizationRef(ctx, tx, o.Ref, source)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("workImportAssertions: resolve organization ref: %w", err)
 			}
-			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "organizations", nil, false, &sourceRecordID, nil, nil)
-			if err != nil {
-				return err
-			}
-			if err := writeWorkOrganization(ctx, tx, aID, org.ID); err != nil {
-				return err
-			}
+			orgIDs = append(orgIDs, org.ID)
 		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "organizations", val: orgIDs, sourceRecordID: src,
+		})
 	}
+
+	// FK-bearing: related works.
 	if len(in.RelatedWorks) > 0 {
+		rels := make([]WorkRel, 0, len(in.RelatedWorks))
 		for _, rel := range in.RelatedWorks {
 			relWork, err := resolveWorkRef(ctx, tx, rel.Ref, source)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("workImportAssertions: resolve work ref: %w", err)
 			}
-			val := struct {
-				Kind string `json:"kind"`
-			}{rel.Kind}
-			aID, err := writeWorkAssertion(ctx, tx, revID, workID, "rels", val, false, &sourceRecordID, nil, nil)
-			if err != nil {
-				return err
-			}
-			if err := writeWorkRel(ctx, tx, aID, relWork.ID, rel.Kind); err != nil {
-				return err
-			}
+			rels = append(rels, WorkRel{RelatedWorkID: relWork.ID, Kind: rel.Kind})
 		}
+		rows = append(rows, assertionRow{
+			recordType: RecordTypeWork, recordID: workID,
+			field: "rels", val: rels, sourceRecordID: src,
+		})
 	}
-	return nil
+
+	return rows, nil
 }
 
 // ---------- Query methods ----------
@@ -648,27 +644,29 @@ func parseWorkCache(w *Work, cache []byte) error {
 			Field string          `json:"field"`
 			Val   json.RawMessage `json:"val"`
 		} `json:"str_fields,omitempty"`
-		Identifiers     []WorkIdentifier     `json:"identifiers,omitempty"`
-		Classifications []WorkClassification `json:"classifications,omitempty"`
-		Titles          []Title              `json:"titles,omitempty"`
-		Abstracts       []Text               `json:"abstracts,omitempty"`
-		LaySummaries    []Text               `json:"lay_summaries,omitempty"`
-		Notes           []Note               `json:"notes,omitempty"`
-		Keywords        []Keyword            `json:"keywords,omitempty"`
-		Contributors []struct {
+		Identifiers     []Identifier `json:"identifiers,omitempty"`
+		Classifications []Identifier `json:"classifications,omitempty"`
+		Titles          []Title      `json:"titles,omitempty"`
+		Abstracts       []Text       `json:"abstracts,omitempty"`
+		LaySummaries    []Text       `json:"lay_summaries,omitempty"`
+		Notes           []Note       `json:"notes,omitempty"`
+		Keywords        []Keyword    `json:"keywords,omitempty"`
+		Contributors    []struct {
 			Val            json.RawMessage `json:"val"`
 			PersonID       *ID             `json:"person_id,omitempty"`
 			OrganizationID *ID             `json:"organization_id,omitempty"`
 		} `json:"contributors,omitempty"`
-		Projects      []ID                  `json:"projects,omitempty"`
-		Organizations []ID                  `json:"organizations,omitempty"`
-		Rels          []WorkRel             `json:"rels,omitempty"`
+		Projects      []ID      `json:"projects,omitempty"`
+		Organizations []ID      `json:"organizations,omitempty"`
+		Rels          []WorkRel `json:"rels,omitempty"`
 	}
 	if err := json.Unmarshal(cache, &d); err != nil {
 		return fmt.Errorf("parseWorkCache: %w", err)
 	}
 	for _, sf := range d.StrFields {
-		setWorkField(w, sf.Field, sf.Val)
+		if err := setWorkField(w, sf.Field, sf.Val); err != nil {
+			return fmt.Errorf("parseWorkCache: field %s: %w", sf.Field, err)
+		}
 	}
 	w.Identifiers = d.Identifiers
 	w.Classifications = d.Classifications
@@ -680,7 +678,9 @@ func parseWorkCache(w *Work, cache []byte) error {
 	for _, c := range d.Contributors {
 		var co WorkContributor
 		if c.Val != nil {
-			json.Unmarshal(c.Val, &co)
+			if err := json.Unmarshal(c.Val, &co); err != nil {
+				return fmt.Errorf("parseWorkCache: unmarshal contributor: %w", err)
+			}
 		}
 		co.PersonID = c.PersonID
 		w.Contributors = append(w.Contributors, co)
@@ -692,18 +692,16 @@ func parseWorkCache(w *Work, cache []byte) error {
 }
 
 // setWorkField sets a scalar field on Work from a JSON-encoded value.
-func setWorkField(w *Work, field string, val json.RawMessage) {
-	var s string
+func setWorkField(w *Work, field string, val json.RawMessage) error {
 	switch field {
 	case "conference":
-		json.Unmarshal(val, &w.Conference)
-		return
+		return json.Unmarshal(val, &w.Conference)
 	case "pages":
-		json.Unmarshal(val, &w.Pages)
-		return
+		return json.Unmarshal(val, &w.Pages)
 	}
-	if json.Unmarshal(val, &s) != nil {
-		return
+	var s string
+	if err := json.Unmarshal(val, &s); err != nil {
+		return err
 	}
 	switch field {
 	case "article_number":
@@ -737,4 +735,5 @@ func setWorkField(w *Work, field string, val json.RawMessage) {
 	case "volume":
 		w.Volume = s
 	}
+	return nil
 }
