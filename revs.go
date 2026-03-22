@@ -482,7 +482,7 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 				qi.sel += ", " + c
 			}
 			batch.Queue(fmt.Sprintf(
-				`SELECT %s FROM %s a%s WHERE a.%s = $1 AND a.field = ANY($2)`,
+				`SELECT %s FROM %s a%s WHERE a.%s = $1 AND a.field = ANY($2) ORDER BY a.id`,
 				qi.sel, assertionsTable(ek.rt), qi.joins, entityIDCol(ek.rt)),
 				ek.id, qi.fields)
 			queries = append(queries, qi)
