@@ -26,7 +26,7 @@ func TestDeleteProject_Apply(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypeProject, id: id, version: 1, status: ProjectStatusPublic,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeleteProject{ProjectID: id}
@@ -43,7 +43,7 @@ func TestDeleteProject_AlreadyDeleted(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypeProject, id: id, version: 2, status: ProjectStatusDeleted,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeleteProject{ProjectID: id}

@@ -26,7 +26,7 @@ func (m *CreateProject) apply(state updateState, user *User) (*updateEffect, err
 		id:         m.ID,
 		status:     m.Status,
 		fields:     make(map[string]any),
-		assertions: make(map[string]*fieldState),
+		assertions: make(map[string][]assertion),
 	}
 	return &updateEffect{
 		recordType: RecordTypeProject,

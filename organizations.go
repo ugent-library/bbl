@@ -103,9 +103,10 @@ func (r *Repo) ImportOrganizations(ctx context.Context, source string, seq iter.
 				}
 			}
 		}
-		// Re-run auto-pin for rels (phase 1 already pinned identifiers+titles).
+		// Re-run auto-pin for the whole entity (phase 1 already pinned,
+		// but rels were added in phase 2).
 		if len(in.Rels) > 0 {
-			if err := autoPin(ctx, tx, "bbl_organization_assertions", "organization_id", orgID, "rels", "organization_source_id", "bbl_organization_sources", priorities); err != nil {
+			if err := autoPinRecord(ctx, tx, RecordTypeOrganization, orgID, priorities); err != nil {
 				return n, err
 			}
 		}
@@ -191,7 +192,7 @@ func (r *Repo) importOrganizationRecord(ctx context.Context, tx pgx.Tx, source s
 	}
 
 	// Auto-pin identifiers and titles (rels handled in phase 2).
-	if err := autoPinAllOrganization(ctx, tx, orgID, priorities); err != nil {
+	if err := autoPinRecord(ctx, tx, RecordTypeOrganization, orgID, priorities); err != nil {
 		return ID{}, ID{}, false, err
 	}
 

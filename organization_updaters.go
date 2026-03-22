@@ -24,7 +24,7 @@ func (m *CreateOrganization) apply(state updateState, user *User) (*updateEffect
 		status:     OrganizationStatusPublic,
 		kind:       m.Kind,
 		fields:     make(map[string]any),
-		assertions: make(map[string]*fieldState),
+		assertions: make(map[string][]assertion),
 	}
 	return &updateEffect{
 		recordType: RecordTypeOrganization,

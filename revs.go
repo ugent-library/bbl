@@ -20,17 +20,16 @@ type RevEffect struct {
 //
 // Flow:
 //  1. Parse updaters
-//  2. Collect needs → fetch state (lock rows + pinned field state → recordState)
+//  2. Collect needs → fetch state (lock rows + field state + source priorities → recordState)
 //  3. Apply all updaters (mutate recordState)
 //  4. If all noop → return (false, nil, nil)
 //  5. Validate (rs.fields + profile defs)
 //  6. Insert bbl_revs row
 //  7. Write all (field batch + lifecycle writes)
-//  8. Bump version + updated_at + updated_by_id for all existing affected records
-//  9. Auto-pin for affected grouping keys
-//  10. Rebuild cache for affected entities
-//  11. Commit
-//  12. Return (true, []RevEffect, nil)
+//  8. Lifecycle writes + version bumps + auto-pin UPDATEs (single batch)
+//  9. Rebuild cache for affected entities
+//  10. Commit
+//  11. Return (true, []RevEffect, nil)
 func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []RevEffect, error) {
 	// 1. Parse updaters.
 	muts := make([]updater, len(updates))
@@ -48,7 +47,7 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 	}
 	defer tx.Rollback(ctx)
 
-	// 2. Fetch state: lock rows + pinned field state → recordState.
+	// 2. Fetch state: lock rows + all assertion rows + source priorities.
 	var needs updateNeeds
 	for _, m := range muts {
 		n := m.needs()
@@ -124,7 +123,7 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// Lifecycle ops + version bumps go through a single batch.
+	// 8. Lifecycle ops + version bumps + auto-pin — single batch.
 	affected := make(map[ID]string) // id → recordType
 	for _, eff := range effects {
 		if eff != nil {
@@ -183,6 +182,23 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 			}
 		}
 
+		// Queue auto-pin UPDATEs.
+		// After executeFieldWrites, human assertions have been inserted/deleted.
+		// For Set/Hide: human assertion now exists → human wins.
+		// For Unset: human assertion deleted → re-evaluate from source assertions.
+		// The pre-fetched assertions (minus human rows for the affected fields,
+		// plus knowledge that Set/Hide created a human row) determine the outcome.
+		for _, eff := range effects {
+			if eff == nil || eff.autoPinField == "" {
+				continue
+			}
+			rs := state.records[eff.recordID]
+			if rs == nil {
+				continue
+			}
+			queueAutoPinForField(batch, eff.recordType, eff.recordID, eff.autoPinField)
+		}
+
 		if batch.Len() > 0 {
 			results := tx.SendBatch(ctx, batch)
 			for i := 0; i < batch.Len(); i++ {
@@ -197,30 +213,7 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 		}
 	}
 
-	// 9. Auto-pin.
-	hasAutoPin := false
-	for _, eff := range effects {
-		if eff != nil && eff.autoPin != nil {
-			hasAutoPin = true
-			break
-		}
-	}
-	if hasAutoPin {
-		priorities, err := fetchSourcePriorities(ctx, tx)
-		if err != nil {
-			return false, nil, fmt.Errorf("Update: %w", err)
-		}
-		for _, eff := range effects {
-			if eff == nil || eff.autoPin == nil {
-				continue
-			}
-			if err := eff.autoPin(ctx, tx, priorities); err != nil {
-				return false, nil, fmt.Errorf("Update: autoPin: %w", err)
-			}
-		}
-	}
-
-	// 10. Rebuild caches.
+	// 9. Rebuild caches.
 	if err := rebuildWorkCache(ctx, tx, changedWorkIDs); err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
@@ -234,12 +227,12 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 11. Commit.
+	// 10. Commit.
 	if err := tx.Commit(ctx); err != nil {
 		return false, nil, fmt.Errorf("Update: %w", err)
 	}
 
-	// 12. Return effects.
+	// 11. Return effects.
 	revEffects := make([]RevEffect, 0, len(affected))
 	for id, rt := range affected {
 		version := 1 // new entities
@@ -253,6 +246,45 @@ func (r *Repo) Update(ctx context.Context, user *User, updates ...any) (bool, []
 		})
 	}
 	return true, revEffects, nil
+}
+
+// queueAutoPinForField queues a pin UPDATE for a single field after a human edit.
+// Uses a SQL-only approach: the UPDATE itself determines the winner, so it
+// correctly reflects the post-write state (new human rows, deleted old ones).
+func queueAutoPinForField(batch *pgx.Batch, rt string, recordID ID, field string) {
+	// After a human edit (Set/Hide/Unset), the DB has the correct assertion rows.
+	// The auto-pin rule: human wins if exists, else highest-priority source.
+	// This single UPDATE evaluates the rule from the current DB state.
+	batch.Queue(fmt.Sprintf(
+		`UPDATE %s a
+		 SET pinned = CASE
+		     WHEN EXISTS (
+		         SELECT 1 FROM %s
+		         WHERE %s = $1 AND field = $2 AND user_id IS NOT NULL
+		     ) THEN a.user_id IS NOT NULL
+		     ELSE a.%s IS NOT DISTINCT FROM (
+		         SELECT sub.%s
+		         FROM %s sub
+		         JOIN %s st ON sub.%s = st.id
+		         JOIN bbl_sources s ON st.source_id = s.id
+		         WHERE sub.%s = $1 AND sub.field = $2
+		           AND sub.%s IS NOT NULL
+		         ORDER BY s.priority DESC
+		         LIMIT 1
+		     )
+		 END
+		 WHERE a.%s = $1 AND a.field = $2`,
+		assertionsTable(rt),
+		assertionsTable(rt),
+		entityIDCol(rt),
+		sourceIDCol(rt),
+		sourceIDCol(rt),
+		assertionsTable(rt),
+		sourceTable(rt), sourceIDCol(rt),
+		entityIDCol(rt),
+		sourceIDCol(rt),
+		entityIDCol(rt)),
+		recordID, field)
 }
 
 // fetchSourcePriorities reads all source priorities from bbl_sources.
@@ -274,14 +306,14 @@ func fetchSourcePriorities(ctx context.Context, tx pgx.Tx) (map[string]int, erro
 	return priorities, rows.Err()
 }
 
-// fetchState locks entity rows and fetches pinned field state in one pass.
-// Builds map[ID]*recordState with status, kind, version, and field values.
+// fetchState locks entity rows and fetches assertion state in batched round-trips.
+// Builds map[ID]*recordState with status, kind, version, field values, and all assertion rows.
 func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []updater) (updateState, error) {
 	state := updateState{
 		records: make(map[ID]*recordState),
 	}
 
-	// Phase 1: lock rows and build recordState stubs.
+	// Phase 1: lock rows + fetch source priorities (single batch).
 	type lockQuery struct {
 		rt  string
 		ids []ID
@@ -318,6 +350,9 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 		for _, lq := range lockQueries {
 			batch.Queue(lq.sql, lq.ids)
 		}
+		// Source priorities piggyback on the lock batch.
+		batch.Queue(`SELECT id, priority FROM bbl_sources`)
+
 		results := tx.SendBatch(ctx, batch)
 		for _, lq := range lockQueries {
 			rows, err := results.Query()
@@ -341,17 +376,37 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 					status:     status,
 					kind:       kind,
 					fields:     make(map[string]any),
-					assertions: make(map[string]*fieldState),
+					assertions: make(map[string][]assertion),
 				}
 			}
 			rows.Close()
 		}
+		// Consume source priorities.
+		pRows, err := results.Query()
+		if err != nil {
+			results.Close()
+			return state, fmt.Errorf("fetchState: priorities: %w", err)
+		}
+		state.priorities = make(map[string]int)
+		for pRows.Next() {
+			var id string
+			var p int
+			if err := pRows.Scan(&id, &p); err != nil {
+				pRows.Close()
+				results.Close()
+				return state, fmt.Errorf("fetchState: scan priority: %w", err)
+			}
+			state.priorities[id] = p
+		}
+		pRows.Close()
 		if err := results.Close(); err != nil {
 			return state, fmt.Errorf("fetchState: close lock: %w", err)
 		}
 	}
 
-	// Phase 2: fetch pinned assertion state for fields being updated.
+	// Phase 2: fetch all assertion rows for fields being updated.
+	// Fetches ALL assertions (not just pinned) so auto-pin can be computed
+	// without re-querying. Pinned values are decoded into rs.fields.
 	type entityKey struct {
 		rt string
 		id ID
@@ -380,9 +435,9 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 			ek      entityKey
 			fields  []string
 			joins   string
-			sel     string              // full SELECT clause
-			rrByFT  map[string]*rrInfo  // fieldType name → rrInfo (deduped by rr pointer)
-			rrOrder []*rrInfo           // insertion order for stable scan dest building
+			sel     string             // full SELECT clause
+			rrByFT  map[string]*rrInfo // fieldType name → rrInfo (deduped by rr pointer)
+			rrOrder []*rrInfo          // insertion order for stable scan dest building
 		}
 
 		batch := &pgx.Batch{}
@@ -394,6 +449,10 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 				fields: dedupStrings(fields),
 				rrByFT: make(map[string]*rrInfo),
 			}
+
+			// Source table join (for auto-pin source resolution).
+			qi.joins = fmt.Sprintf(" LEFT JOIN %s _st ON a.%s = _st.id",
+				sourceTable(ek.rt), sourceIDCol(ek.rt))
 
 			// Collect unique relations for the requested fields.
 			extraOffset := 0
@@ -417,12 +476,13 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 				qi.rrByFT[f] = ri
 			}
 
-			qi.sel = "a.field, a.val, a.hidden, a.user_id, a.role"
+			qi.sel = fmt.Sprintf("a.id, a.field, a.val, a.hidden, a.user_id, a.role, a.pinned, a.%s, _st.source",
+				sourceIDCol(ek.rt))
 			for _, c := range extraCols {
 				qi.sel += ", " + c
 			}
 			batch.Queue(fmt.Sprintf(
-				`SELECT %s FROM %s a%s WHERE a.%s = $1 AND a.field = ANY($2) AND a.pinned = true`,
+				`SELECT %s FROM %s a%s WHERE a.%s = $1 AND a.field = ANY($2)`,
 				qi.sel, assertionsTable(ek.rt), qi.joins, entityIDCol(ek.rt)),
 				ek.id, qi.fields)
 			queries = append(queries, qi)
@@ -439,22 +499,27 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 			rs := state.records[qi.ek.id]
 
 			type rawAssertion struct {
-				val       json.RawMessage
-				hidden    bool
-				userID    *ID
-				role      string
-				extraCols []any
+				id             int64
+				val            json.RawMessage
+				hidden         bool
+				userID         *ID
+				role           string
+				pinned         bool
+				sourceRecordID *ID
+				source         string
+				extraCols      []any
 			}
 			fieldRows := make(map[string][]rawAssertion)
 
 			for rows.Next() {
+				var ra rawAssertion
 				var field string
 				var valJSON json.RawMessage
-				var hidden bool
-				var uid pgtype.UUID
-				var rl pgtype.Text
+				var uid, srcRecID pgtype.UUID
+				var rl, sourceName pgtype.Text
+				var pinned, hidden bool
 
-				baseDests := []any{&field, &valJSON, &hidden, &uid, &rl}
+				baseDests := []any{&ra.id, &field, &valJSON, &hidden, &uid, &rl, &pinned, &srcRecID, &sourceName}
 
 				// Fresh scan destinations for extension columns, in JOIN order.
 				var extraDests []any
@@ -468,13 +533,23 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 					return state, fmt.Errorf("fetchState: scan assertion: %w", err)
 				}
 
-				ra := rawAssertion{val: valJSON, hidden: hidden, extraCols: extraDests}
+				ra.val = valJSON
+				ra.hidden = hidden
+				ra.pinned = pinned
+				ra.extraCols = extraDests
 				if uid.Valid {
 					id := ID(uid.Bytes)
 					ra.userID = &id
 				}
 				if rl.Valid {
 					ra.role = rl.String
+				}
+				if srcRecID.Valid {
+					id := ID(srcRecID.Bytes)
+					ra.sourceRecordID = &id
+				}
+				if sourceName.Valid {
+					ra.source = sourceName.String
 				}
 				fieldRows[field] = append(fieldRows[field], ra)
 			}
@@ -485,50 +560,69 @@ func fetchState(ctx context.Context, tx pgx.Tx, needs updateNeeds, muts []update
 			}
 
 			for field, raws := range fieldRows {
-				first := raws[0]
-				fs := &fieldState{
-					hidden: first.hidden,
-					userID: first.userID,
-					role:   first.role,
+				// Build assertion slice (all rows).
+				var fieldAssertions []assertion
+				for _, r := range raws {
+					fieldAssertions = append(fieldAssertions, assertion{
+						id:             r.id,
+						userID:         r.userID,
+						role:           r.role,
+						sourceRecordID: r.sourceRecordID,
+						source:         r.source,
+						pinned:         r.pinned,
+						hidden:         r.hidden,
+					})
 				}
+				rs.assertions[field] = fieldAssertions
 
-				if !first.hidden {
-					ft, err := resolveFieldType(qi.ek.rt, field)
-					if err == nil {
-						ri := qi.rrByFT[field] // nil for non-FK fields
-
-						if ft.collection {
-							parts := make([]json.RawMessage, len(raws))
-							for i, r := range raws {
-								v := r.val
-								if ri != nil {
-									v = ri.rr.enrichVal(v, r.extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
-								}
-								parts[i] = v
-							}
-							arrJSON, err := json.Marshal(parts)
-							if err == nil {
-								val, err := ft.unmarshal(json.RawMessage(arrJSON))
-								if err == nil {
-									fs.val = val
-									rs.fields[field] = val
-								}
-							}
-						} else {
-							v := raws[0].val
-							if ri != nil {
-								v = ri.rr.enrichVal(v, raws[0].extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
-							}
-							val, err := ft.unmarshal(v)
-							if err == nil {
-								fs.val = val
-								rs.fields[field] = val
-							}
-						}
+				// Decode pinned values into rs.fields (only pinned rows).
+				var pinnedRaws []rawAssertion
+				for _, r := range raws {
+					if r.pinned {
+						pinnedRaws = append(pinnedRaws, r)
 					}
 				}
+				if len(pinnedRaws) == 0 {
+					continue
+				}
 
-				rs.assertions[field] = fs
+				first := pinnedRaws[0]
+				if first.hidden {
+					continue
+				}
+
+				ft, err := resolveFieldType(qi.ek.rt, field)
+				if err != nil {
+					continue
+				}
+				ri := qi.rrByFT[field] // nil for non-FK fields
+
+				if ft.collection {
+					parts := make([]json.RawMessage, len(pinnedRaws))
+					for i, r := range pinnedRaws {
+						v := r.val
+						if ri != nil {
+							v = ri.rr.enrichVal(v, r.extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
+						}
+						parts[i] = v
+					}
+					arrJSON, err := json.Marshal(parts)
+					if err == nil {
+						val, err := ft.unmarshal(json.RawMessage(arrJSON))
+						if err == nil {
+							rs.fields[field] = val
+						}
+					}
+				} else {
+					v := pinnedRaws[0].val
+					if ri != nil {
+						v = ri.rr.enrichVal(v, pinnedRaws[0].extraCols[ri.offset:ri.offset+len(ri.rr.cols)])
+					}
+					val, err := ft.unmarshal(v)
+					if err == nil {
+						rs.fields[field] = val
+					}
+				}
 			}
 		}
 		if err := results.Close(); err != nil {

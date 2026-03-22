@@ -5,8 +5,7 @@
 
 - [ ] Generalize import (use same record and field defs as Update and same validation)
 - [ ] Get rid of field catalog (dynamic fields)
-- [ ] Auto-pin doesn't partake in sql batching
-- [ ] Union pinning: autoPinUnion + field catalog declaring union fields (identifiers, classifications)
+- [ ] Union pinning: resolveUnionPin + field catalog declaring union fields (identifiers, classifications); Update path queueAutoPinForField needs Go-side strategy when union is added
 - [ ] Auto-pin integration tests (human > source, exclusive + union collections)
 - [ ] Review/lock mechanism: explicit curator endorsement (separate from assertion)
 - [ ] Candidates

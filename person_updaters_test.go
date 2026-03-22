@@ -26,7 +26,7 @@ func TestDeletePerson_Apply(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypePerson, id: id, version: 1, status: PersonStatusPublic,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeletePerson{PersonID: id}
@@ -43,7 +43,7 @@ func TestDeletePerson_AlreadyDeleted(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypePerson, id: id, version: 2, status: PersonStatusDeleted,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeletePerson{PersonID: id}

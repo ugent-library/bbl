@@ -17,7 +17,7 @@ func (m *CreatePerson) apply(state updateState, user *User) (*updateEffect, erro
 		id:         m.ID,
 		status:     PersonStatusPublic,
 		fields:     make(map[string]any),
-		assertions: make(map[string]*fieldState),
+		assertions: make(map[string][]assertion),
 	}
 	return &updateEffect{
 		recordType: RecordTypePerson,

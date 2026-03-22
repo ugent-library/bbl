@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // refSubquery builds the subquery part of a ref resolution.
@@ -98,54 +99,62 @@ func resolvePersonRef(ctx context.Context, tx pgx.Tx, ref Ref, source string) (*
 	return p, nil
 }
 
-// autoPinAll runs auto-pin for all fields of an entity.
-// Gets distinct fields from the assertions table and calls autoPin for each.
-func autoPinAll(ctx context.Context, tx pgx.Tx, assertionsTable, entityIDCol string, entityID ID, sourceIDCol, sourceTable string, priorities map[string]int) error {
-	fields, err := distinctValues(ctx, tx, assertionsTable, "field", entityIDCol, entityID)
-	if err != nil {
-		return err
-	}
-	for _, f := range fields {
-		if err := autoPin(ctx, tx, assertionsTable, entityIDCol, entityID, f, sourceIDCol, sourceTable, priorities); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func autoPinAllWork(ctx context.Context, tx pgx.Tx, workID ID, priorities map[string]int) error {
-	return autoPinAll(ctx, tx, "bbl_work_assertions", "work_id", workID, "work_source_id", "bbl_work_sources", priorities)
-}
-
-func autoPinAllPerson(ctx context.Context, tx pgx.Tx, personID ID, priorities map[string]int) error {
-	return autoPinAll(ctx, tx, "bbl_person_assertions", "person_id", personID, "person_source_id", "bbl_person_sources", priorities)
-}
-
-func autoPinAllProject(ctx context.Context, tx pgx.Tx, projectID ID, priorities map[string]int) error {
-	return autoPinAll(ctx, tx, "bbl_project_assertions", "project_id", projectID, "project_source_id", "bbl_project_sources", priorities)
-}
-
-func autoPinAllOrganization(ctx context.Context, tx pgx.Tx, orgID ID, priorities map[string]int) error {
-	return autoPinAll(ctx, tx, "bbl_organization_assertions", "organization_id", orgID, "organization_source_id", "bbl_organization_sources", priorities)
-}
-
-// distinctValues returns the distinct values of a column for an entity.
-func distinctValues(ctx context.Context, tx pgx.Tx, table, col, entityIDCol string, entityID ID) ([]string, error) {
+// autoPinRecord evaluates auto-pin for all fields of a record.
+// One SELECT to fetch all assertion rows, then batched UPDATEs.
+func autoPinRecord(ctx context.Context, tx pgx.Tx, rt string, recordID ID, priorities map[string]int) error {
 	rows, err := tx.Query(ctx, fmt.Sprintf(
-		`SELECT DISTINCT %s FROM %s WHERE %s = $1`, col, table, entityIDCol), entityID)
+		`SELECT a.id, a.field, a.user_id, a.%s, a.pinned, st.source
+		 FROM %s a
+		 LEFT JOIN %s st ON a.%s = st.id
+		 WHERE a.%s = $1`,
+		sourceIDCol(rt), assertionsTable(rt), sourceTable(rt), sourceIDCol(rt), entityIDCol(rt)),
+		recordID)
 	if err != nil {
-		return nil, fmt.Errorf("distinctValues: %w", err)
+		return fmt.Errorf("autoPinRecord: %w", err)
 	}
 	defer rows.Close()
-	var vals []string
+
+	byField := make(map[string][]assertion)
 	for rows.Next() {
-		var v string
-		if err := rows.Scan(&v); err != nil {
-			return nil, fmt.Errorf("distinctValues: %w", err)
+		var a assertion
+		var field string
+		var uid, srcRecID pgtype.UUID
+		var source pgtype.Text
+		if err := rows.Scan(&a.id, &field, &uid, &srcRecID, &a.pinned, &source); err != nil {
+			return fmt.Errorf("autoPinRecord: %w", err)
 		}
-		vals = append(vals, v)
+		if uid.Valid {
+			id := ID(uid.Bytes)
+			a.userID = &id
+		}
+		if srcRecID.Valid {
+			id := ID(srcRecID.Bytes)
+			a.sourceRecordID = &id
+		}
+		if source.Valid {
+			a.source = source.String
+		}
+		byField[field] = append(byField[field], a)
 	}
-	return vals, rows.Err()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("autoPinRecord: %w", err)
+	}
+
+	batch := &pgx.Batch{}
+	for _, fieldAssertions := range byField {
+		queuePinUpdates(batch, rt, fieldAssertions, priorities)
+	}
+	if batch.Len() == 0 {
+		return nil
+	}
+	results := tx.SendBatch(ctx, batch)
+	for i := 0; i < batch.Len(); i++ {
+		if _, err := results.Exec(); err != nil {
+			results.Close()
+			return fmt.Errorf("autoPinRecord: %w", err)
+		}
+	}
+	return results.Close()
 }
 
 // deleteSourceAssertions deletes all assertions linked to a source record.

@@ -7,7 +7,7 @@ type recordState struct {
 	id         ID
 	version    int
 	status     string
-	kind       string              // empty for person, project
-	fields     map[string]any      // current pinned field values
-	assertions map[string]*fieldState
+	kind       string                   // empty for person, project
+	fields     map[string]any           // decoded pinned field values
+	assertions map[string][]assertion   // all assertion rows per field
 }

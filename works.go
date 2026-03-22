@@ -154,7 +154,7 @@ func (r *Repo) importWorkRecord(ctx context.Context, tx pgx.Tx, source string, i
 	}
 
 	// Auto-pin all grouping keys.
-	if err := autoPinAllWork(ctx, tx, workID, priorities); err != nil {
+	if err := autoPinRecord(ctx, tx, RecordTypeWork, workID, priorities); err != nil {
 		return ID{}, false, err
 	}
 

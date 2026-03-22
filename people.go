@@ -145,7 +145,7 @@ func (r *Repo) importPersonRecord(ctx context.Context, tx pgx.Tx, source string,
 	}
 
 	// Auto-pin all grouping keys.
-	if err := autoPinAllPerson(ctx, tx, personID, priorities); err != nil {
+	if err := autoPinRecord(ctx, tx, RecordTypePerson, personID, priorities); err != nil {
 		return ID{}, false, err
 	}
 

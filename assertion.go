@@ -1,113 +1,95 @@
 package bbl
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type autoPinRow struct {
+// assertion holds metadata for a single assertion row.
+// Used both for pin computation and for noop/curator-lock checks.
+type assertion struct {
 	id             int64
-	human          bool
+	userID         *ID
+	role           string
 	sourceRecordID *ID
 	source         string
 	pinned         bool
+	hidden         bool
 }
 
-// autoPin evaluates the auto-pin rule for a field on an entity.
-//
-// All assertions for the winning asserter are pinned (exclusive mode).
-// For scalars (one row per asserter), this pins exactly one row.
-// For collections (multiple rows per asserter), all items from the winner are pinned.
-//
-// Priority: human > source by priority. One human assertion per field
-// (replace semantics), so no role comparison needed among humans.
-func autoPin(ctx context.Context, tx pgx.Tx, assertionsTable, entityIDCol string, entityID ID, field, sourceIDCol, sourceTable string, priorities map[string]int) error {
-	rows, err := tx.Query(ctx, fmt.Sprintf(
-		`SELECT a.id, a.user_id, a.%s, a.pinned, st.source
-		 FROM %s a
-		 LEFT JOIN %s st ON a.%s = st.id
-		 WHERE a.%s = $1 AND a.field = $2`,
-		sourceIDCol, assertionsTable, sourceTable, sourceIDCol, entityIDCol,
-	), entityID, field)
-	if err != nil {
-		return fmt.Errorf("autoPin: %w", err)
-	}
-	defer rows.Close()
-
-	var assertions []autoPinRow
-	for rows.Next() {
-		var r autoPinRow
-		var userID, srcRecID pgtype.UUID
-		var source pgtype.Text
-		if err := rows.Scan(&r.id, &userID, &srcRecID, &r.pinned, &source); err != nil {
-			return fmt.Errorf("autoPin: %w", err)
+// firstPinned returns the first pinned assertion, or nil.
+// For exclusive pin, all pinned rows share the same asserter,
+// so any pinned row is representative.
+func firstPinned(assertions []assertion) *assertion {
+	for i, a := range assertions {
+		if a.pinned {
+			return &assertions[i]
 		}
-		r.human = userID.Valid
-		if srcRecID.Valid {
-			id := ID(srcRecID.Bytes)
-			r.sourceRecordID = &id
-		}
-		if source.Valid {
-			r.source = source.String
-		}
-		assertions = append(assertions, r)
 	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("autoPin: %w", err)
-	}
-
-	if len(assertions) == 0 {
-		return nil
-	}
-
-	// Pin all rows from the winning asserter.
-	// For scalars (one row per asserter), this pins exactly one row.
-	// For collections (multiple rows per asserter), all items from the winner are pinned.
-	return autoPinExclusive(ctx, tx, assertionsTable, assertions, priorities)
+	return nil
 }
 
-// autoPinExclusive pins all items from the winning asserter.
-// Winner: human (if exists), else highest-priority source.
-func autoPinExclusive(ctx context.Context, tx pgx.Tx, assertionsTable string, assertions []autoPinRow, priorities map[string]int) error {
-	// Find the winning asserter.
-	// For humans: user_id IS NOT NULL (only one human per field).
-	// For sources: pick the source with highest priority.
+// firstHuman returns the first human assertion (pinned or not), or nil.
+func firstHuman(assertions []assertion) *assertion {
+	for i, a := range assertions {
+		if a.userID != nil {
+			return &assertions[i]
+		}
+	}
+	return nil
+}
+
+// resolveExclusivePin returns the desired pinned state for each assertion.
+// Rule: if any human assertion exists, pin all human rows;
+// else pin all rows from the highest-priority source.
+func resolveExclusivePin(assertions []assertion, priorities map[string]int) []bool {
+	result := make([]bool, len(assertions))
+
 	hasHuman := false
 	var winnerSourceRecordID *ID
-	bestSourcePriority := -1
+	bestPriority := -1
 
 	for _, a := range assertions {
-		if a.human {
+		if a.userID != nil {
 			hasHuman = true
 			break
 		}
 		if a.sourceRecordID != nil {
-			sp := priorities[a.source]
-			if sp > bestSourcePriority {
-				bestSourcePriority = sp
+			p := priorities[a.source]
+			if p > bestPriority {
+				bestPriority = p
 				winnerSourceRecordID = a.sourceRecordID
 			}
 		}
 	}
 
-	for _, a := range assertions {
-		var shouldPin bool
+	for i, a := range assertions {
 		if hasHuman {
-			shouldPin = a.human
+			result[i] = a.userID != nil
 		} else {
-			shouldPin = a.sourceRecordID != nil && winnerSourceRecordID != nil && *a.sourceRecordID == *winnerSourceRecordID
-		}
-		if a.pinned == shouldPin {
-			continue
-		}
-		if _, err := tx.Exec(ctx, fmt.Sprintf(
-			`UPDATE %s SET pinned = $1 WHERE id = $2`, assertionsTable,
-		), shouldPin, a.id); err != nil {
-			return fmt.Errorf("autoPinExclusive: %w", err)
+			result[i] = a.sourceRecordID != nil &&
+				winnerSourceRecordID != nil &&
+				*a.sourceRecordID == *winnerSourceRecordID
 		}
 	}
-	return nil
+
+	return result
+}
+
+// queuePinUpdates computes the desired pin state and queues UPDATE statements
+// into the batch for any rows that need to change.
+func queuePinUpdates(batch *pgx.Batch, rt string, assertions []assertion, priorities map[string]int) {
+	if len(assertions) == 0 {
+		return
+	}
+	desired := resolveExclusivePin(assertions, priorities)
+	table := assertionsTable(rt)
+	for i, a := range assertions {
+		if a.pinned != desired[i] {
+			batch.Queue(fmt.Sprintf(
+				`UPDATE %s SET pinned = $1 WHERE id = $2`, table),
+				desired[i], a.id)
+		}
+	}
 }

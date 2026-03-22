@@ -59,7 +59,7 @@ func TestDeleteWork_Apply(t *testing.T) {
 			status:     WorkStatusPublic,
 			kind:       "journal_article",
 			fields:     make(map[string]any),
-			assertions: make(map[string]*fieldState),
+			assertions: make(map[string][]assertion),
 		},
 	}}
 
@@ -89,7 +89,7 @@ func TestDeleteWork_AlreadyDeleted(t *testing.T) {
 			status:     WorkStatusDeleted,
 			kind:       "journal_article",
 			fields:     make(map[string]any),
-			assertions: make(map[string]*fieldState),
+			assertions: make(map[string][]assertion),
 		},
 	}}
 

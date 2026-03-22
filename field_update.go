@@ -1,10 +1,7 @@
 package bbl
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // Set asserts a value for a field. Generic — works for any entity and field.
@@ -38,8 +35,8 @@ func (m *Set) apply(state updateState, user *User) (*updateEffect, error) {
 
 	// Curator lock.
 	if rs != nil {
-		if fs := rs.assertions[m.Field]; fs != nil {
-			if user.Role != "curator" && fs.userID != nil && fs.role == "curator" {
+		if p := firstPinned(rs.assertions[m.Field]); p != nil {
+			if user.Role != "curator" && p.userID != nil && p.role == "curator" {
 				return nil, ErrCuratorLock
 			}
 		}
@@ -51,15 +48,9 @@ func (m *Set) apply(state updateState, user *User) (*updateEffect, error) {
 	}
 
 	return &updateEffect{
-		recordType: m.RecordType,
-		recordID:   m.RecordID,
-		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx,
-				assertionsTable(m.RecordType), entityIDCol(m.RecordType),
-				m.RecordID, m.Field,
-				sourceIDCol(m.RecordType), sourceTable(m.RecordType),
-				priorities)
-		},
+		recordType:   m.RecordType,
+		recordID:     m.RecordID,
+		autoPinField: m.Field,
 	}, nil
 }
 
@@ -87,13 +78,13 @@ func (m *Hide) apply(state updateState, user *User) (*updateEffect, error) {
 
 	rs := state.records[m.RecordID]
 	if rs != nil {
-		if fs := rs.assertions[m.Field]; fs != nil {
+		if p := firstPinned(rs.assertions[m.Field]); p != nil {
 			// Noop: already hidden.
-			if fs.hidden {
+			if p.hidden {
 				return nil, nil
 			}
 			// Curator lock.
-			if user.Role != "curator" && fs.userID != nil && fs.role == "curator" {
+			if user.Role != "curator" && p.userID != nil && p.role == "curator" {
 				return nil, ErrCuratorLock
 			}
 		}
@@ -101,15 +92,9 @@ func (m *Hide) apply(state updateState, user *User) (*updateEffect, error) {
 	}
 
 	return &updateEffect{
-		recordType: m.RecordType,
-		recordID:   m.RecordID,
-		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx,
-				assertionsTable(m.RecordType), entityIDCol(m.RecordType),
-				m.RecordID, m.Field,
-				sourceIDCol(m.RecordType), sourceTable(m.RecordType),
-				priorities)
-		},
+		recordType:   m.RecordType,
+		recordID:     m.RecordID,
+		autoPinField: m.Field,
 	}, nil
 }
 
@@ -141,28 +126,22 @@ func (m *Unset) apply(state updateState, user *User) (*updateEffect, error) {
 	if rs == nil {
 		return nil, nil
 	}
-	fs := rs.assertions[m.Field]
-	if fs == nil || fs.userID == nil {
+	h := firstHuman(rs.assertions[m.Field])
+	if h == nil {
 		return nil, nil
 	}
 
 	// Curator lock.
-	if user.Role != "curator" && fs.role == "curator" {
+	if user.Role != "curator" && h.role == "curator" {
 		return nil, ErrCuratorLock
 	}
 
 	delete(rs.fields, m.Field)
 
 	return &updateEffect{
-		recordType: m.RecordType,
-		recordID:   m.RecordID,
-		autoPin: func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error {
-			return autoPin(ctx, tx,
-				assertionsTable(m.RecordType), entityIDCol(m.RecordType),
-				m.RecordID, m.Field,
-				sourceIDCol(m.RecordType), sourceTable(m.RecordType),
-				priorities)
-		},
+		recordType:   m.RecordType,
+		recordID:     m.RecordID,
+		autoPinField: m.Field,
 	}, nil
 }
 
@@ -242,11 +221,3 @@ func sourceTable(rt string) string {
 	}
 	return ""
 }
-
-type fieldState struct {
-	val    any
-	hidden bool
-	userID *ID
-	role   string
-}
-

@@ -32,7 +32,7 @@ func TestDeleteOrganization_Apply(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypeOrganization, id: id, version: 1, kind: "department", status: OrganizationStatusPublic,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeleteOrganization{OrganizationID: id}
@@ -49,7 +49,7 @@ func TestDeleteOrganization_AlreadyDeleted(t *testing.T) {
 	id := newID()
 	state := updateState{records: map[ID]*recordState{
 		id: {recordType: RecordTypeOrganization, id: id, version: 2, kind: "department", status: OrganizationStatusDeleted,
-			fields: make(map[string]any), assertions: make(map[string]*fieldState)},
+			fields: make(map[string]any), assertions: make(map[string][]assertion)},
 	}}
 
 	m := &DeleteOrganization{OrganizationID: id}

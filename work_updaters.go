@@ -23,7 +23,7 @@ func (m *CreateWork) apply(state updateState, user *User) (*updateEffect, error)
 		status:     m.Status,
 		kind:       m.Kind,
 		fields:     make(map[string]any),
-		assertions: make(map[string]*fieldState),
+		assertions: make(map[string][]assertion),
 	}
 	return &updateEffect{
 		recordType: RecordTypeWork,

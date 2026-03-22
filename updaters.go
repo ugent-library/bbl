@@ -1,11 +1,5 @@
 package bbl
 
-import (
-	"context"
-
-	"github.com/jackc/pgx/v5"
-)
-
 // Record type discriminators for entity types.
 const (
 	RecordTypeOrganization = "organization"
@@ -27,9 +21,9 @@ type updater interface {
 
 // updateEffect is what apply returns for non-noop updates.
 type updateEffect struct {
-	recordType string
-	recordID   ID
-	autoPin    func(ctx context.Context, tx pgx.Tx, priorities map[string]int) error
+	recordType   string
+	recordID     ID
+	autoPinField string // non-empty for field ops that need auto-pin
 }
 
 // updateNeeds declares what existing state must be pre-fetched.
@@ -42,5 +36,6 @@ type updateNeeds struct {
 
 // updateState holds pre-fetched state for a batch of updates.
 type updateState struct {
-	records map[ID]*recordState
+	records    map[ID]*recordState
+	priorities map[string]int // source name → priority
 }
